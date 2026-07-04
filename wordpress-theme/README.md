@@ -39,10 +39,21 @@ Ajouter**.
 - **Apparence → Personnaliser → Newsletter** : colle ta clé API Buttondown
   (créée sur buttondown.email → Réglages → Emails sortants → API Key) pour
   activer réellement les inscriptions à la newsletter.
+- **Apparence → Personnaliser → Couleurs du thème** :
+  - Couleur d'accent (boutons, liens, pastilles — or champagne par défaut)
+    et couleur de fond, modifiables sans toucher au code, avec aperçu en
+    direct dans le Customizer.
+  - Mode sombre automatique : désactivé par défaut (le site garde ses
+    couleurs claires même pour les visiteurs en mode sombre). Cochable si
+    tu veux le réactiver.
 - **Apparence → Personnaliser → Page d'accueil** :
   - Bandeau d'annonce (à activer + texte libre).
-  - Emplacement publicitaire sur l'accueil (à activer + coller le code de ta
-    régie, ex. le snippet `<ins class="adsbygoogle">` d'une unité AdSense).
+  - Emplacement publicitaire sur l'accueil : il ne s'affiche que si la case
+    est cochée ET qu'un code d'annonce est collé dans le champ. Crée une
+    "unité publicitaire" dans AdSense (Annonces → Par bloc d'annonces) et
+    colle le snippet `<ins class="adsbygoogle">…` fourni. Tant que Google
+    n'a pas validé le site (quelques jours après l'installation du code),
+    l'emplacement peut rester vide même bien configuré.
   - L'identifiant client AdSense (`ca-pub-...`) est pré-rempli avec le tien ;
     le script AdSense est chargé automatiquement sur tout le site (requis
     par Google, avec ou sans emplacement manuel activé).

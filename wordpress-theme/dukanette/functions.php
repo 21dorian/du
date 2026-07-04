@@ -21,3 +21,4 @@ require_once DUKANETTE_DIR . '/inc/auth.php';
 require_once DUKANETTE_DIR . '/inc/daily.php';
 require_once DUKANETTE_DIR . '/inc/announcements.php';
 require_once DUKANETTE_DIR . '/inc/views.php';
+require_once DUKANETTE_DIR . '/inc/customizer-colors.php';
