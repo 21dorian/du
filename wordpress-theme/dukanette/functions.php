@@ -18,3 +18,5 @@ require_once DUKANETTE_DIR . '/inc/content-filters.php';
 require_once DUKANETTE_DIR . '/inc/favorites.php';
 require_once DUKANETTE_DIR . '/inc/newsletter.php';
 require_once DUKANETTE_DIR . '/inc/auth.php';
+require_once DUKANETTE_DIR . '/inc/daily.php';
+require_once DUKANETTE_DIR . '/inc/announcements.php';

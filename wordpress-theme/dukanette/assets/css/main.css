@@ -337,6 +337,89 @@ a {
 }
 
 /* ==========================================================================
+   Announcement banner
+   ========================================================================== */
+.announcement-banner {
+  background: var(--accent);
+  color: var(--accent-foreground);
+}
+.announcement-banner .wrap {
+  padding: 0.75rem 1.25rem;
+  font-size: 0.9rem;
+  text-align: center;
+}
+.announcement-banner p {
+  margin: 0;
+}
+.announcement-banner a {
+  color: inherit;
+  text-decoration: underline;
+}
+
+/* ==========================================================================
+   Daily section (menu du jour / astuce du jour)
+   ========================================================================== */
+.daily-label {
+  margin: 0 0 0.75rem;
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--accent);
+}
+
+.daily-grid {
+  display: grid;
+  gap: 1.5rem;
+  grid-template-columns: 1fr;
+}
+
+.daily-menu .post-grid {
+  grid-template-columns: repeat(2, 1fr);
+}
+
+.daily-tip {
+  border-radius: 1.25rem;
+  background: var(--accent-soft);
+  padding: 1.5rem;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+.daily-tip-text {
+  margin: 0;
+  font-family: var(--font-heading);
+  font-size: 1.15rem;
+  line-height: 1.5;
+}
+
+@media (min-width: 1024px) {
+  .daily-grid {
+    grid-template-columns: 2fr 1fr;
+    align-items: stretch;
+  }
+}
+
+/* ==========================================================================
+   Ad slot
+   ========================================================================== */
+.ad-slot {
+  margin-bottom: 3rem;
+  padding: 1.25rem;
+  border: 1px dashed var(--border);
+  border-radius: 1rem;
+  text-align: center;
+}
+.ad-slot-label {
+  margin: 0 0 0.75rem;
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--muted);
+}
+
+/* ==========================================================================
    Post grid + card
    ========================================================================== */
 .post-grid {

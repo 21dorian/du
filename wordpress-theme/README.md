@@ -37,6 +37,15 @@ Ajouter**.
 - **Apparence → Personnaliser → Newsletter** : colle ta clé API Buttondown
   (créée sur buttondown.email → Réglages → Emails sortants → API Key) pour
   activer réellement les inscriptions à la newsletter.
+- **Apparence → Personnaliser → Page d'accueil** :
+  - Bandeau d'annonce (à activer + texte libre).
+  - Emplacement publicitaire sur l'accueil (à activer + coller le code de ta
+    régie, ex. le snippet `<ins class="adsbygoogle">` d'une unité AdSense).
+  - L'identifiant client AdSense (`ca-pub-...`) est pré-rempli avec le tien ;
+    le script AdSense est chargé automatiquement sur tout le site (requis
+    par Google, avec ou sans emplacement manuel activé).
+  - Astuces du jour : une astuce par ligne, affichée en rotation quotidienne
+    dans le bloc "Aujourd'hui" — une liste de départ est déjà fournie.
 
 ## Ce que le thème gère
 
@@ -50,6 +59,9 @@ Ajouter**.
 - Favoris : cœur cliquable sur chaque recette, stocké en usermeta (pas de
   table supplémentaire), page "Mes favoris".
 - Newsletter : formulaire AJAX côté thème, appel serveur vers Buttondown.
+- Page d'accueil "vivante" : bandeau d'annonce, menu du jour (une recette
+  sucrée + une salée tirées automatiquement, change chaque jour à minuit),
+  astuce du jour, emplacement publicitaire, derniers articles.
 
 ## Point de sécurité (rappel)
 
