@@ -132,6 +132,50 @@ $ad_code = get_option('dukanette_ad_code');
         </div>
     </section>
 
+    <?php
+    $popular = dukanette_get_popular_posts(4);
+    if ($popular->have_posts()) :
+        $rank = 0;
+        ?>
+        <section class="section wrap popular-section">
+            <div class="section-header">
+                <div>
+                    <p class="eyebrow"><?php esc_html_e('Le palmarès des lectrices', 'dukanette'); ?></p>
+                    <h2 class="section-title"><?php esc_html_e('Les plus consultées', 'dukanette'); ?></h2>
+                </div>
+                <?php if (get_page_by_path('populaires')) : ?>
+                    <a href="<?php echo esc_url(dukanette_page_url('populaires')); ?>" class="section-link"><?php esc_html_e('Tout le palmarès', 'dukanette'); ?> →</a>
+                <?php endif; ?>
+            </div>
+            <ol class="popular-list">
+                <?php while ($popular->have_posts()) : $popular->the_post(); $rank++; ?>
+                    <li class="popular-item">
+                        <span class="popular-rank" aria-hidden="true"><?php echo esc_html(str_pad((string) $rank, 2, '0', STR_PAD_LEFT)); ?></span>
+                        <a href="<?php the_permalink(); ?>" class="popular-thumb" aria-hidden="true" tabindex="-1">
+                            <?php if (has_post_thumbnail()) : ?>
+                                <?php the_post_thumbnail('thumbnail', ['loading' => 'lazy']); ?>
+                            <?php else : ?>
+                                <span class="popular-thumb-fallback">🍰</span>
+                            <?php endif; ?>
+                        </a>
+                        <div class="popular-body">
+                            <h3 class="popular-title"><a href="<?php the_permalink(); ?>"><?php the_title(); ?></a></h3>
+                            <p class="popular-meta">
+                                <?php
+                                $views = dukanette_get_views(get_the_ID());
+                                printf(
+                                    esc_html(_n('%s lecture', '%s lectures', $views, 'dukanette')),
+                                    esc_html(number_format_i18n($views))
+                                );
+                                ?>
+                            </p>
+                        </div>
+                    </li>
+                <?php endwhile; wp_reset_postdata(); ?>
+            </ol>
+        </section>
+    <?php endif; ?>
+
     <section class="newsletter-band">
         <div class="wrap newsletter-band-inner">
             <div>

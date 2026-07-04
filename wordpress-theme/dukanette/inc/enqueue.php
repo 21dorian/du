@@ -6,7 +6,7 @@ if (!defined('ABSPATH')) {
 function dukanette_enqueue_assets() {
     wp_enqueue_style(
         'dukanette-fonts',
-        'https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400..700;1,9..144,400..700&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap',
+        'https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;0,700;1,400;1,500;1,600&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap',
         [],
         null
     );

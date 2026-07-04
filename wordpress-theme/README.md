@@ -23,6 +23,8 @@ le site (`login`, `register`, `lostpassword`, `resetpass`, `logout`,
 
 - Une page avec le slug **`favoris`** (titre libre, ex. "Mes favoris",
   contenu vide — le template s'occupe de tout).
+- Une page avec le slug **`populaires`** (ex. "Les plus consultées",
+  contenu vide) pour la page du palmarès des recettes les plus lues.
 
 Si une page manque, WordPress affichera cette route avec le template par
 défaut plutôt que le design du thème — crée-la simplement dans **Pages →
@@ -62,6 +64,12 @@ Ajouter**.
 - Page d'accueil "vivante" : bandeau d'annonce, menu du jour (une recette
   sucrée + une salée tirées automatiquement, change chaque jour à minuit),
   astuce du jour, emplacement publicitaire, derniers articles.
+- Compteur de lectures intégré (post meta, sans plugin ni table en plus ;
+  les visites des comptes éditeurs/admins ne comptent pas) : section
+  "Les plus consultées" sur l'accueil + page palmarès (`populaires`),
+  nombre de lectures affiché sur chaque recette.
+- Sur chaque recette : navigation "recette précédente / suivante" et bloc
+  "Tu aimeras aussi" (3 recettes de la même catégorie).
 
 ## Point de sécurité (rappel)
 
