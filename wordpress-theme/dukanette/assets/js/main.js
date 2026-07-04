@@ -43,8 +43,7 @@
       });
   });
 
-  var newsletterForm = document.querySelector(".newsletter-form");
-  if (newsletterForm) {
+  document.querySelectorAll(".newsletter-form").forEach(function (newsletterForm) {
     newsletterForm.addEventListener("submit", function (event) {
       event.preventDefault();
       var emailInput = newsletterForm.querySelector('input[type="email"]');
@@ -84,5 +83,5 @@
           button.disabled = false;
         });
     });
-  }
+  });
 })();

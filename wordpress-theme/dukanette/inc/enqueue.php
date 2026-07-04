@@ -4,7 +4,13 @@ if (!defined('ABSPATH')) {
 }
 
 function dukanette_enqueue_assets() {
-    wp_enqueue_style('dukanette-main', DUKANETTE_URI . '/assets/css/main.css', [], DUKANETTE_VERSION);
+    wp_enqueue_style(
+        'dukanette-fonts',
+        'https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400..700;1,9..144,400..700&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap',
+        [],
+        null
+    );
+    wp_enqueue_style('dukanette-main', DUKANETTE_URI . '/assets/css/main.css', ['dukanette-fonts'], DUKANETTE_VERSION);
     wp_enqueue_script('dukanette-main', DUKANETTE_URI . '/assets/js/main.js', [], DUKANETTE_VERSION, true);
 
     wp_localize_script('dukanette-main', 'dukanetteData', [
@@ -19,3 +25,9 @@ function dukanette_enqueue_assets() {
     }
 }
 add_action('wp_enqueue_scripts', 'dukanette_enqueue_assets');
+
+function dukanette_font_preconnect() {
+    echo '<link rel="preconnect" href="https://fonts.googleapis.com">' . "\n";
+    echo '<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>' . "\n";
+}
+add_action('wp_head', 'dukanette_font_preconnect', 1);
