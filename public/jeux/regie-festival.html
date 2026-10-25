@@ -1854,7 +1854,7 @@ button:focus-visible,input:focus-visible{outline:3px solid var(--lime);outline-o
       merch: { stock: 1500, price: 30, unit: 9 },
       bar: { happy: { on: false, from: T0.open + 2, to: T0.open + 4, pct: 30 }, deals: { pintSoft: true, bucket: true, tokens: false, vipBottle: true }, hawkers: 0 },
       lockers: { on: true, price: 5 }, topup: { refund: true }, app: false, minors: { ageBracelet: true, idCheck: true }, foodPrice: 1,
-      sponsors: [], campaigns: [], vol: { n: 0, shift: 6, meals: true }, builder: "std", buildDays: 3, scenario: "free", autoOrder: true, autoBarmen: true };
+      sponsors: [], campaigns: [], riv: { meeting: false, comp: false }, vol: { n: 0, shift: 6, meals: true }, builder: "std", buildDays: 3, scenario: "free", autoOrder: true, autoBarmen: true };
     D.PRODUCTS.forEach(function (p) { ev.prices[p.k] = p.ref; ev.on[p.k] = !p.cold || D.CLIMATE.t[ev.month] < 12; });
     return ev;
   };
@@ -1911,6 +1911,10 @@ button:focus-visible,input:focus-visible{outline:3px solid var(--lime);outline-o
     if (k === "nye") { ev.staff.secuStage = Math.round(ev.staff.secuStage * 0.5); ev.staff.stewards = Math.max(2, Math.round(ev.staff.stewards * 0.5)); ev.stock.crate = Math.round(ev.stock.crate * 0.8); }
     if (k === "city") { ev.tech.db = 105; ev.staff.cleaners = 1; }
   };
+  // assistant de montage : le plan proposé est rangé par étapes et posé quand le joueur valide
+  Sim.ASSIST = [["Scènes", "Les scènes et le public devant", function (t) { return t.cat === "Scènes"; }], ["Accès", "Entrées, issues, entrée staff, parkings, navettes", function (t, b) { return t.cat === "Accès" || t.exit || b.k === "assembly"; }], ["Bars & food", "Bars, food trucks, merch, stands partenaires", function (t) { return t.cat === "Bars & food"; }], ["Services", "Toilettes, eau, vestiaire, info, abris, PMR", function (t) { return t.cat === "Services"; }], ["Sécurité", "Secours, PC sécurité, lumière, caméras, électricité", function (t) { return t.cat === "Sécurité"; }], ["Logistique", "Régie, stock, backstage, écrans, citernes, bennes", function (t) { return t.cat === "Logistique"; }]];
+  Sim.startAssistant = function (ev) { var steps = Sim.ASSIST.map(function () { return []; }); ev.layout.forEach(function (b) { var t = D.BT[b.k]; for (var i = 0; i < Sim.ASSIST.length; i++) if (Sim.ASSIST[i][2](t, b)) { steps[i].push(b); return; } steps[steps.length - 1].push(b); }); ev.assist = { step: 0, steps: steps }; ev.layout = []; };
+  Sim.assistTake = function (ev) { var a = ev.assist; if (!a || a.step >= a.steps.length) return []; var list = a.steps[a.step]; a.step++; if (a.step >= a.steps.length) { ev.assist = null; } return list; };
   Sim.stagesOf = function (ev) { return ev.layout.filter(function (b) { return D.BT[b.k].stage; }); };
   Sim.barsOf = function (ev) { return ev.layout.filter(function (b) { return D.BT[b.k].bar; }); };
   Sim.entriesOf = function (ev) { return ev.layout.filter(function (b) { return D.BT[b.k].entry; }); };
@@ -2127,6 +2131,8 @@ button:focus-visible,input:focus-visible{outline:3px solid var(--lime);outline-o
     if (Sim.F && Sim.F.init) Sim.F.init(S);
     montage();
     makePersonas();
+    var rv = ev.riv || {}; S.riv = clamp(58 + (rv.meeting ? 14 : 0) + (rv.comp ? 12 : 0) - (ev.venue === "ville" ? 10 : 0) - (ev.venue === "halls" ? -15 : 0) + ((profile && profile.rivPenalty) ? -10 : 0), 0, 100);
+    S.money.comms -= (rv.meeting ? 2000 : 0) + (rv.comp ? 6000 : 0);
     S.staffQ = Math.round(S.staffTot * 0.15);
     log("Ouverture de " + (ev.name || "l'événement") + ". Bonne chance à la régie !", "g", "Régie");
     return S;
@@ -2534,11 +2540,11 @@ button:focus-visible,input:focus-visible{outline:3px solid var(--lime);outline-o
     var SE = D.SEARCH[ev.search], drugs = 1 - SE.catch * 0.6, alc = alcohol(t);
     // malaises : densité devant les scènes, chaleur, alcool, drogue
     Object.keys(S.stages).forEach(function (id) { var st = S.stages[id], cap = D.BT[Sim.find(ev, id).k].cap, dens = st.crowd / cap; var heat = w.t > 26 ? 1 + (w.t - 26) / 4 * (S.heatAid || 1) : 1, water = ev.layout.some(function (b) { return b.k === "water"; }) && S.water.level > 0 || S.water.mains ? 1 : 1.4;
-      var r = st.crowd / 10000 * 0.035 * (0.6 + dens) * heat * water * alc * drugs * (S.staff.maraude > 0 ? 0.85 : 1) / E.ev;
+      var r = st.crowd / 10000 * 0.035 * (0.6 + dens) * heat * water * alc * drugs * (S.staff.maraude > 0 ? 0.85 : 1) * (S.micWater > t ? 0.75 : 1) / E.ev;
       if (chance(r, gm)) { var sp = zoneSpot(id); spawnInc("med", sp[0], sp[1], 25, { stage: id, grave: Math.random() < 0.12 }); log("Malaise signalé devant " + stageName(id) + ".", "r", "Secours"); } });
     // bagarres : aux bars où l'on attend longtemps, tard, dans le noir, avec des objets passés à la fouille
     Object.keys(S.bars).forEach(function (id) { var bb = S.bars[id]; if (bb.fight || bb.closed) return; var b = Sim.find(ev, id), p = Sim.workPoint(b), dark = lit(p[0], p[1]) < 0.5 ? 1.6 : 1, wait = 1 + Math.max(0, 1 - bb.svc) * 3, secu = clamp((inside / 250) / Math.max(1, S.staff.secuIn + S.staff.secuStage + S.staff.secuPatrol), 0.6, 2.2);
-      var r = (bb.dem / 60) * 0.002 * alc * alc * dark * wait * secu * (1 - SE.catch * 0.35) * (1 + S.pop.fraudIn / 800) / E.ev;
+      var r = (bb.dem / 60) * 0.002 * alc * alc * dark * wait * secu * (S.micCalm > t ? 0.7 : 1) * (1 - SE.catch * 0.35) * (1 + S.pop.fraudIn / 800) / E.ev;
       if (chance(r, gm)) { var inc = spawnInc("fight", p[0] + 1, p[1] + 2, 15, { bar: id }); bb.fight = inc.id; log("Bagarre devant " + barName(id) + (wait > 2 ? " : l'attente a énervé tout le monde." : "."), "r", "Sécu"); } });
     // intrusions : là où la clôture est loin des patrouilles, des caméras et de la lumière
     var V = Sim.venue(ev); if (V.fence) { var cands = []; for (var i = 0; i < 6; i++) { var side = pick(["s", "w", "e", "n"]), x = side === "s" || side === "n" ? rnd(-V.W / 2 + 8, V.W / 2 - 8) : side === "w" ? -V.W / 2 + 2 : V.W / 2 - 2, z = side === "w" || side === "e" ? rnd(-V.D / 2 + 8, V.D / 2 - 8) : side === "s" ? V.D / 2 - 2 : -V.D / 2 + 2; var watch = (Sim.F ? Sim.F.coverage(x, z) : 0) + lit(x, z) * 0.5 + S.units.filter(function (u) { return u.kind === "pat" && Math.hypot(u.x - x, u.z - z) < 25; }).length * 0.6; cands.push([x, z, watch]); }
@@ -2666,6 +2672,8 @@ button:focus-visible,input:focus-visible{outline:3px solid var(--lime);outline-o
       apply: function (d, i) { if (i === 0) { S.stormStop = S.t + 30; S.screensDown = S.t + 60; log("Écrans et bâches descendus, scènes à l'arrêt pendant les rafales.", "a", "Régie"); } else if (i === 1) { S.screensDown = S.t + 60; log("Écrans géants descendus par la technique.", "a", "Logistique"); } else if (Math.random() < 0.25 + 0.15 * d.data.i) { var sc = S.ev.layout.filter(function (b) { return D.BT[b.k].screen; }); var b = sc.length ? pick(sc) : null; if (b) { for (var q = 0; q < 1 + d.data.i; q++) spawnInc("med", b.x + rnd(-3, 3), b.z + rnd(-3, 3), 25, { grave: q === 0 }); S.sat -= 8; S.stats.stormHurt += 2; log("Un écran géant s'est renversé sous les rafales : des blessés.", "r", "Sécu"); pressCrisis("collapse"); } } } },
     headliner: { make: function (d) { var s = setOf(d.data.set), a = Sim.artist(S.ev, s.art); return { title: a.n + " annule", text: "La tête d'affiche du jour (" + D.GENRES[a.g] + ", popularité " + a.pop + ") annule son concert de " + hm(s.start) + " sur " + stageName(s.stage) + ".", opts: [{ l: "Trouver un remplaçant connu", s: "coûte " + Math.round(a.fee * 0.8).toLocaleString("fr-FR") + " €, déception limitée" }, { l: "Rembourser une partie des billets", s: "15 % du prix, le public apprécie l'honnêteté" }, { l: "Annoncer l'annulation", s: "grosse déception" }] }; },
       apply: function (d, i) { var s = setOf(d.data.set), a = Sim.artist(S.ev, s.art); if (i === 0) { S.money.artists -= a.fee * 0.8; S.sat -= 4; var alt = S.ev.catalog.filter(function (x) { return !S.ev.lineup.some(function (l) { return l.art === x.id; }) && x.pop >= a.pop - 25; }).sort(function (x, y) { return y.pop - x.pop; })[0]; if (alt) { s.art = alt.id; log(alt.n + " remplace " + a.n + " au pied levé.", "i", "Artistes"); } else { S.sets[s.id].st = "cancel"; } } else { S.sets[s.id].st = "cancel"; S.stats.cancels++; S.sat -= i === 1 ? 6 : 12; if (i === 1 && S.ev.price) S.money.refund -= S.money.tickets / S.ev.days * 0.15; if (i === 2) S.repAdj = (S.repAdj || 0) - 3; } } },
+    riv: { make: function () { return { title: "Les riverains n'en peuvent plus", text: "Le standard de la mairie croule sous les appels : bruit, voitures garées partout, déchets dans les rues. Tolérance des riverains : " + Math.round(S.riv) + " %.", opts: [{ l: "Baisser le son tout de suite", s: "−4 dB, un peu moins d'ambiance" }, { l: "Envoyer un médiateur et des agents dans le quartier", s: "1 500 €, la tolérance remonte" }, { l: "Ignorer", s: "amende probable, image abîmée" }] }; },
+      apply: function (d, i) { if (i === 0) { S.volumeDown = true; S.riv += 8; } else if (i === 1) { S.money.extra -= 1500; S.riv += 15; } else { S.repAdj = (S.repAdj || 0) - 2; } } },
     endAlert: { make: function () { var adv = Sim.alertAdvice(); return { title: "Fin d'alerte : à toi de décider", text: adv.map(function (a) { return (a.ok ? "✓ " : "⚠ ") + a.who + " : " + a.txt; }).join("\n"), opts: [{ l: "Reprendre l'événement", s: adv.some(function (a) { return !a.ok && a.who !== "Programmation"; }) ? "contre au moins un avis : risqué" : "le public revient par les entrées avec un nouveau contrôle" }, { l: "Arrêter la journée", s: "remboursement partiel des billets" }, { l: "Attendre encore", s: "poursuivre le comptage et le balayage" }] }; },
       apply: function (d, i) { if (!S.evac || S.evac.kind !== "general") return; if (i === 0) Sim.F.resume(); else if (i === 1) Sim.F.cancelDay(); } },
     threat: { make: function () { return { title: "Menace signalée", text: "Un appel anonyme et des messages sur les réseaux évoquent une menace contre le festival. Rien n'est confirmé pour l'instant.", opts: [{ l: "Lever le doute avec la police", s: "6 min de vérification, le public ne remarque rien" }, { l: "Confinement immédiat", s: "accès fermés, public gardé sur place" }, { l: "Évacuation générale", s: "tout le monde sort par les issues" }, { l: "Ignorer", s: "très risqué si la menace est réelle" }] }; },
@@ -2774,7 +2782,7 @@ button:focus-visible,input:focus-visible{outline:3px solid var(--lime);outline-o
   Sim.saveProfile = function (p) { try { localStorage.setItem("rf_profile", JSON.stringify(p)); } catch (e) {} };
   Sim.finalReport = function () {
     var sat = Math.round(S.sat), res = Sim.profit(), rating = S.rating, st = S.stats, eco = Sim.ecoScore(S.ev);
-    var repDelta = Math.round((sat - 60) / 4 + (rating - 3.5) * 5 - st.crush * 6 - (S.disaster || 0) * 10 - st.medKo * 1.5 + (res > 0 ? 3 : -3) + (S.repAdj || 0) + (eco >= 70 ? 2 : 0) - st.inspFail * 2 - Math.min(5, st.stranded / 300));
+    var repDelta = Math.round(((S.riv == null ? 60 : S.riv) - 60) / 8 + (sat - 60) / 4 + (rating - 3.5) * 5 - st.crush * 6 - (S.disaster || 0) * 10 - st.medKo * 1.5 + (res > 0 ? 3 : -3) + (S.repAdj || 0) + (eco >= 70 ? 2 : 0) - st.inspFail * 2 - Math.min(5, st.stranded / 300));
     var sc = D.SCENARIOS.filter(function (x) { return x.k === S.sc; })[0], goals = null;
     if (sc && sc.goal) { goals = []; var g = sc.goal;
       if (g.res != null) goals.push(["Résultat " + (g.res > 0 ? "positif" : "à l'équilibre"), res >= g.res - 0.5]);
@@ -2784,7 +2792,7 @@ button:focus-visible,input:focus-visible{outline:3px solid var(--lime);outline-o
       if (g.rating != null) goals.push(["Au moins " + g.rating + " étoiles", rating >= g.rating]);
       if (g.stormHurt != null) goals.push(["Aucun blessé lié à la météo", st.stormHurt === 0]);
       if (g.fines != null) goals.push(["Aucune amende", S.money.fines > -1]); }
-    return { sat: sat, res: res, rating: rating, repDelta: repDelta, eco: eco, goals: goals };
+    return { sat: sat, res: res, rating: rating, repDelta: repDelta, eco: eco, goals: goals, riv: Math.round(S.riv == null ? 60 : S.riv) };
   };
 })();
 
@@ -3480,6 +3488,33 @@ button:focus-visible,input:focus-visible{outline:3px solid var(--lime);outline-o
     (S.ev.catas || []).forEach(function (c, idx) { var key = "cata" + idx + "_" + S.day; if (S.warned[key] || (c.day || 0) !== S.day || S.t < S.ev.open * 60 + c.at) return; S.warned[key] = 1; Sim.trigger(c.k, c.i, c.target); });
   };
 
+  // ================================================================ riverains et image : leur tolérance baisse avec le bruit de nuit, les bouchons, les déchets
+  F.rivStep = function (gm) {
+    var e = S.ev, t = S.t, night = t >= 22 * 60, outdoor = Sim.venue(e).outdoor && e.venue !== "halls", live = L.currentSets().length > 0, d = 0;
+    if (S.riv == null) S.riv = 60;
+    if (night && outdoor && live && !S.volumeDown) d -= Math.max(0, e.tech.db - 99) * 0.025 + 0.01;
+    if (S.curfew && t > S.curfew && live) d -= 0.15;
+    if (S.road.jam > 0.5) d -= 0.03;
+    d -= Object.keys(S.bins).filter(function (k) { return S.bins[k].level >= 100; }).length * 0.004;
+    if (S.closing && t > e.close * 60 + 20 && S.pop.inside > 500) d -= 0.03;
+    if (!d) d = 0.01;
+    S.riv = clamp(S.riv + d * gm, 0, 100);
+    if (S.riv < 40 && !S.warned.riv40) { S.warned.riv40 = 1; L.decision("riv"); }
+    if (S.riv < 22 && !S.warned.riv20) { S.warned.riv20 = 1; S.money.fines -= 4000; L.log("Les riverains saisissent la mairie : 4 000 € d'amende et menace sur l'autorisation de l'an prochain.", "r", "Régie"); L.pressCrisis("riv"); }
+  };
+  // annonces au micro : effets réels, une annonce toutes les 4 minutes
+  Sim.MIC = [["water", "Hydratez-vous", "« Pensez à boire de l'eau, les points d'eau sont gratuits »", "moins de malaises pendant 30 min"], ["back", "Reculez de deux pas", "« Devant la scène, reculez de deux pas s'il vous plaît »", "baisse la pression devant les scènes"], ["calm", "Restez calmes", "« Restez calmes et suivez les consignes des agents »", "moins de panique, moins de bagarres"], ["riv", "Respect des riverains", "« En partant, pensez aux riverains : pas de bruit dans les rues »", "riverains plus tolérants"], ["thanks", "Merci à tous !", "« Merci d'être là, vous êtes incroyables ! »", "ambiance en hausse (une fois par jour)"]];
+  Sim.announce = function (k, txt) {
+    if (S.micCd && S.micCd > S.t) { Sim.toast("Le micro est disponible à " + hm(S.micCd)); return false; } S.micCd = S.t + 4;
+    var m = Sim.MIC.filter(function (x) { return x[0] === k; })[0];
+    if (k === "water") S.micWater = S.t + 30;
+    else if (k === "back") Object.keys(S.stages).forEach(function (id) { var st = S.stages[id]; st.press *= 0.65; st.crowd *= 0.96; });
+    else if (k === "calm") { if (S.evac && S.evac.panic != null) S.evac.panic = Math.max(0, S.evac.panic - 0.1); S.micCalm = S.t + 20; }
+    else if (k === "riv") { if (!S.warned["micriv" + S.day]) { S.warned["micriv" + S.day] = 1; S.riv = clamp((S.riv || 60) + 5, 0, 100); } }
+    else if (k === "thanks") { if (!S.warned["thx" + S.day]) { S.warned["thx" + S.day] = 1; S.sat += 2; S.buzz += 2; } }
+    L.log("Annonce au micro : " + (m ? m[2] : "« " + txt + " »") + ".", "i", "Régie"); L.sfx("tap"); return true;
+  };
+
   // ================================================================ camping (nuits entre les jours)
   F.endDay = function (rep) {
     var e = S.ev; S.walk = []; S.road.inQ = 0; S.road.inPpl = 0; D.LINEK.forEach(function (k) { var ln = S.lines[k]; if (ln.qS > 0) { S.stats.stranded += ln.qS; ln.qS = 0; } ln.qO = 0; });
@@ -3529,7 +3564,7 @@ button:focus-visible,input:focus-visible{outline:3px solid var(--lime);outline-o
   F.step = function (gm, w) {
     S = Sim.get(); var e = S.ev;
     if (e.layout.some(function (b) { return b.k === "shuttle"; })) busStep(gm);
-    F.cataStep(); arrivals(gm, w); roadStep(gm); walkStep(); entriesStep(gm); doubtStep(); evacStep(gm); departures(gm);
+    F.cataStep(); F.rivStep(gm); arrivals(gm, w); roadStep(gm); walkStep(); entriesStep(gm); doubtStep(); evacStep(gm); departures(gm);
     S.pop.maxIn = Math.max(S.pop.maxIn, S.pop.inside); if (S.pop.inside > e.cap * 1.02) S.stats.over += gm;
     stagesStep(gm, w); barsStep(gm, w); foodStep(gm); servicesStep(gm, w); autoOrders(gm); autoBar(gm);
     S.promos = S.promos.filter(function (p) { return p.until > S.t; });
@@ -4399,7 +4434,7 @@ button:focus-visible,input:focus-visible{outline:3px solid var(--lime);outline-o
       seen[b.id] = 1; var e = bmap[b.id], sig = JSON.stringify(b) + (D.BT[b.k].entry ? ev.name + ev.ground : "");
       if (e && e.sig === sig) return;
       if (e) { LG.remove(e.g); I.disposeTree(e.g); I.hit = I.hit.filter(function (m) { return m.userData.id !== b.id; }); }
-      var T = D.BT[b.k], g = new THREE.Group(); g.position.set(b.x, 0, b.z); g.rotation.y = (b.rot || 0) * Math.PI / 2; LG.add(g);
+      var T = D.BT[b.k], g = new THREE.Group(); g.position.set(b.x, 0, b.z); if (!force || W.animNext) { g.userData.grow = 0; g.scale.set(1, 0.02, 1); } g.rotation.y = (b.rot || 0) * Math.PI / 2; LG.add(g);
       if (T.entry || T.exit || b.k === "staffgate") { var n = Sim.outward(ev, b); g.rotation.y = Math.atan2(n[0], n[1]); }
       var parts = (BUILD[b.k] || function () { return {}; })(b, g, T) || {};
       staticMerge(g, parts);
@@ -4503,6 +4538,7 @@ button:focus-visible,input:focus-visible{outline:3px solid var(--lime);outline-o
     if (decoG && decoG.userData.bulbs) { var bu = decoG.userData.bulbs; bu.visible = dl < 0.75; if (bu.visible && !I.reduce) bulbMat.color.setScalar(0.85 + 0.15 * Math.sin(clock * 1.7)); }
     Object.keys(bmap).forEach(function (id) {
       var e = bmap[id], b = e.b, T = e.T, P = e.parts, al = null, alC = "#FFB020", pw = S ? Sim.powered(b) : true, ready = S ? Sim.ready(b) : true;
+      if (e.g.userData.grow != null) { var gr = e.g.userData.grow = Math.min(1, e.g.userData.grow + dt * 2.2), ez = 1 - Math.pow(1 - gr, 3); e.g.scale.set(0.85 + 0.15 * ez, Math.max(0.02, ez * (1 + 0.12 * Math.sin(gr * Math.PI))), 0.85 + 0.15 * ez); if (gr >= 1) { e.g.scale.set(1, 1, 1); e.g.userData.grow = null; } }
       if (e.name) e.name.visible = !e.name.userData.small || cam.dist < 150;
       e.sel.visible = opt.sel === id;
       if (!ready && S) { al = "MONTAGE · prêt à " + Sim.hm(S.notReady[id]); alC = "#9A9AAE"; }
@@ -5095,6 +5131,7 @@ button:focus-visible,input:focus-visible{outline:3px solid var(--lime);outline-o
     ev.tr.last = ev.close + 1;
     D.PRODUCTS.forEach(function (p) { ev.on[p.k] = p.k !== "hot" || D.CLIMATE.t[ev.month] < 12; });
     Sim.applyTemplate(ev); ev.price = D.TYPES[ev.type].price; ev.door = ev.price ? ev.price + 10 : 0; ev.vipPrice = ev.price * 3; Sim.autoStaff(ev); Sim.autoFleet && Sim.autoFleet(ev); Sim.applyScenario(ev);
+    Sim.startAssistant(ev);
     U.ev = ev; U.demo = false; U.prepTab = "site"; goPrep();
   }
   function defaultName(w) { var a = { open: ["Festival", "Open Air", "Les Nuits"], indoor: ["La Nuit", "Hall Session", "Le Grand Bal"], multi: ["Festival", "Week-end", "Les Trois Jours"], urban: ["Fête de la Ville", "Rue en Fête", "Festival des Places"] }[w.type], b = ["du Port", "Nova", "Horizon", "des Lumières", "du Fleuve", "Minuit"].concat(w.month >= 4 && w.month <= 8 ? ["d'Été"] : w.month >= 10 || w.month <= 1 ? ["d'Hiver"] : ["de Printemps"]); return a[Math.floor(Math.random() * a.length)] + " " + b[Math.floor(Math.random() * b.length)]; }
@@ -5157,7 +5194,7 @@ button:focus-visible,input:focus-visible{outline:3px solid var(--lime);outline-o
     var info = mk(f, "div", "note"), row = mk(f, "div", "row2"), back = mk(row, "button", "go ghost", "Menu"), go = mk(row, "button", "go", "Lancer l'événement");
     back.onclick = function () { U.confirm("Quitter la préparation ?", "Ton plan sera perdu.", "Quitter", showMenu); };
     go.onclick = function () { var errs = Sim.issues(ev).filter(function (i) { return i[0]; }); if (errs.length) { U.toast(errs[0][1]); U.prepTab = "site"; drawPrep(); return; } launch(); };
-    U.PU.push(function () { var is = Sim.issues(ev), e = is.filter(function (i) { return i[0]; }).length, b = Sim.budget(ev, U.profile); info.textContent = (e ? e + " problème" + (e > 1 ? "s" : "") + " bloquant" + (e > 1 ? "s" : "") + " · " : "") + (is.length - e) + " conseil" + (is.length - e > 1 ? "s" : "") + " · résultat prévu " + kmoney(b.total) + " · trésorerie " + kmoney(U.profile.cash); go.disabled = e > 0; });
+    U.PU.push(function () { var is = Sim.issues(ev), e = is.filter(function (i) { return i[0]; }).length, b = Sim.budget(ev, U.profile); info.textContent = (ev.assist ? "Montage en cours (étape " + (ev.assist.step + 1) + "/" + Sim.ASSIST.length + ") · " : "") + (e ? e + " problème" + (e > 1 ? "s" : "") + " bloquant" + (e > 1 ? "s" : "") + " · " : "") + (is.length - e) + " conseil" + (is.length - e > 1 ? "s" : "") + " · résultat prévu " + kmoney(b.total) + " · trésorerie " + kmoney(U.profile.cash); go.disabled = e > 0; });
   }
   // ---------------------------------------------------------------- édition du plan
   U.afterLayout = function (b) { var ev = U.ev; if (b && (D.BT[b.k].entry || D.BT[b.k].exit || b.k === "staffgate")) W.setVenue(ev, true); W.syncLayout(ev); if (U.mode === "prep") drawPrep(); };
@@ -5417,18 +5454,18 @@ button:focus-visible,input:focus-visible{outline:3px solid var(--lime);outline-o
   }
   function finish() {
     var S = Sim.get(), ev = U.ev, rep = Sim.finalReport(); A.siren(false); A.set("house", 0, 0, false, false);
-    var profile = U.profile = Sim.profile(), before = profile.rep; profile.rep = clamp(profile.rep + rep.repDelta, 0, 100); profile.cash = Math.round(profile.cash + rep.res); profile.history.push({ ed: profile.edition, name: ev.name, res: Math.round(rep.res), sat: rep.sat, rating: rep.rating }); profile.edition++; Sim.saveProfile(profile); Sim.clearSave();
+    var profile = U.profile = Sim.profile(), before = profile.rep; profile.rep = clamp(profile.rep + rep.repDelta, 0, 100); profile.cash = Math.round(profile.cash + rep.res); profile.history.push({ ed: profile.edition, name: ev.name, res: Math.round(rep.res), sat: rep.sat, rating: rep.rating }); profile.edition++; profile.rivPenalty = rep.riv < 35; Sim.saveProfile(profile); Sim.clearSave();
     U.mode = "end"; hideAll(); $("end").hidden = false; $("end").scrollTop = 0;
     var sat = rep.sat, res = rep.res, revenue = Object.keys(S.money).reduce(function (a, k) { return a + Math.max(0, S.money[k]); }, 0), margin = revenue ? res / revenue : 0;
     var rank = sat >= 85 && res >= 0 && rep.rating >= 4.2 && !S.stats.crush ? "Festival légendaire" : sat >= 72 && res >= 0 ? "Grand succès" : margin < -0.15 ? (sat >= 60 ? "Gouffre financier" : "Fiasco") : sat >= 60 ? "Réussi" : sat >= 45 ? "Mitigé" : "Fiasco";
     var broke = profile.cash < -250000;
     $("endK").textContent = ev.name + " · édition " + (profile.edition - 1); $("rank").textContent = rank;
-    $("endTxt").textContent = "Réputation " + before + " → " + profile.rep + " (" + (rep.repDelta >= 0 ? "+" : "") + rep.repDelta + "). Trésorerie : " + kmoney(profile.cash) + "." + (broke ? " Faillite : la banque coupe les crédits, ta carrière d'organisateur s'arrête ici. Tu repars de zéro." : profile.cash < 0 ? " Attention, tu es dans le rouge : sous −250 k€, c'est la faillite. La prochaine édition doit rapporter." : "");
+    $("endTxt").textContent = "Réputation " + before + " → " + profile.rep + " (" + (rep.repDelta >= 0 ? "+" : "") + rep.repDelta + "). Trésorerie : " + kmoney(profile.cash) + "." + (rep.riv < 35 ? " Les riverains sont excédés : l'an prochain, la mairie sera plus stricte." : "") + (broke ? " Faillite : la banque coupe les crédits, ta carrière d'organisateur s'arrête ici. Tu repars de zéro." : profile.cash < 0 ? " Attention, tu es dans le rouge : sous −250 k€, c'est la faillite. La prochaine édition doit rapporter." : "");
     if (broke) { try { localStorage.removeItem("rf_profile"); localStorage.removeItem("rf_last"); } catch (e) {} }
     $("endNext").hidden = broke;
     var G = $("endGoals"); G.textContent = ""; G.hidden = !rep.goals; if (rep.goals) { var sc = D.SCENARIOS.filter(function (x) { return x.k === S.sc; })[0], ok = rep.goals.every(function (g) { return g[1]; }); mk(G, "h3", null, "Scénario : " + sc.n + (ok ? " · réussi" : " · raté")); rep.goals.forEach(function (g) { var d = mk(G, "div", g[1] ? "g" : "r", (g[1] ? "✓ " : "✗ ") + g[0]); d.style.cssText = "border-left:3px solid " + (g[1] ? "var(--lime)" : "var(--red)") + ";background:var(--panel2);border-radius:8px;padding:6px 9px;font-weight:700;font-size:13px"; }); }
     var R = $("endRes"); R.textContent = ""; var drinks = 0; Object.keys(S.stats.drinks).forEach(function (k) { drinks += S.stats.drinks[k]; });
-    [[sat + " %", "Ambiance"], ["★ " + rep.rating.toFixed(1).replace(".", ","), "Avis"], [kmoney(res), "Résultat"], [nb(S.pop.maxIn), "Public max"], [nb(drinks), "Verres servis"], [rep.eco + " / 100", "Score écologique"], [S.stats.medOk + " / " + (S.stats.medOk + S.stats.medKo), "Secours à temps"], [S.stats.crush, "Mouvements de foule"], [Math.round(S.stats.maxWait) + " min", "Pire attente"], [S.stats.rup.keg + S.stats.rup.ice + S.stats.rup.crate, "Ruptures"], [S.stats.tech + S.stats.power, "Pannes"], [nb(S.stats.stranded), "Bloqués sans navette"]].forEach(function (x) { var d = mk(R, "div"); mk(d, "b", null, x[0]); mk(d, "span", null, x[1]); });
+    [[sat + " %", "Ambiance"], ["★ " + rep.rating.toFixed(1).replace(".", ","), "Avis"], [kmoney(res), "Résultat"], [nb(S.pop.maxIn), "Public max"], [nb(drinks), "Verres servis"], [rep.eco + " / 100", "Score écologique"], [S.stats.medOk + " / " + (S.stats.medOk + S.stats.medKo), "Secours à temps"], [S.stats.crush, "Mouvements de foule"], [rep.riv + " %", "Riverains"], [Math.round(S.stats.maxWait) + " min", "Pire attente"], [S.stats.rup.keg + S.stats.rup.ice + S.stats.rup.crate, "Ruptures"], [S.stats.tech + S.stats.power, "Pannes"], [nb(S.stats.stranded), "Bloqués sans navette"]].forEach(function (x) { var d = mk(R, "div"); mk(d, "b", null, x[0]); mk(d, "span", null, x[1]); });
     var F = $("endFin"); F.textContent = ""; var N = U.MONEY_N;
     Object.keys(N).forEach(function (k) { var v = S.money[k]; if (!v || Math.abs(v) < 1) return; var li = mk(F, "li"); mk(li, "span", null, N[k]); mk(li, "b", v < 0 ? "neg" : "pos", money(v)); });
     var tot = mk(F, "li", "tot"); mk(tot, "span", null, "Résultat"); mk(tot, "b", Sim.profit() < 0 ? "neg" : "pos", money(Sim.profit()));
@@ -5442,6 +5479,7 @@ button:focus-visible,input:focus-visible{outline:3px solid var(--lime);outline-o
   U.MONEY_N = { tickets: "Billetterie (prévente)", door: "Billets sur place", vip: "Billets VIP", bars: "Bars", food: "Redevances food", vest: "Vestiaire", cashless: "Cashless (crédit non dépensé)", sponsors: "Partenaires et subventions", parking: "Parkings", shuttleTix: "Billets de navette", relais: "Parking relais", campingTix: "Camping", merch: "Merchandising", partner: "Stands partenaires", lockers: "Casiers", charge: "Recharge téléphones", deposit: "Consigne des gobelets", artists: "Cachets des artistes", artLog: "Hôtels et transport artistes", prod: "Clôtures et production", rent: "Location du lieu", build: "Montage des installations", staff: "Équipe", stock: "Stock et commandes", copyright: "Droits d'auteur", security: "Assurance et sécurité", cashlessCost: "Système cashless", shuttle: "Navettes", comms: "Communication", eco: "Développement durable", utilities: "Eau, carburant, bennes", extra: "Renforts et imprévus", fines: "Amendes", refund: "Remboursements" };
   function nextEdition(old) {
     U.profile = Sim.profile(); var ev = JSON.parse(JSON.stringify(old)); Sim.upgradeEvent && Sim.upgradeEvent(ev); ev.edition = U.profile.edition; ev.catalog = D.makeCatalog(60 + 45 * ev.days); Sim.autoLineup(ev); ev.name = old.name.replace(/\s#\d+$/, "") + (U.profile.edition > 1 ? " #" + U.profile.edition : ""); ev.scenario = "free"; ev.sponsors = []; ev.campaigns = [];
+    if (U.profile.rivPenalty) { ev.tech.db = Math.min(ev.tech.db, 99); setTimeout(function () { U.toast("Les riverains ont obtenu de la mairie un son limité à 99 dB cette année"); }, 600); }
     U.ev = ev; U.demo = false; U.prepTab = "site"; goPrep();
   }
   function drawChart(S) {
@@ -5507,6 +5545,7 @@ button:focus-visible,input:focus-visible{outline:3px solid var(--lime);outline-o
   P.site = function (body) {
     var e = ev();
     note(body, "Touche un élément de la palette puis la carte pour le poser (R pour pivoter). Touche un élément posé pour le régler, le déplacer ou le supprimer. Les entrées, issues et l'entrée staff se posent contre la clôture ; navettes et taxis le long de la route.");
+    if (e.assist) assistCard(body, e);
     var selBox = mk(body, "div"); L().push(function () { drawSelBox(selBox); });
     var V = Sim.venue(e);
     if (V.halls) { sec(body, "Halls à louer"); V.halls.forEach(function (h) { U.tline(body, h.n, nb(h.cap) + " personnes · " + money(h.rent) + " par jour", function (v) { return v ? "Loué" : "Non loué"; }, function () { return !!e.halls[h.id]; }, function (v) { if (!v && e.layout.some(function (b) { var hh = Sim.hallOf(e, b); return hh && hh.id === h.id; })) { U.toast("Vide d'abord ce hall"); return; } e.halls[h.id] = v; W.refreshHalls(e); }, L()); }); }
@@ -5523,6 +5562,19 @@ button:focus-visible,input:focus-visible{outline:3px solid var(--lime);outline-o
     sec(body, "Vérifications"); var iss = mk(body, "div", "logl"); L().push(function () { iss.textContent = ""; var is = Sim.issues(e); if (!is.length) mk(iss, "div", "g", "Tout est en place."); is.forEach(function (i) { mk(iss, "div", i[0] ? "errbox" : "warnbox", i[1]); }); });
     var r = mk(body, "div", "btns"); U.btn(r, "Revenir au plan de départ", function () { U.confirm("Revenir au plan de départ ?", "Tout ce que tu as placé sera remplacé.", "Remplacer", function () { Sim.applyTemplate(e); W.setVenue(e, true); W.syncLayout(e, true); U.sel = null; redraw(); }); });
   };
+  // montage assisté : étape par étape, les éléments se posent un à un sous tes yeux
+  var placing = false;
+  // pose par petits paquets (le montage dure quelques secondes quel que soit le nombre d'éléments)
+  function placeList(e, list, done) { placing = true; var i = 0, per = Math.max(1, Math.ceil(list.length / 24)); (function next() { if (i >= list.length || U.ev !== e) { placing = false; if (!e.lineup.length) Sim.autoLineup(e); redraw(); if (done) done(); return; } var fence = false; for (var k = 0; k < per && i < list.length; k++) { var b = list[i++]; if (!Sim.validate(e, b).ok && !Sim.findSpot(e, b)) continue; e.layout.push(b); var T2 = D.BT[b.k]; if (T2.entry || T2.exit || b.k === "staffgate") fence = true; } A.sfx("place"); if (fence) W.setVenue(e, true); W.syncLayout(e); setTimeout(next, 120); })(); }
+  function assistCard(body, e) {
+    var a = e.assist, st = Sim.ASSIST[a.step], list = a.steps[a.step], d = mk(body, "div", "srow"), top = mk(d, "div", "top");
+    mk(top, "b", null, "Montage · étape " + (a.step + 1) + "/" + Sim.ASSIST.length + " : " + st[0]); mk(top, "span", "r2", list.length + " élément" + (list.length > 1 ? "s" : ""));
+    note(d, st[1] + ". Le plan proposé les place aux bons endroits ; tu pourras les déplacer ensuite.");
+    var bt = mk(d, "div", "btns");
+    U.btn(bt, "Monter cette étape", function () { if (placing) return; placeList(e, Sim.assistTake(e)); }, "go2");
+    U.btn(bt, "Passer", function () { if (placing) return; Sim.assistTake(e); redraw(); });
+    U.btn(bt, "Tout monter", function () { if (placing) return; var all = []; while (e.assist) all = all.concat(Sim.assistTake(e)); placeList(e, all); });
+  }
   function drawSelBox(box) {
     var e = ev(), ed = U.edit; box.textContent = ""; var SL = [];
     if (ed.place) { var T = D.BT[ed.place], d = mk(box, "div", "srow"), top = mk(d, "div", "top"); mk(top, "b", null, "Placement : " + T.n); note(d, T.desc + (T.w ? " Taille " + T.w * 2 + " × " + T.d * 2 + " m." : "")); var bt = mk(d, "div", "btns"); U.btn(bt, "Pivoter (R)", function () { ed.rot = (ed.rot + 1) % 4; }); U.btn(bt, "Terminer", function () { ed.place = null; W.ghost(null); redraw(); }); return; }
@@ -5618,6 +5670,10 @@ button:focus-visible,input:focus-visible{outline:3px solid var(--lime);outline-o
     sec(body, "Communication");
     D.CAMPAIGNS.forEach(function (c) { U.tline(body, c.n, c.d + " · " + money(c.cost), function (v) { return v ? "Lancée" : "Non"; }, function () { return e.campaigns.indexOf(c.k) >= 0; }, function (v) { e.campaigns = e.campaigns.filter(function (x) { return x !== c.k; }); if (v) e.campaigns.push(c.k); }, L()); });
     var kc = mk(body, "div", "kpis"); U.kpi(kc, "Hausse de la demande", function () { return ["+" + Math.round(Sim.campaignBoost(e) * 100) + " %"]; }, L()); U.kpi(kc, "Coût communication", function () { return [money(e.campaigns.reduce(function (a, k) { return a + D.CAMPAIGNS.filter(function (c) { return c.k === k; })[0].cost; }, 0))]; }, L());
+    sec(body, "Riverains");
+    note(body, "Le bruit tard le soir, les bouchons et les déchets usent la patience du quartier. Des riverains excédés coûtent des amendes et durcissent l'autorisation de l'an prochain.");
+    e.riv = e.riv || {}; U.tline(body, "Réunion publique avant l'événement", "explique le projet, donne un numéro d'appel (2 000 €)", function (v) { return v ? "Prévue" : "Non"; }, function () { return !!e.riv.meeting; }, function (v) { e.riv.meeting = v; }, L());
+    U.tline(body, "Invitations et nettoyage du quartier", "places offertes aux voisins, équipe propreté dans les rues (6 000 €)", function (v) { return v ? "Oui" : "Non"; }, function () { return !!e.riv.comp; }, function (v) { e.riv.comp = v; }, L());
     sec(body, "Partenaires");
     note(body, "Chaque partenaire paie s'il voit sa condition respectée. Si tu la rompres pendant l'événement, il ne paie que la moitié.".replace("rompres", "romps"));
     D.SPONSORS.forEach(function (s) { var l = U.tline(body, s.n + " · " + money(s.pay), s.d, function (v) { return v ? "Signé" : "Non"; }, function () { return e.sponsors.indexOf(s.k) >= 0; }, function (v) { e.sponsors = e.sponsors.filter(function (x) { return x !== s.k; }); if (v) e.sponsors.push(s.k); }, L()); var tg = mk(l.querySelector(".lbl"), "small"); L().push(function () { var ok = Sim.sponsorCond(e, s.k), on = e.sponsors.indexOf(s.k) >= 0; tg.textContent = on ? (ok ? "✓ condition respectée" : "✗ condition non respectée : il ne paiera pas") : ""; tg.style.color = ok ? "var(--lime)" : "var(--red)"; }); });
@@ -5820,6 +5876,7 @@ button:focus-visible,input:focus-visible{outline:3px solid var(--lime);outline-o
     U.kpi(k, "Ambiance", function () { return [Math.round(S.sat) + " %", S.sat >= 75 ? "ok" : S.sat >= 50 ? "warn" : "bad", S.sat]; }, L);
     U.kpi(k, "Résultat", function () { var p = Sim.profit(); return [kmoney(p), p >= 0 ? "ok" : "bad"]; }, L);
     U.kpi(k, "Équipe opérationnelle", function () { var r = Sim.readiness(); return [Math.round(r * 100) + " %", r < 0.85 ? "warn" : "ok"]; }, L);
+    U.kpi(k, "Riverains", function () { var v = Math.round(S.riv == null ? 60 : S.riv); return [v + " %", v >= 60 ? "ok" : v >= 40 ? "warn" : "bad", v]; }, L);
     U.kpi(k, "Météo dans 1 h", function () { var w = Sim.weatherAt(S, S.t + 60); return [Math.round(w.t) + " °C" + (w.storm ? " · orage" : w.rain > 0.3 ? " · pluie" : ""), w.storm ? "bad" : w.rain > 0.3 ? "warn" : ""]; }, L);
     sec(body, "À surveiller");
     var al = mk(body, "div", "logl");
@@ -5998,6 +6055,8 @@ button:focus-visible,input:focus-visible{outline:3px solid var(--lime);outline-o
   // ================================================================ écrans d'information et appli
   T.ecrans = function (body, sub, L, S) {
     var e = ev(); sub.textContent = "Messages au public, écrans, appli";
+    sec(body, "Annonces au micro");
+    var mic = mk(body, "div", "seg"); mic.style.gridTemplateColumns = "repeat(2,minmax(0,1fr))"; Sim.MIC.forEach(function (m) { var b = mk(mic, "button"); mk(b, "b", null, m[1]); mk(b, "span", null, m[3]); b.onclick = function () { Sim.announce(m[0]); U.refresh(true); }; L.push(function () { b.disabled = !!(S.micCd && S.micCd > S.t); }); });
     sec(body, "Message affiché sur les écrans");
     var f = mk(body, "div", "field"), inp = mk(f, "input"); inp.type = "text"; inp.maxLength = 80; inp.placeholder = "Ex. Bar du fond sans attente !"; inp.value = S.screenMsg || "";
     var bt = mk(body, "div", "btns"); U.btn(bt, "Afficher", function () { S.screenMsg = inp.value.trim(); Sim.log(S.screenMsg ? "Message sur les écrans : « " + S.screenMsg + " »." : "Message retiré des écrans.", "i", "Régie"); }, "go2"); U.btn(bt, "Effacer", function () { S.screenMsg = ""; inp.value = ""; });
