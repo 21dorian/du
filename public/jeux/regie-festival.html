@@ -203,7 +203,7 @@ button:focus-visible,input:focus-visible{outline:3px solid var(--lime);outline-o
 .dlg{width:min(460px,100%);background:#15161d;border:1px solid var(--line);border-radius:18px;padding:18px;display:flex;flex-direction:column;gap:11px;max-height:92vh;overflow:auto}
 .dlg h2{margin:0;font-family:var(--display);font-weight:800;font-size:27px;text-transform:uppercase;line-height:1}
 .dlg .k{font-family:var(--display);font-weight:700;letter-spacing:.16em;color:var(--beer);font-size:13px;text-transform:uppercase}
-.dlg p{margin:0;color:var(--mut);font-weight:600;line-height:1.45}
+.dlg p{margin:0;color:var(--mut);font-weight:600;line-height:1.45;white-space:pre-line}
 .opts{display:flex;flex-direction:column;gap:6px}
 .opts button{border:1px solid var(--line);background:var(--panel2);border-radius:12px;padding:10px 12px;text-align:left;display:flex;flex-direction:column;gap:2px}
 .opts button b{font-family:var(--display);font-size:18px;text-transform:uppercase;line-height:1.05}
@@ -213,6 +213,11 @@ button:focus-visible,input:focus-visible{outline:3px solid var(--lime);outline-o
 .howto summary{cursor:pointer;font-family:var(--display);font-weight:800;font-size:16px;letter-spacing:.06em;text-transform:uppercase;color:var(--fg)}
 .howto ol{margin:8px 0 2px;padding-left:20px;display:flex;flex-direction:column;gap:5px}.howto b{color:var(--fg)}
 #hist div{display:flex;justify-content:space-between;gap:8px}
+.evsteps{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:4px}
+.evsteps div{background:var(--panel2);border:1px solid var(--line);border-radius:10px;padding:6px 6px 7px;font-size:11px;font-weight:700;color:var(--mut);line-height:1.2}
+.evsteps b{display:flex;width:20px;height:20px;border-radius:50%;align-items:center;justify-content:center;background:#0f1017;font-family:var(--display);font-size:13px;margin-bottom:4px}
+.evsteps .on{border-color:var(--red);color:var(--fg)} .evsteps .on b{background:var(--red);color:#fff} .evsteps .done{color:var(--fg)} .evsteps .done b{background:var(--lime);color:var(--ink)}
+.logl div > b:first-child:not(:only-child){display:block}
 .r2b{display:grid;grid-template-columns:1fr 1fr;gap:8px}
 .r2b button{border:0;border-radius:12px;height:48px;font-family:var(--display);font-weight:800;font-size:18px;text-transform:uppercase}
 .r2b .no2{background:var(--panel2);color:var(--fg)} .r2b .yes2{background:var(--red);color:var(--ink)} .r2b .ok2{background:var(--lime);color:var(--ink)}
@@ -1636,6 +1641,43 @@ button:focus-visible,input:focus-visible{outline:3px solid var(--lime);outline-o
   // point devant une entrée/issue, côté extérieur (o = 1) ou intérieur (o = -1)
   Sim.gatePoint = function (ev, b, o, dist) { var n = Sim.outward(ev, b), f = fp(b); dist = dist == null ? 3 : dist; var cx = b.x, cz = b.z; if (o > 0) { if (n[0]) cx = n[0] > 0 ? f.x1 : f.x0; if (n[1]) cz = n[1] > 0 ? f.z1 : f.z0; } else { if (n[0]) cx = n[0] > 0 ? f.x0 : f.x1; if (n[1]) cz = n[1] > 0 ? f.z0 : f.z1; } return [cx + n[0] * dist * o, cz + n[1] * dist * o]; };
 
+  // géométrie d'une entrée « grand festival » : depuis la clôture vers l'extérieur, contrôle des billets sous l'arche,
+  // tentes de fouille hommes/femmes, serpentin, pré-filtrage ; d = distance depuis la clôture (vers dehors), a = décalage latéral
+  Sim.ENTRY = { scan: 0.3, fouille0: 2.4, fouille1: 5.8, serp0: 7.6, rows: 6, row: 1.55, pre: 18.4, depth: 21.5, side: 7 };
+  Sim.entryGeo = function (ev, b) {
+    var n = Sim.outward(ev, b), r = siteRect(ev), T = T0(b), along = [n[1], -n[0]];
+    var fo = n[1] > 0 ? r.z1 - b.z : n[1] < 0 ? b.z - r.z0 : n[0] > 0 ? r.x1 - b.x : b.x - r.x0;
+    var lanes = T.lanes || 4, LW = Math.min(2.2, (T.w - 1) / lanes), SW = LW * lanes;
+    function P(a, d) { return [b.x + along[0] * a + n[0] * (fo + d), b.z + along[1] * a + n[1] * (fo + d)]; }
+    return { n: n, along: along, fo: fo, LW: LW, SW: SW, lanes: lanes, half: Math.max(T.w / 2, SW / 2) + Sim.ENTRY.side, P: P };
+  };
+  function T0(b) { return D.BT[b.k]; }
+  // plan des files devant une entrée, en coordonnées (a, d) : barrières, serpentin, couloirs spéciaux, caisses
+  Sim.queueLayout = function (b, G, kinds) {
+    var E = Sim.ENTRY, LW = G.LW, SW = G.SW, nSpec = 0; kinds.forEach(function (k) { if (k !== "std") nSpec++; });
+    var genL = -SW / 2 + nSpec * LW, genR = SW / 2, genC = (genL + genR) / 2, hw = (genR - genL) / 2, bars = [], main = [], spec = {}, sR = 1, R = E.rows;
+    var dL = function (k) { return E.serp0 + k * E.row; }, dR = function (k) { return E.serp0 + (k + 0.5) * E.row; }, tailA = genC + sR * Math.max(0.5, hw - 0.9);
+    if (b.q === "line") {
+      kinds.forEach(function (k, i) { if (k !== "std") return; var a = -SW / 2 + (i + 0.5) * LW; main.push([[a, 6.6], [a, E.pre - 0.6]]); });
+      for (var k = nSpec; k <= kinds.length; k++) { var xa = -SW / 2 + k * LW; bars.push([[xa, 6.8], [xa, E.pre - 0.8]]); }
+      tailA = genC;
+    } else {
+      var path = [[tailA, E.pre + 2.4], [tailA, E.pre]];
+      for (var r = R - 1; r >= 0; r--) { var sd = sR * ((R - 1 - r) % 2 ? -1 : 1); path.push([genC + sd * (hw - 0.8), dR(r)]); path.push([genC - sd * (hw - 0.8), dR(r)]); }
+      path.push([genC, 6.8]); main.push(path.reverse());
+      for (var k2 = 1; k2 <= R; k2++) { var gs = sR * ((R - k2) % 2 ? -1 : 1); bars.push(gs > 0 ? [[genL, dL(k2)], [genR - 1.8, dL(k2)]] : [[genL + 1.8, dL(k2)], [genR, dL(k2)]]); }
+      bars.push([[genL, E.serp0], [genL, dL(R)]]); bars.push([[genR, E.serp0], [genR, dL(R)]]);
+    }
+    kinds.forEach(function (k, i) { if (k === "std" || k === "exit") return; var a = -SW / 2 + (i + 0.5) * LW; spec[k] = [[a, 6.6], [a, 15]]; });
+    if (nSpec) bars.push([[genL, 6.8], [genL, 15.2]]);
+    // ligne de pré-filtrage, ouverte à l'entrée du serpentin et devant les couloirs spéciaux
+    var lo = -SW / 2 - 1, hi = SW / 2 + 1; bars.push([[lo, E.pre], [Math.max(lo, tailA - 1.3), E.pre]]); bars.push([[Math.min(hi, tailA + 1.3), E.pre], [hi, E.pre]]);
+    function boothX(side, c) { return side * (SW / 2 + 2.4 + c * 2.35); }
+    var box = [], brac = []; for (var c = 0; c < Math.min(3, b.box || 0); c++) box.push([[boothX(-1, c), E.pre + 1.7], [boothX(-1, c), E.pre + 6]]); for (var c2 = 0; c2 < Math.min(3, b.brac || 0); c2++) brac.push([[boothX(1, c2), E.pre + 1.7], [boothX(1, c2), E.pre + 6]]);
+    return { bars: bars, main: main, spec: spec, box: box, brac: brac, tail: [tailA, E.pre + 2.4], head: [genC, 6.8], boothX: boothX, genL: genL, genR: genR };
+  };
+  // emprise de l'accès devant une entrée (parvis) : rien ne doit y être posé
+  Sim.approachRect = function (ev, b) { var G = Sim.entryGeo(ev, b), a = G.P(-G.half, 0.6), c = G.P(G.half, Sim.ENTRY.depth); return { x0: Math.min(a[0], c[0]), x1: Math.max(a[0], c[0]), z0: Math.min(a[1], c[1]), z1: Math.max(a[1], c[1]) }; };
   // zone du public devant un bâtiment (scènes : la fosse ; autres : la file d'attente)
   function zoneRaw(b) {
     var t = T(b), f = fp(b), fr = front(b);
@@ -1678,6 +1720,8 @@ button:focus-visible,input:focus-visible{outline:3px solid var(--lime);outline-o
       if (t.stage && b.k !== "stageT") { var zn = Sim.zone(b, ev); if (V.fence && !within(zn, inner)) return { ok: false, why: "Pas assez de place pour le public devant la scène" }; for (var y = 0; y < ev.layout.length; y++) { var o2 = ev.layout[y]; if (o2.id === ignoreId || SMALL[o2.k]) continue; if (inter(zn, fp(o2), 0)) return { ok: false, why: "Le public de cette scène tomberait sur " + D.BT[o2.k].n.toLowerCase() }; } }
     }
     if ((t.stop || b.k === "taxi") && f.z1 < pl.z1 - 1.5) return { ok: false, why: "À placer le long de la route" };
+    if (V.fence && !inSite) { for (var ea = 0; ea < ev.layout.length; ea++) { var en = ev.layout[ea]; if (en.id === ignoreId || !D.BT[en.k].entry) continue; if (inter(f, Sim.approachRect(ev, en), 0)) return { ok: false, why: "Devant " + D.BT[en.k].n.toLowerCase().replace(/ \(.*\)/, "") + " : laisse libre l'accès du public (files et fouille)" }; } }
+    if (t.entry && V.fence) { var ar = Sim.approachRect(ev, b); for (var eb = 0; eb < ev.layout.length; eb++) { var o3 = ev.layout[eb]; if (o3.id === ignoreId || o3.id === b.id) continue; var t3 = D.BT[o3.k]; if (t3.entry) { if (inter(ar, Sim.approachRect(ev, o3), 0)) return { ok: false, why: "Trop près d'une autre entrée : les files se mélangeraient" }; continue; } if (within(fp(o3), inner)) continue; if (inter(ar, fp(o3), 0)) return { ok: false, why: "L'accès à l'entrée tomberait sur " + t3.n.toLowerCase() }; } }
     if (t.unique && ev.layout.some(function (o) { return o.k === b.k && o.id !== ignoreId; })) return { ok: false, why: "Une seule " + t.n.toLowerCase() };
     return { ok: true };
   };
@@ -1739,7 +1783,10 @@ button:focus-visible,input:focus-visible{outline:3px solid var(--lime);outline-o
     });
     ev.layout.forEach(function (b) {
       var t = T(b), f = fp(b);
-      if (t.entry || b.k === "staffgate" || t.exit) { var n = Sim.outward(ev, b), open = !t.exit || (S && S.exits && S.exits[b.id] && S.exits[b.id].open); mark(f.x0 + (n[0] ? -1.5 : 0.3), f.x1 + (n[0] ? 1.5 : -0.3), f.z0 + (n[1] ? -1.5 : 0.3), f.z1 + (n[1] ? 1.5 : -0.3), open ? 0 : 2); return; }
+      if (t.entry || b.k === "staffgate" || t.exit) { var n = Sim.outward(ev, b), open = !t.exit || (S && S.exits && S.exits[b.id] && S.exits[b.id].open), x0 = f.x0 + 0.3, x1 = f.x1 - 0.3, z0 = f.z0 + 0.3, z1 = f.z1 - 0.3;
+        // le passage traverse la clôture même si l'entrée est posée un peu en retrait
+        if (n[1] > 0) { z0 = f.z0 - 1.5; z1 = site.z1 + 1.5; } else if (n[1] < 0) { z0 = site.z0 - 1.5; z1 = f.z1 + 1.5; } else if (n[0] > 0) { x0 = f.x0 - 1.5; x1 = site.x1 + 1.5; } else { x0 = site.x0 - 1.5; x1 = f.x1 + 1.5; }
+        mark(x0, x1, z0, z1, open ? 0 : 2); return; }
       if (t.walk || b.k === "shelter" || SMALL[b.k] || b.k === "screen" || b.k === "pmr") return;
       if (b.k === "stageT") { var fr = front(b), bx = b.x - fr[0] * f.d * 0.28, bz = b.z - fr[1] * f.d * 0.28, hw = (fr[0] ? f.d * 0.22 : f.w / 2), hd = (fr[0] ? f.w / 2 : f.d * 0.22); mark(bx - hw, bx + hw, bz - hd, bz + hd, 1); return; }
       mark(f.x0, f.x1, f.z0, f.z1, 1);
@@ -1980,7 +2027,7 @@ button:focus-visible,input:focus-visible{outline:3px solid var(--lime);outline-o
     var hrs = (ev.close - ev.open + 2) * ev.days; b.staff = -Sim.staffCostH(ev.staff) * hrs - Sim.volCost(ev);
     b.stock = -D.RK.reduce(function (a, k) { return a + ev.stock[k] * D.RES[k].price; }, 0) - (ev.layout.some(function (x) { return x.k === "merch"; }) ? ev.merch.stock * ev.merch.unit : 0);
     b.prod = -Sim.prodCost(ev);
-    b.copyright = -(b.tickets + b.door + b.vip) * 0.06; b.security = -ev.cap * 0.35 * ev.days - (D.SEARCH[ev.search].cost || 0) * ev.days - (ev.rfid ? ev.cap * 0.4 : 0);
+    b.copyright = -(b.tickets + b.door + b.vip) * 0.06; b.security = -ev.cap * 0.35 * ev.days - (D.SEARCH[ev.search].cost || 0) * ev.days - (ev.rfid ? ev.cap * 0.4 : 0) - (Sim.planCost ? Sim.planCost(ev) : 0);
     b.cashless = ev.cashless ? -(1500 + ev.cap * 0.25) : 0;
     b.shuttle = ev.layout.some(function (x) { return x.k === "shuttle"; }) ? -Sim.busCostH(ev) * (ev.tr.last - ev.open + 1) * ev.days : 0;
     b.comms = -(ev.campaigns || []).reduce(function (a, k) { var c = D.CAMPAIGNS.filter(function (x) { return x.k === k; })[0]; return a + (c ? c.cost : 0); }, 0) - (ev.app ? 15000 : 0);
@@ -2064,7 +2111,7 @@ button:focus-visible,input:focus-visible{outline:3px solid var(--lime);outline-o
       money: { tickets: dm.sold * ev.price * 0.94, door: 0, vip: dm.vip * ev.vipPrice * 0.94, bars: 0, food: 0, vest: 0, cashless: 0, sponsors: (5000 + dm.appeal * ev.cap * 1.1) * ev.days + (ev.price ? 0 : ev.cap * 26 * ev.days) + Sim.sponsorPay(ev),
         parking: 0, shuttleTix: 0, relais: 0, campingTix: 0, merch: 0, partner: 0, lockers: 0, charge: 0, deposit: 0,
         artists: -Sim.lineupFee(ev), artLog: -Sim.artistLogistics(ev), prod: -Sim.prodCost(ev), rent: 0, build: -Sim.buildCost(ev), staff: -Sim.volCost(ev), stock: -D.RK.reduce(function (a, k) { return a + ev.stock[k] * D.RES[k].price; }, 0) - (ev.layout.some(function (x) { return x.k === "merch"; }) ? ev.merch.stock * ev.merch.unit : 0),
-        copyright: 0, security: -ev.cap * 0.35 * ev.days - (D.SEARCH[ev.search].cost || 0) * ev.days - (ev.rfid ? ev.cap * 0.4 : 0), cashlessCost: ev.cashless ? -(1500 + ev.cap * 0.25) : 0, shuttle: 0,
+        copyright: 0, security: -ev.cap * 0.35 * ev.days - (D.SEARCH[ev.search].cost || 0) * ev.days - (ev.rfid ? ev.cap * 0.4 : 0) - (Sim.planCost ? Sim.planCost(ev) : 0), cashlessCost: ev.cashless ? -(1500 + ev.cap * 0.25) : 0, shuttle: 0,
         comms: -(ev.campaigns || []).reduce(function (a, k) { var c = D.CAMPAIGNS.filter(function (x) { return x.k === k; })[0]; return a + (c ? c.cost : 0); }, 0) - (ev.app ? 15000 : 0), eco: -Sim.ecoCost(ev), utilities: 0, extra: 0, fines: 0, refund: 0 },
       sat: 82, fac: {}, facSum: {}, facN: 0, hist: [], warned: {}, redirect: null, redirectCd: 0, stormStop: 0, volumeDown: false, notReady: {},
       stats: { maxWait: 0, crush: 0, medOk: 0, medKo: 0, amb: 0, fightOk: 0, fightKo: 0, intrOk: 0, intrKo: 0, fires: 0, rup: { keg: 0, ice: 0, crate: 0 }, drinks: {}, food: 0, wcFull: 0, lostOk: 0, lostKo: 0, delays: 0, cancels: 0, overflow: 0, over: 0, power: 0, tech: 0, dayRep: [], stranded: 0, jamMax: 0, evacMin: 0, stormHurt: 0, harass: 0, inspFail: 0 },
@@ -2178,7 +2225,7 @@ button:focus-visible,input:focus-visible{outline:3px solid var(--lime);outline-o
       }
       if (p.st === "travel") { var wq = Sim.waitMin(); p.st = "in"; pj(p, wq > 25 ? "Enfin entré après " + Math.round(wq) + " min de file." : "Entrée rapide (" + Math.max(1, Math.round(wq)) + " min).", wq > 25 ? -10 : wq < 8 ? 3 : 0); if (D.SEARCH[ev.search].catch > 0.8) pj(p, "Fouille sérieuse à l'entrée, rassurant.", 1); return; }
       if (p.st !== "in") return;
-      if (S.evac) { if (!p.evac) { p.evac = 1; pj(p, "Évacuation ! Suit les consignes vers la sortie.", -6); } return; }
+      if (S.evac && S.evac.kind !== "zone") { if (p.evac !== S.evac.t0) { p.evac = S.evac.t0; pj(p, S.evac.kind === "shelter" ? "Mise à l'abri : se serre sous un chapiteau en attendant la fin de l'orage." : S.evac.kind === "lockdown" ? "Confinement : assis par terre avec les autres, sans comprendre ce qui se passe." : "Évacuation ! Suit les stadiers vers la sortie.", S.evac.kind === "shelter" ? -2 : -6); } return; }
       if (S.t >= p.leave || S.closing) { p.st = "out"; var how = p.mode === "bus" ? (S.t > ev.tr.last * 60 ? "Plus de navette : rentre en taxi, hors de prix." : "Rentre en navette.") : p.mode === "car" ? (S.road.outQ > 300 ? "45 minutes pour sortir du parking." : "Reprend sa voiture.") : "Rentre à pied."; pj(p, how, /taxi|45/.test(how) ? -10 : 0); pj(p, "Note finale : " + Math.round(p.sat / 20) + "/5.", 0); return; }
       var fs = p.favSet && S.sets[p.favSet], favLive = fs && fs.st === "live";
       if (favLive) { var setB = ev.lineup.filter(function (s) { return s.id === p.favSet; })[0], st = S.stages[setB.stage]; if (p.where !== setB.stage) { p.where = setB.stage; var dens = st.crowd / D.BT[Sim.find(ev, setB.stage).k].cap; pj(p, "Devant " + Sim.stageName(setB.stage) + " pour " + Sim.artist(ev, p.fav).n + (dens > 0.95 ? " : impossible d'approcher, c'est blindé." : " : moment magique !"), dens > 0.95 ? -4 : 12); } return; }
@@ -2308,7 +2355,7 @@ button:focus-visible,input:focus-visible{outline:3px solid var(--lime);outline-o
     trash: function (u, j) { var b = S.bins[j.ref]; if (S.waste.cap > 0 && S.waste.vol >= S.waste.cap) { log("Bennes pleines : impossible de vider les poubelles. Fais tourner les bennes.", "r", "Logistique"); return; } S.waste.vol += b.level / 100 * 0.24; b.level = 0; b.over = false; u.energy -= 3; },
     wcclean: function (u, j) { S.wcs[j.ref].fill = 6; u.energy -= 6; },
     calmEnd: function () {},
-    sweep: function (u, j) { if (S.evac) { var n = Math.min(S.evac.lag, 60 + Math.random() * 40); S.evac.lag -= n; S.evac.swept = (S.evac.swept || 0) + n; } },
+    sweep: function (u, j) { var E = S.evac; if (!E || E.kind !== "general") return; var zid = j.ref && j.ref[2]; if (E.phase === "count" && zid) { var left = Sim.sweepZones().filter(function (z) { return !E.swept[z.id]; }).length || 1, found = Math.min(E.missing, Math.ceil(E.missing / left)); E.swept[zid] = 1; if (E.sweeping) delete E.sweeping[zid]; E.missing -= found; log(u.name + " a balayé " + (Sim.sweepZones().filter(function (z) { return z.id === zid; })[0] || { n: "une zone" }).n.toLowerCase() + (found ? " : " + found + " retardataire" + (found > 1 ? "s" : "") + " raccompagné" + (found > 1 ? "s" : "") + " dehors." : " : personne."), "g", "Sécu"); return; } var n = Math.min(E.lag, 60 + Math.random() * 40); E.lag -= n; },
     medStab: function (u, j) { var inc = findInc(j.ref); if (!inc) return; inc.picked = true;
       if (inc.grave) { inc.wait = true; inc.label = "Attend l'ambulance"; u.steps.unshift({ wait: true, lbl: "Reste avec la victime" }); callVehicle("amb", inc.x, inc.z, 6, { inc: inc.id }); log("Malaise grave : ambulance demandée.", "r", "Secours"); }
       else { u.carry = "med"; u.steps.unshift({ work: 2, lbl: "Confie au poste", act: "medDone" }); u.steps.unshift(go(Sim.workPoint(baseOf("med")), "Accompagne au poste de secours", true)); } },
@@ -2359,7 +2406,8 @@ button:focus-visible,input:focus-visible{outline:3px solid var(--lime);outline-o
       Sim.order(inc.type, inc.id, null, true);
     });
     Object.keys(S.stages).forEach(function (id) { var st = S.stages[id]; if (st.press > 40 && st.guard == null) Sim.order("calm", id, null, true); });
-    if (S.evac && S.evac.phase === "move" && S.evac.lag > 5) { var spots = Sim.stagesOf(ev).map(function (b) { var z = Sim.zone(b); return [(z.x0 + z.x1) / 2, (z.z0 + z.z1) / 2]; }); S.units.filter(function (u) { return u.kind === "pat" && isFree(u); }).forEach(function (u, i) { var sp = spots[i % spots.length]; if (sp) Sim.order("sweep", sp, u.id, true); }); }
+    if (S.evac && S.evac.kind === "general" && S.evac.phase === "count") { var E2 = S.evac; E2.sweeping = E2.sweeping || {}; var todo = Sim.sweepZones().filter(function (z) { return !E2.swept[z.id] && !E2.sweeping[z.id]; }); S.units.filter(function (u) { return u.kind === "pat" && isFree(u); }).forEach(function (u) { var z = todo.shift(); if (!z) return; if (Sim.order("sweep", [z.x, z.z, z.id], u.id, true)) E2.sweeping[z.id] = u.id; }); }
+    if (S.evac && S.evac.kind === "general" && S.evac.phase === "move" && S.evac.lag > 5) { var spots = Sim.stagesOf(ev).map(function (b) { var z = Sim.zone(b); return [(z.x0 + z.x1) / 2, (z.z0 + z.z1) / 2]; }); S.units.filter(function (u) { return u.kind === "pat" && isFree(u); }).forEach(function (u, i) { var sp = spots[i % spots.length]; if (sp) Sim.order("sweep", sp, u.id, true); }); }
   }
   L.autoDispatch = autoDispatch;
 
@@ -2506,6 +2554,8 @@ button:focus-visible,input:focus-visible{outline:3px solid var(--lime);outline-o
     // feu : fumigènes non saisis, cuisine des food trucks, matériel surchauffé ; colis suspect : rare
     if (!S.warned["fire" + S.day] && chance((0.0015 * (1 - SE.catch) + Object.keys(S.foods).length * 0.00006) / E.ev, gm)) { S.warned["fire" + S.day] = 1; var fs = weightedStage(), fb = Sim.find(ev, fs), f = Sim.fp(fb); spawnInc("fire", f.x1 + 2, f.z1 + 1, 9, { stage: fs }); S.stats.fires++; log("Départ de feu près de " + stageName(fs) + " : un fumigène est passé à la fouille.", "r", "Sécu"); banner("<b>Départ de feu</b> près de " + stageName(fs) + ".", "red", 5000); }
     if (!S.warned["colis" + S.day] && chance(0.0012 / E.ev, gm)) { S.warned["colis" + S.day] = 1; var cst = weightedStage(), cp = zoneSpot(cst); spawnInc("colis", cp[0], cp[1], 10, { stage: cst }); log("Colis suspect signalé devant " + stageName(cst) + ".", "a", "Sécu"); banner("<b>Colis suspect</b> devant " + stageName(cst) + ". Il faut un périmètre.", "", 5000); }
+    // menace (rare) : appel anonyme, à vérifier
+    if (!S.warned["threat" + S.day] && !S.evac && chance(0.0004 / E.ev, gm)) { S.warned["threat" + S.day] = 1; S.threat = { real: Math.random() < 0.2, t: t }; decision("threat"); }
     // faux billets : une vague par jour au plus
     if (ev.price && !S.warned["wave" + S.day] && chance(0.002, gm)) { S.warned["wave" + S.day] = 1; S.fraudWave = t + 30; log("Des faux billets circulent : passe en contrôle renforcé.", "a", "Accueil"); }
   }
@@ -2591,8 +2641,8 @@ button:focus-visible,input:focus-visible{outline:3px solid var(--lime);outline-o
       apply: function (d, i) { var s = setOf(d.data.set), ss = S.sets[s.id]; if (i === 2) { ss.st = "cancel"; S.stats.cancels++; S.sat -= 6 * (Sim.artist(S.ev, s.art).pop / 60); } else { ss.delay = d.data.min; S.stats.delays++; if (i === 0) { S.money.extra -= 2500; ss.fill = true; } else S.sat -= 2; } } },
     overrun: { make: function (d) { var s = setOf(d.data.set), a = Sim.artist(S.ev, s.art); return { title: "Le public réclame un rappel", text: a.n + " termine et la foule scande son nom. Un rappel de 10 min décale la suite" + (S.curfew ? " et peut dépasser l'heure limite fixée par la mairie" : "") + ".", opts: [{ l: "Accepter le rappel", s: "ambiance en hausse, programme décalé de 10 min" }, { l: "Refuser", s: "on reste dans les temps" }] }; },
       apply: function (d, i) { if (i === 0) { var s = setOf(d.data.set); S.sets[s.id].extra = 10; S.sat += 4; S.buzz += 3; S.ev.lineup.forEach(function (x) { if (x.stage === s.stage && x.day === s.day && x.start > s.start) S.sets[x.id].delay += 10; }); } } },
-    storm: { make: function () { return { title: "Alerte orage", text: "Météo : orage violent attendu dans 15 min, rafales au-delà de 70 km/h. Les structures extérieures sont exposées.", opts: [{ l: "Arrêter les scènes extérieures", s: "public mis à l'abri, concerts suspendus" }, { l: "Continuer", s: "risque de dégâts et de blessés" }] }; },
-      apply: function (d, i) { if (i === 0) { S.stormStop = S.t + 75; log("Scènes extérieures arrêtées pendant l'orage.", "a", "Régie"); } else S.stormRisk = true; } },
+    storm: { make: function () { return { title: "Alerte orage", text: "Météo : orage violent attendu dans 15 min, rafales au-delà de 70 km/h. Les structures extérieures sont exposées.", opts: [{ l: "Mise à l'abri du public", s: "scènes en plein air arrêtées, tout le monde sous les abris" }, { l: "Arrêter seulement les scènes extérieures", s: "le public reste dehors, sous la pluie" }, { l: "Continuer", s: "risque de dégâts et de blessés" }] }; },
+      apply: function (d, i) { if (i === 0) { S.stormStop = S.t + 75; if (!Sim.startShelter("orage")) log("Scènes extérieures arrêtées pendant l'orage.", "a", "Régie"); } else if (i === 1) { S.stormStop = S.t + 75; S.stormRisk = 0.4; log("Scènes extérieures arrêtées pendant l'orage.", "a", "Régie"); } else S.stormRisk = 1; } },
     heat: { make: function () { return { title: "Canicule", text: "Il fait plus de 30 °C. Les malaises se multiplient.", opts: [{ l: "Distribuer de l'eau gratuite", s: "coût 3 000 €, moins de malaises" }, { l: "Brumisateurs aux scènes", s: "coût 1 500 €, un peu moins de malaises" }, { l: "Ne rien faire", s: "" }] }; },
       apply: function (d, i) { if (i === 0) { S.money.extra -= 3000; S.heatAid = 0.45; } else if (i === 1) { S.money.extra -= 1500; S.heatAid = 0.7; } } },
     noise: { make: function () { return { title: "Plainte des riverains", text: "La police transmet des plaintes pour le bruit" + (S.curfew ? " (limite à " + hm(S.curfew) + ")" : "") + ". Niveau actuel : " + S.ev.tech.db + " dB(A).", opts: [{ l: "Baisser le volume", s: "ambiance en baisse" }, { l: "Ignorer", s: "amende possible : 5 000 €" }] }; },
@@ -2612,8 +2662,14 @@ button:focus-visible,input:focus-visible{outline:3px solid var(--lime);outline-o
       apply: function (d, i) { if (i === 0) { S.ev.tr.last += 1; S.money.shuttle -= Sim.busCostH(S.ev) * 1.2; } else if (i === 1) { S.money.extra -= 8000; S.taxis = (S.taxis || 0) + 1200; } } },
     media: { make: function (d) { var w = { fire: "l'incendie", colis: "le colis suspect", crush: "la bousculade", evac: "l'évacuation", strand: "les festivaliers bloqués sans navette" }[d.data.kind] || "l'incident"; return { title: "Les journalistes t'appellent", text: S.press.journalists + " journalistes sont sur place et veulent ta version sur " + w + ".", opts: [{ l: "Communiqué rapide et transparent", s: "réputation préservée" }, { l: "Point presse avec la préfecture", s: "rassurant, mais prend du temps à la régie" }, { l: "Pas de commentaire", s: "les rumeurs enflent" }] }; },
       apply: function (d, i) { S.repAdj = (S.repAdj || 0) + (i === 0 ? -1 : i === 1 ? 0 : -5); if (i === 1) S.staffQ += 6; S.buzz += i === 2 ? -8 : 0; } },
-    prefecture: { make: function () { var bad = (S.evac && S.evac.injured > 3) || S.inc.some(function (i) { return i.type === "fire" && i.big; }); return { title: "Fin d'alerte : la préfecture décide avec toi", text: "Le site est évacué et l'alerte est levée. " + (bad ? "Il y a eu des blessés : la préfecture préfère arrêter." : "Le public attend aux points de rassemblement."), opts: bad ? [{ l: "Annuler la fin de journée", s: "remboursement partiel des billets" }] : [{ l: "Reprendre l'événement", s: "le public revient par les entrées avec un nouveau contrôle" }, { l: "Annuler la fin de journée", s: "remboursement partiel des billets" }] }; },
-      apply: function (d, i) { if (d.opts.length === 2 && i === 0) Sim.F.resume(); else Sim.F.cancelDay(); } }
+    wind: { make: function (d) { return { title: "Alerte vent fort", text: "Rafales annoncées à plus de " + (70 + d.data.i * 12) + " km/h. Écrans géants, banderoles et toits de scène prennent le vent.", opts: [{ l: "Descendre les écrans et bâches, arrêter les scènes 30 min", s: "concerts suspendus, structures protégées" }, { l: "Descendre seulement les écrans", s: "moins de risques, le show continue" }, { l: "Ne rien faire", s: "risque d'effondrement" }] }; },
+      apply: function (d, i) { if (i === 0) { S.stormStop = S.t + 30; S.screensDown = S.t + 60; log("Écrans et bâches descendus, scènes à l'arrêt pendant les rafales.", "a", "Régie"); } else if (i === 1) { S.screensDown = S.t + 60; log("Écrans géants descendus par la technique.", "a", "Logistique"); } else if (Math.random() < 0.25 + 0.15 * d.data.i) { var sc = S.ev.layout.filter(function (b) { return D.BT[b.k].screen; }); var b = sc.length ? pick(sc) : null; if (b) { for (var q = 0; q < 1 + d.data.i; q++) spawnInc("med", b.x + rnd(-3, 3), b.z + rnd(-3, 3), 25, { grave: q === 0 }); S.sat -= 8; S.stats.stormHurt += 2; log("Un écran géant s'est renversé sous les rafales : des blessés.", "r", "Sécu"); pressCrisis("collapse"); } } } },
+    headliner: { make: function (d) { var s = setOf(d.data.set), a = Sim.artist(S.ev, s.art); return { title: a.n + " annule", text: "La tête d'affiche du jour (" + D.GENRES[a.g] + ", popularité " + a.pop + ") annule son concert de " + hm(s.start) + " sur " + stageName(s.stage) + ".", opts: [{ l: "Trouver un remplaçant connu", s: "coûte " + Math.round(a.fee * 0.8).toLocaleString("fr-FR") + " €, déception limitée" }, { l: "Rembourser une partie des billets", s: "15 % du prix, le public apprécie l'honnêteté" }, { l: "Annoncer l'annulation", s: "grosse déception" }] }; },
+      apply: function (d, i) { var s = setOf(d.data.set), a = Sim.artist(S.ev, s.art); if (i === 0) { S.money.artists -= a.fee * 0.8; S.sat -= 4; var alt = S.ev.catalog.filter(function (x) { return !S.ev.lineup.some(function (l) { return l.art === x.id; }) && x.pop >= a.pop - 25; }).sort(function (x, y) { return y.pop - x.pop; })[0]; if (alt) { s.art = alt.id; log(alt.n + " remplace " + a.n + " au pied levé.", "i", "Artistes"); } else { S.sets[s.id].st = "cancel"; } } else { S.sets[s.id].st = "cancel"; S.stats.cancels++; S.sat -= i === 1 ? 6 : 12; if (i === 1 && S.ev.price) S.money.refund -= S.money.tickets / S.ev.days * 0.15; if (i === 2) S.repAdj = (S.repAdj || 0) - 3; } } },
+    endAlert: { make: function () { var adv = Sim.alertAdvice(); return { title: "Fin d'alerte : à toi de décider", text: adv.map(function (a) { return (a.ok ? "✓ " : "⚠ ") + a.who + " : " + a.txt; }).join("\n"), opts: [{ l: "Reprendre l'événement", s: adv.some(function (a) { return !a.ok && a.who !== "Programmation"; }) ? "contre au moins un avis : risqué" : "le public revient par les entrées avec un nouveau contrôle" }, { l: "Arrêter la journée", s: "remboursement partiel des billets" }, { l: "Attendre encore", s: "poursuivre le comptage et le balayage" }] }; },
+      apply: function (d, i) { if (!S.evac || S.evac.kind !== "general") return; if (i === 0) Sim.F.resume(); else if (i === 1) Sim.F.cancelDay(); } },
+    threat: { make: function () { return { title: "Menace signalée", text: "Un appel anonyme et des messages sur les réseaux évoquent une menace contre le festival. Rien n'est confirmé pour l'instant.", opts: [{ l: "Lever le doute avec la police", s: "6 min de vérification, le public ne remarque rien" }, { l: "Confinement immédiat", s: "accès fermés, public gardé sur place" }, { l: "Évacuation générale", s: "tout le monde sort par les issues" }, { l: "Ignorer", s: "très risqué si la menace est réelle" }] }; },
+      apply: function (d, i) { if (i === 0) Sim.checkAlert("menace"); else if (i === 1) Sim.startLockdown("menace"); else if (i === 2) Sim.startEvac({ kind: "general", reason: "menace" }); else if (S.threat && S.threat.real) { S.repAdj = (S.repAdj || 0) - 6; S.threat.ignored = true; } } }
   };
   Sim.DEC = DEC;
 
@@ -2646,7 +2702,8 @@ button:focus-visible,input:focus-visible{outline:3px solid var(--lime);outline-o
     S.money.staff -= Sim.liveCostH() / 60 * gm;
     Sim.F.step(gm, w);
     technical(gm, w); security(gm, w); incTimers(); L.inspections(gm); stepOrders(); stepVehicles();
-    if (S.stormRisk && w.storm && chance(0.01, gm)) { S.stormRisk = false; var stageIds = Object.keys(S.stages), sb = pick(stageIds.filter(function (id) { var b = Sim.find(ev, id); return !D.BT[b.k].covered && !Sim.hallOf(ev, b); })); if (sb) { S.stages[sb].out = true; S.sat -= 12; S.stats.stormHurt += 3; for (var q = 0; q < 3; q++) { var sp2 = zoneSpot(sb); spawnInc("med", sp2[0], sp2[1], 25, { stage: sb, grave: q === 0 }); } log("Rafale : des éléments de " + stageName(sb) + " sont tombés. Des blessés.", "r", "Sécu"); pressCrisis("storm"); } }
+    var exposedF = S.evac && S.evac.kind === "shelter" ? (S.pop.inside > 0 ? (S.evac.exposed || 0) / S.pop.inside : 0) : 1;
+    if (S.stormRisk && w.storm && chance(0.01 * (+S.stormRisk || 1) * exposedF, gm)) { S.stormRisk = false; var stageIds = Object.keys(S.stages), sb = pick(stageIds.filter(function (id) { var b = Sim.find(ev, id); return !D.BT[b.k].covered && !Sim.hallOf(ev, b); })); if (sb) { S.stages[sb].out = true; S.sat -= 12; S.stats.stormHurt += 3; for (var q = 0; q < 3; q++) { var sp2 = zoneSpot(sb); spawnInc("med", sp2[0], sp2[1], 25, { stage: sb, grave: q === 0 }); } log("Rafale : des éléments de " + stageName(sb) + " sont tombés. Des blessés.", "r", "Sécu"); pressCrisis("storm"); } }
     if (w.t > 30 && !S.warned.heat) { S.warned.heat = 1; decision("heat"); }
     if (Sim.venue(ev).outdoor && ev.venue !== "halls" && !S.warned["storm" + S.day]) { var hrs = S.wx[S.day], hn = Math.floor(t / 60) + 1; if (hrs[hn % 32] && hrs[hn % 32].storm && !hrs[Math.floor(t / 60) % 32].storm) { S.warned["storm" + S.day] = 1; decision("storm"); } }
     if ((S.curfew && t >= S.curfew - 60 || (Sim.venue(ev).outdoor && ev.venue !== "halls" && t >= 23 * 60 && ev.tech.db > 100)) && !S.volumeDown && !S.warned["noise" + S.day] && chance(0.02, gm)) { S.warned["noise" + S.day] = 1; decision("noise"); }
@@ -2661,7 +2718,9 @@ button:focus-visible,input:focus-visible{outline:3px solid var(--lime);outline-o
     Object.keys(S.entries).forEach(function (k) { var x = S.entries[k]; ["Q", "boxQ", "bracQ", "vipQ", "pmrQ", "pressQ", "fake", "slow"].forEach(function (q) { if (!isFinite(x[q]) || x[q] < 0) x[q] = 0; }); });
     // à la fermeture, une évacuation de zone est levée : sinon la journée ne finirait jamais
     if (S.closing && S.evac && S.evac.kind === "zone") Sim.endEvac();
-    if (S.closing && S.evac && S.evac.kind === "general" && t > closeT + 240) { S.dec = S.dec.filter(function (d) { return d.kind !== "prefecture"; }); Sim.F.cancelDay(); }
+    if (S.closing && S.evac && S.evac.kind === "shelter") Sim.endShelter();
+    if (S.closing && S.evac && S.evac.kind === "lockdown" && (S.evac.cleared || t > closeT + 120)) Sim.endLockdown();
+    if (S.closing && S.evac && S.evac.kind === "general" && t > closeT + 240) { S.dec = S.dec.filter(function (d) { return d.kind !== "endAlert"; }); Sim.F.cancelDay(); }
     if (S.closing && ((S.pop.inside < 1 && !Sim.F.busy()) || t > closeT + 120) && !S.evac) endDay();
   };
   Sim.liveCostH = function () { var st = S.staff, c = 0; D.ROLES.forEach(function (r) { c += (st[r.k] || 0) * r.cost; }); return c + S.pool.barmen * 19 + S.pool.secu * 32; };
@@ -2790,9 +2849,11 @@ button:focus-visible,input:focus-visible{outline:3px solid var(--lime);outline-o
   Sim.laneRate = function (id) {
     var e = S.entries[id]; if (!e || e.closed || S.evac || S.closing) return 0; var b = Sim.find(S.ev, id); if (!Sim.ready(b)) return 0;
     var lanes = e.lanes; if (!lanes) return 0;
-    var scan = S.ev.price ? laneShare("scanners")(id) : lanes, palp = laneShare("secuIn")(id), eff = Math.min(lanes, Math.max(0.5, scan), Math.max(0.5, palp * 1.0));
-    var SE = D.SEARCH[S.ev.search], pref = (S.staff.stewards / Math.max(1, Object.keys(S.entries).length)) >= 2 ? 1.08 : 0.94;
-    var r = eff * 5.5 * SE.speed * (e.mode === "std" ? 1 : 0.75) * pref * (S.ev.rfid ? 1.15 : 1) * readiness() * (S.ev.minors && S.ev.minors.ageBracelet ? 0.97 : 1);
+    // deux étapes en série : palpation sous la tente (≈ 4,6 pers./min par agent, un second agent aide) puis scan du billet (≈ 14/min, 19 en RFID)
+    var SE = D.SEARCH[S.ev.search], palp = laneShare("secuIn")(id), per = palp / lanes, palpCap = lanes * 4.6 * SE.speed * (per >= 1 ? 1 + 0.3 * Math.min(1, per - 1) : Math.max(0.15, per));
+    var scanCap = S.ev.price ? Math.max(0.5, laneShare("scanners")(id)) * 14 * (S.ev.rfid ? 1.35 : 1) : lanes * 30;
+    var pref = (S.staff.stewards / Math.max(1, Object.keys(S.entries).length)) >= 2 ? 1.08 : 0.92;
+    var r = Math.min(palpCap, scanCap) * (e.mode === "std" ? 1 : 0.75) * pref * readiness() * (S.ev.minors && S.ev.minors.ageBracelet ? 0.97 : 1);
     if (!(b.sep && b.sep.exit)) r *= clamp(1 - e.out / Math.max(1, r * 3), 0.6, 1);
     if (e.slow > 0 && e.Q > 0) r *= clamp(1 - e.slow / e.Q * 0.5, 0.6, 1);
     return r;
@@ -2822,7 +2883,7 @@ button:focus-visible,input:focus-visible{outline:3px solid var(--lime);outline-o
   function goToEntry(n, x, z, kind, extra, forced) {
     var b = forced || entryFor(x, z);
     if (!b) { var V = Sim.venue(S.ev); walk(n, x, z, clamp(x, -V.W / 2 + 10, V.W / 2 - 10), V.D / 2 - 4, "in", kind, "site", extra); return; }
-    var p = Sim.gatePoint(S.ev, b, 1, 6 + Math.random() * 3); walk(n, x, z, p[0], p[1], "in", kind, b.id, extra);
+    var G = Sim.entryGeo(S.ev, b), p = G.P((Math.random() - 0.5) * G.SW * 0.6, Sim.ENTRY.pre + 3 + Math.random() * 2.5); walk(n, x, z, p[0], p[1], "in", kind, b.id, extra);
   }
   function edgePoint(side) { var V = Sim.venue(S.ev); return [side * (V.W / 2 + 12), Sim.roadZ(S.ev) - 6]; }
 
@@ -2876,6 +2937,7 @@ button:focus-visible,input:focus-visible{outline:3px solid var(--lime);outline-o
       // les voitures VIP, PMR et deux-roues vont à leur parking ; les autres au public
       var types = [["vip", S.pop.vipShare * 0.9], ["pmr", 0.012], ["moto", 0.05], ["public", 1]];
       var capT = 0; ids.forEach(function (id) { var l = S.lots[id]; if (l.cars < l.cap + (l.type === "public" && e.park.overflow ? 800 / Math.max(1, lotsOfType("public").length) : 0)) capT += lotRate(id) * gm; });
+      if (S.jamUntil && S.t < S.jamUntil) capT *= 0.15; // accident sur la route : presque plus rien n'avance
       var flow = Math.min(inQ, capT), left = flow;
       types.forEach(function (tp) { if (left <= 0) return; var want = tp[0] === "public" ? left : flow * tp[1]; want = Math.min(want, left); var rest = parkCars(want, tp[0]), parked = want - rest; left -= parked; moved += parked; if (rest > 0 && tp[0] === "pmr") S.pmrFar = (S.pmrFar || 0) + rest; });
       // plus de place : les voitures se garent dans le quartier
@@ -2993,7 +3055,7 @@ button:focus-visible,input:focus-visible{outline:3px solid var(--lime);outline-o
   }
   function departures(gm) {
     var e = S.ev, closeT = e.close * 60, span = (closeT - e.open * 60) / 60, h = (S.t - e.open * 60) / 60;
-    if (S.evac && S.evac.kind === "general") return;
+    if (S.evac && (S.evac.kind === "general" || S.evac.kind === "lockdown")) return;
     var outRate = S.closing ? 1.8 : h > span - 3 ? 0.08 + 0.1 * (h - (span - 3)) : e.price ? 0.015 : 0.3; if (S.sat < 45) outRate += 0.1;
     var leave = S.pop.inside * outRate / 60 * gm; if (S.closing) leave = Math.max(leave, Math.min(S.pop.inside, 200 * gm));
     leave = Math.min(leave, S.pop.inside); if (leave <= 0) return; S.pop.inside -= leave; S.pop.fraudIn = Math.min(S.pop.fraudIn, S.pop.inside);
@@ -3044,80 +3106,128 @@ button:focus-visible,input:focus-visible{outline:3px solid var(--lime);outline-o
   F.doors = doors;
   function doorField(d) { var e = S.ev, key = "door:" + d.id + ":" + Sim.nav.ver; return Sim.field(key, function () { var p = Sim.gatePoint(e, d.b, -1, 1.5); return Sim.rectCells(p[0] - 2, p[0] + 2, p[1] - 2, p[1] + 2); }); }
   F.doorField = doorField;
+  // ================================================================ protocole d'évacuation (décidé par la régie au PC sécurité)
+  // plan préparé avant l'événement : zone → issue, messages enregistrés, postes des stadiers, briefing, éclairage de sécurité
+  Sim.evacPlan = function (ev) { var p = ev.evacPlan || (ev.evacPlan = { zones: {}, messages: false, posts: false, briefing: false, light: false }); p.zones = p.zones || {}; return p; };
+  Sim.PLAN_COST = { messages: 600, posts: 0, briefing: 1500, light: 3500 };
+  Sim.planCost = function (ev) { var p = Sim.evacPlan(ev), c = 0; Object.keys(Sim.PLAN_COST).forEach(function (k) { if (p[k]) c += Sim.PLAN_COST[k]; }); return c; };
+  Sim.planScore = function (ev) { var p = Sim.evacPlan(ev), st = Sim.stagesOf(ev), z = st.length ? st.filter(function (s) { return p.zones[s.id] && Sim.find(ev, p.zones[s.id]); }).length / st.length : 1; return Math.round(z * 30 + (p.messages ? 20 : 0) + (p.posts ? 20 : 0) + (p.briefing ? 15 : 0) + (p.light ? 15 : 0)); };
+  // danger réel : incendie, colis, menace confirmée, orage en cours ou imminent
+  function realDanger(reason) { var w = S.wx_now || Sim.weatherAt(S, S.t), w2 = Sim.weatherAt(S, S.t + 20); if (S.inc.some(function (i) { return (i.type === "fire" || i.type === "colis") && !i.done; })) return true; if (reason === "menace" || reason === "menace d'attentat") return !!(S.threat && S.threat.real); if (reason === "météo") return !!(w.storm || w2.storm || w.wind > 60); return false; }
+  Sim.realDanger = realDanger;
+  // levée de doute : par caméra (1 min) si l'endroit est filmé, sinon un agent va voir (3 min) ; la police pour une menace
+  Sim.checkAlert = function (reason) {
+    if (S.doubt && S.doubt.until > S.t) { Sim.toast("Levée de doute déjà en cours"); return false; }
+    var inc = S.inc.filter(function (i) { return (i.type === "fire" || i.type === "colis" || i.type === "menace") && !i.done; })[0], cam = inc ? (Sim.F.coverage(inc.x, inc.z) >= 1) : S.ev.layout.some(function (b) { return b.k === "cctv"; });
+    var dur = reason === "météo" ? 0.5 : reason === "menace" ? 6 : cam ? 1 : 3;
+    S.doubt = { reason: reason, t0: S.t, until: S.t + dur, how: reason === "météo" ? "bulletin météo" : reason === "menace" ? "vérification par la police" : cam ? "caméras" : "agent envoyé sur place", result: null };
+    L.log("Levée de doute (" + reason + ") : " + S.doubt.how + ", résultat dans " + Math.ceil(dur) + " min.", "a", "Sécu"); return true;
+  };
+  function doubtStep() { var d = S.doubt; if (!d || d.result != null || S.t < d.until) return; d.result = realDanger(d.reason) ? "confirmé" : "fausse alerte"; L.log("Levée de doute : " + (d.result === "confirmé" ? "danger CONFIRMÉ (" + d.reason + ")." : "fausse alerte, pas de danger (" + d.reason + ")."), d.result === "confirmé" ? "r" : "g", "Sécu"); L.banner("<b>Levée de doute</b> " + (d.result === "confirmé" ? "danger confirmé : à toi de décider." : "fausse alerte."), d.result === "confirmé" ? "red" : "lime", 5000); L.sfx(d.result === "confirmé" ? "alarm" : "ok"); }
   Sim.startEvac = function (o) {
-    if (S.evac) return; o = o || {}; var e = S.ev, just = o.just != null ? o.just : S.inc.some(function (i) { return i.type === "fire" || i.type === "colis"; });
+    if (S.evac) return; o = o || {}; var e = S.ev, plan = Sim.evacPlan(e), score = Sim.planScore(e) / 100, just = o.just != null ? o.just : realDanger(o.reason);
+    if (S.doubt && S.doubt.result === "fausse alerte" && S.doubt.reason === o.reason) just = false;
     if (o.kind === "zone") { var st = S.stages[o.stage]; st.blocked = true; S.evac = { kind: "zone", stage: o.stage, reason: o.reason || "danger", just: just, t0: S.t, phase: "move", lag: 0, injured: 0, panic: 0.1, doors: {} };
-      L.log("Évacuation de la zone de " + L.stageName(o.stage) + " : le public est dirigé vers les autres espaces.", "a", "Sécu"); L.banner("<b>Évacuation de zone</b> " + L.stageName(o.stage) + ".", "", 5000); return; }
+      L.log("Évacuation de la zone de " + L.stageName(o.stage) + " : musique coupée sur cette scène, stadiers en ligne, le public est dirigé vers les autres espaces.", "a", "Sécu"); L.banner("<b>Évacuation de zone</b> " + L.stageName(o.stage) + ".", "", 5000); return; }
     var screens = e.layout.filter(function (b) { return D.BT[b.k].screen; }).length, stew = clamp(S.staff.stewards / Math.max(1, e.cap / 500), 0, 1), app = S.app.installs * (S.net.load < 1 ? 1 : 0.3);
-    var pre = clamp(4 - (screens ? 0.8 : 0) - app * 1.5 - stew * 1.2, 1, 5);
-    S.evac = { kind: "general", reason: o.reason || "danger", just: just, t0: S.t, phase: "alert", tMove: S.t + pre, pre: pre, lag: 0, injured: 0, panic: 0.15 + (o.reason === "incendie" ? 0.15 : 0), doors: {}, clusters: null, assembled: 0, out: 0, n0: S.pop.inside, autoOpenAt: S.t + 3 };
+    var pre = clamp(4.5 - (screens ? 0.8 : 0) - app * 1.5 - stew * 1.2 - (plan.messages ? 1 : 0) - (plan.posts ? 0.5 : 0), 1, 6);
+    S.evac = { kind: "general", reason: o.reason || "danger", just: just, t0: S.t, phase: "alert", tMove: S.t + pre, pre: pre, lag: 0, injured: 0, panic: 0.15 + (o.reason === "incendie" ? 0.15 : 0), doors: {}, clusters: null, assembled: 0, counted: 0, out: 0, n0: S.pop.inside, openAt: {}, swept: {}, missing: 0, score: score };
+    // les stadiers ouvrent chaque issue à leur tour (plus vite avec un briefing et des postes définis)
+    Sim.exitsOf(e).forEach(function (b) { if (!S.exits[b.id].open && S.staff.stewards > 0) S.evac.openAt[b.id] = S.t + (plan.briefing ? 0.6 : 1.8) + rnd(0, plan.posts ? 0.8 : 2.5); });
+    Object.keys(S.entries).forEach(function (k) { S.entries[k].closed = true; });
     S.sat -= just ? 4 : 25; S.stormStop = 0;
-    L.log((just ? "Évacuation générale déclenchée (" + S.evac.reason + ")." : "Évacuation générale sans raison grave : le public est furieux.") + " Musique coupée, messages au micro et sur les écrans.", "r", "Régie");
-    L.banner("<b>Évacuation générale</b> ouvre les issues de secours. Le public se met en mouvement dans " + Math.round(pre) + " min.", "red", 7000);
+    L.log("CODE ROUGE : évacuation générale (" + S.evac.reason + ")" + (just ? "." : " sans danger avéré : le public ne comprend pas.") + " Son coupé, lumière blanche, message " + (plan.messages ? "préenregistré" : "improvisé au micro") + " et écrans, entrées fermées.", "r", "Régie");
+    L.banner("<b>Code rouge</b> évacuation générale. Le public bouge dans " + Math.round(pre) + " min, les issues s'ouvrent.", "red", 7000);
     L.pressCrisis("evac");
     if (o.reason === "incendie" && !S.veh.some(function (v) { return v.kind === "fire" && !v.arrived; })) L.callVehicle("fire", 0, 0, 8, {});
   };
   function buildClusters() {
     var e = S.ev, cl = [], tot = S.pop.inside, used = 0;
-    Object.keys(S.stages).forEach(function (id) { var st = S.stages[id], z = Sim.zone(Sim.find(e, id)), n = Math.min(st.crowd, tot - used); if (n > 0) { cl.push({ x: (z.x0 + z.x1) / 2, z: (z.z0 + z.z1) / 2, n: n }); used += n; } st.crowd = 0; });
+    Object.keys(S.stages).forEach(function (id) { var st = S.stages[id], z = Sim.zone(Sim.find(e, id)), n = Math.min(st.crowd, tot - used); if (n > 0) { cl.push({ x: (z.x0 + z.x1) / 2, z: (z.z0 + z.z1) / 2, n: n, stage: id }); used += n; } st.crowd = 0; });
     var pts = e.layout.filter(function (b) { var t = D.BT[b.k]; return (t.bar || t.food || t.wc || b.k === "shelter") && Sim.within(Sim.fp(b), Sim.siteRect(e)); });
     var rest = Math.max(0, tot - used); pts.forEach(function (b) { var p = Sim.workPoint(b); cl.push({ x: p[0], z: p[1], n: rest / Math.max(1, pts.length) }); });
     if (!pts.length && rest > 0) cl.push({ x: 0, z: 0, n: rest });
     return cl;
   }
   function assign(c, ds, guided) {
-    var best = null, bv = 1e9;
+    var best = null, bv = 1e9, plan = Sim.evacPlan(S.ev), want = c.stage && plan.zones[c.stage];
+    if (want && Math.random() < (plan.posts ? 0.95 : 0.75)) { var wd = ds.filter(function (d) { return d.id === want; })[0]; if (wd) { var fw = doorField(wd), dw = Sim.fieldAt(fw, c.x, c.z); if (dw < 65535) { c.door = wd.id; c.dist = dw * 2; return; } } }
     ds.forEach(function (d) { var f = doorField(d), dist = Sim.fieldAt(f, c.x, c.z); if (dist >= 65535) return; var q = S.evac.doors[d.id] ? S.evac.doors[d.id].q : 0, v = dist * 2 / 22 + (guided ? q / d.rate : 0); if (v < bv) { bv = v; best = d; c.dist = dist * 2; } });
     c.door = best ? best.id : null;
   }
+  // zones à balayer après la sortie du public
+  Sim.sweepZones = function () { var e = S.ev, out = Sim.stagesOf(e).map(function (b) { var z = Sim.zone(b); return { id: b.id, n: "Zone " + Sim.bName(b, e), x: (z.x0 + z.x1) / 2, z: (z.z0 + z.z1) / 2 }; }), V = Sim.venue(e); out.push({ id: "bars", n: "Bars et food court", x: 0, z: V.D * 0.15 }); out.push({ id: "wc", n: "Sanitaires et recoins", x: -V.W * 0.35, z: 0 }); out.push({ id: "back", n: "Backstage et zone technique", x: V.W * 0.3, z: -V.D * 0.35 }); return out; };
   function evacStep(gm) {
     var E = S.evac, e = S.ev, t = S.t; if (!E) return;
-    if (E.kind === "zone") { var st = S.stages[E.stage]; st.crowd = Math.max(0, st.crowd - Math.max(150, st.crowd * 0.25) * gm); if (st.crowd < 40 && E.phase === "move") { E.phase = "clear"; L.log("Zone évacuée. Elle reste fermée tant que tu ne la rouvres pas.", "g", "Sécu"); } return; }
-    // les stadiers ouvrent les issues si personne ne l'a fait
-    if (t >= E.autoOpenAt && !E.autoOpened) { E.autoOpened = true; if (S.staff.stewards > 0 && !Object.keys(S.exits).some(function (k) { return S.exits[k].open; })) { Sim.openAllExits(); L.log("Les stadiers ont ouvert les issues de secours d'eux-mêmes.", "a", "Sécu"); } }
+    if (E.kind === "shelter") { shelterStep(gm); return; }
+    if (E.kind === "lockdown") { lockdownStep(gm); return; }
+    if (E.kind === "zone") { var st = S.stages[E.stage]; st.crowd = Math.max(0, st.crowd - Math.max(150, st.crowd * 0.25) * gm); if (st.crowd < 40 && E.phase === "move") { E.phase = "clear"; L.log("Zone évacuée et tenue par les stadiers. Elle reste fermée tant que tu ne la rouvres pas.", "g", "Sécu"); } return; }
+    var plan = Sim.evacPlan(e);
+    Object.keys(E.openAt).forEach(function (id) { if (t >= E.openAt[id] && S.exits[id] && !S.exits[id].open) { S.exits[id].open = true; delete E.openAt[id]; Sim.buildNav(e, S); L.log("Issue ouverte par les stadiers : " + Sim.bName(Sim.find(e, id), e) + ".", "a", "Sécu"); } });
     var ds = doors(); ds.forEach(function (d) { if (!E.doors[d.id]) { var p = Sim.gatePoint(e, d.b, 1, 3); E.doors[d.id] = { q: 0, x: p[0], z: p[1], rate: d.rate, out: 0 }; } E.doors[d.id].rate = d.rate; E.doors[d.id].open = true; });
     Object.keys(E.doors).forEach(function (id) { if (!ds.some(function (d) { return d.id === id; })) E.doors[id].open = false; });
-    if (E.phase === "alert") { if (t >= E.tMove) { E.phase = "move"; E.clusters = buildClusters(); E.lag = S.pop.inside * (0.025 + (1 - clamp(S.staff.stewards / Math.max(1, e.cap / 500), 0, 1)) * 0.02); var stew = clamp(S.staff.stewards / Math.max(1, e.cap / 500), 0, 1); E.clusters.forEach(function (c) { assign(c, ds, Math.random() < stew); }); L.log("Le public se dirige vers les sorties.", "a", "Sécu"); } return; }
+    var stew = clamp(S.staff.stewards / Math.max(1, e.cap / 500), 0, 1);
+    if (E.phase === "alert") { if (t >= E.tMove) { E.phase = "move"; E.clusters = buildClusters(); E.lag = S.pop.inside * (0.025 + (1 - stew) * 0.02) * (1 - E.score * 0.4); E.clusters.forEach(function (c) { assign(c, ds, Math.random() < stew); }); L.log("Le public se dirige vers les sorties" + (plan.posts ? ", guidé par les stadiers à leurs postes." : "."), "a", "Sécu"); } return; }
     if (E.phase === "move") {
-      var stew2 = clamp(S.staff.stewards / Math.max(1, e.cap / 500), 0, 1), remaining = 0;
+      var remaining = 0;
       E.clusters.forEach(function (c) {
-        if (c.n <= 0.5) return; if (!c.door || !E.doors[c.door] || !E.doors[c.door].open) assign(c, ds, Math.random() < stew2);
+        if (c.n <= 0.5) return; if (!c.door || !E.doors[c.door] || !E.doors[c.door].open) assign(c, ds, Math.random() < stew);
         if (!c.door) { remaining += c.n; return; }
-        var dq = E.doors[c.door]; if (dq.q / dq.rate > 5 && Math.random() < stew2 * 0.3 * gm) assign(c, ds, true);
+        var dq = E.doors[c.door]; if (dq.q / dq.rate > 5 && Math.random() < stew * 0.3 * gm) assign(c, ds, true);
         var T = Math.max(1, (c.dist || 40) / 22), mv = Math.min(c.n, c.n / T * gm * 1.6 + 30 * gm); c.n -= mv; E.doors[c.door].q += mv; remaining += c.n;
       });
       var inDoors = 0, maxP = 0;
       Object.keys(E.doors).forEach(function (id) { var dq = E.doors[id]; if (!dq.open) { inDoors += dq.q; return; } var r = dq.rate * (1 - 0.3 * E.panic) * (S.staff.stewards > 0 ? 1.08 : 0.92), o = Math.min(dq.q, r * gm); dq.q -= o; dq.out += o; E.out += o; inDoors += dq.q; var p = dq.q / Math.max(1, dq.rate); maxP = Math.max(maxP, p);
         if (p > 6 && E.panic > 0.45 && L.chance(0.12 * E.panic, gm)) { L.spawnInc("med", dq.x + rnd(-3, 3), dq.z - 4, 25, { grave: Math.random() < 0.3 }); E.injured++; L.log("Bousculade à " + Sim.bName(Sim.find(e, id), e) + " : un blessé.", "r", "Secours"); } });
-      var smoke = S.inc.some(function (i) { return i.type === "fire"; }) ? 0.15 : 0, dark = Object.keys(S.gens).some(function (g) { return !S.gens[g].ok; }) && Sim.daylight(e, t) < 0.5 ? 0.1 : 0;
-      E.panic = clamp(0.1 + smoke + dark + clamp((maxP - 3) / 10, 0, 0.5) - stew2 * 0.15 - (E.msg ? 0.05 : 0), 0, 1);
-      // retardataires : ils sortent seuls lentement, plus vite avec les patrouilles et les stadiers
-      if (E.out > E.n0 * 0.5) { var sw = Math.min(E.lag, (S.staff.stewards * 3 + 5) * gm); E.lag -= sw; E.doors[Object.keys(E.doors)[0]] && (E.doors[Object.keys(E.doors)[0]].q += sw); }
+      var smoke = S.inc.some(function (i) { return i.type === "fire"; }) ? 0.15 : 0, dark = (Object.keys(S.gens).some(function (g) { return !S.gens[g].ok; }) || Sim.daylight(e, t) < 0.5) ? (plan.light ? 0.02 : 0.1) : 0;
+      E.panic = clamp(0.1 + smoke + dark + clamp((maxP - 3) / 10, 0, 0.5) - stew * 0.15 - (plan.messages ? 0.06 : 0) - (plan.posts ? 0.05 : 0) - (E.msg ? 0.05 : 0), 0, 1);
+      if (E.out > E.n0 * 0.5) { var sw = Math.min(E.lag, (S.staff.stewards * 3 + 5) * gm); E.lag -= sw; var k0 = Object.keys(E.doors).filter(function (id) { return E.doors[id].open; })[0]; if (k0) E.doors[k0].q += sw; }
       S.pop.inside = Math.max(0, remaining + inDoors + E.lag);
-      // dehors : points de rassemblement, sinon le parvis et la route
-      var asm = e.layout.filter(function (b) { return b.k === "assembly"; }).reduce(function (a, b) { return a + D.BT.assembly.assembly; }, 0); E.assembled = Math.min(E.out, asm); S.pop.outside = E.out;
+      var asm = e.layout.filter(function (b) { return b.k === "assembly"; }).length * D.BT.assembly.assembly; E.assembled = Math.min(E.out, asm); S.pop.outside = E.out;
       if (asm < E.out * 0.6) S.road.jam = Math.max(S.road.jam, 1);
-      if (remaining + inDoors + E.lag < 1) { E.phase = "clear"; S.pop.inside = 0; S.stats.evacMin = Math.round(t - E.t0); L.log("Site évacué en " + Math.round(t - E.t0) + " min. " + Math.round(E.assembled) + " personnes comptées aux points de rassemblement.", "g", "Sécu"); L.banner("<b>Site évacué</b> en " + Math.round(t - E.t0) + " min.", "lime", 5000); }
+      if (remaining + inDoors + E.lag < 1) { E.phase = "count"; E.tOut = t; S.pop.inside = 0; S.stats.evacMin = Math.round(t - E.t0); E.missing = Math.round(E.n0 * 0.0012 * (1 - E.score) + rnd(0, 4)) + Math.round(E.lag); E.lag = 0; L.log("Plus personne en mouvement après " + Math.round(t - E.t0) + " min. Comptage aux points de rassemblement et balayage des zones.", "g", "Sécu"); L.banner("<b>Sortie terminée</b> en " + Math.round(t - E.t0) + " min. Comptage et balayage en cours.", "lime", 5000); }
     }
-    if (E.phase === "clear" && !E.asked && !S.inc.some(function (i) { return (i.type === "fire" || i.type === "colis") && !i.done; })) { E.asked = true; L.decision("prefecture"); }
+    if (E.phase === "count" || E.phase === "move") { var asm2 = e.layout.filter(function (b) { return b.k === "assembly"; }).length; E.counted = Math.min(E.assembled || 0, (E.counted || 0) + (asm2 ? (plan.posts ? 900 : 450) * asm2 : 0) * gm); }
   }
+  // fin d'alerte : la régie décide, après avoir entendu le chef de sécurité, les pompiers et la police
+  Sim.alertAdvice = function () {
+    var E = S.evac, out = [], fire = S.inc.some(function (i) { return i.type === "fire" && !i.done; }), colis = S.inc.some(function (i) { return i.type === "colis" && !i.done; }), menace = S.threat && S.threat.real && !S.threat.cleared, zones = Sim.sweepZones(), left = zones.filter(function (z) { return !(E && E.swept && E.swept[z.id]); }).length;
+    out.push({ who: "Chef de sécurité", ok: left === 0 && !(E && E.missing > 0), txt: left ? left + " zone" + (left > 1 ? "s" : "") + " pas encore balayée" + (left > 1 ? "s" : "") + (E && E.missing ? ", " + E.missing + " personne" + (E.missing > 1 ? "s" : "") + " non retrouvée" + (E.missing > 1 ? "s" : "") : "") + "." : E && E.missing ? E.missing + " personne(s) toujours manquante(s)." : "Site balayé, comptage terminé : on peut rouvrir." });
+    out.push({ who: "Pompiers", ok: !fire, txt: fire ? "Le feu n'est pas éteint : ne faites pas revenir le public." : "Rien à signaler de notre côté." });
+    out.push({ who: "Police", ok: !colis && !menace, txt: colis ? "Le colis n'est pas encore traité par les démineurs." : menace ? "La menace n'est pas levée, attendez notre feu vert." : "Pas d'objection à la reprise." });
+    var late = S.t > S.ev.close * 60 - 45; out.push({ who: "Programmation", ok: !late, txt: late ? "Il reste moins de 45 min de concerts : la reprise vaut-elle le coup ?" : "Les artistes sont prêts à remonter sur scène." });
+    return out;
+  };
   Sim.endEvac = function () {
     if (!S.evac) return false;
     if (S.evac.kind === "zone") { S.stages[S.evac.stage].blocked = false; S.evac = null; L.log("La zone est rouverte.", "g", "Sécu"); return true; }
-    if (S.evac.phase !== "clear") { Sim.toast("Le site n'est pas encore évacué"); return false; }
-    if (S.inc.some(function (i) { return i.type === "fire" || i.type === "colis"; })) { Sim.toast("Impossible : l'alerte est toujours en cours"); return false; }
-    L.decision("prefecture"); return true;
+    if (S.evac.kind === "shelter") { Sim.endShelter(); return true; }
+    if (S.evac.kind === "lockdown") { Sim.endLockdown(); return true; }
+    if (S.evac.phase !== "count") { Sim.toast("Le public n'est pas encore sorti"); return false; }
+    L.decision("endAlert"); return true;
   };
   F.resume = function () {
-    var E = S.evac; if (!E) return; var back = Math.round(E.out * 0.8), gone = E.out - back;
-    Object.keys(S.exits).forEach(function (id) { S.exits[id].open = false; }); Sim.buildNav(S.ev, S);
+    var E = S.evac; if (!E) return; var adv = Sim.alertAdvice(), risky = adv.filter(function (a) { return !a.ok && a.who !== "Programmation"; }), back = Math.round(E.out * (risky.length ? 0.6 : 0.8)), gone = E.out - back;
+    Object.keys(S.exits).forEach(function (id) { S.exits[id].open = false; }); Object.keys(S.entries).forEach(function (k) { S.entries[k].closed = false; }); Sim.buildNav(S.ev, S);
     var ents = Sim.entriesOf(S.ev); if (ents.length) ents.forEach(function (b) { S.entries[b.id].Q += back / ents.length; }); else S.pop.inside += back;
     sendOut(gone); S.pop.queueLeft += gone; S.pop.outside = 0; S.evac = null; Object.keys(S.stages).forEach(function (k) { S.stages[k].blocked = false; });
-    L.log("Reprise : " + back + " personnes refont la file avec un nouveau contrôle, " + Math.round(gone) + " rentrent chez elles.", "g", "Régie");
+    L.log("Fin d'alerte décidée par la régie : reprise. " + back + " personnes refont la file avec un nouveau contrôle, " + Math.round(gone) + " rentrent chez elles.", "g", "Régie");
+    if (risky.length) { S.repAdj = (S.repAdj || 0) - 4 * risky.length; S.sat -= 6; L.log("Reprise contre l'avis de : " + risky.map(function (a) { return a.who.toLowerCase(); }).join(", ") + ". La presse s'en empare.", "r", "Presse"); if (S.inc.some(function (i) { return i.type === "fire" && !i.done; })) { var p = Sim.gatePoint(S.ev, ents[0] || Sim.stagesOf(S.ev)[0], -1, 8); for (var q = 0; q < 2; q++) L.spawnInc("med", p[0] + rnd(-4, 4), p[1] + rnd(-4, 4), 25, { grave: q === 0 }); } }
+    if (E.missing > 0) { S.repAdj = (S.repAdj || 0) - 2; L.log(E.missing + " personne(s) n'ont jamais été retrouvées au comptage : les familles appellent la régie.", "a", "Accueil"); }
   };
+  // mise à l'abri : le public rejoint chapiteaux, abris, halls ; les scènes en plein air s'arrêtent
+  Sim.coveredCap = function () { var e = S.ev, c = 0; e.layout.forEach(function (b) { var T = D.BT[b.k]; if (T.shelterCap) c += T.shelterCap; if (b.k === "stageT") c += T.cap; if (T.bar) c += 120; if (b.k === "vest" || b.k === "medic") c += 150; }); (Sim.venue(e).halls || []).forEach(function (h) { if (e.halls[h.id]) c += h.cap; }); if (!Sim.venue(e).outdoor) c = 1e9; return c; };
+  Sim.startShelter = function (reason) { if (S.evac) return false; S.evac = { kind: "shelter", reason: reason || "orage", t0: S.t, phase: "move", cap: Sim.coveredCap() }; S.evac.inside0 = S.pop.inside; L.log("Mise à l'abri (" + S.evac.reason + ") : scènes en plein air arrêtées, le public est guidé vers les chapiteaux, abris et bars couverts.", "a", "Régie"); L.banner("<b>Mise à l'abri</b> abris pour " + (S.evac.cap >= 1e8 ? "tout le monde" : Math.round(S.evac.cap).toLocaleString("fr-FR") + " personnes") + ".", "", 5000); return true; };
+  function shelterStep(gm) { var E = S.evac; E.cap = Sim.coveredCap(); E.sheltered = Math.min(S.pop.inside, E.cap); E.exposed = Math.max(0, S.pop.inside - E.cap); S.exposure = S.pop.inside > 0 ? E.exposed / S.pop.inside : 0; S.sat -= 0.02 * gm; }
+  Sim.endShelter = function () { if (!S.evac || S.evac.kind !== "shelter") return; S.evac = null; L.log("Fin de la mise à l'abri : les concerts reprennent.", "g", "Régie"); };
+  // confinement : accès fermés, public gardé sur place, la police sécurise
+  Sim.startLockdown = function (reason) { if (S.evac) return false; var real = !!(S.threat && S.threat.real); S.evac = { kind: "lockdown", reason: reason || "menace", t0: S.t, phase: "hold", clearAt: S.t + rnd(18, 40), real: real, panic: 0.15 }; Object.keys(S.entries).forEach(function (k) { S.entries[k].closed = true; }); Object.keys(S.exits).forEach(function (id) { S.exits[id].open = false; }); Sim.buildNav(S.ev, S); L.callVehicle("police", 0, 0, 6, {}); L.callVehicle("police", 20, 0, 8, {}); L.log("CONFINEMENT : accès fermés, musique coupée, le public reste sur place à l'abri des structures. La police est en route.", "r", "Régie"); L.banner("<b>Confinement</b> personne n'entre ni ne sort.", "red", 6000); L.pressCrisis("menace"); return true; };
+  function lockdownStep(gm) { var E = S.evac, t = S.t; E.panic = clamp(E.panic + 0.004 * gm - clamp(S.staff.stewards / 40, 0, 0.003) * gm, 0, 0.8); S.sat -= 0.05 * gm; if (!E.cleared && t >= E.clearAt) { E.cleared = true; if (S.threat) S.threat.cleared = true; L.log("La police lève la menace : le confinement peut être levé.", "g", "Sécu"); L.banner("<b>Police</b> menace levée, tu peux lever le confinement.", "lime", 6000); } if (E.panic > 0.5 && L.chance(0.02, gm)) { var sid = L.weightedStage(); if (sid) { var sp = L.zoneSpot(sid); L.spawnInc("med", sp[0], sp[1], 25, {}); L.log("Crise d'angoisse pendant le confinement.", "a", "Secours"); } } }
+  Sim.endLockdown = function () { var E = S.evac; if (!E || E.kind !== "lockdown") return; if (!E.cleared && E.real) { S.repAdj = (S.repAdj || 0) - 8; S.sat -= 10; L.log("Confinement levé avant le feu vert de la police : décision très critiquée.", "r", "Presse"); } Object.keys(S.entries).forEach(function (k) { S.entries[k].closed = false; }); S.evac = null; L.log("Fin du confinement : les accès rouvrent, la musique reprend.", "g", "Régie"); };
+  F.doubtStep = doubtStep;
   F.cancelDay = function () {
     var e = S.ev, left = clamp((e.close * 60 - S.t) / ((e.close - e.open) * 60), 0, 1); if (e.price) S.money.refund -= S.money.tickets / e.days * left * 0.5;
-    S.pop.outside = 0; S.evac = null; S.closing = true; S.t = Math.max(S.t, e.close * 60); L.log("Fin de journée annulée par la préfecture et la régie.", "r", "Régie"); S.pop.inside = 0;
+    S.pop.outside = 0; S.evac = null; S.closing = true; S.t = Math.max(S.t, e.close * 60); L.log("La régie arrête la journée : le public est raccompagné vers la sortie.", "r", "Régie"); S.pop.inside = 0;
   };
 
   // ================================================================ scènes : foule, pression, son
@@ -3128,6 +3238,7 @@ button:focus-visible,input:focus-visible{outline:3px solid var(--lime);outline-o
       var wv = a ? 0.35 + a.pop / 55 : 0.3; wv *= Math.sqrt(T.cap / 3000);
       if (st.blocked || st.out || !Sim.powered(b) || (st.pause && st.pause > t) || S.closing || !Sim.ready(b)) wv = 0.03;
       if (S.stormStop && S.stormStop > t && !covered) wv = 0.02;
+      if (S.evac && S.evac.kind === "shelter" && !covered) wv = 0;
       if (!covered) wv *= 1 - 0.55 * rainOut;
       if (S.redirect && S.redirect.s === id && S.redirect.until > t) wv += 1.6 * (0.6 + 0.4 * clamp(S.staff.stewards / 10, 0, 1) + S.app.installs * 0.5);
       if (S.surprise && S.surprise.s === id && S.surprise.until > t) wv += 2.2;
@@ -3136,7 +3247,7 @@ button:focus-visible,input:focus-visible{outline:3px solid var(--lime);outline-o
     });
     if (S.redirect && S.redirect.until <= t) S.redirect = null;
     if (S.stormStop && S.stormStop <= t) S.stormStop = 0;
-    var onStages = S.evac && S.evac.kind === "general" ? 0 : inside * 0.6, drone = S.drone.on ? 1.25 : 1;
+    var onStages = Sim.evacStops() ? 0 : inside * 0.6, drone = S.drone.on ? 1.25 : 1;
     ids.forEach(function (id) {
       var b = Sim.find(e, id), st = S.stages[id], cap = D.BT[b.k].cap, tg = wsum ? onStages * wts[id] / wsum : 0;
       if (st.blocked) tg = Math.min(st.crowd, tg, cap * 0.75);
@@ -3156,6 +3267,8 @@ button:focus-visible,input:focus-visible{outline:3px solid var(--lime);outline-o
   }
 
   // ================================================================ bars : bars thématiques, postes, happy hour, formules, promos
+  // évacuation générale ou confinement : bars, food et stands s'arrêtent (pas pour une évacuation de zone ni une mise à l'abri)
+  Sim.evacStops = function () { return !!(S && S.evac && (S.evac.kind === "general" || S.evac.kind === "lockdown")); };
   function hhOn() { var h = S.ev.bar.happy; return h.on && S.t >= h.from * 60 && S.t < h.to * 60; }
   F.hhOn = hhOn;
   function promo(kind) { for (var i = 0; i < S.promos.length; i++) if (S.promos[i].kind === kind && S.promos[i].until > S.t) return S.promos[i]; return null; }
@@ -3173,7 +3286,7 @@ button:focus-visible,input:focus-visible{outline:3px solid var(--lime);outline-o
     var e = S.ev, t = S.t, inside = S.pop.inside, amb = 0.7 + 0.3 * S.sat / 100, alc = L.alcohol(t), ids = Object.keys(S.bars), rd = readiness(), drinksMin = 0, dl = e.bar.deals;
     var topSvc = S.topupSvc == null ? 1 : S.topupSvc, minors = e.minors && e.minors.idCheck ? 0.95 : 1, scrP = promo("screen");
     // attractivité de chaque bar : foule proche, file, mise en avant
-    var ws = {}; ids.forEach(function (id) { var bb = S.bars[id], b = Sim.find(e, id); if (bb.closed || bb.barmen <= 0 || (S.closing && t > e.close * 60 + 15) || !Sim.ready(b) || S.evac) { ws[id] = 0; return; } var wv = inside * 0.02; Object.keys(S.stages).forEach(function (sid) { var sb = Sim.find(e, sid), zn = Sim.zone(sb); wv += S.stages[sid].crowd * Math.exp(-Math.hypot(b.x - (zn.x0 + zn.x1) / 2, b.z - (zn.z0 + zn.z1) / 2) / 20); }); if (Sim.hallOf(e, b)) wv *= 1.1; if (scrP && scrP.bar === id) wv *= 1.6; var p = Sim.workPoint(b); if (!F.reachable(p[0], p[1])) wv = 0; ws[id] = wv; });
+    var ws = {}; ids.forEach(function (id) { var bb = S.bars[id], b = Sim.find(e, id); if (bb.closed || bb.barmen <= 0 || (S.closing && t > e.close * 60 + 15) || !Sim.ready(b) || Sim.evacStops()) { ws[id] = 0; return; } var wv = inside * 0.02; Object.keys(S.stages).forEach(function (sid) { var sb = Sim.find(e, sid), zn = Sim.zone(sb); wv += S.stages[sid].crowd * Math.exp(-Math.hypot(b.x - (zn.x0 + zn.x1) / 2, b.z - (zn.z0 + zn.z1) / 2) / 20); }); if (Sim.hallOf(e, b)) wv *= 1.1; if (scrP && scrP.bar === id) wv *= 1.6; var p = Sim.workPoint(b); if (!F.reachable(p[0], p[1])) wv = 0; ws[id] = wv; });
     // demande par produit, répartie entre les bars qui le servent
     var dem = {}; ids.forEach(function (id) { dem[id] = { list: [], tot: 0 }; });
     D.PRODUCTS.forEach(function (p) {
@@ -3207,7 +3320,7 @@ button:focus-visible,input:focus-visible{outline:3px solid var(--lime);outline-o
     // vendeurs ambulants dans la foule des scènes
     if (S.staff.hawkers > 0 && e.on.beer && !S.evac && !S.closing && S.stock.keg > 0.5) { var stCrowd = Object.keys(S.stages).reduce(function (a, k) { return a + S.stages[k].crowd; }, 0), hn = Math.min(S.staff.hawkers * 1.4 * gm, stCrowd * 0.0025 * gm * alc); S.money.bars += hn * prodPrice(D.PROD.beer); S.stats.drinks.beer += hn; S.stock.keg = Math.max(0, S.stock.keg - hn / 180); drinksMin += hn / gm; S.hawkSold = (S.hawkSold || 0) + hn; }
     // offre VIP bouteille
-    if (dl.vipBottle && e.layout.some(function (b) { return b.k === "vip"; }) && !S.evac) { var vipIn = inside * S.pop.vipShare, vb = vipIn * 0.004 / 60 * gm * 10; S.money.bars += vb * e.prices.vipBottle; S.stats.drinks.vipBottle = (S.stats.drinks.vipBottle || 0) + vb; }
+    if (dl.vipBottle && e.layout.some(function (b) { return b.k === "vip"; }) && !Sim.evacStops()) { var vipIn = inside * S.pop.vipShare, vb = vipIn * 0.004 / 60 * gm * 10; S.money.bars += vb * e.prices.vipBottle; S.stats.drinks.vipBottle = (S.stats.drinks.vipBottle || 0) + vb; }
     S.drinksMin = drinksMin;
     // recharges cashless
     if (e.cashless) { var tops = e.layout.filter(function (b) { return b.k === "cashless"; }).length, online = e.app ? 0.6 : 0.45, need = drinksMin * 0.12 * (dl.tokens ? 0.7 : 1) * (1 - online) * (S.net.load > 1 ? 1.3 : 1), capT = tops * 12 * (S.net.load > 1 ? 0.6 : 1); S.topupSvc = need > 0 ? clamp(capT / need, 0.55, 1) : 1; S.topupQ = Math.max(0, need - capT) * 4; } else S.topupSvc = 1;
@@ -3217,14 +3330,14 @@ button:focus-visible,input:focus-visible{outline:3px solid var(--lime);outline-o
   // ================================================================ food trucks, merch, partenaires
   function restockFood(first) { var e = S.ev, n = Object.keys(S.foods).length || 1, exp = (S.pop.plan || e.cap) * 0.55 / n; Object.keys(S.foods).forEach(function (id) { var f = S.foods[id]; f.portions = (first ? 1 : 0.5) * exp * rnd(0.75, 1.15); f.out = false; }); }
   function foodStep(gm) {
-    var e = S.ev, t = S.t, inside = S.pop.inside, meal = function (hh) { hh = hh % 24; return (hh >= 12 && hh < 14) || (hh >= 18.5 && hh < 21.5) ? 0.42 : hh >= 1 && hh < 4 ? 0.2 : 0.12; }, ids = Object.keys(S.foods), dem = inside * meal(t / 60) / 60 * gm * (S.evac ? 0 : 1);
+    var e = S.ev, t = S.t, inside = S.pop.inside, meal = function (hh) { hh = hh % 24; return (hh >= 12 && hh < 14) || (hh >= 18.5 && hh < 21.5) ? 0.42 : hh >= 1 && hh < 4 ? 0.2 : 0.12; }, ids = Object.keys(S.foods), dem = inside * meal(t / 60) / 60 * gm * (Sim.evacStops() ? 0 : 1);
     var pops = ids.map(function (id) { var b = Sim.find(e, id), C = D.CUISINE[b.cuisine || "burger"], f = S.foods[id]; return f.out || !Sim.powered(b) || !Sim.ready(b) ? 0 : C.pop * Math.pow(C.price / (C.price * (e.foodPrice || 1)), 1.2) * (e.eco.veggie && C.veggie ? 1.4 : 1); }), ps = pops.reduce(function (a, c) { return a + c; }, 0) || 1, served = 0, totDem = 0;
     ids.forEach(function (id, i) { var b = Sim.find(e, id), C = D.CUISINE[b.cuisine || "burger"], f = S.foods[id], d = dem * pops[i] / ps, cap = C.rate * gm * (S.water.mains || S.water.level > 0 ? 1 : 0.6), s = Math.min(d, cap, f.portions); f.portions -= s; f.sold += s; served += s; totDem += d; S.money.food += s * C.price * (e.foodPrice || 1) * D.FOOD.share; f.svc += ((d > 0 ? s / d : 1) - f.svc) * Math.min(1, 0.2 * gm); f.dem = d / gm; f.q = Math.max(0, d / gm * (1 - f.svc) * 8);
       if (f.portions <= 0.5 && !f.out && inside > 500) { f.out = true; f.backAt = t + 60; L.log("Le food truck " + C.n.toLowerCase() + " est en rupture : il revient dans 1 h.", "a", "Logistique"); }
       if (f.out && f.backAt && t >= f.backAt) { f.out = false; f.portions = (S.pop.plan || e.cap) * 0.12 / ids.length; } });
     S.stats.food += served; S.foodSvc = totDem > 0 ? Math.min(1, served / totDem) : 1;
     // merch : pic après un artiste populaire
-    var merchs = Object.keys(S.merchs); if (merchs.length && S.merch.stock > 0 && !S.evac) { var live = L.currentSets(), hot = live.reduce(function (a, s) { return Math.max(a, Sim.artist(e, s.art).pop); }, 30), dm = inside * 0.0006 * gm * (hot / 50) * Math.pow(30 / e.merch.price, 1.2), cap = Math.min(S.staff.merchStaff * 1, merchs.length * 4) * gm, sold = Math.min(dm, cap, S.merch.stock); S.merch.stock -= sold; S.merch.sold += sold; S.money.merch += sold * e.merch.price; merchs.forEach(function (id) { S.merchs[id].q = Math.max(0, (dm - cap) / merchs.length * 6); S.merchs[id].svc = dm > 0 ? Math.min(1, cap / dm) : 1; }); if (S.merch.stock < 30 && !S.warned.merch) { S.warned.merch = 1; L.log("Merch : presque plus de stock.", "a", "Logistique"); } }
+    var merchs = Object.keys(S.merchs); if (merchs.length && S.merch.stock > 0 && !Sim.evacStops()) { var live = L.currentSets(), hot = live.reduce(function (a, s) { return Math.max(a, Sim.artist(e, s.art).pop); }, 30), dm = inside * 0.0006 * gm * (hot / 50) * Math.pow(30 / e.merch.price, 1.2), cap = Math.min(S.staff.merchStaff * 1, merchs.length * 4) * gm, sold = Math.min(dm, cap, S.merch.stock); S.merch.stock -= sold; S.merch.sold += sold; S.money.merch += sold * e.merch.price; merchs.forEach(function (id) { S.merchs[id].q = Math.max(0, (dm - cap) / merchs.length * 6); S.merchs[id].svc = dm > 0 ? Math.min(1, cap / dm) : 1; }); if (S.merch.stock < 30 && !S.warned.merch) { S.warned.merch = 1; L.log("Merch : presque plus de stock.", "a", "Logistique"); } }
     // partenaires
     Object.keys(S.partners).forEach(function (id) { var p = S.partners[id]; p.visitors = inside * 0.004; S.money.partner += 2500 / ((e.close - e.open) * 60) * gm; });
   }
@@ -3300,6 +3413,73 @@ button:focus-visible,input:focus-visible{outline:3px solid var(--lime);outline-o
     return false;
   };
 
+  // ================================================================ catastrophes déclenchées par le joueur (en direct ou programmées)
+  // t : besoin d'une cible (scène, food truck, écran) ; i : intensité 1 faible, 2 forte, 3 extrême
+  Sim.CATA = [
+    { k: "storm", cat: "Météo", n: "Orage violent", d: "Éclairs, rafales et pluie battante pendant une heure ou plus." },
+    { k: "hail", cat: "Météo", n: "Grêle", d: "Averse de grêle : blessés légers dehors, toiles et écrans abîmés." },
+    { k: "wind", cat: "Météo", n: "Tempête de vent", d: "Rafales au-delà de 80 km/h : écrans et structures en danger." },
+    { k: "heatwave", cat: "Météo", n: "Canicule", d: "+8 à +14 °C pour la journée : malaises en série." },
+    { k: "deluge", cat: "Météo", n: "Pluie torrentielle", d: "Trois heures de pluie : boue, abris saturés, son en danger." },
+    { k: "blackout", cat: "Technique", n: "Coupure générale", d: "Tous les groupes et le réseau lâchent : le site est dans le noir." },
+    { k: "collapse", cat: "Technique", n: "Effondrement d'une structure", t: "screenOrStage", d: "Un écran ou un élément de scène tombe : blessés, zone fermée." },
+    { k: "truckfire", cat: "Technique", n: "Incendie d'un food truck", t: "food", d: "Bonbonne de gaz : le feu peut se propager." },
+    { k: "netdown", cat: "Technique", n: "Panne réseau / cashless", d: "Plus de paiement : les bars sont paralysés." },
+    { k: "crush", cat: "Foule & sécurité", n: "Mouvement de foule", t: "stage", d: "La pression devient critique devant une scène." },
+    { k: "brawl", cat: "Foule & sécurité", n: "Rixe générale", d: "Plusieurs bagarres éclatent en même temps." },
+    { k: "intrusion", cat: "Foule & sécurité", n: "Intrusion massive", d: "La clôture cède à plusieurs endroits." },
+    { k: "colis", cat: "Foule & sécurité", n: "Colis suspect", t: "stage", d: "Un sac abandonné au milieu du public." },
+    { k: "threat", cat: "Foule & sécurité", n: "Alerte attentat", d: "Menace sérieuse transmise par la police." },
+    { k: "poison", cat: "Foule & sécurité", n: "Intoxication collective", t: "food", d: "Un stand a servi un plat avarié : malaises en chaîne." },
+    { k: "headliner", cat: "Organisation", n: "La tête d'affiche annule", d: "L'artiste le plus attendu du jour ne viendra pas." },
+    { k: "strike", cat: "Organisation", n: "Grève des agents", d: "La moitié des agents de sécurité et de contrôle débraye." },
+    { k: "stockout", cat: "Organisation", n: "Rupture totale de stock", d: "Le stock central est vide et une livraison est annulée." },
+    { k: "supplier", cat: "Organisation", n: "Fournisseur absent", d: "Toutes les livraisons en cours prennent 2 h de retard." },
+    { k: "jam", cat: "Organisation", n: "Bouchon géant", d: "Accident sur la route d'accès : plus rien ne bouge." }];
+  Sim.CATAK = {}; Sim.CATA.forEach(function (c) { Sim.CATAK[c.k] = c; });
+  Sim.cataTargets = function (k) { var e = S ? S.ev : null, c = Sim.CATAK[k]; if (!c || !c.t || !e) return []; return e.layout.filter(function (b) { var T = D.BT[b.k]; return c.t === "stage" ? T.stage : c.t === "food" ? T.food : c.t === "screenOrStage" ? T.stage || T.screen : false; }); };
+  function setWx(hours, fn) { var hrs = S.wx[S.day], h0 = Math.floor(S.t / 60); for (var h = h0; h < h0 + hours; h++) fn(hrs[h % 32], h - h0); }
+  Sim.trigger = function (k, intensity, targetId) {
+    if (!S || S.phase !== "live") return false; var e = S.ev, i = clamp(intensity || 2, 1, 3), c = Sim.CATAK[k]; if (!c) return false;
+    var tg = targetId ? Sim.find(e, targetId) : null; if (c.t && !tg) { var l = Sim.cataTargets(k); if (k === "crush" || k === "colis") l.sort(function (a, b) { return S.stages[b.id].crowd - S.stages[a.id].crowd; }); tg = k === "crush" || k === "colis" ? l[0] : pick(l); if (!tg) { Sim.toast("Aucune cible possible pour cette catastrophe"); return false; } }
+    var sp = tg ? (D.BT[tg.k].stage ? L.zoneSpot(tg.id) : Sim.workPoint(tg)) : null;
+    S.stats.cata = (S.stats.cata || 0) + 1; L.sfx("alarm");
+    var lvl = ["", "faible", "forte", "extrême"][i];
+    switch (k) {
+      case "storm": setWx(1 + i, function (hr) { hr.storm = true; hr.rain = 1; hr.wind = 60 + i * 12; }); S.wx_now = Sim.weatherAt(S, S.t); if (!S.warned["storm" + S.day]) { S.warned["storm" + S.day] = 1; L.decision("storm"); } break;
+      case "hail": setWx(1, function (hr) { hr.rain = 1; hr.t -= 6; hr.wind = 50; }); var nh = 2 + i * 2; for (var q = 0; q < nh; q++) { var sid = L.weightedStage(); if (sid) { var p = L.zoneSpot(sid); L.spawnInc("med", p[0], p[1], 25, { stage: sid }); } } S.sat -= 4 * i; Object.keys(S.bars).forEach(function (id) { if (Math.random() < 0.15 * i) S.bars[id].term = true; }); break;
+      case "wind": setWx(1 + i, function (hr) { hr.wind = 70 + i * 12; }); S.windAlert = S.t; L.decision("wind", { i: i }); break;
+      case "heatwave": S.wx[S.day].forEach(function (hr) { hr.t += 6 + i * 2.5; hr.rain = 0; }); S.warned.heat = 0; break;
+      case "deluge": setWx(2 + i, function (hr) { hr.rain = 1; hr.storm = false; }); S.mudLevel = Math.min(1, (S.mudLevel || 0) + 0.25 * i); break;
+      case "blackout": Object.keys(S.gens).forEach(function (id) { var g = S.gens[id], gb = Sim.find(e, id); if (!g.ok) return; g.ok = false; g.cause = "coupure générale"; S.stats.power++; L.spawnInc("power", gb.x, gb.z + 3, 999, { gen: id, cause: "coupure générale" }); }); if (!S.gridDown) { S.gridDown = true; S.gridT = S.t + (i - 1) * 10; var rb = L.baseOf("run"); L.spawnInc("power", rb.x, rb.z, 999, { grid: true, cause: "coupure générale" }); } break;
+      case "collapse": var st = S.stages[tg.id]; if (st) { st.blocked = true; st.out = true; } for (var q2 = 0; q2 < 1 + i * 2; q2++) L.spawnInc("med", sp[0] + rnd(-4, 4), sp[1] + rnd(-3, 3), 25, { stage: st ? tg.id : null, grave: q2 < i - 1 }); S.sat -= 8 * i; S.stats.stormHurt += i; L.pressCrisis("collapse"); break;
+      case "truckfire": var f = L.spawnInc("fire", sp[0], sp[1], 9 - i * 2, { stage: L.weightedStage() }); if (i === 3) { f.big = true; f.picked = true; S.disaster = (S.disaster || 0) + 1; L.callVehicle("fire", f.x, f.z, 6, { inc: f.id }); L.decision("fireBig", { stage: f.stage }); } S.foods[tg.id] && (S.foods[tg.id].out = true, S.foods[tg.id].backAt = S.t + 240); break;
+      case "netdown": Object.keys(S.bars).forEach(function (id) { S.bars[id].term = true; }); S.net.load = 2; S.netDownUntil = S.t + 10 + i * 15; break;
+      case "crush": var s2 = S.stages[tg.id]; s2.crowd = Math.max(s2.crowd, D.BT[tg.k].cap * (1.1 + 0.15 * i)); s2.press = Math.max(s2.press, 55 + i * 15); break;
+      case "brawl": var bars = Object.keys(S.bars).filter(function (id) { return !S.bars[id].fight; }); for (var q3 = 0; q3 < 2 + i * 2 && bars.length; q3++) { var bid = bars.splice(Math.floor(Math.random() * bars.length), 1)[0], bp = Sim.workPoint(Sim.find(e, bid)), fi = L.spawnInc("fight", bp[0] + 1, bp[1] + 2, 15, { bar: bid }); S.bars[bid].fight = fi.id; } break;
+      case "intrusion": var V = Sim.venue(e); for (var q4 = 0; q4 < 2 + i * 2; q4++) { var side = pick([-1, 1]); L.spawnInc("intrus", side * (V.W / 2 - 2), rnd(-V.D / 2 + 8, V.D / 2 - 8), 12, {}); } S.pop.fraudIn += 60 * i; S.pop.inside += 60 * i; break;
+      case "colis": L.spawnInc("colis", sp[0], sp[1], 10, { stage: tg.id }); break;
+      case "threat": S.threat = { real: i >= 2 || Math.random() < 0.4, t: S.t }; L.decision("threat"); break;
+      case "poison": for (var q5 = 0; q5 < 3 + i * 3; q5++) L.spawnInc("med", sp[0] + rnd(-6, 6), sp[1] + rnd(-6, 6), 25, { grave: Math.random() < 0.1 * i }); if (S.foods[tg.id]) { S.foods[tg.id].out = true; S.foods[tg.id].backAt = S.t + 9999; } S.sat -= 3 * i; L.pressCrisis("poison"); break;
+      case "headliner": var sets = e.lineup.filter(function (s) { return s.day === S.day && S.sets[s.id] && S.sets[s.id].st === "wait"; }).sort(function (a, b) { return Sim.artist(e, b.art).pop - Sim.artist(e, a.art).pop; }); if (!sets.length) { Sim.toast("Plus aucun concert à venir aujourd'hui"); return false; } L.decision("headliner", { set: sets[0].id }); break;
+      case "strike": S.strike = { until: S.t + 30 + i * 20, secuIn: S.staff.secuIn, scanners: S.staff.scanners }; S.staff.secuIn = Math.floor(S.staff.secuIn * (1 - 0.25 * i)); S.staff.scanners = Math.floor(S.staff.scanners * (1 - 0.25 * i)); break;
+      case "stockout": D.RK.forEach(function (rk) { S.stock[rk] = 0; }); if (S.orders.length) S.orders[0].cancel = true; break;
+      case "supplier": S.orders.forEach(function (o) { o.eta += 120; o.truck = false; }); S.supplierOut = S.t + 60 * i; break;
+      case "jam": S.road.inQ += 200 * i; S.jamUntil = S.t + 30 * i; S.warned.jam = 0; break;
+    }
+    L.log("CATASTROPHE (" + lvl + ") : " + c.n + (tg ? " · " + Sim.bName(tg, e) : "") + ".", "r", "Régie"); L.banner("<b>" + c.n + "</b> " + c.d, "red", 6000);
+    return true;
+  };
+  // suites des catastrophes dans le temps : fin de grève, réseau rétabli, bouchon
+  F.cataStep = function () {
+    if (S.strike && S.t >= S.strike.until) { S.staff.secuIn = Math.max(S.staff.secuIn, S.strike.secuIn); S.staff.scanners = Math.max(S.staff.scanners, S.strike.scanners); S.strike = null; L.log("Fin de la grève : les agents reprennent leurs postes.", "g", "Accueil"); }
+    if (S.netDownUntil && S.t < S.netDownUntil) S.net.load = Math.max(S.net.load, 2); else if (S.netDownUntil) { S.netDownUntil = 0; L.log("Le réseau est rétabli : relance les terminaux des bars.", "g", "Logistique"); }
+    if (S.jamUntil && S.t < S.jamUntil) S.road.inQ += 0.6; else S.jamUntil = 0;
+    if (S.supplierOut && S.t < S.supplierOut) S.orders.forEach(function (o) { if (!o.delayed) { o.delayed = 1; o.eta += 60; o.truck = false; } }); else S.supplierOut = 0;
+    // catastrophes programmées pendant la préparation
+    (S.ev.catas || []).forEach(function (c, idx) { var key = "cata" + idx + "_" + S.day; if (S.warned[key] || (c.day || 0) !== S.day || S.t < S.ev.open * 60 + c.at) return; S.warned[key] = 1; Sim.trigger(c.k, c.i, c.target); });
+  };
+
   // ================================================================ camping (nuits entre les jours)
   F.endDay = function (rep) {
     var e = S.ev; S.walk = []; S.road.inQ = 0; S.road.inPpl = 0; D.LINEK.forEach(function (k) { var ln = S.lines[k]; if (ln.qS > 0) { S.stats.stranded += ln.qS; ln.qS = 0; } ln.qO = 0; });
@@ -3340,7 +3520,7 @@ button:focus-visible,input:focus-visible{outline:3px solid var(--lime);outline-o
     F2.comfort = clamp(100 - (1 - (S.wcSvc == null ? 1 : S.wcSvc)) * 50 - Object.keys(S.wcs).filter(function (k) { return S.wcs[k].fill > 85; }).length * 6 - S.exposure * 60 - outdoorCold - hot - Math.min(20, (S.pop.coats || 0) / 150) - (S.mud ? 10 : 0) - (1 - (S.pmrSvc == null ? 1 : S.pmrSvc)) * 6 - (S.net.load > 1 ? 4 : 0), 0, 100);
     F2.clean = clamp(100 - Object.keys(S.bins).filter(function (k) { return S.bins[k].level >= 100; }).length * 10 + (e.eco.tri ? 3 : 0) - (e.eco.cups === "reuse" ? 0 : 5), 0, 100);
     var qw = Sim.queueTotal() > 200 ? 0.16 : 0.03, target = (F2.bar * 0.19 + F2.food * 0.07 + F2.entry * qw + F2.access * 0.06 + F2.price * 0.09 + F2.safety * 0.15 + F2.music * 0.2 + F2.comfort * 0.12 + F2.clean * 0.05) / (0.93 + qw);
-    if (S.evac && S.evac.kind === "general") target = 15;
+    if (S.evac && S.evac.kind === "general") target = 15; else if (S.evac && S.evac.kind === "lockdown") target = 30;
     if (inside > 300) { S.sat += (target - S.sat) * Math.min(1, 0.03); Object.keys(F2).forEach(function (k) { S.facSum[k] = (S.facSum[k] || 0) + F2[k]; }); S.facN += 1; }
     S.sat = clamp(S.sat, 0, 100);
   }
@@ -3349,7 +3529,7 @@ button:focus-visible,input:focus-visible{outline:3px solid var(--lime);outline-o
   F.step = function (gm, w) {
     S = Sim.get(); var e = S.ev;
     if (e.layout.some(function (b) { return b.k === "shuttle"; })) busStep(gm);
-    arrivals(gm, w); roadStep(gm); walkStep(); entriesStep(gm); evacStep(gm); departures(gm);
+    F.cataStep(); arrivals(gm, w); roadStep(gm); walkStep(); entriesStep(gm); doubtStep(); evacStep(gm); departures(gm);
     S.pop.maxIn = Math.max(S.pop.maxIn, S.pop.inside); if (S.pop.inside > e.cap * 1.02) S.stats.over += gm;
     stagesStep(gm, w); barsStep(gm, w); foodStep(gm); servicesStep(gm, w); autoOrders(gm); autoBar(gm);
     S.promos = S.promos.filter(function (p) { return p.until > S.t; });
@@ -3622,8 +3802,10 @@ button:focus-visible,input:focus-visible{outline:3px solid var(--lime);outline-o
     if (V.fence) { var lw = Sim.laneW, rM = new THREE.MeshBasicMaterial({ color: 0x8a1c26, transparent: true, opacity: 0.55, depthWrite: false }); [[0, -Dd / 2 + 0.5 + lw / 2, Wd - 1, lw, 0], [0, Dd / 2 - 0.5 - lw / 2, Wd - 1, lw, 0], [-Wd / 2 + 0.5 + lw / 2, 0, lw, Dd - 1, 1], [Wd / 2 - 0.5 - lw / 2, 0, lw, Dd - 1, 1]].forEach(function (s) { var lines = s[4] ? [[s[0] - lw / 2 + 0.2, 0], [s[0] + lw / 2 - 0.2, 0]] : [[0, s[1] - lw / 2 + 0.2], [0, s[1] + lw / 2 - 0.2]]; lines.forEach(function (l) { for (var p = -(s[4] ? s[3] : s[2]) / 2; p < (s[4] ? s[3] : s[2]) / 2; p += 3) { var m = new THREE.Mesh(new THREE.PlaneGeometry(s[4] ? 0.18 : 1.6, s[4] ? 1.6 : 0.18), rM); m.rotation.x = -Math.PI / 2; m.position.set(s[4] ? l[0] : p, 0.02, s[4] ? p : l[1]); vg.add(m); } }); }); }
     // clôture (Heras avec bâches), trous aux entrées et issues
     if (V.fence) {
-      var segs = [], gaps = ev.layout.filter(function (b) { return D.BT[b.k].entry || b.k === "staffgate" || D.BT[b.k].exit; }).map(function (b) { return Sim.fp(b); });
-      function gapAt(px, pz) { for (var i = 0; i < gaps.length; i++) { var f = gaps[i]; if (px > f.x0 - 0.3 && px < f.x1 + 0.3 && pz > f.z0 - 1.5 && pz < f.z1 + 1.5) return true; } return false; }
+      // ouvertures dans la clôture : sur le bon côté, à la largeur de l'arche (entrées) ou du portail (issues, entrée staff)
+      var segs = [], gaps = ev.layout.filter(function (b) { return D.BT[b.k].entry || b.k === "staffgate" || D.BT[b.k].exit; }).map(function (b) { var f = Sim.fp(b), n = Sim.outward(ev, b), half = D.BT[b.k].entry ? Math.max(Sim.entryGeo(ev, b).SW / 2 + 1.3, 3) : (n[1] ? f.w : f.d) / 2 + 0.4, c = n[1] ? b.x : b.z; return { n: n, lo: c - half, hi: c + half, appr: D.BT[b.k].entry ? Sim.approachRect(ev, b) : null }; });
+      function gapAt(px, pz) { for (var i = 0; i < gaps.length; i++) { var g = gaps[i], n = g.n; if (n[1] && Math.abs(pz - n[1] * Dd / 2) < 0.6 && px > g.lo && px < g.hi) return true; if (n[0] && Math.abs(px - n[0] * Wd / 2) < 0.6 && pz > g.lo && pz < g.hi) return true; } return false; }
+      function inApproach(px, pz) { return gaps.some(function (g) { var a = g.appr; return a && px > a.x0 - 1.5 && px < a.x1 + 1.5 && pz > a.z0 - 1 && pz < a.z1 + 1; }); }
       for (var p = -Wd / 2; p < Wd / 2; p += 3.5) { segs.push([p + 1.75, -Dd / 2, 0]); segs.push([p + 1.75, Dd / 2, 0]); }
       for (var q = -Dd / 2; q < Dd / 2; q += 3.5) { segs.push([-Wd / 2, q + 1.75, 1]); segs.push([Wd / 2, q + 1.75, 1]); }
       segs = segs.filter(function (s) { return !gapAt(s[0], s[1]); });
@@ -3631,7 +3813,7 @@ button:focus-visible,input:focus-visible{outline:3px solid var(--lime);outline-o
       segs.forEach(function (s, i) { d2.position.set(s[0], 1.0, s[1]); d2.rotation.set(0, s[2] ? Math.PI / 2 : 0, 0); d2.updateMatrix(); mesh.setMatrixAt(i, d2.matrix); d2.position.y = 0.9; d2.updateMatrix(); tarp.setMatrixAt(i, d2.matrix); d2.position.set(s[0] + (s[2] ? 0 : 1.7), 0.09, s[1] + (s[2] ? 1.7 : 0)); d2.updateMatrix(); feet.setMatrixAt(i, d2.matrix); });
       tarp.castShadow = true; vg.add(mesh); vg.add(tarp); vg.add(feet);
       // drapeaux le long du parvis
-      for (var fx = -Wd / 2 + 10; fx < Wd / 2 - 10; fx += 16) { if (gapAt(fx, Dd / 2)) continue; flag(vg, fx, Dd / 2 + 2.5, [0xECE8DC, 0x4DC3FF, 0xF0457A, 0xFFB020][Math.floor(Math.random() * 4)]); }
+      for (var fx = -Wd / 2 + 10; fx < Wd / 2 - 10; fx += 16) { if (gapAt(fx, Dd / 2) || inApproach(fx, Dd / 2 + 2.5)) continue; flag(vg, fx, Dd / 2 + 2.5, [0xECE8DC, 0x4DC3FF, 0xF0457A, 0xFFB020][Math.floor(Math.random() * 4)]); }
     }
     if (V.sea) { var sm = own(0x0b2130, 0, 0, 0.18, { metalness: 0.3, transparent: true, opacity: 0.94 }); seaMesh = new THREE.Mesh(new THREE.PlaneGeometry(Wd + 400, 160, 80, 30), sm); seaMesh.rotation.x = -Math.PI / 2; seaMesh.position.set(0, 0.15, -Dd / 2 + V.sea - 80); vg.add(seaMesh);
       var foam = new THREE.Mesh(new THREE.PlaneGeometry(Wd + 400, 2.4), new THREE.MeshBasicMaterial({ color: 0xe8f2f4, transparent: true, opacity: 0.6 })); foam.rotation.x = -Math.PI / 2; foam.position.set(0, 0.2, -Dd / 2 + V.sea); vg.add(foam); seaMesh.userData.foam = foam; }
@@ -3970,33 +4152,224 @@ button:focus-visible,input:focus-visible{outline:3px solid var(--lime);outline-o
     var lb = signPanel(g, [{ t: "SORTIE DE SECOURS", c: "#fff", s: 22 }], Math.min(2.6, w), 0.6, 0, 2.7, 0.06, { bg: "#1f9d4a" });
     return { leafs: leafs, sign: sign };
   };
-  // entrée : portiques, tables de palpation, pods de scan, couloirs dédiés, caisses et stand bracelets dehors
-  function entryBuilder(b, g, T) {
-    var lanes = T.lanes, w = T.w, frameM = std(0x4a4d5c, 0, 0, 0.5), lights = [], staff = [], sep = b.sep || {}, specials = [];
-    var kinds = []; for (var i = 0; i < lanes; i++) kinds.push("std");
-    var n = 0; if (sep.exit) kinds[n++] = "exit"; if (sep.vip) kinds[n++] = "vip"; if (sep.pmr) kinds[n++] = "pmr"; if (sep.press) kinds[n++] = "press";
-    var LW = (w - 1) / lanes;
-    for (var k = 0; k < lanes; k++) {
-      var x = -w / 2 + 0.5 + (k + 0.5) * LW;
-      box(0.12, 2.4, 1.4, frameM, x - LW / 2 + 0.06, 1.2, 0, g, false); box(0.12, 2.4, 1.4, frameM, x + LW / 2 - 0.06, 1.2, 0, g, false);
-      var lm = own(0x2a2c38, 0x3CCB6C, 0.8); box(LW - 0.1, 0.25, 1.4, lm, x, 2.45, 0, g, false); lights.push(lm);
-      var kd = kinds[k], txt = kd === "exit" ? "SORTIE" : kd === "vip" ? "VIP" : kd === "pmr" ? "PMR" : kd === "press" ? "PRESSE" : "ENTRÉE";
-      signPanel(g, [{ t: txt, c: kd === "exit" ? "#3CCB6C" : kd === "vip" ? "#C9A227" : kd === "pmr" ? "#4DC3FF" : kd === "press" ? "#B79BFF" : "#ECE8DC", s: 26 }], LW - 0.2, 0.42, x, 2.85, 0.72, { bg: "#0a0a0d" });
-      if (kd !== "exit") { box(0.5, 0.9, 0.5, std(0x22242c), x - LW * 0.25, 0.45, -0.9, g, false); box(0.3, 1.2, 0.3, std(0x1a1c22), x + LW * 0.25, 0.6, -0.5, g, false); box(0.24, 0.16, 0.04, own(0x4DC3FF, 0x4DC3FF, 0.9), x + LW * 0.25, 1.28, -0.34, g, false);
-        staff.push({ palp: staffFig(g, x - LW * 0.25, -1.5, 0xFF8A1F, 0, 0), scan: staffFig(g, x + LW * 0.25, -1.1, 0x4DC3FF, 0, 0), kind: kd }); }
-      specials.push(kd);
-    }
-    box(w + 1, 0.45, 0.45, own(0x2a2c38, 0xECE8DC, 0.2), 0, 3.4, 0, g, false);
-    var tl = signTex([{ t: T.n.toUpperCase().replace(/ \(.*\)/, ""), c: "#ECE8DC" }], 512, 64, { bg: "#0a0a0d" }), top = new THREE.Mesh(new THREE.PlaneGeometry(Math.min(w * 0.7, 14), 1.1), new THREE.MeshBasicMaterial({ map: tl, side: THREE.DoubleSide })); top.position.set(0, 4.3, 0.3); g.add(top);
-    // pré-filtrage, caisses et stand bracelets côté extérieur (vers +z local = vers dehors)
-    var out = new THREE.Group(); g.add(out); var D0 = 2.2 + 18;
-    var box0 = Math.min(6, b.box || 0), brac = Math.min(6, b.brac || 0), booths = [];
-    for (var c = 0; c < box0; c++) { var bx = -w / 2 - 3 - c * 2.4; var bg = new THREE.Group(); bg.position.set(bx, 0, 6); out.add(bg); box(2.0, 2.4, 1.8, std(0xd8d2c5, 0, 0, 0.7), 0, 1.2, 0, bg); box(1.4, 0.7, 0.04, own(0x9fd8ff, 0x335577, 0.3, 0.1), 0, 1.5, 0.92, bg, false); signPanel(bg, [{ t: "BILLETTERIE", c: "#111", s: 22 }], 1.8, 0.4, 0, 2.6, 0.92, { bg: "#ECE8DC" }); booths.push(staffFig(bg, 0, 0.2, 0xECE8DC, 0, 0)); }
-    for (var c2 = 0; c2 < brac; c2++) { var bx2 = w / 2 + 3 + c2 * 3.2; var bg2 = new THREE.Group(); bg2.position.set(bx2, 0, 6); out.add(bg2); box(2.8, 0.95, 0.8, std(0x2b2d36), 0, 0.48, 0, bg2); var r = box(3.2, 0.1, 2.4, own(0x4DC3FF, 0, 0, 0.7), 0, 2.6, -0.3, bg2); [-1, 1].forEach(function (s) { cyl(0.05, 0.05, 2.6, std(0xb8bcc4), s * 1.5, 1.3, -1.3, bg2, 4); cyl(0.05, 0.05, 2.6, std(0xb8bcc4), s * 1.5, 1.3, 0.6, bg2, 4); }); signPanel(bg2, [{ t: "BRACELETS", c: "#fff", s: 22 }], 2.4, 0.42, 0, 2.95, 0.6, { bg: "#2a7fb8" }); booths.push(staffFig(bg2, -0.6, -0.8, 0x4DC3FF, 0, 0)); booths.push(staffFig(bg2, 0.6, -0.8, 0x4DC3FF, 0, 0)); }
-    // ligne de pré-filtrage (barrières et stadiers) au bout du serpentin
-    var pre = new THREE.Group(); out.add(pre);
-    return { lanes: lights, kinds: specials, staff: staff, booths: booths, out: out, pre: pre, LW: LW };
+  // entrée « grand festival » (repère local : x le long de la clôture, z vers l'extérieur ; d = distance depuis la clôture)
+  // dehors : pré-filtrage, serpentin, tentes de fouille hommes/femmes ; sous l'arche, contrôle des billets ; caisses, bracelets, panneaux, police
+  function entryKinds(b, lanes) { var sep = b.sep || {}, kinds = [], n = 0; for (var i = 0; i < lanes; i++) kinds.push("std"); if (sep.exit) kinds[n++] = "exit"; if (sep.vip) kinds[n++] = "vip"; if (sep.pmr) kinds[n++] = "pmr"; if (sep.press) kinds[n++] = "press"; return kinds; }
+  I.entryKinds = entryKinds;
+  var forbidTex = null;
+  function forbiddenTex() {
+    if (forbidTex) return forbidTex; var c = document.createElement("canvas"); c.width = 256; c.height = 192; var x = c.getContext("2d");
+    x.fillStyle = "#f3f1ea"; x.fillRect(0, 0, 256, 192); x.fillStyle = "#c8102e"; x.fillRect(0, 0, 256, 34); x.fillStyle = "#fff"; x.font = "800 22px " + I.FONT; x.textAlign = "center"; x.fillText("OBJETS INTERDITS", 128, 25);
+    ["Verre", "Alcool", "Couteaux", "Fumigènes", "Perches", "Bombes"].forEach(function (t, i) { var cx = 44 + (i % 3) * 84, cy = 72 + Math.floor(i / 3) * 70; x.strokeStyle = "#c8102e"; x.lineWidth = 6; x.beginPath(); x.arc(cx, cy, 22, 0, 6.283); x.stroke(); x.beginPath(); x.moveTo(cx - 15, cy - 15); x.lineTo(cx + 15, cy + 15); x.stroke(); x.fillStyle = "#111"; x.font = "700 14px " + I.FONT; x.fillText(t, cx, cy + 40); });
+    forbidTex = new THREE.CanvasTexture(c); return forbidTex;
   }
+  function tentAt(g, cx, cz, w, d, trim) {
+    var leg = std(0xb8bcc4, 0, 0, 0.35), roofM = own(0xf2f0ea, 0, 0, 0.85, { side: THREE.DoubleSide });
+    [[-1, -1], [1, -1], [-1, 1], [1, 1]].forEach(function (p) { cyl(0.06, 0.06, 2.55, leg, cx + p[0] * w / 2, 1.27, cz + p[1] * d / 2, g, 6); });
+    var roof = new THREE.Mesh(new THREE.ConeGeometry(Math.SQRT1_2, 0.9, 4, 1, true), roofM); roof.rotation.y = Math.PI / 4; roof.scale.set(w, 1, d); roof.position.set(cx, 3.0, cz); roof.castShadow = true; g.add(roof);
+    box(w, 0.32, 0.03, own(trim, 0, 0, 0.7), cx, 2.42, cz + d / 2, g, false); box(w, 0.32, 0.03, own(trim, 0, 0, 0.7), cx, 2.42, cz - d / 2, g, false);
+  }
+  function entryBuilder(b, g, T) {
+    var ev = I.curEv || (RF.U && RF.U.ev), G = Sim.entryGeo(ev, b), E = Sim.ENTRY, fo = G.fo, LW = G.LW, SW = G.SW, lanes = G.lanes, kinds = entryKinds(b, lanes);
+    var L = function (d) { return fo + d; }, ax = function (i) { return -SW / 2 + (i + 0.5) * LW; };
+    var dark = std(0x17181d, 0, 0, 0.6), alu = std(0xb8bcc4, 0, 0, 0.35), lights = [], staff = [], arch = [];
+    // tapis de sol sous la fouille et le contrôle
+    plane(SW + 1, 9, std(0x2a2b30, 0, 0, 0.95), 0, 0.025, L(2.4), g);
+    // arche d'entrée au nom du festival
+    var AH = 6.4, px = SW / 2 + 0.85, accent = 0xF0457A;
+    [-1, 1].forEach(function (s) { box(1.3, AH + 0.6, 1.3, dark, s * px, (AH + 0.6) / 2, L(0), g); var led = own(accent, accent, 0.6, 0.4); box(0.12, AH - 0.6, 0.06, led, s * (px - 0.66), AH / 2, L(0.66), g, false); box(0.12, AH - 0.6, 0.06, led, s * (px - 0.66), AH / 2, L(-0.66), g, false); arch.push(led); });
+    box(SW + 3, 2.2, 1.3, dark, 0, AH + 0.3, L(0), g);
+    var nm = ((ev && ev.name) || "Festival").toUpperCase(), sw2 = Math.min(SW + 2.2, Math.max(8, nm.length * 1.1));
+    var s1 = signPanel(g, [{ t: nm, c: "#F3F1EA" }], sw2, 1.8, 0, AH + 0.3, L(0.67), { bg: "#0d0e12", glow: true }), s2 = signPanel(g, [{ t: "BON FESTIVAL !", c: "#F3F1EA" }], Math.min(SW + 2.2, 12), 1.8, 0, AH + 0.3, L(-0.67), { bg: "#0d0e12", glow: true }, Math.PI); s1.material.toneMapped = false; s2.material.toneMapped = false;
+    var strip = own(0xfff0d0, 0xffd9a0, 0.2, 0.4); box(SW + 2.6, 0.08, 0.35, strip, 0, AH - 0.84, L(0), g, false); arch.push(strip);
+    // fanions sous l'arche
+    var nf = Math.max(6, Math.round(SW / 0.9)), fan = new THREE.InstancedMesh((function () { var t = new THREE.BufferGeometry(); t.setAttribute("position", new THREE.Float32BufferAttribute([-0.28, 0, 0, 0.28, 0, 0, 0, -0.55, 0], 3)); t.computeVertexNormals(); return t; })(), own(0xffffff, 0, 0, 0.8, { side: THREE.DoubleSide }), nf), dm = new THREE.Object3D(), cc = new THREE.Color(), fc = [0xF0457A, 0x4DC3FF, 0xFFB020, 0xECE8DC, 0x3CCB6C, 0xB79BFF];
+    for (var f = 0; f < nf; f++) { var t = (f + 0.5) / nf; dm.position.set(-SW / 2 + t * SW, AH - 1.2 - Math.sin(t * Math.PI) * 0.7, L(0.3)); dm.updateMatrix(); fan.setMatrixAt(f, dm.matrix); cc.setHex(fc[f % fc.length]); fan.setColorAt(f, cc); } g.add(fan);
+    // couloirs : séparations, contrôle des billets sous l'arche, fouille sous tentes
+    for (var k = 0; k <= lanes; k++) { var xa = -SW / 2 + k * LW; box(0.05, 0.9, 2.6, alu, xa, 0.45, L(0.2), g, false); }
+    var nStd = kinds.filter(function (q) { return q === "std"; }).length, stdSeen = 0;
+    for (var i = 0; i < lanes; i++) {
+      var kd = kinds[i], x = ax(i), sx = { lane: i, kind: kd, x: x }, txt = kd === "exit" ? "SORTIE" : kd === "vip" ? "VIP" : kd === "pmr" ? "PMR" : kd === "press" ? "PRESSE" : null;
+      if (txt) signPanel(g, [{ t: txt, c: kd === "exit" ? "#3CCB6C" : kd === "vip" ? "#C9A227" : kd === "pmr" ? "#4DC3FF" : "#B79BFF", s: 26 }], LW - 0.25, 0.42, x, AH - 1.5, L(0.7), { bg: "#0a0a0d" });
+      if (kd !== "exit") {
+        // borne de scan (écran vert/rouge) et tripode
+        box(0.3, 1.1, 0.3, dark, x - LW * 0.3, 0.55, L(E.scan), g, false); var scr = own(0x3CCB6C, 0x3CCB6C, 0.9, 0.3); var sc = box(0.28, 0.2, 0.04, scr, x - LW * 0.3, 1.2, L(E.scan + 0.16), g, false); sc.rotation.x = -0.5; lights.push(scr);
+        if (kd !== "pmr") { box(0.32, 0.95, 0.55, alu, x + LW * 0.3, 0.48, L(E.scan), g, false); var arm = box(LW * 0.45, 0.05, 0.05, alu, x + LW * 0.05, 0.92, L(E.scan), g, false); }
+        sx.scan = staffFig(g, x - LW * 0.3, L(-0.8), 0x4DC3FF, 0, 0);
+        // fouille : table, bac, agent face au public
+        box(0.8, 0.78, 0.5, std(0x3a3d48), x - LW * 0.3, 0.39, L(4.5), g, false); box(0.5, 0.07, 0.34, std(0x9aa0aa), x - LW * 0.3, 0.82, L(4.5), g, false);
+        var female = kd === "std" && stdSeen++ < Math.ceil(nStd / 2);
+        sx.palp = staffFig(g, x + LW * 0.15, L(3.5), female ? 0xF0457A : 0xFF8A1F, 0, 0); sx.female = female;
+      } else { var gate = box(LW - 0.3, 0.06, 0.06, own(0x3CCB6C, 0x3CCB6C, 0.6), x, 0.9, L(E.scan), g, false); }
+      staff.push(sx);
+    }
+    // tentes de fouille par groupes de 4 couloirs : femmes à gauche, hommes à droite, couloirs spéciaux à part
+    var grp = []; for (var j = 0; j < lanes; j++) { var kj = kinds[j] === "exit" ? null : kinds[j] === "std" ? (staff[j].female ? "F" : "H") : "S"; var last = grp[grp.length - 1]; if (kj && last && last.k === kj && last.n < 2 && last.i1 === j - 1) { last.n++; last.i1 = j; } else if (kj) grp.push({ k: kj, i0: j, i1: j, n: 1 }); }
+    grp.forEach(function (gr) { var x0 = -SW / 2 + gr.i0 * LW, x1 = -SW / 2 + (gr.i1 + 1) * LW, trim = gr.k === "F" ? 0xB04A9A : gr.k === "H" ? 0x2E6FD8 : 0xC9A227; tentAt(g, (x0 + x1) / 2, L(4.1), x1 - x0 - 0.1, 3.6, trim); var tl = own(0xfff2d8, 0xffe2b0, 0.2, 0.4); box((x1 - x0) * 0.6, 0.05, 0.14, tl, (x0 + x1) / 2, 2.52, L(4.1), g, false); arch.push(tl); signPanel(g, [{ t: gr.k === "F" ? "FOUILLE FEMMES" : gr.k === "H" ? "FOUILLE HOMMES" : "ACCÈS DÉDIÉ", c: "#fff", s: 22 }], Math.min(3.4, x1 - x0 - 0.3), 0.42, (x0 + x1) / 2, 2.42, L(5.94), { bg: gr.k === "F" ? "#8a3a7a" : gr.k === "H" ? "#24569f" : "#8a6a20" }); });
+    // séparations des couloirs de fouille (barrières Vauban)
+    var vb = []; for (var k2 = 0; k2 <= lanes; k2++) { var xb = -SW / 2 + k2 * LW; vb.push([[xb, L(1.4)], [xb, L(6.5)]]); }
+    vb.forEach(function (pts) { g.add(I.barrierLine(pts)); });
+    // serpentin (ou couloirs droits) et pré-filtrage
+    var Q = Sim.queueLayout(b, G, kinds); Q.bars.forEach(function (seg) { g.add(I.barrierLine(seg.map(function (p) { return [p[0], L(p[1])]; }))); });
+    var preW = G.half - 1.2; signPanel(g, [{ t: "PRÉ-FILTRAGE", c: "#111", s: 26 }, { t: "billet prêt · sacs ouverts", c: "#333", s: 18 }], 3, 0.9, Q.tail[0], 2.2, L(E.pre + 0.6), { bg: "#FFD23A" }); cyl(0.05, 0.05, 1.8, alu, Q.tail[0], 0.9, L(E.pre + 0.6), g, 6);
+    [-1, 1].forEach(function (s) { staffFig(g, Q.tail[0] + s * 1.3, L(E.pre + 0.4), 0xE8E36A, 0, 0); });
+    // panneaux « objets interdits », bacs de confiscation
+    [-1, 1].forEach(function (s) { var bx = s * (SW / 2 + 2.6); var pnl = new THREE.Mesh(new THREE.PlaneGeometry(2.2, 1.65), new THREE.MeshBasicMaterial({ map: forbiddenTex() })); pnl.position.set(bx, 1.75, L(9.2)); g.add(pnl); box(2.3, 1.75, 0.06, dark, bx, 1.75, L(9.17), g, false); cyl(0.05, 0.05, 1.0, alu, bx - 0.9, 0.5, L(9.15), g, 4); cyl(0.05, 0.05, 1.0, alu, bx + 0.9, 0.5, L(9.15), g, 4);
+      var bin = cyl(0.45, 0.4, 1.05, std(0x55595f), s * (SW / 2 + 1.2), 0.52, L(4.4), g, 12); signPanel(g, [{ t: "CONFISCATION", c: "#111", s: 20 }], 1.0, 0.25, s * (SW / 2 + 1.2), 0.75, L(4.86), { bg: "#FFD23A" }); });
+    // caisses (à gauche) et échange des bracelets (à droite), au bord du parvis
+    var booths = [], nb = Math.min(3, b.box || 0), nbr = Math.min(3, b.brac || 0);
+    for (var c = 0; c < nb; c++) { var bxp = Q.boothX(-1, c), bg = new THREE.Group(); bg.position.set(bxp, 0, L(E.pre + 0.6)); g.add(bg); box(2.0, 2.4, 1.6, std(0xd8d2c5, 0, 0, 0.7), 0, 1.2, 0, bg); box(1.4, 0.7, 0.04, own(0x9fd8ff, 0x335577, 0.3, 0.1), 0, 1.5, 0.82, bg, false); box(2.2, 0.12, 2.0, std(0x2b4a8a), 0, 2.46, 0.1, bg, false); signPanel(bg, [{ t: "BILLETTERIE", c: "#111", s: 22 }], 1.8, 0.38, 0, 2.75, 0.85, { bg: "#ECE8DC" }); booths.push(staffFig(bg, 0, 0.1, 0xECE8DC, 0, 0)); }
+    for (var c2 = 0; c2 < nbr; c2++) { var bxq = Q.boothX(1, c2), bg2 = new THREE.Group(); bg2.position.set(bxq, 0, L(E.pre + 0.6)); g.add(bg2); box(2.0, 0.95, 0.8, std(0x2b2d36), 0, 0.48, 0, bg2); box(2.4, 0.1, 2.2, own(0x4DC3FF, 0, 0, 0.7), 0, 2.5, -0.2, bg2); [-1, 1].forEach(function (s) { cyl(0.05, 0.05, 2.5, alu, s * 1.1, 1.25, -1.2, bg2, 4); cyl(0.05, 0.05, 2.5, alu, s * 1.1, 1.25, 0.8, bg2, 4); }); signPanel(bg2, [{ t: "BRACELETS", c: "#fff", s: 22 }], 1.9, 0.38, 0, 2.8, 0.9, { bg: "#2a7fb8" }); booths.push(staffFig(bg2, -0.5, -0.7, 0x4DC3FF, 0, 0)); booths.push(staffFig(bg2, 0.5, -0.7, 0x4DC3FF, 0, 0)); }
+    // présence police à côté de la grande entrée
+    if (lanes >= 8) { var pv = new THREE.Group(); pv.position.set(SW / 2 + 4.6, 0, L(14.5)); g.add(pv); box(1.9, 1.9, 4.6, std(0x1e3a8a, 0, 0, 0.4), 0, 1.15, 0, pv); box(1.92, 0.35, 4.62, std(0xf3f1ea), 0, 1.0, 0, pv, false); box(1.6, 0.6, 2.2, own(0x1a2430, 0x203040, 0.3, 0.1), 0, 1.75, 0.6, pv, false); box(0.9, 0.18, 0.3, own(0x3b82ff, 0x3b82ff, 0.8), 0, 2.2, 0.8, pv, false); [[-1, 1], [1, 1], [-1, -1], [1, -1]].forEach(function (w) { var wh = cyl(0.38, 0.38, 0.3, std(0x111111), w[0] * 0.95, 0.38, w[1] * 1.5, pv, 10); wh.rotation.z = Math.PI / 2; }); staffFig(pv, -1.6, 1.4, 0x1e3a8a, Math.PI / 2, 0); staffFig(pv, -1.6, -0.2, 0x1e3a8a, Math.PI / 2, 0); }
+    // éclairage de nuit : projecteur au-dessus de la fouille
+    var flood = new THREE.PointLight(0xfff0d8, 0, Math.max(22, SW * 1.1), 1.6); flood.position.set(0, 6, L(4)); g.add(flood);
+    return { lanes: lights, kinds: kinds, staff: staff, booths: booths, arch: arch, flood: flood, LW: LW };
+  }
+  // ================================================================ bâtiments réalistes (maquette) : scènes, chapiteau, barnums, bars, services, logistique
+  var TEXC = {};
+  // tôle ondulée de conteneur, bardage d'Algeco, toile rayée : textures dessinées une fois
+  function corrTex() { if (TEXC.corr) return TEXC.corr; var c = document.createElement("canvas"); c.width = 128; c.height = 64; var x = c.getContext("2d"); for (var i = 0; i < 128; i += 8) { var g = x.createLinearGradient(i, 0, i + 8, 0); g.addColorStop(0, "#9a9a9a"); g.addColorStop(0.5, "#ffffff"); g.addColorStop(1, "#8a8a8a"); x.fillStyle = g; x.fillRect(i, 0, 8, 64); } var t = new THREE.CanvasTexture(c); t.wrapS = t.wrapT = THREE.RepeatWrapping; t.repeat.set(4, 1); TEXC.corr = t; return t; }
+  function cabinTex() { if (TEXC.cab) return TEXC.cab; var c = document.createElement("canvas"); c.width = 256; c.height = 96; var x = c.getContext("2d"); x.fillStyle = "#e8e6df"; x.fillRect(0, 0, 256, 96); x.fillStyle = "#c9c6bd"; for (var i = 0; i < 256; i += 64) x.fillRect(i, 0, 3, 96); x.fillStyle = "#2c3a4a"; for (var j = 0; j < 4; j++) { x.fillRect(14 + j * 64, 26, 36, 30); x.fillStyle = "#9fc4e0"; x.fillRect(16 + j * 64, 28, 32, 26); x.fillStyle = "#2c3a4a"; } x.fillStyle = "#b9b5aa"; x.fillRect(0, 86, 256, 10); var t = new THREE.CanvasTexture(c); TEXC.cab = t; return t; }
+  function stripeTex(a, b2) { var k = "st" + a + b2; if (TEXC[k]) return TEXC[k]; var c = document.createElement("canvas"); c.width = 256; c.height = 16; var x = c.getContext("2d"); for (var i = 0; i < 16; i++) { x.fillStyle = i % 2 ? a : b2; x.fillRect(i * 16, 0, 16, 16); } var t = new THREE.CanvasTexture(c); t.wrapS = THREE.RepeatWrapping; TEXC[k] = t; return t; }
+  I.corrTex = corrTex;
+  // conteneur maritime (20 ou 40 pieds selon la longueur)
+  function container(g, x, y, z, l, col, rotY) { var c = new THREE.Group(); c.position.set(x, y, z); c.rotation.y = rotY || 0; g.add(c); var m = own(col, 0, 0, 0.6, { metalness: 0.25 }); m.map = corrTex(); box(l, 2.3, 2.2, m, 0, 1.15, 0, c); box(l + 0.06, 0.1, 2.26, std(0x2b2d33), 0, 2.32, 0, c, false); box(l + 0.06, 0.1, 2.26, std(0x2b2d33), 0, 0.05, 0, c, false); [-1, 1].forEach(function (s) { box(0.1, 2.3, 2.26, std(0x2b2d33), s * l / 2, 1.15, 0, c, false); }); return c; }
+  // bungalow de chantier (Algeco) avec fenêtres et marchepied
+  function bungalow(g, x, z, w, d, col, rotY) { var c = new THREE.Group(); c.position.set(x, 0, z); c.rotation.y = rotY || 0; g.add(c); var m = own(0xffffff, 0, 0, 0.75); m.map = cabinTex(); box(w, 2.5, d, std(col, 0, 0, 0.7), 0, 1.55, 0, c); var f = new THREE.Mesh(new THREE.PlaneGeometry(w - 0.1, 2.3), m); f.position.set(0, 1.55, d / 2 + 0.02); c.add(f); box(w + 0.1, 0.18, d + 0.1, std(0x6b6e75), 0, 2.88, 0, c, false); box(w, 0.3, d, std(0x3a3d44), 0, 0.15, 0, c, false); box(1.2, 0.25, 0.9, std(0x777b84), w * 0.3, 0.12, d / 2 + 0.5, c, false); return c; }
+  // barnum 3×3 (pagode) : pieds lestés, toit pointu, lambrequin
+  function barnum(g, cx, cz, w, d, h, col, trim) { var leg = std(0xc8ccd4, 0, 0, 0.35); [[-1, -1], [1, -1], [-1, 1], [1, 1]].forEach(function (p) { cyl(0.05, 0.05, h, leg, cx + p[0] * w / 2, h / 2, cz + p[1] * d / 2, g, 6); box(0.3, 0.12, 0.3, std(0x2a2b30), cx + p[0] * w / 2, 0.06, cz + p[1] * d / 2, g, false); }); var roof = new THREE.Mesh(new THREE.ConeGeometry(Math.SQRT1_2, Math.min(w, d) * 0.32, 4, 1, true), own(col, 0, 0, 0.85, { side: THREE.DoubleSide })); roof.rotation.y = Math.PI / 4; roof.scale.set(w, 1, d); roof.position.set(cx, h + Math.min(w, d) * 0.16, cz); roof.castShadow = true; g.add(roof); var vm = own(trim || col, 0, 0, 0.8); box(w, 0.28, 0.03, vm, cx, h - 0.14, cz + d / 2, g, false); box(w, 0.28, 0.03, vm, cx, h - 0.14, cz - d / 2, g, false); box(0.03, 0.28, d, vm, cx + w / 2, h - 0.14, cz, g, false); box(0.03, 0.28, d, vm, cx - w / 2, h - 0.14, cz, g, false); return roof; }
+  I.barnum = barnum; I.container = container; I.bungalow = bungalow;
+  function flightCases(g, x, z, n) { for (var i = 0; i < n; i++) { box(0.8, 0.7, 0.6, std(0x15161b, 0, 0, 0.5), x + (i % 3) * 0.85, 0.35 + Math.floor(i / 3) * 0.72, z, g, false); box(0.82, 0.05, 0.62, std(0x9aa0a8, 0, 0, 0.3), x + (i % 3) * 0.85, 0.7 + Math.floor(i / 3) * 0.72, z, g, false); } }
+  function semiTrailer(g, x, z, rotY, col) { var c = new THREE.Group(); c.position.set(x, 0, z); c.rotation.y = rotY || 0; g.add(c); box(2.5, 3, 10, own(col || 0xe8e6df, 0, 0, 0.6), 0, 2.1, -1, c); box(2.4, 2.6, 2.4, std(0x22324a, 0, 0, 0.4), 0, 1.7, 5.4, c); box(2.3, 0.9, 0.05, own(0x1a2430, 0x203040, 0.2, 0.1), 0, 2.4, 6.62, c, false); [[-1, 4.8], [1, 4.8], [-1, -3.5], [1, -3.5], [-1, -4.7], [1, -4.7]].forEach(function (w) { var wh = cyl(0.5, 0.5, 0.35, std(0x111111), w[0] * 1.15, 0.5, w[1], c, 10); wh.rotation.z = Math.PI / 2; }); return c; }
+  // ---------------------------------------------------------------- scène « ground support » : 4 tours, toit en arche, ailes son, crash barrier, coulisses
+  function stageBuilder2(b, g, T, opt) {
+    opt = opt || {}; var w = T.w, d = T.d, h = T.h, deckH = opt.deck || 1.6, steel = std(0xb8bcc4, 0, 0, 0.35), black = std(0x111216, 0, 0, 0.8), small = w < 14;
+    // plateau, jupe noire, nez de scène
+    box(w, deckH, d, std(0x18191e, 0, 0, 0.8), 0, deckH / 2, 0, g); box(w + 0.1, deckH - 0.1, 0.05, black, 0, deckH / 2, d / 2 + 0.03, g, false); box(w, 0.06, d, std(0x2a2620, 0, 0, 0.9), 0, deckH + 0.03, 0, g, false);
+    // tours de levage aux 4 coins et poutres
+    [[-1, 1], [1, 1], [-1, -1], [1, -1]].forEach(function (p) { truss(g, p[0] * (w / 2 - 0.4), 0, p[1] * (d / 2 - 0.4), h, steel); });
+    box(w + 0.4, 0.6, 0.6, steel, 0, h - 0.2, d / 2 - 0.4, g, false); box(w + 0.4, 0.6, 0.6, steel, 0, h - 0.2, -d / 2 + 0.4, g, false);
+    // toit en arche (membrane tendue)
+    var R = d * 0.75, arc = 1.1, roofG = new THREE.CylinderGeometry(R, R, w + 1.2, 24, 1, true, -arc / 2, arc); roofG.rotateZ(Math.PI / 2); roofG.rotateX(-Math.PI / 2); var roofM = own(0x26282f, 0, 0, 0.7, { side: THREE.DoubleSide }), roof = new THREE.Mesh(roofG, roofM); roof.visible = !opt.noRoof; roof.position.set(0, h + 0.3 - R * Math.cos(arc / 2) + 0.2, 0); roof.rotation.y = 0; roof.castShadow = true; g.add(roof);
+    // fond de scène : rideau noir et mur LED
+    box(w - 1, h - deckH - 1, 0.2, black, 0, deckH + (h - deckH - 1) / 2, -d / 2 + 0.3, g);
+    var sc = document.createElement("canvas"); sc.width = 384; sc.height = 160; var stex = new THREE.CanvasTexture(sc), scrW = w * 0.62, scrH = Math.min((h - deckH) * 0.62, scrW * 0.42), scr = new THREE.Mesh(new THREE.PlaneGeometry(scrW, scrH), new THREE.MeshBasicMaterial({ map: stex, toneMapped: false })); scr.position.set(0, deckH + 0.6 + scrH / 2 + (h - deckH - scrH) * 0.25, -d / 2 + 0.45); g.add(scr); box(scrW + 0.3, scrH + 0.3, 0.15, black, 0, scr.position.y, -d / 2 + 0.36, g, false);
+    // ailes : échafaudage, line arrays suspendus en J, écrans latéraux
+    var side = [], wingX = w / 2 + (small ? 1.2 : 2);
+    [-1, 1].forEach(function (sx) { truss(g, sx * wingX, 0, d / 2 - 1, h + 0.5, steel); box(1.8, 0.4, 0.5, steel, sx * (wingX - 0.6), h + 0.2, d / 2 - 1, g, false);
+      for (var k = 0; k < (small ? 5 : 9); k++) { var la = box(1.2, 0.36, 0.9, std(0x101115, 0, 0, 0.6), sx * (wingX - 0.6), h - 0.4 - k * 0.38, d / 2 - 0.7 + k * 0.04, g, false); la.rotation.x = 0.03 * k * k * 0.1 + 0.02 * k; }
+      if (!small) { var sg = document.createElement("canvas"); sg.width = 128; sg.height = 176; var st2 = new THREE.CanvasTexture(sg), sm = new THREE.Mesh(new THREE.PlaneGeometry(3.8, 5.2), new THREE.MeshBasicMaterial({ map: st2, toneMapped: false })); sm.position.set(sx * (wingX + 3), h * 0.62, d / 2 - 0.6); g.add(sm); box(4.1, 5.5, 0.3, black, sx * (wingX + 3), h * 0.62, d / 2 - 0.8, g); truss(g, sx * (wingX + 3), 0, d / 2 - 1.1, h * 0.62 - 2.7, steel); side.push({ c: sg, t: st2 }); }
+      for (var k2 = 0; k2 < (small ? 2 : 3); k2++) box(1.1, 0.95, 1.0, std(0x121318), sx * (w / 4 + k2 * 1.2), 0.48, d / 2 + 0.7, g); });
+    // projecteurs asservis sur la poutre avant et faisceaux
+    var beams = [];
+    for (var i = 0; i < (small ? 4 : 8); i++) { var piv = new THREE.Group(); piv.position.set(-w * 0.42 + i * w * 0.84 / ((small ? 4 : 8) - 1), h - 0.75, d / 2 - 0.6); g.add(piv); box(0.45, 0.5, 0.45, std(0x22242b), 0, 0, 0, piv, false); var cone = new THREE.Mesh(new THREE.ConeGeometry(2.4, h * 1.9, 18, 1, true), new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.06, blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide })); cone.geometry.translate(0, -h * 0.95, 0); piv.add(cone); beams.push({ p: piv, c: cone, ph: Math.random() * 6, sp: 0.5 + Math.random() * 0.7 }); }
+    var lasers = new THREE.Group(); for (var l = 0; l < 10; l++) { var geo = new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(0, 0, 0), new THREE.Vector3(0, 0, 60)]), ln = new THREE.Line(geo, new THREE.LineBasicMaterial({ color: 0x33ff88, transparent: true, opacity: 0.7, blending: THREE.AdditiveBlending, depthWrite: false })); ln.position.set(0, h - 1.5, d / 2); lasers.add(ln); } lasers.visible = false; g.add(lasers);
+    var pl = new THREE.PointLight(0xffffff, 1.2, w * 2.6, 2); pl.position.set(0, h * 0.8, d / 2 + 4); g.add(pl);
+    var smoke = []; for (var f = 0; f < 6; f++) { var sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: I.smokeTex(), transparent: true, opacity: 0, depthWrite: false, color: 0xbfc6d6 })); sp.position.set(rnd(-w / 2, w / 2), deckH + 1 + Math.random() * 2, d / 2 + rnd(0, 4)); sp.scale.setScalar(rnd(6, 10)); g.add(sp); smoke.push(sp); }
+    // pyrotechnie : jets de flamme et CO2 au nez de scène
+    var pyro = []; [-1, 1].forEach(function (sx) { [0.42, 0.25].forEach(function (fx, j) { var base = box(0.5, 0.35, 0.5, std(0x2a2b30), sx * w * fx, deckH + 0.18, d / 2 - 0.4, g, false); var fl = new THREE.Mesh(new THREE.ConeGeometry(0.3, 5, 10, 1, true), new THREE.MeshBasicMaterial({ color: j ? 0xf2f6ff : 0xFF7A1A, transparent: true, opacity: 0.6, blending: THREE.AdditiveBlending, depthWrite: false })); fl.geometry.translate(0, 2.5, 0); fl.rotation.x = Math.PI; fl.rotation.x = 0; fl.position.set(sx * w * fx, deckH + 0.35, d / 2 - 0.4); fl.visible = false; g.add(fl); pyro.push({ m: fl, co2: !!j }); }); });
+    // le groupe sur scène : batterie sur praticable, musiciens, micro ; ou cabine DJ
+    var band = new THREE.Group(), dj = new THREE.Group(); band.position.y = deckH; dj.position.y = deckH; g.add(band); g.add(dj); band.visible = false; dj.visible = false;
+    box(3, 0.5, 2.2, std(0x1a1b20), 0, 0.25, -d * 0.18, band); [[0, 0.9, 0.55, 0.35], [-0.7, 0.75, 0.3, 0.3], [0.7, 0.75, 0.3, 0.3], [0.4, 0.9, 0.3, 0.25]].forEach(function (dr) { var dm = cyl(dr[2], dr[2], dr[3], std(dr[0] === 0 ? 0x1a1a1d : 0xc8102e, 0, 0, 0.5), dr[0], 0.5 + dr[1] - 0.3, -d * 0.18 + 0.4, band, 14); if (dr[0] === 0) { dm.rotation.x = Math.PI / 2; } }); [[-0.9, 0.3], [0.9, 0.2]].forEach(function (cy) { cyl(0.32, 0.32, 0.02, std(0xd9b44a, 0, 0, 0.2), cy[0], 1.75, -d * 0.18 + cy[1], band, 14); cyl(0.02, 0.02, 1.2, steel, cy[0], 1.15, -d * 0.18 + cy[1], band, 4); });
+    var musicians = [staffFig(band, 0, -d * 0.18 - 0.3, 0x1b1b1e, 0, 0.5), staffFig(band, -w * 0.22, d * 0.12, 0x8e2f2f, 0, 0), staffFig(band, 0, d * 0.22, 0xe6e3dc, 0, 0), staffFig(band, w * 0.22, d * 0.12, 0x2a3550, 0, 0)];
+    cyl(0.02, 0.02, 1.5, steel, 0, 0.75, d * 0.22 + 0.45, band, 4); box(0.9, 0.06, 0.4, std(0x111111), w * 0.25, 0.9, d * 0.05, band, false); box(1.2, 0.6, 0.8, std(0x222222), -w * 0.3, 0.3, -d * 0.05, band, false); box(1.2, 0.6, 0.8, std(0x222222), w * 0.3, 0.3, -d * 0.05, band, false);
+    box(3.2, 1.1, 1.1, std(0x0f1014), 0, 0.55, 0, dj); box(3.3, 0.06, 1.2, own(0x4DC3FF, 0x4DC3FF, 0.8), 0, 1.12, 0, dj, false); [-0.8, 0.8].forEach(function (x) { cyl(0.32, 0.32, 0.06, std(0x2a2a2a), x, 1.16, 0, dj, 16); }); box(0.6, 0.08, 0.4, std(0x333333), 0, 1.18, 0, dj, false); musicians.push(staffFig(dj, 0, -0.9, 0x1b1b1e, 0, 0));
+    // crash barrier et fosse photographes avec agents
+    var cbZ = d / 2 + 2.6; box(w * 0.92, 1.15, 0.5, std(0x9aa0a8, 0, 0, 0.35, null), 0, 0.58, cbZ, g); box(w * 0.92, 0.08, 1.2, std(0x6b6e75), 0, 0.04, cbZ - 0.4, g, false); for (var a2 = 0; a2 < (small ? 2 : 4); a2++) staffFig(g, -w * 0.35 + a2 * w * 0.7 / Math.max(1, (small ? 2 : 4) - 1), cbZ - 1.0, 0xFF8A1F, Math.PI, 0);
+    // coulisses : escalier, rampe, flight-cases, semi-remorques
+    for (var s = 0; s < 5; s++) box(1.6, 0.2, 0.45, std(0x30333c), -w / 2 + 1.5, 0.15 + s * deckH / 5, -d / 2 - 0.4 - (4 - s) * 0.45, g, false);
+    var ramp = box(2.2, 0.12, deckH * 3.2, std(0x4a4d55), w / 2 - 1.8, deckH / 2, -d / 2 - deckH * 1.5, g, false); ramp.rotation.x = -Math.atan(1 / 3.2);
+    flightCases(g, -w / 2 + 3, -d / 2 - 1.2, small ? 3 : 6);
+    if (!small && !opt.noTrucks) { semiTrailer(g, -w * 0.18, -d / 2 - 2.2, Math.PI / 2, 0xe8e6df); semiTrailer(g, w * 0.22, -d / 2 - 2.2, -Math.PI / 2, 0x2a2b30); }
+    // régie façade au milieu du public (grandes scènes)
+    if (!small && !opt.noFoh) { var zdep = b.k === "stageL" ? 26 : 18, fz = d / 2 + 1.5 + zdep * 0.62; barnum(g, 0, fz, 4, 3, 2.4, 0x1b1d24); box(3.4, 0.9, 1.0, std(0x22242b), 0, 0.45, fz - 0.3, g, false); box(3.2, 0.05, 0.8, own(0x4DC3FF, 0x4DC3FF, 0.5), 0, 0.92, fz - 0.3, g, false); staffFig(g, -0.6, fz + 0.5, 0x1b1b1e, Math.PI, 0); staffFig(g, 0.6, fz + 0.5, 0x1b1b1e, Math.PI, 0); g.add(I.barrierLine([[-2.4, fz - 1.8], [-2.4, fz + 1.8], [2.4, fz + 1.8], [2.4, fz - 1.8], [-2.4, fz - 1.8]])); }
+    // câble vers le groupe électrogène le plus proche
+    var ev = I.curEv; if (ev) { var gb = null, gd = 1e9; ev.layout.forEach(function (x) { if (x.k !== "generator") return; var dd = Math.hypot(x.x - b.x, x.z - b.z); if (dd < gd && dd < D.BT.generator.gen) { gd = dd; gb = x; } }); if (gb) { var r = (b.rot || 0) * Math.PI / 2, dx = gb.x - b.x, dz = gb.z - b.z, lx = dx * Math.cos(r) - dz * Math.sin(r), lz = dx * Math.sin(r) + dz * Math.cos(r), L2 = Math.hypot(lx, lz - (-d / 2)), cab = box(0.12, 0.06, L2, std(0x111111), lx / 2, 0.04, (lz - d / 2) / 2, g, false); cab.rotation.y = Math.atan2(lx, lz + d / 2); } }
+    return { screen: sc, stex: stex, side: side, beams: beams, lasers: lasers, light: pl, smoke: smoke, roof: roof, pyro: pyro, band: band, dj: dj, musicians: musicians };
+  }
+  BUILD.stageL = BUILD.stageM = BUILD.stageS = function (b, g, T) { return stageBuilder2(b, g, T); };
+  // chapiteau : deux mâts, toile rayée tendue, murs, haubans et piquets ; scène à l'intérieur
+  BUILD.stageT = function (b, g, T) {
+    var w = T.w, d = T.d, H = 11, wall = 3.2;
+    var prof = [new THREE.Vector2(0.001, 0), new THREE.Vector2(0.08, -0.12), new THREE.Vector2(0.22, -0.38), new THREE.Vector2(0.42, -0.62), new THREE.Vector2(0.7, -0.82), new THREE.Vector2(1, -0.92)];
+    var tg = new THREE.LatheGeometry(prof, 32), tm = own(0xffffff, 0, 0, 0.85, { side: THREE.DoubleSide }); tm.map = stripeTex("#c0262d", "#f3efe6"); tm.map.repeat.set(4, 1);
+    var top = new THREE.Mesh(tg, tm); top.scale.set(w / 2, (H - wall) / 0.92, d / 2); top.position.y = H; top.castShadow = true; g.add(top);
+    var wg = new THREE.CylinderGeometry(1, 1, wall, 32, 1, true), wm = own(0xf3efe6, 0, 0, 0.9, { side: THREE.DoubleSide, transparent: true, opacity: 0.55 }), wl = new THREE.Mesh(wg, wm); wl.scale.set(w / 2, 1, d / 2); wl.position.y = wall / 2; g.add(wl);
+    var trim = new THREE.Mesh(new THREE.CylinderGeometry(1, 1, 0.5, 32, 1, true), own(0xc0262d, 0, 0, 0.8, { side: THREE.DoubleSide })); trim.scale.set(w / 2 + 0.02, 1, d / 2 + 0.02); trim.position.y = wall - 0.25; g.add(trim);
+    [-1, 1].forEach(function (s) { cyl(0.22, 0.28, H + 1.5, std(0xb8bcc4, 0, 0, 0.4), s * w * 0.14, (H + 1.5) / 2, 0, g, 8); I.flag(g, s * w * 0.14, 0, s > 0 ? 0xF0457A : 0xFFB020); g.children[g.children.length - 1].position.y = H + 0.6; });
+    var stakes = [], ropes = [];
+    for (var i = 0; i < 16; i++) { var a = i / 16 * Math.PI * 2, px = Math.cos(a) * w / 2, pz = Math.sin(a) * d / 2; cyl(0.08, 0.08, wall, std(0x8d9099), px, wall / 2, pz, g, 6); var sx = Math.cos(a) * (w / 2 + 2.2), sz = Math.sin(a) * (d / 2 + 2.2); box(0.15, 0.3, 0.15, std(0x4a3a2a), sx, 0.15, sz, g, false); ropes.push(px, wall, pz, sx, 0.2, sz); }
+    var rg = new THREE.BufferGeometry(); rg.setAttribute("position", new THREE.Float32BufferAttribute(ropes, 3)); g.add(new THREE.LineSegments(rg, new THREE.LineBasicMaterial({ color: 0x8a8578 })));
+    var sg = new THREE.Group(); sg.position.z = -d * 0.13; g.add(sg); var r = stageBuilder2(b, sg, { w: w * 0.5, d: d * 0.26, h: 5.2 }, { noTrucks: true, noFoh: true, noRoof: true, deck: 1.1 }); r.roof = top;
+    return r;
+  };
+  // ---------------------------------------------------------------- bars : conteneur ouvert, volet relevé en auvent, comptoir, mange-debout
+  function barBuilder2(b, g, T) {
+    var w = T.w, d = T.d, col = T.col || 0xFFB020, wood = std(0x6b4a2c, 0, 0, 0.7), dark = std(0x1f2129, 0, 0, 0.6);
+    var cm = own(col === 0xFFB020 ? 0x2a4a6a : 0x2b2d36, 0, 0, 0.6, { metalness: 0.25 }); cm.map = corrTex();
+    box(w, 2.6, 0.12, cm, 0, 1.3, -d / 2 + 0.06, g); box(0.12, 2.6, d, cm, -w / 2, 1.3, 0, g); box(0.12, 2.6, d, cm, w / 2, 1.3, 0, g); box(w + 0.1, 0.12, d, cm, 0, 2.62, 0, g);
+    var flap = box(w, 0.08, 1.6, cm, 0, 2.95, d / 2 + 0.55, g); flap.rotation.x = -0.32; [-1, 1].forEach(function (s) { var st = cyl(0.04, 0.04, 1.0, std(0x9aa0a8), s * (w / 2 - 0.2), 2.6, d / 2 + 0.9, g, 4); st.rotation.x = 0.6; });
+    var roofM = own(0x2a2c36, col, 0.06, 0.7); box(w, 0.4, 0.06, own(col, col, 0.25, 0.6), 0, 2.4, d / 2 + 0.02, g, false); var roofProxy = box(0.01, 0.01, 0.01, roofM, 0, 0, 0, g, false);
+    box(w - 0.2, 1.05, 0.6, wood, 0, 0.53, d / 2 - 0.2, g); box(w, 0.07, 0.8, std(0x2b2d36, 0, 0, 0.3), 0, 1.09, d / 2 - 0.2, g, false);
+    var led = box(w - 0.2, 0.06, 0.04, new THREE.MeshBasicMaterial({ color: col }), 0, 0.92, d / 2 + 0.12, g, false);
+    var taps = (b.posts && b.posts.taps) || T.taps || 0; for (var i = 0; i < taps; i++) { var tx = -w / 2 + 0.6 + i * (w - 1.2) / Math.max(1, taps - 1); cyl(0.04, 0.04, 0.42, std(0xc8ccd4, 0, 0, 0.2), tx, 1.32, d / 2 - 0.25, g, 6); box(0.08, 0.13, 0.1, std(col, col, 0.4), tx, 1.58, d / 2 - 0.25, g, false); }
+    var mix = (b.posts && b.posts.mix) || 0; for (var m = 0; m < mix; m++) box(0.5, 0.22, 0.35, std(0x8a8f9a, 0, 0, 0.3), w / 2 - 0.6 - m * 0.7, 1.24, d / 2 - 0.25, g, false);
+    var tills = (b.posts && b.posts.tills) || T.tills || 1; for (var t2 = 0; t2 < tills; t2++) box(0.25, 0.22, 0.2, own(0x4DC3FF, 0x4DC3FF, 0.5), -w / 2 + 0.5 + t2 * 0.9, 1.22, d / 2 - 0.05, g, false);
+    var nf = Math.max(1, Math.floor(w / 2.4)); for (var f = 0; f < nf; f++) { var fx = -w / 2 + 1.2 + f * (w - 2.4) / Math.max(1, nf - 1); box(1.0, 1.8, 0.6, dark, fx, 0.9, -d / 2 + 0.45, g); box(0.86, 1.5, 0.02, own(0x9fd8ff, 0x7fc8ff, 0.5, 0.1, { transparent: true, opacity: 0.6 }), fx, 0.95, -d / 2 + 0.76, g, false); }
+    for (var fu = 0; fu < Math.min(4, taps); fu++) cyl(0.25, 0.25, 0.6, std(0xb8bcc4, 0, 0, 0.25), -w / 2 + 0.5 + fu * 0.55, 0.3, -d / 2 + 1.0, g, 10);
+    var sign = signPanel(g, [{ t: T.sign || "BAR", c: hex(col) }], Math.min(w * 0.7, 6), 0.8, 0, 3.4, d / 2 + 0.9, { bg: "#0a0a0d", glow: true }); sign.rotation.x = -0.32; sign.material.toneMapped = false;
+    var menu = signPanel(g, [{ t: "BIÈRE 5€ · SOFT 3€ · EAU 2€", c: "#F3F1EA", s: 18 }], Math.min(w * 0.6, 4), 0.35, 0, 2.05, -d / 2 + 0.14, { bg: "#16171d" });
+    var barmen = []; for (var n = 0; n < Math.min(8, Math.ceil(w / 1.2)); n++) barmen.push(staffFig(g, -w / 2 + 0.7 + n * (w - 1.4) / Math.max(1, Math.min(8, Math.ceil(w / 1.2)) - 1), d / 2 - 0.9, 0x111318, 0, 0));
+    // mange-debout sur les côtés
+    [-1, 1].forEach(function (s) { var x = s * (w / 2 + 0.9), z = d / 2 + 1.4; cyl(0.05, 0.05, 1.05, std(0x2b2d33), x, 0.53, z, g, 6); cyl(0.38, 0.38, 0.04, std(0xe8e4da, 0, 0, 0.5), x, 1.07, z, g, 16); cyl(0.3, 0.3, 0.03, std(0x2b2d33), x, 0.02, z, g, 12); });
+    var gs = {}; D.RK.forEach(function (rk, j) { var z = d / 2 + 0.9 + j * 0.42, mat = own(D.RES[rk].col, D.RES[rk].col, 0.7), geo = new THREE.BoxGeometry(1, 0.1, 0.28); geo.translate(0.5, 0, 0); var fill = new THREE.Mesh(geo, mat); fill.position.set(-w / 2, 0.08, z); g.add(fill); gs[rk] = { m: fill, mat: mat, w: w }; });
+    return { roof: roofM, led: led, gs: gs, barmen: barmen };
+  }
+  ["bar", "barL", "barCocktail", "barWine", "barCraft", "barSoft"].forEach(function (k) { BUILD[k] = barBuilder2; });
+  // ---------------------------------------------------------------- food truck : camion, auvent rayé, menu, bonbonne, table pique-nique
+  BUILD.food = function (b, g, T) {
+    var C = D.CUISINE[b.cuisine || "burger"], col = C.col, w = T.w, d = T.d;
+    box(w * 0.66, 2.3, d - 0.2, own(col, 0, 0, 0.45, { metalness: 0.15 }), -w * 0.12, 1.55, 0, g); box(w * 0.66, 0.2, d, std(0xe8e4da), -w * 0.12, 2.8, 0, g);
+    box(w * 0.26, 1.6, d - 0.3, std(0xe8e4da, 0, 0, 0.4), w * 0.35, 1.2, 0, g); box(w * 0.2, 0.7, d - 0.32, own(0x88b4d8, 0x223344, 0.3, 0.1), w * 0.38, 1.55, 0, g, false);
+    [[-w * 0.35, 1], [-w * 0.35, -1], [w * 0.32, 1], [w * 0.32, -1]].forEach(function (p) { var wh = cyl(0.42, 0.42, 0.3, std(0x111111), p[0], 0.42, p[1] * (d / 2 - 0.1), g, 12); wh.rotation.x = Math.PI / 2; });
+    var hatch = box(w * 0.5, 1.0, 0.05, own(0xffe9b8, 0xffd27a, 0.6, 0.4), -w * 0.12, 1.75, d / 2 - 0.08, g, false);
+    var am = own(0xffffff, 0, 0, 0.7); am.map = stripeTex(hex(col), "#f3f1ea"); am.map.repeat.set(2, 1); var aw = box(w * 0.62, 0.05, 1.3, am, -w * 0.12, 2.55, d / 2 + 0.55, g, false); aw.rotation.x = -0.3;
+    box(w * 0.6, 0.1, 0.45, std(0xc8ccd4, 0, 0, 0.3), -w * 0.12, 1.2, d / 2 + 0.2, g, false);
+    cyl(0.1, 0.1, 0.8, std(0x777777), -w * 0.3, 3.2, -0.3, g, 6); cyl(0.18, 0.18, 0.75, std(0x4a8adf, 0, 0, 0.4), w * 0.42, 0.38, -d / 2 + 0.3, g, 10);
+    signPanel(g, [{ t: C.n.toUpperCase(), c: "#fff" }], w * 0.6, 0.5, -w * 0.12, 2.9, d / 2 + 0.03, { bg: hex(col) });
+    var menu = signPanel(g, [{ t: "MENU", c: "#111", s: 18 }, { t: C.price + " €", c: "#111", s: 22 }], 0.7, 0.9, w * 0.38 + 0.6, 0.9, d / 2 + 0.6, { bg: "#f3f1ea" }); cyl(0.03, 0.03, 0.5, std(0x333333), w * 0.38 + 0.6, 0.25, d / 2 + 0.6, g, 4);
+    staffFig(g, -w * 0.12, d / 2 - 0.7, 0xffffff, 0, 0.5);
+    return { hatch: hatch };
+  };
+  // ---------------------------------------------------------------- toilettes autonomes : cabines plastique, toit clair, aérations
+  BUILD.wc = function (b, g, T) {
+    var n = 10, cw = T.w / n, cols = [0x2e6fd8, 0x2e6fd8, 0x3a8d5d];
+    for (var i = 0; i < n; i++) { var x = -T.w / 2 + (i + 0.5) * cw, c = i >= 8 ? cols[2] : cols[0], body = own(c, 0, 0, 0.55); box(cw - 0.08, 2.2, T.d * 0.78, body, x, 1.1, -0.1, g); var cap = cyl((cw - 0.08) / 2, (cw - 0.08) / 2, T.d * 0.8, std(0xe8e8e2, 0, 0, 0.5), x, 2.2, -0.1, g, 10); cap.rotation.x = Math.PI / 2; cap.scale.z = 0.35; box(cw - 0.25, 1.9, 0.04, own(c, 0, 0, 0.5), x, 1.0, T.d * 0.29 + 0.02, g, false); box(0.3, 0.12, 0.02, std(0x1a1a1d), x, 1.9, T.d * 0.29 + 0.05, g, false); box(0.1, 0.06, 0.02, std(0x3CCB6C, 0x3CCB6C, 0.8), x + cw * 0.25, 1.4, T.d * 0.29 + 0.05, g, false); }
+    box(0.5, 0.9, 0.4, std(0xd8dde4), T.w / 2 + 0.4, 0.45, 0, g); signPanel(g, [{ t: "TOILETTES", c: "#fff", s: 22 }], 2.2, 0.45, 0, 2.75, T.d * 0.3, { bg: "#2e6fd8" });
+    return {};
+  };
+  // ---------------------------------------------------------------- services sous barnum
+  BUILD.vest = function (b, g, T) {
+    var w = T.w, d = T.d; barnum(g, -w / 4, 0, w / 2 - 0.05, d, 2.5, 0xf2f0ea, 0x5a4e72); barnum(g, w / 4, 0, w / 2 - 0.05, d, 2.5, 0xf2f0ea, 0x5a4e72);
+    box(w - 0.6, 1.0, 0.6, std(0x3a3d48), 0, 0.5, d / 2 - 0.4, g); box(w - 0.5, 0.06, 0.75, std(0xd8d2c5), 0, 1.03, d / 2 - 0.4, g, false);
+    var racks = 4, cloth = new THREE.InstancedMesh(new THREE.BoxGeometry(0.06, 0.8, 0.5), own(0xffffff, 0, 0, 0.9), racks * 34), dm = new THREE.Object3D(), cc = new THREE.Color(), k = 0, frame = std(0xb8bcc4, 0, 0, 0.4);
+    for (var r = 0; r < racks; r++) { var z = -d / 2 + 0.7 + r * (d - 2.0) / (racks - 1); box(w - 1.4, 0.04, 0.04, frame, 0, 2.0, z, g, false); for (var i = 0; i < 34; i++) { dm.position.set(-w / 2 + 0.9 + i * (w - 1.8) / 33, 1.55, z); dm.rotation.set(0, 0, (Math.random() - 0.5) * 0.15); dm.updateMatrix(); cloth.setMatrixAt(k, dm.matrix); cc.setHSL(Math.random(), 0.3, 0.15 + Math.random() * 0.3); cloth.setColorAt(k, cc); k++; } }
+    g.add(cloth); signPanel(g, [{ t: "VESTIAIRE", c: "#fff" }], w * 0.5, 0.6, 0, 2.3, d / 2 + 0.05, { bg: "#5a4e72" });
+    var staff = []; for (var s = 0; s < 4; s++) staff.push(staffFig(g, -w / 2 + 1.5 + s * (w - 3) / 3, d / 2 - 1.1, 0x5a4e72, 0, 0)); return { cloth: cloth, staff: staff };
+  };
+  BUILD.medic = function (b, g, T) { barnum(g, 0, 0, T.w, T.d, 2.6, 0xf3f1ea, 0xFF3D52); box(T.w - 0.2, 2.5, 0.05, own(0xf3f1ea, 0, 0, 0.8, { transparent: true, opacity: 0.85 }), 0, 1.3, -T.d / 2, g); for (var i = 0; i < 3; i++) { box(0.8, 0.5, 2, std(0x2e6fd8), -T.w / 3 + i * T.w / 3, 0.55, -0.3, g); box(0.85, 0.12, 2.05, std(0xffffff), -T.w / 3 + i * T.w / 3, 0.85, -0.3, g, false); } box(1.6, 0.5, 0.05, own(0xFF3D52, 0xFF3D52, 0.8), 0, 2.2, T.d / 2 + 0.03, g, false); box(0.5, 1.4, 0.05, own(0xFF3D52, 0xFF3D52, 0.8), 0, 2.2, T.d / 2 + 0.04, g, false); signPanel(g, [{ t: "POSTE DE SECOURS", c: "#fff", s: 22 }], T.w * 0.7, 0.45, 0, 2.9, T.d / 2, { bg: "#c8102e" }); staffFig(g, -T.w / 3, T.d / 2 + 0.8, 0xffffff, 0, 0); staffFig(g, T.w / 3, T.d / 2 + 0.8, 0xffffff, 0, 0); return {}; };
+  BUILD.info = function (b, g, T) { barnum(g, 0, 0, T.w, T.d, 2.5, 0x2b4a8a, 0x4DC3FF); box(T.w - 0.4, 1.0, 0.6, std(0x1d2f57), 0, 0.5, T.d / 2 - 0.4, g); signPanel(g, [{ t: "i  POINT INFO", c: "#fff" }], T.w * 0.75, 0.55, 0, 2.2, T.d / 2 + 0.05, { bg: "#4DC3FF" }); staffFig(g, -0.8, T.d / 2 - 1.1, 0x4DC3FF, 0, 0); staffFig(g, 0.8, T.d / 2 - 1.1, 0x4DC3FF, 0, 0); box(0.7, 1.4, 0.4, std(0x111111), T.w / 2 - 0.5, 0.7, -T.d / 2 + 0.4, g, false); return {}; };
+  BUILD.cashless = function (b, g, T) { barnum(g, 0, 0, T.w, T.d, 2.4, 0x1a1c25, 0x4DC3FF); box(T.w - 0.3, 1.05, 0.6, std(0x1a1c25), 0, 0.53, T.d / 2 - 0.4, g); for (var i = 0; i < 3; i++) box(0.4, 0.3, 0.05, own(0x4DC3FF, 0x4DC3FF, 0.9), -T.w / 3 + i * T.w / 3, 1.25, T.d / 2 - 0.15, g, false); signPanel(g, [{ t: "RECHARGE CASHLESS", c: "#4DC3FF", s: 22 }], T.w * 0.85, 0.42, 0, 2.15, T.d / 2 + 0.05, { bg: "#0a0a0d" }); staffFig(g, -1, T.d / 2 - 1.1, 0x4DC3FF, 0, 0); staffFig(g, 1, T.d / 2 - 1.1, 0x4DC3FF, 0, 0); return {}; };
+  BUILD.prevention = function (b, g, T) { barnum(g, 0, 0, T.w, T.d, 2.5, 0xB79BFF, 0x6a4fc0); box(T.w - 0.4, 1.0, 0.6, std(0x1f2129), 0, 0.5, T.d / 2 - 0.4, g); for (var i = 0; i < 2; i++) box(0.9, 0.45, 0.9, std(0x6a4fc0), -1 + i * 2, 0.23, -0.6, g, false); signPanel(g, [{ t: "PRÉVENTION · SAFE PLACE", c: "#fff", s: 20 }], T.w * 0.9, 0.45, 0, 2.2, T.d / 2 + 0.03, { bg: "#6a4fc0" }); staffFig(g, 0, T.d / 2 - 1.1, 0xB79BFF, 0, 0); return {}; };
+  BUILD.merch = function (b, g, T) { barnum(g, 0, 0, T.w, T.d, 2.5, 0x1b1b1e, 0xECE8DC); box(T.w - 0.3, 1.0, 0.6, std(0x1f2129), 0, 0.5, T.d / 2 - 0.4, g); for (var i = 0; i < 6; i++) box(0.65, 0.75, 0.04, own([0xECE8DC, 0x111111, 0xF0457A, 0x4DC3FF, 0xFFB020, 0xB79BFF][i], 0, 0, 0.9), -T.w / 2 + 0.6 + i * (T.w - 1.2) / 5, 1.6, -T.d / 2 + 0.15, g, false); signPanel(g, [{ t: "MERCH", c: "#ECE8DC" }], T.w * 0.5, 0.45, 0, 2.2, T.d / 2 + 0.05, { bg: "#0a0a0d" }); staffFig(g, -1, T.d / 2 - 1.1, 0x111111, 0, 0); staffFig(g, 1, T.d / 2 - 1.1, 0x111111, 0, 0); return {}; };
+  BUILD.water = function (b, g, T) { box(T.w, 0.9, 0.5, std(0xb8bcc4, 0, 0, 0.3), 0, 0.45, 0, g); box(T.w, 0.1, 0.7, std(0x8a8f9a, 0, 0, 0.2), 0, 0.92, 0, g, false); for (var i = 0; i < 4; i++) { cyl(0.04, 0.04, 0.35, std(0xd8dde4, 0, 0, 0.2), -T.w / 2 + 0.4 + i * (T.w - 0.8) / 3, 1.12, 0, g, 6); cyl(0.04, 0.04, 0.35, std(0xd8dde4, 0, 0, 0.2), -T.w / 2 + 0.4 + i * (T.w - 0.8) / 3, 1.12, 0, g, 6); } box(T.w + 0.2, 0.05, T.d, std(0x6b6e75, 0, 0, 0.9), 0, 0.02, 0, g, false); signPanel(g, [{ t: "EAU POTABLE GRATUITE", c: "#fff", s: 18 }], T.w * 0.9, 0.35, 0, 1.6, 0.05, { bg: "#2a7fb8" }); cyl(0.04, 0.04, 0.8, std(0x777777), 0, 1.2, -0.1, g, 4); return {}; };
+  // ---------------------------------------------------------------- logistique : Algeco, conteneurs, groupe électrogène capoté
+  BUILD.regie = function (b, g, T) { bungalow(g, 0, 0, T.w, T.d * 0.8, 0x1f2230); signPanel(g, [{ t: "RÉGIE GÉNÉRALE", c: "#ECE8DC", s: 26 }], T.w * 0.7, 0.5, 0, 3.3, T.d * 0.4, { bg: "#0a0a0d" }); var ant = cyl(0.04, 0.04, 3, std(0x999999), T.w / 2 - 0.5, 4.4, 0, g, 4); box(0.8, 0.6, 0.05, std(0xd8dde4), -T.w / 2 + 0.8, 3.5, 0, g, false); return {}; };
+  BUILD.secpc = function (b, g, T) { bungalow(g, 0, 0, T.w, T.d * 0.8, 0x2b2016); signPanel(g, [{ t: "PC SÉCURITÉ", c: "#FF8A1F", s: 26 }], T.w * 0.8, 0.45, 0, 3.25, T.d * 0.4, { bg: "#0a0a0d" }); cyl(0.04, 0.04, 2.2, std(0x999999), T.w / 2 - 0.4, 4.0, 0, g, 4); staffFig(g, -T.w / 3, T.d / 2 + 0.7, 0xFF8A1F, 0, 0); return {}; };
+  BUILD.stock = function (b, g, T) { container(g, -T.w / 4, 0, -T.d * 0.22, T.w / 2 - 0.3, 0x2a5a8a, 0); container(g, T.w / 4, 0, -T.d * 0.22, T.w / 2 - 0.3, 0x8a3a2a, 0); container(g, -T.w / 4, 2.36, -T.d * 0.22, T.w / 2 - 0.3, 0x3a6a3a, 0); var crates = []; for (var i = 0; i < 12; i++) crates.push(box(0.9, 0.9, 0.9, std(i % 3 === 0 ? 0xFFB020 : i % 3 === 1 ? 0x4DC3FF : 0xE8E4DA), -T.w / 2 + 0.8 + (i % 6) * 1.3, 0.55 + Math.floor(i / 6) * 0.95, T.d / 2 - 1.2, g)); for (var p = 0; p < 6; p++) box(1.1, 0.12, 1.1, std(0x9a7a4a), -T.w / 2 + 0.8 + p * 1.3, 0.06, T.d / 2 - 1.2, g, false); var fork = new THREE.Group(); fork.position.set(T.w / 2 - 1.4, 0, T.d / 2 - 0.4); g.add(fork); box(1.2, 1.1, 2, std(0xE8C62A), 0, 0.75, 0, fork); box(1.1, 1.0, 0.1, std(0x222222), 0, 1.7, -0.6, fork, false); box(0.08, 2.4, 0.08, std(0x333333), -0.4, 1.2, 1.05, fork, false); box(0.08, 2.4, 0.08, std(0x333333), 0.4, 1.2, 1.05, fork, false); staffFig(g, T.w / 2 - 3, T.d / 2 - 0.2, 0xE8E36A, 0, 0); return { crates: crates }; };
+  BUILD.generator = function (b, g, T) { var gm = own(0xd9b44a, 0, 0, 0.5, { metalness: 0.2 }); box(T.w, 2.1, T.d, gm, 0, 1.25, 0, g); box(T.w + 0.1, 0.2, T.d + 0.1, std(0x2a2b30), 0, 0.1, 0, g, false); for (var i = 0; i < 6; i++) box(0.04, 1.2, T.d * 0.6, std(0x6a5a2a), -T.w / 2 + 0.4 + i * 0.22, 1.3, 0, g, false); cyl(0.12, 0.12, 1.2, std(0x333333), T.w / 2 - 0.5, 2.9, 0, g, 6); var tank = cyl(0.55, 0.55, T.w * 0.7, std(0x3a3d44, 0, 0, 0.5), 0, 0.55, T.d / 2 + 0.7, g, 12); tank.rotation.z = Math.PI / 2; var spool = cyl(0.45, 0.45, 0.4, std(0x1a1a1a), -T.w / 2 - 0.6, 0.45, 0, g, 12); spool.rotation.x = Math.PI / 2; signPanel(g, [{ t: "⚡ DANGER", c: "#111", s: 18 }], 0.9, 0.3, -T.w / 4, 1.6, T.d / 2 + 0.02, { bg: "#FFD23A" }); var lamp = box(0.3, 0.3, 0.3, own(0x3CCB6C, 0x3CCB6C, 1), -T.w / 2 + 0.5, 2.45, T.d / 2 - 0.4, g, false); var sm = new THREE.Sprite(new THREE.SpriteMaterial({ map: I.smokeTex(), transparent: true, opacity: 0.25, depthWrite: false, color: 0x666666 })); sm.position.set(T.w / 2 - 0.5, 4, 0); sm.scale.setScalar(2); g.add(sm); return { lamp: lamp, smoke: sm }; };
+  BUILD.backstage = function (b, g, T) { bungalow(g, -T.w / 4, -T.d * 0.15, T.w / 2 - 0.4, T.d * 0.5, 0x3a2f45); bungalow(g, T.w / 4, -T.d * 0.15, T.w / 2 - 0.4, T.d * 0.5, 0x3a2f45); barnum(g, 0, T.d * 0.3, 4, 2.6, 2.4, 0x1b1b1e); for (var i = 0; i < 2; i++) { cyl(0.35, 0.35, 0.04, std(0xe8e4da), -1 + i * 2, 0.75, T.d * 0.3, g, 12); cyl(0.05, 0.05, 0.75, std(0x2b2d33), -1 + i * 2, 0.37, T.d * 0.3, g, 6); } signPanel(g, [{ t: "LOGES ARTISTES", c: "#B79BFF" }], T.w * 0.5, 0.5, 0, 3.3, -T.d * 0.15 + T.d * 0.25, { bg: "#0a0a0d" }); return {}; };
   D.ENTRYK.forEach(function (k) { BUILD[k] = entryBuilder; });
 
   // ================================================================ textures partagées
@@ -4005,7 +4378,7 @@ button:focus-visible,input:focus-visible{outline:3px solid var(--lime);outline-o
   I.carInstanced = function (n) { var body = new THREE.InstancedMesh(new THREE.BoxGeometry(1.7, 0.7, 3.6), own(0xffffff, 0, 0, 0.35, { metalness: 0.4 }), n), cab = new THREE.InstancedMesh((function () { var g = new THREE.BoxGeometry(1.5, 0.55, 1.8); g.translate(0, 0.62, -0.2); return g; })(), own(0x1a2430, 0x0a1018, 0.2, 0.1, { metalness: 0.6 }), n); body.geometry.translate(0, 0.62, 0); body.castShadow = true; cab.geometry.translate(0, 0.35, 0); return [body, cab]; };
 
   // ================================================================ synchronisation du plan
-  var ALERT_H = { stageL: 15, stageM: 12, stageS: 9, stageT: 14, bar: 5, barL: 5, barCocktail: 5, barWine: 5, barCraft: 5, barSoft: 5, wc: 4.2, bin: 3, entry: 6, entryS: 6, entryL: 6, generator: 4.4, stock: 6, food: 4.6, vest: 5, exit: 4, tank: 3.8, skip: 3, parking: 5, shuttle: 5, info: 4.5, merch: 4.4 };
+  var ALERT_H = { stageL: 15, stageM: 12, stageS: 9, stageT: 14, bar: 5, barL: 5, barCocktail: 5, barWine: 5, barCraft: 5, barSoft: 5, wc: 4.2, bin: 3, entry: 8.8, entryS: 8.8, entryL: 8.8, generator: 4.4, stock: 6, food: 4.6, vest: 5, exit: 4, tank: 3.8, skip: 3, parking: 5, shuttle: 5, info: 4.5, merch: 4.4 };
   // regroupe les pièces fixes d'un bâtiment par matériau (beaucoup moins d'appels de dessin)
   function staticMerge(g, parts) {
     var dyn = new Set(), seen = new Set();
@@ -4023,7 +4396,7 @@ button:focus-visible,input:focus-visible{outline:3px solid var(--lime);outline-o
     if (!force && key === layoutKey) return; layoutKey = key;
     var seen = {}, LG = I.layoutG;
     ev.layout.forEach(function (b) {
-      seen[b.id] = 1; var e = bmap[b.id], sig = JSON.stringify(b);
+      seen[b.id] = 1; var e = bmap[b.id], sig = JSON.stringify(b) + (D.BT[b.k].entry ? ev.name + ev.ground : "");
       if (e && e.sig === sig) return;
       if (e) { LG.remove(e.g); I.disposeTree(e.g); I.hit = I.hit.filter(function (m) { return m.userData.id !== b.id; }); }
       var T = D.BT[b.k], g = new THREE.Group(); g.position.set(b.x, 0, b.z); g.rotation.y = (b.rot || 0) * Math.PI / 2; LG.add(g);
@@ -4134,13 +4507,16 @@ button:focus-visible,input:focus-visible{outline:3px solid var(--lime);outline-o
       e.sel.visible = opt.sel === id;
       if (!ready && S) { al = "MONTAGE · prêt à " + Sim.hm(S.notReady[id]); alC = "#9A9AAE"; }
       if (T.stage && P.light) {
-        var st = S && S.stages[id], set = S && Sim.setOfStage(id), hot = !!set, off = S && (st.out || !pw || (S.evac && S.evac.kind === "general") || (st.pause && st.pause > S.t) || (S.stormStop && !T.covered && !Sim.hallOf(ev, b)) || !ready);
+        var st = S && S.stages[id], set = S && Sim.setOfStage(id), hot = !!set, off = S && (st.out || !pw || Sim.evacStops() || (S.evac && S.evac.kind === "shelter" && !T.covered && !Sim.hallOf(ev, b)) || (S.evac && S.evac.kind === "zone" && S.evac.stage === id) || (st.pause && st.pause > S.t) || (S.stormStop && !T.covered && !Sim.hallOf(ev, b)) || !ready);
         var night = dl < 0.6;
         P.light.intensity = off ? 0 : (hot ? 1.4 : 0.6) * (1.1 - dl * 0.6) + (I.reduce ? 0 : 0.3 * Math.max(0, Math.sin(clock * W.beat * Math.PI)));
         P.beams.forEach(function (bm) { bm.c.visible = !off && night; bm.c.material.opacity = hot ? 0.11 * (1 - dl) : 0.04; if (!I.reduce) { bm.p.rotation.z = Math.sin(clock * bm.sp + bm.ph) * 0.55; bm.p.rotation.x = Math.cos(clock * bm.sp * 0.7 + bm.ph) * 0.35 + 0.2; } bm.c.material.color.setHSL((clock * 0.05 + bm.ph) % 1, 0.85, 0.6); });
         P.lasers.visible = !off && hot && night && Math.floor(clock * W.beat / 4) % 3 === 0; if (P.lasers.visible) P.lasers.children.forEach(function (l, i) { l.rotation.set(-0.1 - (i % 3) * 0.06, (i - 5) * 0.09 + Math.sin(clock * 2 + i) * 0.15, 0); l.material.color.setHSL((clock * 0.1 + i * 0.05) % 1, 1, 0.55); });
         P.smoke.forEach(function (sp, i) { sp.material.opacity = !off && hot && night ? 0.12 + 0.05 * Math.sin(clock + i) : 0; sp.position.y = 2 + ((clock * 0.3 + i * 0.5) % 4); });
         if (scr) drawStageScreen(P, clock, hot && !off, off, S, id, set, ev);
+        // le groupe ou le DJ sur scène, la pyrotechnie sur les refrains (nuit, artiste populaire)
+        if (P.band) { var ga = set ? Sim.artist(ev, set.art) : null, isDJ = ga && /house|techno|dnb|disco/.test(ga.g); P.band.visible = !!ga && !off && !isDJ; P.dj.visible = !!ga && !off && isDJ; if (!I.reduce && ga && !off) P.musicians.forEach(function (m, mi) { m.position.y = (mi === 0 ? 0.5 : 0) + Math.abs(Math.sin(clock * W.beat * Math.PI + mi)) * 0.12; m.rotation.y = Math.sin(clock * 0.7 + mi) * 0.3; }); }
+        if (P.pyro) { var pa = set ? Sim.artist(ev, set.art) : null, burst = !off && hot && night && pa && pa.pop >= 55 && !I.reduce && Math.floor(clock * (W.beat || 2) / 2) % 8 === 0; P.pyro.forEach(function (pp, pi) { pp.m.visible = !!burst && (pp.co2 ? Math.floor(clock * 2) % 2 === 0 : true); if (pp.m.visible) pp.m.scale.set(1, 0.6 + 0.5 * Math.abs(Math.sin(clock * 20 + pi)), 1); }); }
         if (st && S.phase === "live") { var d = st.crowd / T.cap; if (st.blocked) { al = "ACCÈS FERMÉ"; alC = "#FF3D52"; } else if (!pw) { al = "DANS LE NOIR"; alC = "#FF3D52"; } else if (st.out) { al = "SON COUPÉ"; alC = "#FF3D52"; } else if (st.pre) { al = "LARSEN"; alC = "#FFB020"; } else if (d > 0.85 || st.press > 20) { al = Math.round(d * 100) + " % · pression " + Math.round(st.press); alC = d > 1 ? "#FF3D52" : "#FFB020"; } }
         blockAt(e, st && st.blocked, ev);
       }
@@ -4154,8 +4530,9 @@ button:focus-visible,input:focus-visible{outline:3px solid var(--lime);outline-o
       if (T.food && S && S.foods[id]) { var fd = S.foods[id]; P.hatch.material.emissiveIntensity = fd.out || !pw ? 0 : 0.7; if (fd.out) { al = "RUPTURE"; alC = "#FF3D52"; } else if (fd.svc < 0.65) { al = "FILE"; alC = "#B79BFF"; } }
       if (T.wc && S && S.wcs[id]) { var c2 = S.wcs[id]; al = c2.fill >= 100 ? "PLEIN · FERMÉ" : c2.fill > 70 && c2.job == null ? "SALE · " + Math.round(c2.fill) + " %" : null; alC = c2.fill >= 100 ? "#FF3D52" : "#FFB020"; }
       if (T.bin && S && S.bins[id]) { var bn = S.bins[id]; P.fill.scale.y = Math.max(0.01, bn.level / 100); P.fill.position.y = 0.1 + bn.level / 100 * 0.6 + (bn.level >= 100 ? 0.25 : 0); P.fillMat.color.setHex(bn.level > 85 ? 0xd4a24a : 0x9aa0aa); al = bn.level >= 100 && bn.job == null ? "DÉBORDE" : null; alC = "#FF3D52"; }
-      if (T.entry && S && S.entries[id]) { var en = S.entries[id], ri = 0; P.lanes.forEach(function (m, i) { var kd = P.kinds[i], open = !en.closed && !S.evac && !S.closing && (kd !== "std" || ri++ < en.lanes); if (kd === "exit") open = true; m.emissive.setHex(S.evac ? 0x3CCB6C : open ? (kd === "std" ? (en.mode === "std" ? 0x3CCB6C : 0x4DC3FF) : kd === "exit" ? 0x3CCB6C : 0xC9A227) : 0xFF3D52); });
-        ri = 0; P.staff.forEach(function (sf) { var on = !en.closed && !S.evac && (sf.kind !== "std" || ri++ < en.lanes); sf.palp.visible = on; sf.scan.visible = on && !!ev.price; });
+      if (T.entry && P.arch) { P.arch.forEach(function (m) { m.emissiveIntensity = dl < 0.6 ? 1.6 : 0.35; }); if (P.flood) P.flood.intensity = dl < 0.6 ? 1.3 : 0; }
+      if (T.entry && S && S.entries[id]) { var en = S.entries[id], ri = 0, li = 0;
+        P.staff.forEach(function (sf) { var kd = sf.kind; if (kd === "exit") return; var open = !en.closed && !S.evac && !S.closing && (kd !== "std" || ri++ < en.lanes), m = P.lanes[li++]; if (m) { var lc = S.evac ? 0x3CCB6C : open ? (kd === "std" ? 0x3CCB6C : 0xC9A227) : 0xFF3D52; m.color.setHex(lc); m.emissive.setHex(lc); } if (sf.palp) sf.palp.visible = open; if (sf.scan) sf.scan.visible = open && !!ev.price; });
         var wq = F.entryWait(id); if (en.Q > 40 || en.closed) { al = en.closed ? "FERMÉE · " + Math.round(en.Q) + " dehors" : Math.round(en.Q) + " en file · " + (wq >= 999 ? "bloquée" : Math.round(wq) + " min"); alC = en.closed || wq > 20 ? "#FF3D52" : wq > 10 ? "#FFB020" : "#3CCB6C"; }
         blockAt(e, en.closed && !S.evac, ev); }
       if (T.exit && P.leafs) { var open2 = S ? S.exits[id] && S.exits[id].open : false; P.leafs.forEach(function (lf) { var tgt = open2 ? lf.s * -1.4 : 0; lf.p.rotation.y += (tgt - lf.p.rotation.y) * Math.min(1, dt * 3); }); P.sign.material.emissiveIntensity = open2 ? 1.2 + 0.5 * Math.sin(clock * 6) : 0.6; if (S && S.evac && S.evac.doors && S.evac.doors[id] && S.evac.doors[id].q > 50) { al = Math.round(S.evac.doors[id].q) + " à la sortie"; alC = S.evac.doors[id].q / S.evac.doors[id].rate > 5 ? "#FF3D52" : "#FFB020"; } else if (open2) { al = "OUVERTE"; alC = "#3CCB6C"; } }
@@ -4257,6 +4634,7 @@ button:focus-visible,input:focus-visible{outline:3px solid var(--lime);outline-o
   }
   function stageSpot(g, p) { var z = g.zone, fr = g.fr, u = p.sx, v = Math.pow(p.sz, 0.65); if (fr[0]) return [fr[0] > 0 ? z.x0 + v * (z.x1 - z.x0) : z.x1 - v * (z.x1 - z.x0), z.z0 + u * (z.z1 - z.z0)]; return [z.x0 + u * (z.x1 - z.x0), fr[1] > 0 ? z.z0 + v * (z.z1 - z.z0) : z.z1 - v * (z.z1 - z.z0)]; }
   function updateCrowdTargets(S) {
+    if (S.evac && S.evac.kind === "lockdown" && fieldsReady) return; // confinement : chacun reste où il est
     if (!fieldsReady || navVer !== Sim.nav.ver) { var old = groups; buildGroups(S); people.forEach(function (p) { if (p.vis && p.g != null && old[p.g]) { var nk = gIndex[old[p.g].key]; p.g = nk != null ? nk : null; } }); }
     var ev = S.ev, inside = S.pop.inside, vis = Math.min(NP - 200, Math.round(inside / PER)), want = groups.map(function () { return 0; }), tot = 0;
     groups.forEach(function (g, i) {
@@ -4267,13 +4645,14 @@ button:focus-visible,input:focus-visible{outline:3px solid var(--lime);outline-o
       else if (k === "wc") { var w = S.wcs[id]; want[i] = w ? Math.min(30, (w.q || 0) / 2 + 1) : 0; }
       else if (k === "vest") { var v = S.vests[id]; want[i] = v ? Math.min(60, (v.qIn + v.qOut) / PER) : 0; }
       else if (k === "merch") { var m = S.merchs[id]; want[i] = m ? Math.min(25, (m.q || 0) / 2 + 1) : 0; }
-      else if (k === "shelter") want[i] = (S.exposure > 0 || (S.wx_now && S.wx_now.rain > 0.3)) ? 160 / PER * 1.5 : 1;
+      else if (k === "shelter") want[i] = S.evac && S.evac.kind === "shelter" ? D.BT.shelter.shelterCap / PER : (S.exposure > 0 || (S.wx_now && S.wx_now.rain > 0.3)) ? 160 / PER * 1.5 : 1;
       else if (k === "vip") want[i] = inside * (S.pop.vipShare || 0) / PER * 0.4;
       else if (k === "info") want[i] = 2; else if (k === "pmr") want[i] = inside * 0.008 / PER * 0.5; else if (k === "partner") want[i] = 4;
       if (k !== "stage" && k !== "wander" && k !== "exit" && !Sim.F.reachable((g.zone.x0 + g.zone.x1) / 2, (g.zone.z0 + g.zone.z1) / 2)) want[i] = 0;
       tot += want[i];
     });
     var rest = Math.max(0, vis - tot), wn = groups.filter(function (g) { return g.kind === "wander"; }).length || 1;
+    if (S.evac && S.evac.kind === "shelter") { var expF = S.pop.inside > 0 ? (S.evac.exposed || 0) / S.pop.inside : 0, nb2 = groups.filter(function (g) { return g.kind === "bar"; }).length || 1; groups.forEach(function (g, i) { if (g.kind === "bar") want[i] += rest * (1 - expF) / nb2; }); rest *= expF; }
     groups.forEach(function (g, i) { if (g.kind === "wander") want[i] = rest / wn; });
     if (tot > vis && tot > 0) { var f2 = vis / tot; groups.forEach(function (g, i) { if (g.kind !== "wander") want[i] *= f2; }); }
     groups.forEach(function (g, i) { g.want = want[i]; g.have = 0; g.members = []; });
@@ -4302,7 +4681,7 @@ button:focus-visible,input:focus-visible{outline:3px solid var(--lime);outline-o
   var occ = null, occN = 0;
   function moveCrowd(dt, S, clock) {
     if (!Sim.nav) return;
-    var nav = Sim.nav, NX = nav.NX, NZ = nav.NZ, CS = nav.CS, gx0 = nav.gx0, gz0 = nav.gz0, E = S.evac && S.evac.kind === "general" && S.evac.phase !== "alert", base = (E ? clamp(40 * (W.gps || 0.4) * Math.max(1, W.speedMul || 1), 3.2, 9) : 2.2 * Math.min(3, Math.max(1, W.speedMul || 1))) * dt, bpm = W.beat || 2, mud = S.mud;
+    var nav = Sim.nav, NX = nav.NX, NZ = nav.NZ, CS = nav.CS, gx0 = nav.gx0, gz0 = nav.gz0, E = S.evac && S.evac.kind === "general" && S.evac.phase !== "alert", base = (E ? clamp(40 * (W.gps || 0.4) * Math.max(1, W.speedMul || 1), 3.2, 9) : 2.2 * Math.min(3, Math.max(1, W.speedMul || 1))) * dt * (S.evac && S.evac.kind === "lockdown" ? 0 : 1), bpm = W.beat || 2, mud = S.mud;
     if (!occ || occN !== NX * NZ) { occN = NX * NZ; occ = new Uint8Array(occN); } occ.fill(0);
     for (var i0 = 0; i0 < NP; i0++) { var p0 = people[i0]; if (!p0.vis) continue; var c0 = Math.floor((p0.x - gx0) / CS) + Math.floor((p0.z - gz0) / CS) * NX; if (c0 >= 0 && c0 < occN && occ[c0] < 255) occ[c0]++; }
     if (E) { var act = 0; for (var a0 = 0; a0 < NP; a0++) if (people[a0].vis) act++; var lagF = act > S.pop.inside / PER + 15 ? Math.min(6, act / Math.max(1, S.pop.inside / PER + 15)) : 1;
@@ -4369,44 +4748,46 @@ button:focus-visible,input:focus-visible{outline:3px solid var(--lime);outline-o
   }
 
   // ================================================================ files dehors : serpentins en barrières ou couloirs droits, caisses, bracelets, navettes
-  var qLines = {}, qVer = -1;
-  function entryGeom(ev, b) {
-    var n = Sim.outward(ev, b), f = Sim.fp(b), T = D.BT[b.k], along = n[1] ? [1, 0] : [0, 1], o = Sim.gatePoint(ev, b, 1, 1.5), w = T.w;
-    function P(a, d) { return [o[0] + along[0] * a + n[0] * d, o[1] + along[1] * a + n[1] * d]; }
-    return { n: n, along: along, o: o, w: w, P: P };
-  }
-  // trajet d'une file : liste de points, depuis la tête (portiques) vers la queue
-  function serpPath(G, width, rows, depth0) { var pts = [], half = width / 2 - 1; for (var r = 0; r < rows; r++) { var d = depth0 + r * 1.6, a0 = r % 2 ? half : -half, a1 = r % 2 ? -half : half; pts.push(G.P(a0, d)); pts.push(G.P(a1, d)); } return pts; }
+  var qLines = {}, qVer = -1, procT = 0;
+  function toWorld(G, pts) { return pts.map(function (p) { return G.P(p[0], p[1]); }); }
+  function pathLen(p) { var s = 0; for (var i = 0; i < p.length - 1; i++) s += Math.hypot(p[i + 1][0] - p[i][0], p[i + 1][1] - p[i][1]); return s; }
+  // files de chaque entrée (en coordonnées du monde), d'après le même plan que les barrières posées
   function buildQueueGeom(S) {
-    var ev = S.ev; Object.keys(qLines).forEach(function (k) { if (qLines[k].mesh) { I.overG.remove(qLines[k].mesh); } }); qLines = {};
+    var ev = S.ev; qLines = {};
     Sim.entriesOf(ev).forEach(function (b) {
-      var G = entryGeom(ev, b), T = D.BT[b.k], sep = b.sep || {}, LW = (T.w - 1) / T.lanes, specials = (sep.exit ? 1 : 0) + (sep.vip ? 1 : 0) + (sep.pmr ? 1 : 0) + (sep.press ? 1 : 0);
-      var genW = (T.lanes - specials) * LW, genC = -T.w / 2 + 0.5 + specials * LW + genW / 2, rows = Math.min(10, Math.round(D.PLAZA * 0.5 / 1.6)), main;
-      if (b.q === "line") { main = []; for (var k = 0; k < T.lanes - specials; k++) { var a = -T.w / 2 + 0.5 + (specials + k + 0.5) * LW; main.push([G.P(a, 1), G.P(a, D.PLAZA - 6)]); } }
-      else { var GG = { P: function (a, d) { return G.P(genC + a, d); } }; main = [serpPath(GG, genW, rows, 1.5)]; var last = main[0][main[0].length - 1]; main[0].push(G.P(genC + (rows % 2 ? genW / 2 : -genW / 2) * 1.6, D.PLAZA - 4)); }
-      // barrières du serpentin
-      var bars = new THREE.Group(); if (b.q !== "line") { for (var r = 0; r <= rows; r++) { var d = 0.7 + r * 1.6, a0 = genC - genW / 2 + (r % 2 ? 0 : 2), a1 = genC + genW / 2 - (r % 2 ? 2 : 0); bars.add(I.barrierLine([G.P(a0, d), G.P(a1, d)])); } } else { for (var k2 = 0; k2 <= T.lanes - specials; k2++) { var a2 = -T.w / 2 + 0.5 + (specials + k2) * LW; bars.add(I.barrierLine([G.P(a2, 1), G.P(a2, D.PLAZA - 7)])); } }
-      // files spéciales : une colonne droite chacune
-      var spec = {}, idx = 0; ["exit", "vip", "pmr", "press"].forEach(function (k) { if (!sep[k]) return; var a = -T.w / 2 + 0.5 + (idx + 0.5) * LW; idx++; if (k !== "exit") spec[k] = [G.P(a, 1), G.P(a, 10)]; bars.add(I.barrierLine([G.P(a + LW / 2, 1), G.P(a + LW / 2, 9)])); });
-      // caisses et bracelets : petites files devant les stands
-      var boxL = [], bracL = []; for (var c = 0; c < Math.min(6, b.box || 0); c++) { var bx = -T.w / 2 - 3 - c * 2.4; boxL.push([G.P(bx, 7.2), G.P(bx, 14)]); } for (var c2 = 0; c2 < Math.min(6, b.brac || 0); c2++) { var bx2 = T.w / 2 + 3 + c2 * 3.2; bracL.push([G.P(bx2, 7.2), G.P(bx2, 14)]); }
-      // ligne de pré-filtrage en bout de serpentin
-      var pre = G.P(genC, D.PLAZA - 3); I.overG.add(bars); for (var s = -1; s <= 1; s += 2) { var st = I.staffFig(bars, pre[0] + G.along[0] * s * 2, pre[1] + G.along[1] * s * 2, 0xFF8A1F, Math.atan2(-G.n[0], -G.n[1]) + Math.PI, 0); }
-      qLines[b.id] = { main: main, spec: spec, box: boxL, brac: bracL, mesh: bars, face: Math.atan2(-G.n[0], -G.n[1]) };
+      var G = Sim.entryGeo(ev, b), kinds = I.entryKinds(b, G.lanes), Q = Sim.queueLayout(b, G, kinds), spec = {};
+      Object.keys(Q.spec).forEach(function (k) { spec[k] = toWorld(G, Q.spec[k]); });
+      var lanes = kinds.map(function (k, i) { return { k: k, a: -G.SW / 2 + (i + 0.5) * G.LW, ph: Math.random() }; });
+      qLines[b.id] = { G: G, main: Q.main.map(function (p) { return toWorld(G, p); }), spec: spec, box: Q.box.map(function (p) { return toWorld(G, p); }), brac: Q.brac.map(function (p) { return toWorld(G, p); }), lanes: lanes, inward: Math.atan2(-G.n[0], -G.n[1]) };
     });
     qVer = I.layoutVer;
   }
   function along(path, dist) { var acc = 0; for (var i = 0; i < path.length - 1; i++) { var a = path[i], b = path[i + 1], L = Math.hypot(b[0] - a[0], b[1] - a[1]); if (acc + L >= dist) { var t = (dist - acc) / L; return [a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t, Math.atan2(a[0] - b[0], a[1] - b[1])]; } acc += L; } var l = path[path.length - 1], p = path[path.length - 2] || l; var ext = dist - acc; var dx = l[0] - p[0], dz = l[1] - p[1], dl = Math.hypot(dx, dz) || 1; return [l[0] + dx / dl * ext, l[1] + dz / dl * ext, Math.atan2(-dx, -dz)]; }
-  function drawQueues(S, clock) {
+  function drawQueues(S, clock, dt) {
     if (qVer !== I.layoutVer) buildQueueGeom(S);
-    qn = 0; var ev = S.ev;
-    function put(path, count, face, gap) { gap = gap || 0.72; for (var i = 0; i < count && qn < NQ; i++) { var p = along(path, i * gap + 0.3), j = Math.sin(clock * 0.7 + i * 1.7) * 0.06; pose(qpool, qn, p[0] + j, p[1] + j * 0.5, p[2], 0, 0, 0); qn++; } }
+    qn = 0; var ev = S.ev; procT += (dt || 0) * Math.min(3, Math.max(0, W.speedMul || 0));
+    function put(path, count, gap) { gap = gap || 0.72; var maxN = Math.floor((pathLen(path) + 3) / gap); count = Math.min(count, maxN); for (var i = 0; i < count && qn < NQ; i++) { var p = along(path, i * gap + 0.3), j = Math.sin(clock * 0.7 + i * 1.7) * 0.06; pose(qpool, qn, p[0] + j, p[1] + j * 0.5, p[2], 0, 0, 0); qn++; } }
     Object.keys(qLines).forEach(function (id) {
-      var e = S.entries[id], L = qLines[id]; if (!e) return; var b = Sim.find(ev, id);
-      var nm = Math.round(e.Q / PER); if (L.main.length === 1) put(L.main[0], nm); else { var per = Math.ceil(nm / L.main.length); L.main.forEach(function (pth, k) { put(pth, Math.min(per, nm - per * k)); }); }
-      if (L.spec.vip) put(L.spec.vip, Math.round(e.vipQ / PER) + 0); if (L.spec.pmr) put(L.spec.pmr, Math.round(e.pmrQ / PER)); if (L.spec.press) put(L.spec.press, Math.round(e.pressQ / PER));
-      var nb = Math.round(e.boxQ / PER); L.box.forEach(function (pth, k) { put(pth, Math.ceil(nb / Math.max(1, L.box.length))); });
-      var nr = Math.round(e.bracQ / PER); L.brac.forEach(function (pth, k) { put(pth, Math.ceil(nr / Math.max(1, L.brac.length))); });
+      var e = S.entries[id], Lq = qLines[id]; if (!e) return; var G = Lq.G;
+      var nm = Math.round(e.Q / PER); if (Lq.main.length === 1) put(Lq.main[0], nm); else { var per = Math.ceil(nm / Lq.main.length); Lq.main.forEach(function (pth, k) { put(pth, Math.max(0, Math.min(per, nm - per * k))); }); }
+      if (Lq.spec.vip) put(Lq.spec.vip, Math.round(e.vipQ / PER)); if (Lq.spec.pmr) put(Lq.spec.pmr, Math.round(e.pmrQ / PER)); if (Lq.spec.press) put(Lq.spec.press, Math.round(e.pressQ / PER));
+      var nb = Math.round(e.boxQ / PER); Lq.box.forEach(function (pth) { put(pth, Math.ceil(nb / Math.max(1, Lq.box.length))); });
+      var nr = Math.round(e.bracQ / PER); Lq.brac.forEach(function (pth) { put(pth, Math.ceil(nr / Math.max(1, Lq.brac.length))); });
+      // passage animé : fouille sous la tente (bras écartés), scan du billet sous l'arche, puis entrée sur le site
+      var closed = e.closed || S.evac || S.closing, ri = 0;
+      Lq.lanes.forEach(function (ln) {
+        if (ln.k === "exit") return; var open = !closed && (ln.k !== "std" || ri++ < e.lanes); if (!open) return;
+        var busy = ln.k === "std" ? e.Q > 1 || e.inRate > 0.5 : ln.k === "vip" ? e.vipQ > 0.5 : ln.k === "pmr" ? e.pmrQ > 0.5 : e.pressQ > 0.5; if (!busy) return;
+        for (var j = 0; j < 2 && qn < NQ; j++) {
+          var u = ((procT / 7) + ln.ph + j * 0.5) % 1, a = ln.a, d, arms = 0, mv = false, w;
+          if (u < 0.15) { w = u / 0.15; d = 6.6 - 2.3 * w; a = ln.a + G.LW * 0.15 * w; mv = true; }
+          else if (u < 0.45) { d = 4.3; a = ln.a + G.LW * 0.15; arms = 0.62; }
+          else if (u < 0.6) { w = (u - 0.45) / 0.15; d = 4.3 - 3.3 * w; a = ln.a + G.LW * (0.15 - 0.15 * w); mv = true; }
+          else if (u < 0.74) { d = 1.0; }
+          else { w = (u - 0.74) / 0.26; d = 1.0 - 4 * w; mv = true; }
+          var p = G.P(a, d); pose(qpool, qn, p[0], p[1], Lq.inward, mv ? Math.sin(procT * 9 + j) * 0.6 : 0, arms, mv ? Math.abs(Math.sin(procT * 9 + j)) * 0.04 : 0); qn++;
+        }
+      });
     });
     // arrêts de navettes : on attend sous l'abri
     ev.layout.forEach(function (b) { if (b.k !== "shuttle") return; var q = 0; D.LINEK.forEach(function (k) { var st = Sim.F.stopOf(k); if (st && st.id === b.id && S.lines[k]) q += S.lines[k].qS; }); var n = Math.round(q / PER), f = Sim.fp(b); for (var i = 0; i < n && qn < NQ; i++) { var row = Math.floor(i / 14), col = i % 14; pose(qpool, qn, f.x0 + 0.4 + col * 0.75 + (row % 2) * 0.3, f.z0 - 1 - row * 0.8, Math.PI, 0, 0, 0); qn++; } });
@@ -4576,7 +4957,7 @@ button:focus-visible,input:focus-visible{outline:3px solid var(--lime);outline-o
   I.drawPeople = function (dt, S, ev, opt, dl, w) {
     var clock = I.clock;
     if (S.phase === "live") { crowdT += dt; if (crowdT > 0.5) { crowdT = 0; updateCrowdTargets(S); spawnWalkers(S); } }
-    moveCrowd(dt, S, clock); moveWalkers(dt, S); drawQueues(S, clock); drawUnits(S, dt, clock); drawVehicles(S, clock, dl); drawRoad(S, dt, clock); drawIncidents(S, clock, opt.selInc); drawBarriers(S); drawPersonas(S, dt, clock);
+    moveCrowd(dt, S, clock); moveWalkers(dt, S); drawQueues(S, clock, dt); drawUnits(S, dt, clock); drawVehicles(S, clock, dl); drawRoad(S, dt, clock); drawIncidents(S, clock, opt.selInc); drawBarriers(S); drawPersonas(S, dt, clock);
     if (S.fireworks && S.fireworks !== W._fwSeen) { W._fwSeen = S.fireworks; W.fireworks(16, 0, -20); }
   };
   W._upd = function (S) { updateCrowdTargets(S); };
@@ -4741,7 +5122,7 @@ button:focus-visible,input:focus-visible{outline:3px solid var(--lime);outline-o
   }
 
   // ================================================================ préparation (les onglets sont dans ui_prep.js)
-  U.PTABS = [["site", "Site"], ["prog", "Programme"], ["billets", "Billets & com"], ["transport", "Transports"], ["services", "Services"], ["equipe", "Équipe"], ["montage", "Montage & éco"], ["stock", "Stock"], ["budget", "Budget"]];
+  U.PTABS = [["site", "Site"], ["prog", "Programme"], ["billets", "Billets & com"], ["transport", "Transports"], ["services", "Services"], ["equipe", "Équipe"], ["evac", "Évacuation"], ["catas", "Catastrophes"], ["montage", "Montage & éco"], ["stock", "Stock"], ["budget", "Budget"]];
   U.PREP = {};
   function goPrep() {
     U.mode = "prep"; hideAll(); $("prep").hidden = false; $("camctl").hidden = false; U.sel = null; U.edit = { place: null, rot: 0, moving: null, drag: false };
@@ -4883,7 +5264,7 @@ button:focus-visible,input:focus-visible{outline:3px solid var(--lime);outline-o
     if (U.tool) { head("Pose de barrières", function () { return U.tool.a ? "Touche le point d'arrivée (60 m maximum). La foule contournera la ligne." : "Touche le point de départ sur la carte."; }); btn("ghost", "Annuler", function () { return "outil barrières"; }, function () { U.tool = null; W.barrierPreview(null); }); box.appendChild(acts); return; }
     var sel = U.sel;
     if (!sel) {
-      head(ev.name, function () { var live = Sim.currentSets(), w = S.wx_now || Sim.weatherAt(S, S.t); return S.evac ? (S.evac.kind === "zone" ? "Évacuation de zone en cours" : "Évacuation générale : " + U.evacPhase(S.evac)) : (live.length ? "♪ " + live.map(function (s) { return Sim.artist(ev, s.art).n; }).slice(0, 2).join(", ") : "Entre deux concerts") + " · " + Math.round(w.t) + " °C" + (w.rain > 0.15 ? (w.snow ? ", neige" : ", pluie") : "") + (S.stormStop ? " · scènes arrêtées (orage)" : ""); });
+      head(ev.name, function () { var live = Sim.currentSets(), w = S.wx_now || Sim.weatherAt(S, S.t); return S.evac ? (S.evac.kind === "general" ? "Évacuation générale : " : "") + U.evacPhase(S.evac) : (live.length ? "♪ " + live.map(function (s) { return Sim.artist(ev, s.art).n; }).slice(0, 2).join(", ") : "Entre deux concerts") + " · " + Math.round(w.t) + " °C" + (w.rain > 0.15 ? (w.snow ? ", neige" : ", pluie") : "") + (S.stormStop ? " · scènes arrêtées (orage)" : ""); });
       var chips = mk(box, "div", "chips");
       Object.keys(Sim.FAC_N).forEach(function (k) { var c = mk(chips, "span", "chip"); CU.push(function () { var v = S.fac[k]; if (v == null) { c.hidden = true; return; } c.hidden = false; c.className = "chip " + (v >= 80 ? "ok" : v >= 55 ? "am" : "ko"); c.textContent = Sim.FAC_N[k] + " " + Math.round(v); }); });
       return;
@@ -4930,10 +5311,10 @@ button:focus-visible,input:focus-visible{outline:3px solid var(--lime);outline-o
     if (inc.type === "fire" || inc.type === "colis") btn("fix", "Évacuation générale", function () { return S.evac ? "en cours" : "tout le site"; }, function () { U.evacConfirm(inc.type === "fire" ? "incendie" : "colis suspect"); }, function () { return !!S.evac && S.evac.kind === "general"; });
     btn("ghost", "Voir", function () { return "caméra"; }, function () { W.focus(inc.x, inc.z, 30, 0.6); });
   };
-  U.evacPhase = function (E) { return { alert: "alerte, levée de doute et messages", move: "le public sort", clear: "site évacué" }[E.phase] || E.phase; };
+  U.evacPhase = function (E) { return E.kind === "shelter" ? "mise à l'abri" : E.kind === "lockdown" ? "confinement" : E.kind === "zone" ? "évacuation de zone" : { alert: "code rouge, messages", move: "le public sort", count: "comptage et balayage", clear: "site évacué" }[E.phase] || E.phase; };
   U.evacConfirm = function (reason) {
-    var S = Sim.get(), just = S.inc.some(function (i) { return i.type === "fire" || i.type === "colis"; }) || reason === "météo";
-    U.confirm("Évacuation générale ?", "La musique s'arrête, messages au micro et sur les écrans, les bars ferment. Ouvre ensuite les issues de secours : le public sort par la plus proche et se regroupe aux points de rassemblement. " + (just ? "La raison est grave : la décision sera comprise." : "Aucun incident grave en cours : le public ne comprendra pas."), "Évacuer", function () { Sim.startEvac({ kind: "general", reason: reason || "danger", just: just }); A.siren(true); U.openSheet("evac"); });
+    var S = Sim.get(), d = S.doubt && S.doubt.reason === reason ? S.doubt.result : null;
+    U.confirm("Code rouge : évacuation générale ?", "Son coupé, lumière blanche, message au micro et sur les écrans, entrées fermées. Les stadiers ouvrent les issues, le public sort et se regroupe aux points de rassemblement. " + (d === "confirmé" ? "Levée de doute : danger confirmé." : d === "fausse alerte" ? "Attention : la levée de doute n'a rien trouvé." : "Le doute n'a pas été levé."), "Évacuer", function () { Sim.startEvac({ kind: "general", reason: reason || "danger" }); A.siren(true); U.openSheet("evac"); });
   };
   // ---------------------------------------------------------------- barre de tâches
   var ICONS = {
@@ -4941,7 +5322,7 @@ button:focus-visible,input:focus-visible{outline:3px solid var(--lime);outline-o
     scenes: '<path d="M3 18h18"/><path d="M5 18V8h14v10"/><path d="M8 8l4-4 4 4"/><circle cx="12" cy="13" r="2"/>', tech: '<path d="M13 2L4 14h7l-1 8 9-12h-7z"/>', bars: '<path d="M6 4h9v15a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2z"/><path d="M15 8h2a2 2 0 0 1 2 2v3a2 2 0 0 1-2 2h-2"/><path d="M6 8h9"/>', food: '<path d="M4 11h16a8 8 0 0 1-16 0z"/><path d="M8 7c0-2 2-2 2-4M13 7c0-2 2-2 2-4"/>',
     services: '<circle cx="12" cy="12" r="9"/><path d="M12 8v.1M11 12h1v5h1"/>', logistique: '<path d="M3 7l9-4 9 4-9 4z"/><path d="M3 7v10l9 4 9-4V7"/><path d="M12 11v10"/>', equipe: '<circle cx="9" cy="8" r="3"/><path d="M3 20c0-3.3 2.7-6 6-6s6 2.7 6 6"/><path d="M16 4.5a3 3 0 0 1 0 6"/><path d="M18 14c2 .8 3 2.8 3 6"/>', securite: '<path d="M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6z"/>',
     urgences: '<path d="M12 3l9.5 17h-19z"/><path d="M12 10v4"/><path d="M12 17.5v.1"/>', evac: '<path d="M14 4a2 2 0 1 1 0 .1"/><path d="M9 21l3-7 3 3v5M7 12l3-4h4l3 4"/><path d="M3 21h5"/>', persos: '<circle cx="12" cy="7" r="4"/><path d="M4 21c0-4.4 3.6-8 8-8s8 3.6 8 8"/>', presse: '<path d="M4 5h13v14H6a2 2 0 0 1-2-2z"/><path d="M17 9h3v8a2 2 0 0 1-2 2"/><path d="M7 9h7M7 13h7"/>',
-    finances: '<path d="M12 2v20M17 6H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>', radio: '<rect x="6" y="7" width="12" height="14" rx="2"/><path d="M9 7l-2-4"/><path d="M9 12h6"/><path d="M9 16h6"/>', ecrans: '<rect x="2" y="4" width="20" height="13" rx="2"/><path d="M8 21h8M12 17v4"/>', cameras: '<rect x="3" y="7" width="13" height="10" rx="2"/><path d="M16 11l5-3v8l-5-3"/>', sol: '<rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M3 15h18M9 3v18M15 3v18"/>' };
+    finances: '<path d="M12 2v20M17 6H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>', radio: '<rect x="6" y="7" width="12" height="14" rx="2"/><path d="M9 7l-2-4"/><path d="M9 12h6"/><path d="M9 16h6"/>', ecrans: '<rect x="2" y="4" width="20" height="13" rx="2"/><path d="M8 21h8M12 17v4"/>', cameras: '<rect x="3" y="7" width="13" height="10" rx="2"/><path d="M16 11l5-3v8l-5-3"/>', sol: '<rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M3 15h18M9 3v18M15 3v18"/>', catas: '<path d="M13 2L4 14h7l-1 8 9-12h-7z"/><path d="M3 21h18"/>' };
   U.ICONS = ICONS;
   var TASKS = [
     ["entrees", "Entrées", function (S) { var w = Sim.waitMin(); return [w >= 999 ? "bloquée" : Math.round(w) + " min", w > 20 ? "bad" : w > 10 ? "warn" : ""]; }],
@@ -4988,7 +5369,7 @@ button:focus-visible,input:focus-visible{outline:3px solid var(--lime);outline-o
     var pr = Sim.profit(); $("sRes").querySelector("b").textContent = kmoney(pr); $("sRes").className = "st " + (pr >= 0 ? "ok" : "");
     var w = S.wx_now || Sim.weatherAt(S, S.t); $("sWx").querySelector("b").textContent = Math.round(w.t) + "° " + (w.storm ? "⛈" : w.snow ? "❄" : w.rain > 0.12 ? "☂" : Sim.daylight(ev, S.t) > 0.5 ? "☀" : "☾"); $("sWx").className = "st " + (w.storm ? "bad" : w.rain > 0.3 || w.t > 30 || w.t < 2 ? "warn" : "");
     var n = S.inc.filter(function (i) { return i.det <= S.t; }).length + S.dec.length; $("regieBadge").hidden = !n; $("regieBadge").textContent = n;
-    $("evacbar").hidden = !(S.evac && S.evac.kind === "general"); if (S.evac) $("evacbar").textContent = "Évacuation générale · " + U.evacPhase(S.evac) + " · " + nb(S.pop.inside) + " encore sur le site"; $("evacbar").style.top = $("hud").offsetHeight + "px";
+    $("evacbar").hidden = !(S.evac && S.evac.kind !== "zone"); if (S.evac) $("evacbar").textContent = S.evac.kind === "general" ? "Code rouge · évacuation générale · " + U.evacPhase(S.evac) + " · " + nb(S.pop.inside) + " encore sur le site" : S.evac.kind === "shelter" ? "Mise à l'abri · " + nb(S.evac.exposed || 0) + " personnes encore exposées" : "Confinement · " + (S.evac.cleared ? "la police a levé la menace" : "la police sécurise le secteur"); $("evacbar").style.top = $("hud").offsetHeight + "px";
   }
   U.refresh = function (force) {
     var S = Sim.get(); if (!S || U.mode !== "live") return;
@@ -4998,8 +5379,8 @@ button:focus-visible,input:focus-visible{outline:3px solid var(--lime);outline-o
     drawTeam(); drawHud();
   };
   // ---------------------------------------------------------------- régie (onglets dans ui_live.js)
-  U.GROUPS = [["Public", ["synthese", "entrees", "flux", "transport", "parking"]], ["Site", ["scenes", "tech", "services", "logistique", "ecrans", "sol"]], ["Ventes", ["bars", "food", "finances"]], ["Sécurité", ["securite", "urgences", "evac", "equipe"]], ["Infos", ["persos", "presse", "radio", "cameras"]]];
-  U.TABN = { synthese: "Synthèse", entrees: "Entrées", flux: "Flux & barrières", transport: "Navettes", parking: "Parkings", scenes: "Scènes", tech: "Technique", services: "Services", logistique: "Logistique", ecrans: "Écrans", sol: "Sol", bars: "Bars & ventes", food: "Food & stands", finances: "Finances", securite: "Sécurité", urgences: "Urgences", evac: "Évacuation", equipe: "Équipe", persos: "Personnages", presse: "Presse & avis", radio: "Radio", cameras: "Caméras" };
+  U.GROUPS = [["Public", ["synthese", "entrees", "flux", "transport", "parking"]], ["Site", ["scenes", "tech", "services", "logistique", "ecrans", "sol"]], ["Ventes", ["bars", "food", "finances"]], ["Sécurité", ["securite", "urgences", "evac", "catas", "equipe"]], ["Infos", ["persos", "presse", "radio", "cameras"]]];
+  U.TABN = { synthese: "Synthèse", entrees: "Entrées", flux: "Flux & barrières", transport: "Navettes", parking: "Parkings", scenes: "Scènes", tech: "Technique", services: "Services", logistique: "Logistique", ecrans: "Écrans", sol: "Sol", bars: "Bars & ventes", food: "Food & stands", finances: "Finances", securite: "Sécurité", urgences: "Urgences", evac: "Évacuation", catas: "Catastrophes", equipe: "Équipe", persos: "Personnages", presse: "Presse & avis", radio: "Radio", cameras: "Caméras" };
   U.LIVE = {};
   function sheetStruct() { var S = Sim.get(); return U.sheetTab + "|" + S.inc.filter(function (i) { return i.det <= S.t; }).map(function (i) { return i.id + (i.picked ? "p" : "") + (i.job != null ? "j" : ""); }).join() + "|" + (S.evac ? S.evac.kind + S.evac.phase : "") + "|" + S.units.filter(function (u) { return u.active; }).length + "|" + S.orders.length + "|" + S.day + "|" + S.barriers.length + "|" + S.press.articles.length; }
   function buildSheet() {
@@ -5090,7 +5471,7 @@ button:focus-visible,input:focus-visible{outline:3px solid var(--lime);outline-o
       uiT += dt; if (uiT > 0.25) { uiT = 0; U.refresh(); }
       saveT += dt; if (saveT > 30) { saveT = 0; Sim.save(); }
       musicT += dt; if (musicT > 0.3) { musicT = 0; music(S); }
-      A.siren(!!(S.evac && S.evac.kind === "general" && S.evac.phase !== "clear"));
+      A.siren(!!(S.evac && ((S.evac.kind === "general" && (S.evac.phase === "alert" || S.evac.phase === "move")) || S.evac.kind === "lockdown")));
       if (S.t >= 24 * 60 && S.t < 24 * 60 + 1 && ev.month === 11 && !S.warned.nye) { S.warned.nye = 1; U.big("Bonne année !", "minuit", 4000); W.fireworks(20, 0, -20); }
       if (S.day === ev.days - 1 && S.t >= ev.close * 60 - 6 && !S.warned.final) { S.warned.final = 1; W.fireworks(14, 0, -20); }
     }
@@ -5152,8 +5533,8 @@ button:focus-visible,input:focus-visible{outline:3px solid var(--lime);outline-o
     if (T2.entry) {
       sec(d2, "File d'attente"); U.seg(d2, [["serp", "Serpentin", "barrières en S, compact"], ["line", "Couloirs droits", "une file par portique"]], function () { return b.q; }, function (v) { b.q = v; upd(); }, SL);
       sec(d2, "Files séparées (un portique chacune)"); var fs = mk(d2, "div", "btns"); [["exit", "Sortie"], ["vip", "VIP"], ["pmr", "PMR"], ["press", "Presse & invités"]].forEach(function (s) { U.toggle(fs, function (v) { return s[1] + (v ? " ✓" : ""); }, function () { return !!b.sep[s[0]]; }, function (v) { b.sep[s[0]] = v; upd(); }, SL); });
-      if (e.price) U.line(d2, "Caisses billetterie", "devant l'entrée, pour ceux qui n'ont pas de billet", function () { return b.box; }, function (x) { b.box = clamp(b.box + x, 0, 6); upd(); }, String, 0, 6, SL);
-      if (e.cashless || e.braceletAtGate) U.line(d2, "Stands bracelets", "échange billet contre bracelet cashless", function () { return b.brac; }, function (x) { b.brac = clamp(b.brac + x, 0, 6); upd(); }, String, 0, 6, SL);
+      if (e.price) U.line(d2, "Caisses billetterie", "devant l'entrée, pour ceux qui n'ont pas de billet", function () { return b.box; }, function (x) { b.box = clamp(b.box + x, 0, 3); upd(); }, String, 0, 3, SL);
+      if (e.cashless || e.braceletAtGate) U.line(d2, "Stands bracelets", "échange billet contre bracelet cashless", function () { return b.brac; }, function (x) { b.brac = clamp(b.brac + x, 0, 3); upd(); }, String, 0, 3, SL);
       U.tline(d2, "Ouverture progressive", "le chef d'entrée ouvre les portiques selon la file", function (v) { return v ? "Auto" : "Manuel"; }, function () { return !!b.auto; }, function (v) { b.auto = v; upd(); }, SL);
       note(d2, T2.lanes + " couloirs · " + Sim.entryUP(b) + " UP comptées comme sortie de secours.");
     }
@@ -5314,6 +5695,41 @@ button:focus-visible,input:focus-visible{outline:3px solid var(--lime);outline-o
     U.line(body, "Bénévoles", function () { return money(Sim.volCost(e)) + " au total"; }, function () { return e.vol.n; }, function (d) { e.vol.n = clamp(e.vol.n + d * 10, 0, 600); }, String, 0, 600, L());
     U.tline(body, "Repas fournis", "bénévoles plus motivés", function (v) { return v ? "Oui" : "Non"; }, function () { return !!e.vol.meals; }, function (v) { e.vol.meals = v; }, L());
     U.tline(body, "Pause automatique sur les décisions", "le jeu s'arrête quand une décision importante arrive", function (v) { return v ? "Oui" : "Non"; }, function () { return e.autoPause; }, function (v) { e.autoPause = v; }, L());
+  };
+
+  // ================================================================ plan d'évacuation (préparé avec la commission de sécurité)
+  P.evac = function (body) {
+    var e = ev(), plan = Sim.evacPlan(e);
+    note(body, "Le jour J, c'est toi qui décides au PC sécurité. Un plan préparé fait gagner de précieuses minutes : le public sait où aller, les stadiers ouvrent les bonnes issues, la panique reste basse.");
+    var k = mk(body, "div", "kpis"); U.kpi(k, "Qualité du plan", function () { var sc = Sim.planScore(e); return [sc + " / 100", sc >= 70 ? "ok" : sc >= 40 ? "warn" : "bad", sc]; }, L()); U.kpi(k, "Coût du plan", function () { return [money(Sim.planCost(e))]; }, L());
+    U.kpi(k, "Issues (UP)", function () { var u = Sim.exitUP(e), n = Sim.needUP(e); return [u + " / " + n, u >= n ? "ok" : "bad", u / n * 100]; }, L()); U.kpi(k, "Points de rassemblement", function () { var n = e.layout.filter(function (b) { return b.k === "assembly"; }).length; return [n + " · " + nb(n * D.BT.assembly.assembly) + " places", n * D.BT.assembly.assembly >= e.cap * 0.5 ? "ok" : "warn"]; }, L());
+    sec(body, "Chaque zone sort par…");
+    var doors = Sim.exitsOf(e).concat(Sim.entriesOf(e));
+    if (!doors.length) mk(body, "div", "warnbox", "Pose des issues de secours le long de la clôture (onglet Site).");
+    Sim.stagesOf(e).forEach(function (s) { var r = mk(body, "div", "srow"); mk(mk(r, "div", "top"), "b", null, "Public de " + U.bName(s)); var z = Sim.zone(s), cx = (z.x0 + z.x1) / 2, cz = (z.z0 + z.z1) / 2, opts = [["", "La plus proche", "au choix du public"]].concat(doors.map(function (d) { return [d.id, U.bName(d), Math.round(Math.hypot(d.x - cx, d.z - cz) * 2) + " m · " + (D.BT[d.k].exit ? (d.up || 10) + " UP" : Sim.entryUP(d) + " UP")]; })); U.seg(r, opts, function () { return plan.zones[s.id] || ""; }, function (v) { if (v) plan.zones[s.id] = v; else delete plan.zones[s.id]; }, L(), 2); });
+    U.wide(body, "", "Affecter chaque zone à l'issue la plus proche", "point de départ du plan", function () { Sim.stagesOf(e).forEach(function (s) { var z = Sim.zone(s), cx = (z.x0 + z.x1) / 2, cz = (z.z0 + z.z1) / 2, best = null, bd = 1e9; doors.forEach(function (d) { var dd = Math.hypot(d.x - cx, d.z - cz) / Math.max(1, (D.BT[d.k].exit ? d.up || 10 : Sim.entryUP(d))) * 10; if (dd < bd) { bd = dd; best = d; } }); if (best) plan.zones[s.id] = best.id; }); redraw(); });
+    sec(body, "Préparation");
+    U.tline(body, "Messages préenregistrés", "annonce d'évacuation claire au micro et sur les écrans : le public réagit plus vite (" + money(Sim.PLAN_COST.messages) + ")", function (v) { return v ? "Prêts" : "Non"; }, function () { return !!plan.messages; }, function (v) { plan.messages = v; }, L());
+    U.tline(body, "Postes des stadiers définis", "chaque stadier sait quel carrefour tenir et quelle issue ouvrir", function (v) { return v ? "Définis" : "Non"; }, function () { return !!plan.posts; }, function (v) { plan.posts = v; }, L());
+    U.tline(body, "Briefing et exercice de l'équipe", "les issues s'ouvrent beaucoup plus vite (" + money(Sim.PLAN_COST.briefing) + ")", function (v) { return v ? "Fait" : "Non"; }, function () { return !!plan.briefing; }, function (v) { plan.briefing = v; }, L());
+    U.tline(body, "Éclairage de sécurité autonome", "blocs sur batteries : pas de panique dans le noir en cas de coupure (" + money(Sim.PLAN_COST.light) + ")", function (v) { return v ? "Installé" : "Non"; }, function () { return !!plan.light; }, function (v) { plan.light = v; }, L());
+    var R0 = D.ROLES.filter(function (x) { return x.k === "stewards"; })[0]; U.line(body, R0.n, "recommandé : un pour 500 personnes (" + Math.ceil(e.cap / 500) + ")", function () { return e.staff.stewards; }, function (d) { e.staff.stewards = clamp(e.staff.stewards + d, R0.min, R0.max); }, String, R0.min, R0.max, L());
+  };
+
+  // ================================================================ catastrophes programmées
+  var pc = { k: "storm", i: 2, at: 240, day: 0 };
+  P.catas = function (body) {
+    var e = ev(); e.catas = e.catas || [];
+    note(body, "Programme des crises pendant l'événement : elles arriveront à l'heure choisie, et ce sera à toi de les gérer en direct. Tu peux aussi en déclencher à tout moment depuis la régie (Sécurité › Catastrophes).");
+    var list = mk(body, "div", "logl"); L().push(function () { list.textContent = ""; if (!e.catas.length) mk(list, "div", null, "Aucune catastrophe programmée."); e.catas.forEach(function (c, i) { var d = mk(list, "div", "r"); d.appendChild(document.createTextNode((e.days > 1 ? "Jour " + ((c.day || 0) + 1) + " · " : "") + (c.hidden ? "heure surprise · catastrophe surprise " : hm(e.open * 60 + c.at) + " · " + Sim.CATAK[c.k].n + " (" + ["", "faible", "forte", "extrême"][c.i] + ") "))); var x = mk(d, "button", null, "Retirer"); x.style.cssText = "float:right;border:1px solid var(--line);background:#11131a;border-radius:8px;padding:2px 8px;font-weight:700;font-size:12px"; x.onclick = function () { e.catas.splice(i, 1); redraw(); }; }); });
+    sec(body, "Ajouter");
+    var cats = []; Sim.CATA.forEach(function (c) { if (cats.indexOf(c.cat) < 0) cats.push(c.cat); });
+    cats.forEach(function (cat) { sec(body, cat); U.seg(body, Sim.CATA.filter(function (c) { return c.cat === cat; }).map(function (c) { return [c.k, c.n, c.d]; }), function () { return pc.k; }, function (v) { pc.k = v; }, L(), 2); });
+    U.seg(body, [[1, "Faible"], [2, "Forte"], [3, "Extrême"]], function () { return pc.i; }, function (v) { pc.i = v; }, L(), 3);
+    U.line(body, "Heure", "pendant la journée", function () { return pc.at; }, function (d) { pc.at = clamp(pc.at + d * 15, 15, (e.close - e.open) * 60 - 15); }, function (v) { return hm(e.open * 60 + v); }, 15, (e.close - e.open) * 60 - 15, L());
+    if (e.days > 1) U.line(body, "Jour", null, function () { return pc.day + 1; }, function (d) { pc.day = clamp(pc.day + d, 0, e.days - 1); }, String, 1, e.days, L());
+    U.wide(body, "lime", "Programmer cette catastrophe", "", function () { e.catas.push({ k: pc.k, i: pc.i, at: pc.at, day: pc.day }); A.sfx("place"); redraw(); });
+    U.wide(body, "", "Surprends-moi", "3 catastrophes au hasard, heures et intensités inconnues jusqu'au jour J", function () { for (var q = 0; q < 3; q++) { var c = Sim.CATA[Math.floor(Math.random() * Sim.CATA.length)]; e.catas.push({ k: c.k, i: 1 + Math.floor(Math.random() * 3), at: 60 + Math.floor(Math.random() * ((e.close - e.open) * 60 - 120) / 15) * 15, day: Math.floor(Math.random() * e.days), hidden: true }); } redraw(); });
   };
 
   // ================================================================ montage, démontage, développement durable
@@ -5699,34 +6115,64 @@ button:focus-visible,input:focus-visible{outline:3px solid var(--lime);outline-o
     U.wide(body, "", "Arrêter la journée maintenant", "La musique s'arrête, le public rentre. Avant la moitié de la journée, 30 % des billets sont remboursés.", function () { U.confirm("Arrêter la journée ?", "La musique s'arrête et le public quitte le site.", "Arrêter", function () { var half = S.t < (e.open * 60 + e.close * 60) / 2; if (half && e.price) S.money.refund -= S.money.tickets * 0.3 / e.days; S.t = e.close * 60; Sim.log("Tu arrêtes la journée.", "r", "Régie"); }); });
   };
 
-  // ================================================================ évacuation
+  // ================================================================ évacuation : protocole complet piloté depuis le PC sécurité
   T.evac = function (body, sub, L, S) {
-    var e = ev(), E = S.evac; sub.textContent = "Issues de secours, phases, rassemblement";
+    var e = ev(), E = S.evac; sub.textContent = "Protocole : levée de doute, alerte, sortie, comptage, fin d'alerte";
     var k = mk(body, "div", "kpis");
     U.kpi(k, "Issues (UP) · requis " + Sim.needUP(e), function () { var u = Sim.exitUP(e); return [u + " UP", u >= Sim.needUP(e) ? "ok" : "bad"]; }, L);
-    U.kpi(k, "Débit de sortie", function () { return [nb(Object.keys(S.exits).reduce(function (a, id) { var b = Sim.find(e, id); return a + (S.exits[id].open ? (b.up || 10) * D.UP_RATE : 0); }, 0)) + " /min"]; }, L);
+    U.kpi(k, "Plan d'évacuation", function () { var sc = Sim.planScore(e); return [sc + " / 100", sc >= 70 ? "ok" : sc >= 40 ? "warn" : "bad", sc]; }, L);
+    // frise des étapes
+    var steps = [["doute", "Levée de doute"], ["alert", "Alerte et coupure"], ["move", "Ouverture et guidage"], ["count", "Comptage et balayage"], ["end", "Fin d'alerte"]], fr = mk(body, "div", "evsteps");
+    var stEls = steps.map(function (st, i) { var d = mk(fr, "div"); mk(d, "b", null, String(i + 1)); mk(d, "span", null, st[1]); return d; });
+    L.push(function () { var cur = !S.evac ? (S.doubt && S.doubt.result == null ? 0 : -1) : S.evac.kind !== "general" ? -1 : ({ alert: 1, move: 2, count: 3 })[S.evac.phase]; stEls.forEach(function (d, i) { d.className = i === cur ? "on" : cur > i || (i === 0 && S.doubt && S.doubt.result) ? "done" : ""; }); fr.hidden = !!(S.evac && S.evac.kind !== "general"); });
     if (!E) {
-      note(body, "Une évacuation se déroule par phases : levée de doute et alerte, musique coupée, messages au micro et sur les écrans, ouverture des issues de secours, sortie du public par l'issue la plus proche, comptage aux points de rassemblement, puis fin d'alerte avec la préfecture.");
-      var rs = { v: "incendie" }; sec(body, "Motif"); U.seg(body, [["incendie", "Incendie"], ["colis suspect", "Colis suspect"], ["menace", "Menace"], ["météo", "Météo"]], function () { return rs.v; }, function (v) { rs.v = v; }, L, 2);
-      U.wide(body, "red", "Déclencher l'évacuation générale", "tout le site", function () { U.evacConfirm(rs.v); });
-      sec(body, "Évacuation partielle (une zone)"); Sim.stagesOf(e).forEach(function (b) { U.wide(body, "", "Évacuer la zone de " + U.bName(b), "le public est dirigé vers les autres espaces", function () { Sim.startEvac({ kind: "zone", stage: b.id, reason: rs.v }); U.refresh(true); }); });
+      var rs = { v: "incendie" }; sec(body, "1 · Levée de doute"); U.seg(body, [["incendie", "Incendie"], ["colis suspect", "Colis suspect"], ["menace", "Menace"], ["météo", "Météo"]], function () { return rs.v; }, function (v) { rs.v = v; }, L, 4);
+      var dl = mk(body, "div", "logl"); L.push(function () { dl.textContent = ""; var d = S.doubt; if (!d) { mk(dl, "div", null, "Avant d'évacuer, vérifie l'alerte : caméras, agent sur place, police ou bulletin météo."); return; } mk(dl, "div", d.result == null ? "a" : d.result === "confirmé" ? "r" : "g", d.result == null ? "Vérification en cours (" + d.how + "), résultat vers " + hm(d.until) + "." : "Résultat (" + d.reason + ") : " + d.result + "."); });
+      U.wide(body, "", "Lever le doute", function () { return "caméra 1 min, agent 3 min, police 6 min"; }, function () { Sim.checkAlert(rs.v); U.refresh(true); }, L, function () { return !!(S.doubt && S.doubt.result == null); });
+      sec(body, "2 · Déclencher");
+      U.wide(body, "red", "Évacuation générale", function () { return S.doubt && S.doubt.result === "fausse alerte" ? "la levée de doute n'a rien trouvé : le public ne comprendra pas" : "tout le site sort par les issues"; }, function () { U.evacConfirm(rs.v); }, L);
+      U.wide(body, "", "Mise à l'abri", function () { return "orage, grêle, vent : abris pour " + (Sim.coveredCap() >= 1e8 ? "tout le monde" : nb(Sim.coveredCap()) + " personnes"); }, function () { Sim.startShelter(rs.v === "météo" ? "orage" : rs.v); A.sfx("alarm"); U.refresh(true); }, L);
+      U.wide(body, "", "Confinement", "menace extérieure : accès fermés, public gardé sur place, police", function () { U.confirm("Confinement ?", "Les entrées et les issues sont fermées, la musique s'arrête et le public reste sur place à l'abri des structures jusqu'au feu vert de la police.", "Confiner", function () { Sim.startLockdown(rs.v); A.siren(true); U.refresh(true); }); });
+      sec(body, "Évacuation d'une zone"); Sim.stagesOf(e).forEach(function (b) { U.wide(body, "", "Évacuer la zone de " + U.bName(b), "son coupé sur cette scène, public dirigé vers le reste du site", function () { Sim.startEvac({ kind: "zone", stage: b.id, reason: rs.v }); U.refresh(true); }); });
     } else if (E.kind === "zone") {
-      mk(body, "div", "warnbox", "Évacuation de la zone de " + Sim.stageName(E.stage) + " en cours.");
+      mk(body, "div", "warnbox", "Évacuation de la zone de " + Sim.stageName(E.stage) + " : " + (E.phase === "clear" ? "zone vide, tenue par les stadiers." : "le public sort de la zone."));
       U.wide(body, "lime", "Rouvrir la zone", "fin de l'alerte locale", function () { Sim.endEvac(); U.refresh(true); });
+    } else if (E.kind === "shelter") {
+      var ks = mk(body, "div", "kpis"); U.kpi(ks, "À l'abri", function () { return [nb(E.sheltered || 0), "ok"]; }, L); U.kpi(ks, "Encore exposés", function () { return [nb(E.exposed || 0), E.exposed > 0 ? "bad" : "ok"]; }, L);
+      var w = mk(body, "p", "note"); L.push(function () { var wx = S.wx_now || {}; w.textContent = "Depuis " + Math.round(S.t - E.t0) + " min · météo : " + (wx.storm ? "orage en cours" : wx.rain > 0.3 ? "forte pluie" : "accalmie") + ". Les scènes en plein air sont arrêtées ; chapiteaux, halls, abris et bars couverts accueillent le public."; });
+      U.wide(body, "lime", "Lever la mise à l'abri", "les concerts reprennent", function () { Sim.endShelter(); U.refresh(true); });
+    } else if (E.kind === "lockdown") {
+      var kl = mk(body, "div", "kpis"); U.kpi(kl, "Confinés", function () { return [nb(S.pop.inside)]; }, L); U.kpi(kl, "Depuis", function () { return [Math.round(S.t - E.t0) + " min"]; }, L); U.kpi(kl, "Tension du public", function () { return [Math.round(E.panic * 100) + " %", E.panic > 0.5 ? "bad" : E.panic > 0.3 ? "warn" : "", E.panic * 100]; }, L); U.kpi(kl, "Police", function () { return [E.cleared ? "feu vert" : "sécurise", E.cleared ? "ok" : "warn"]; }, L);
+      U.wide(body, "lime", "Lever le confinement", function () { return E.cleared ? "la police a levé la menace" : "sans le feu vert de la police : très risqué"; }, function () { Sim.endLockdown(); A.siren(false); U.refresh(true); }, L);
     } else {
-      var ph = mk(body, "div", "kpis"); U.kpi(ph, "Phase", function () { return [U.evacPhase(E).split(",")[0], E.phase === "clear" ? "ok" : "bad"]; }, L); U.kpi(ph, "Depuis", function () { return [Math.round(S.t - E.t0) + " min"]; }, L);
-      U.kpi(ph, "Encore sur le site", function () { return [nb(S.pop.inside), S.pop.inside > 0 ? "warn" : "ok", E.n0 ? S.pop.inside / E.n0 * 100 : 0]; }, L); U.kpi(ph, "Aux points de rassemblement", function () { return [nb(E.assembled || 0), "ok"]; }, L);
-      U.kpi(ph, "Personnes qui traînent", function () { return [nb(E.lag || 0), E.lag > 50 ? "warn" : ""]; }, L); U.kpi(ph, "Blessés", function () { return [String(Math.round(E.injured || 0)), E.injured ? "bad" : "ok"]; }, L);
+      var ph = mk(body, "div", "kpis"); U.kpi(ph, "Depuis le code rouge", function () { return [Math.round(S.t - E.t0) + " min"]; }, L);
+      U.kpi(ph, "Encore sur le site", function () { return [nb(S.pop.inside), S.pop.inside > 0 ? "warn" : "ok", E.n0 ? S.pop.inside / E.n0 * 100 : 0]; }, L); U.kpi(ph, "Comptés aux points de rassemblement", function () { return [nb(E.counted || 0) + " / " + nb(E.out || 0), "ok"]; }, L);
+      U.kpi(ph, "Personnes manquantes", function () { return [E.phase === "count" ? nb(E.missing || 0) : "—", E.missing > 0 ? "warn" : "ok"]; }, L); U.kpi(ph, "Blessés", function () { return [String(Math.round(E.injured || 0)), E.injured ? "bad" : "ok"]; }, L);
       U.kpi(ph, "Panique", function () { return [Math.round((E.panic || 0) * 100) + " %", E.panic > 0.5 ? "bad" : E.panic > 0.3 ? "warn" : "", (E.panic || 0) * 100]; }, L);
-      var st = mk(body, "p", "note"); L.push(function () { st.textContent = E.phase === "alert" ? "Messages en cours : le public commence à bouger dans " + Math.max(0, Math.ceil((E.tMove || S.t) - S.t)) + " min. Ouvre les issues maintenant." : E.phase === "move" ? "Le public sort par l'issue ouverte la plus proche. Une issue fermée ou trop étroite crée un bouchon." : "Site vide. Décide avec la préfecture de la suite."; });
-      U.wide(body, "lime", "Ouvrir toutes les issues", "les agents ouvrent les portes de secours", function () { Sim.openAllExits(); U.refresh(true); });
-      U.wide(body, "", "Fin d'alerte", "la préfecture décide : reprise ou fin de journée", function () { if (Sim.endEvac()) A.siren(false); U.refresh(true); }, L, function () { return E.phase !== "clear"; });
+      var st2 = mk(body, "p", "note"); L.push(function () { st2.textContent = E.phase === "alert" ? "Code rouge diffusé : son coupé, lumière blanche, message au micro et sur les écrans. Le public bouge dans " + Math.max(0, Math.ceil(E.tMove - S.t)) + " min. Les stadiers ouvrent les issues." : E.phase === "move" ? "Le public sort par l'issue prévue au plan ou la plus proche. Une issue fermée ou trop étroite crée un bouchon : ouvre-les toutes." : "Le public est dehors. Les patrouilles balaient les zones une par une, les stadiers comptent aux points de rassemblement."; });
+      U.wide(body, "lime", "Ouvrir toutes les issues", "les agents ouvrent les portes de secours", function () { Sim.openAllExits(); U.refresh(true); }, L, function () { return E.phase === "count"; });
+      U.wide(body, "", "Message au micro", "« Dirigez-vous calmement vers la sortie la plus proche »", function () { E.msg = true; Sim.log("Message répété au micro et sur les écrans.", "i", "Régie"); }, L, function () { return !!E.msg || E.phase === "count"; });
+      sec(body, "4 · Balayage des zones"); var zl = mk(body, "div", "logl"); L.push(function () { zl.textContent = ""; Sim.sweepZones().forEach(function (z) { var done = E.swept && E.swept[z.id], on = E.sweeping && E.sweeping[z.id] != null; mk(zl, "div", done ? "g" : on ? "a" : "", z.n + " · " + (done ? "balayée" : on ? "patrouille en cours" : E.phase === "count" ? "à balayer" : "après la sortie du public")); }); });
+      sec(body, "5 · Fin d'alerte"); var adv = mk(body, "div", "logl"); L.push(function () { adv.textContent = ""; Sim.alertAdvice().forEach(function (a) { var d = mk(adv, "div", a.ok ? "g" : "a"); mk(d, "b", null, a.who); d.appendChild(document.createTextNode(a.txt)); }); });
+      U.wide(body, "lime", "Décider de la fin d'alerte", "c'est toi qui décides : reprise ou arrêt de la journée", function () { Sim.endEvac(); U.refresh(true); }, L, function () { return E.phase !== "count"; });
     }
     sec(body, "Issues de secours");
     Sim.exitsOf(e).forEach(function (b) { var X = S.exits[b.id], x = srow(body, U.bName(b)), bt = mk(x.r, "div", "btns"), op = mk(bt, "button"); op.onclick = function () { Sim.setExit(b.id, !X.open); U.refresh(true); }; U.btn(bt, "Voir", function () { view(b.x, b.z, 26, 0.6); });
-      L.push(function () { var d = E && E.doors && E.doors[b.id]; tag(x.tg, X.open ? "OUVERTE" : "FERMÉE", X.open ? "lime" : "grey"); x.r2.textContent = (b.up || 10) + " UP · " + nb((b.up || 10) * D.UP_RATE) + "/min" + (d && d.q > 1 ? " · " + nb(d.q) + " devant" : ""); op.textContent = X.open ? "Refermer" : "Ouvrir"; op.className = X.open ? "" : "go2"; }); });
-    note(body, "Hors évacuation, une issue ouverte laisse passer des resquilleurs : garde-les fermées et gardées.");
-    var asm = e.layout.filter(function (b) { return b.k === "assembly"; }); if (!asm.length) mk(body, "div", "warnbox", "Aucun point de rassemblement posé : les évacués se dispersent et le comptage est impossible.");
+      L.push(function () { var d = E && E.doors && E.doors[b.id], when = E && E.openAt && E.openAt[b.id]; tag(x.tg, X.open ? "OUVERTE" : when ? "STADIER EN ROUTE" : "FERMÉE", X.open ? "lime" : when ? "am" : "grey"); x.r2.textContent = (b.up || 10) + " UP · " + nb((b.up || 10) * D.UP_RATE) + "/min" + (d && d.q > 1 ? " · " + nb(d.q) + " devant" : ""); op.textContent = X.open ? "Refermer" : "Ouvrir"; op.className = X.open ? "" : "go2"; }); });
+    var asm = e.layout.filter(function (b) { return b.k === "assembly"; }); if (!asm.length) mk(body, "div", "warnbox", "Aucun point de rassemblement : le comptage est impossible et le public se disperse sur la route.");
+  };
+
+  // ================================================================ catastrophes : tu déclenches toi-même la crise, tout de suite
+  var cataSel = { k: "storm", i: 2, t: "" };
+  T.catas = function (body, sub, L, S) {
+    var e = ev(); sub.textContent = "Déclenche une crise pour tester ton organisation";
+    note(body, "Choisis une catastrophe, son intensité et, si besoin, l'endroit. Elle arrive immédiatement : à toi de gérer avec le protocole et tes équipes.");
+    var cats = []; Sim.CATA.forEach(function (c) { if (cats.indexOf(c.cat) < 0) cats.push(c.cat); });
+    cats.forEach(function (cat) { sec(body, cat); U.seg(body, Sim.CATA.filter(function (c) { return c.cat === cat; }).map(function (c) { return [c.k, c.n, c.d]; }), function () { return cataSel.k; }, function (v) { cataSel.k = v; cataSel.t = ""; U.rebuildSheet(); }, L, 2); });
+    sec(body, "Intensité"); U.seg(body, [[1, "Faible"], [2, "Forte"], [3, "Extrême"]], function () { return cataSel.i; }, function (v) { cataSel.i = v; }, L, 3);
+    var tg = Sim.cataTargets(cataSel.k); if (tg.length) { sec(body, "Où ?"); U.seg(body, [["", "Au pire endroit / au hasard"]].concat(tg.map(function (b) { return [b.id, U.bName(b)]; })), function () { return cataSel.t; }, function (v) { cataSel.t = v; }, L, 2); }
+    U.wide(body, "red", function () { return "Déclencher : " + Sim.CATAK[cataSel.k].n; }, function () { return ["", "intensité faible", "intensité forte", "intensité extrême"][cataSel.i]; }, function () { if (Sim.trigger(cataSel.k, cataSel.i, cataSel.t || null)) { A.sfx("alarm"); if (!U.wide900()) U.closeSheet(); } U.refresh(true); }, L);
+    var n = mk(body, "p", "note"); L.push(function () { n.textContent = (S.stats.cata || 0) + " catastrophe(s) déclenchée(s) aujourd'hui. Programmées à l'avance : " + (e.catas || []).length + "."; });
   };
 
   // ================================================================ équipe
