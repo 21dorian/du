@@ -5005,6 +5005,7 @@ button:focus-visible,input:focus-visible{outline:3px solid var(--lime);outline-o
     parking: { n: "Parking", cat: "Accès", w: 34, d: 22, cost: 6000, walk: true, parking: 1500, out: true, desc: "Choisis son type : public, VIP, PMR, staff, camping-cars ou deux-roues." },
     busHub: { n: "Gare routière navettes", cat: "Accès", w: 80, d: 26, cost: 18000, out: true, stop: true, hub: true, unique: true, desc: "Quais de dépose et de reprise séparés, files en barrières par ligne, sas d'embarquement. De l'autre côté de la route, contre la chaussée." },
     dropZone: { n: "Quai de dépose provisoire", cat: "Accès", w: 18, d: 7, cost: 2500, out: true, drop: true, desc: "Un quai de plus pour décharger les navettes quand la gare routière sature. Contre la route, côté parkings." },
+    roadBlock: { n: "Barrage filtrant", cat: "Accès", w: 5, d: 11, cost: 1800, out: true, road: true, desc: "Barrières en travers de la route avec des agents : ne passent que les bus, les secours et les voitures qui vont aux parkings. Se pose sur la route." },
     sav: { n: "Guichet SAV billetterie", cat: "Accès", w: 6, d: 3, cost: 1200, out: true, desc: "Règle les billets à problème (QR déjà scanné, nom erroné, revente douteuse) sans bloquer les couloirs. Sur le parvis, près d'une entrée." },
     shuttle: { n: "Arrêt navettes", cat: "Accès", w: 10, d: 3, cost: 3500, out: true, stop: true, desc: "Gare routière des navettes, le long de la route. Configure les lignes dans Transports." },
     taxi: { n: "Station taxis / VTC", cat: "Accès", w: 10, d: 3, cost: 800, out: true, desc: "Dépose et reprise : moins de voitures qui tournent autour du site." },
@@ -5159,6 +5160,7 @@ button:focus-visible,input:focus-visible{outline:3px solid var(--lime);outline-o
     { k: "merchStaff", n: "Vendeurs merch", d: "Environ 1 vente par minute et par vendeur.", cost: 17, min: 0, max: 90 },
     { k: "boxOffice", n: "Billetterie sur place", d: "Caissiers aux entrées : un peu plus d'une vente par minute chacun.", cost: 18, min: 0, max: 90 },
     { k: "bracelet", n: "Échange bracelets", d: "Échangent le billet contre le bracelet cashless : 3 par minute chacun.", cost: 17, min: 0, max: 120 },
+    { k: "crossAg", n: "Signaleurs de traversée", d: "Aux passages piétons : arrêtent les voitures pour faire traverser la foule (deux par passage).", cost: 19, min: 0, max: 60 },
     { k: "savStaff", n: "SAV billetterie", d: "Au guichet SAV : environ un billet à problème réglé par minute chacun.", cost: 19, min: 0, max: 60 },
     { k: "maraude", n: "Maraudes prévention", d: "Repèrent les personnes en difficulté dans la foule, avant le malaise ou l'agression.", cost: 17, min: 0, max: 90 },
     { k: "hawkers", n: "Vendeurs ambulants", d: "Vendent des bières dans la foule devant les scènes : environ 1,5 verre par minute.", cost: 17, min: 0, max: 120 }];
@@ -5238,7 +5240,7 @@ button:focus-visible,input:focus-visible{outline:3px solid var(--lime);outline-o
   // chefs d'équipe nommés : niveau 1 junior, 2 confirmé, 3 expert (coût par jour)
   D.CHEFS = { secu: { n: "Chef de la sécurité", who: ["Karim Belaïd", "Sandra Moreau", "Yves Ndiaye"], d: "moins de bagarres et d'intrusions" }, bar: { n: "Chef des bars", who: ["Léa Martin", "Tom Girard", "Inès Ferreira"], d: "service plus rapide aux bars" }, tech: { n: "Régisseur technique", who: ["Paul Lemaire", "Nadia Haddad", "Bruno Costa"], d: "moins de pannes son, tireuses et terminaux" }, log: { n: "Chef logistique", who: ["Hugo Petit", "Fatou Diallo", "Marc Weber"], d: "équipes plus rapides, livraisons mieux gérées" } };
   D.CHEF_LV = [["Aucun", 0], ["Junior", 600], ["Confirmé", 1500], ["Expert", 3200]];
-  D.STAFF_DEF = { barmen: 70, runners: 6, cleaners: 4, scanners: 12, secuIn: 12, secuStage: 20, secuPatrol: 8, medics: 8, vestStaff: 6, welcome: 2, traffic: 6, shuttleAg: 4, stewards: 10, info: 3, pmr: 2, campSecu: 0, merchStaff: 4, boxOffice: 4, bracelet: 6, hawkers: 4, maraude: 4, savStaff: 3 };
+  D.STAFF_DEF = { barmen: 70, runners: 6, cleaners: 4, scanners: 12, secuIn: 12, secuStage: 20, secuPatrol: 8, medics: 8, vestStaff: 6, welcome: 2, traffic: 6, shuttleAg: 4, stewards: 10, info: 3, pmr: 2, campSecu: 0, merchStaff: 4, boxOffice: 4, bracelet: 6, hawkers: 4, maraude: 4, savStaff: 3, crossAg: 4 };
   D.STOCK_DEF = { keg: 260, ice: 420, crate: 1800 };
   D.FIXED = { prod: 0.0 }; // les cachets et locations sont calculés à partir du plan
 })();
@@ -5339,11 +5341,16 @@ button:focus-visible,input:focus-visible{outline:3px solid var(--lime);outline-o
   // gare routière : quais de dépose à gauche, quais de reprise (un par ligne) à droite, files en barrières derrière
   Sim.hubCfg = function (ev) { var h = ev.tr.hub || (ev.tr.hub = { guide: true, precheck: 0, sas: "reg", hold: {}, dropBays: 2 }); if (!h.hold) h.hold = {}; if (!h.dropBays) h.dropBays = 2; return h; };
   Sim.lotsRectOf = function (ev) { return lotsRect(ev); };
+  Sim.roadCfg = function (ev) { var r = ev.tr.road || (ev.tr.road = { mode: "open", cross: [], crossMode: {} }); if (!r.cross) r.cross = []; if (!r.crossMode) r.crossMode = {}; return r; };
+  Sim.crossings = function (ev) { var xs = [], add = function (x, user) { x = Math.round(x / 2) * 2; if (xs.some(function (c) { return Math.abs(c.x - x) < 10; })) return; xs.push({ id: "c" + x, x: x, user: !!user }); };
+    ev.layout.forEach(function (b) { var t = D.BT[b.k]; if (t.entry || t.hub || (b.k === "parking" && (b.ptype || "public") === "public")) add(t.hub ? Sim.hubGeo(ev, b).walkX : b.x); });
+    Sim.roadCfg(ev).cross.forEach(function (x) { add(x, true); }); return xs.sort(function (a, c) { return a.x - c.x; }); };
+  Sim.blockSpots = function (ev) { var V = venue(ev), rz0 = Sim.roadZ(ev); return [[-V.W / 2 - 18, rz0], [V.W / 2 + 18, rz0]]; };
   Sim.hubOf = function (ev) { for (var i = 0; i < ev.layout.length; i++) if (D.BT[ev.layout[i].k].hub) return ev.layout[i]; return null; };
   Sim.hubGeo = function (ev, b) { var f = fp(b), nd = Sim.hubCfg(ev).dropBays, zb = f.z0 + 3, drop = [], pick = {}, queue = {};
     for (var i = 0; i < nd; i++) drop.push([f.x0 + 4 + (i % 2 + 0.5) * 17, zb + Math.floor(i / 2) * 5.5]);
     D.LINEK.forEach(function (k, j) { var px = f.x0 + 42 + j * 13.5; pick[k] = [px, zb]; queue[k] = { x0: px - 6.2, x1: px + 6.2, z0: f.z0 + 7.5, z1: f.z1 - 1.5 }; });
-    return { f: f, drop: drop, pick: pick, queue: queue, quay: [f.x0 + 21, zb + Math.ceil(nd / 2) * 5.5], sas: function (k) { return [pick[k][0], f.z0 + 6.6]; } }; };
+    return { f: f, walkX: f.x0 + 39.5, drop: drop, pick: pick, queue: queue, quay: [f.x0 + 21, zb + Math.ceil(nd / 2) * 5.5], sas: function (k) { return [pick[k][0], f.z0 + 6.6]; } }; };
   // tous les quais de dépose : ceux de la gare routière et les quais provisoires posés par le joueur
   Sim.dropBays = function (ev) { var out = [], h = Sim.hubOf(ev); if (h) Sim.hubGeo(ev, h).drop.forEach(function (p, i) { out.push({ id: h.id + ":" + i, x: p[0], z: p[1], hub: h.id }); }); ev.layout.forEach(function (b) { if (D.BT[b.k].drop) { var f = fp(b); out.push({ id: b.id, x: b.x, z: f.z0 + 2.6, hub: null }); } }); return out; };
   // dégagement intérieur derrière une entrée / issue : rien ne doit boucher la sortie du flux
@@ -5372,6 +5379,7 @@ button:focus-visible,input:focus-visible{outline:3px solid var(--lime);outline-o
     Sim._ev = ev;
     var t = T(b), f = fp(b), V = venue(ev), site = siteRect(ev), inner = { x0: site.x0 + 1, x1: site.x1 - 1, z0: site.z0 + 1, z1: site.z1 - 1 }, inSite = within(f, inner), pl = plazaRect(ev), lo = lotsRect(ev);
     var onPlaza = within(f, pl), onLots = within(f, lo);
+    if (t.road) { var rz0 = Sim.roadZ(ev); if (Math.abs(b.z - rz0) > 1.5) return { ok: false, why: "Le barrage se pose en travers de la route" }; for (var rb = 0; rb < ev.layout.length; rb++) { var ro = ev.layout[rb]; if (ro.id !== ignoreId && ro.id !== b.id && D.BT[ro.k].road && Math.abs(ro.x - b.x) < 12) return { ok: false, why: "Trop près d'un autre barrage" }; } return { ok: true }; }
     if (!inSite) {
       if (!(D.OUT_PLAZA[b.k] && onPlaza) && !(D.OUT_LOTS[b.k] && onLots)) {
         if (D.OUT_LOTS[b.k] && !D.OUT_PLAZA[b.k]) return { ok: false, why: "À placer de l'autre côté de la route" };
@@ -5524,7 +5532,7 @@ button:focus-visible,input:focus-visible{outline:3px solid var(--lime);outline-o
       cap: T0.cap, price: T0.price, door: T0.price ? T0.price + 10 : 0, vipPrice: T0.price * 3, cashless: type !== "urban", filter: true,
       prices: {}, on: {}, staff: JSON.parse(JSON.stringify(D.STAFF_DEF)), stock: JSON.parse(JSON.stringify(D.STOCK_DEF)), halls: {}, layout: [], lineup: [], catalog: D.makeCatalog(60 + 45 * T0.days), diff: "normal", autoPause: true,
       control: { run: "auto", clean: "auto", pat: "auto", med: "auto" }, edition: profile ? profile.edition : 1,
-      acc: { slots: false, fastPct: 0, fastPrice: 15, passOut: false, lsf: false, loops: false, vests: false, pmrShuttle: false, angela: false, drugCheck: false, appReport: true }, tr: { share: null, hub: { guide: true, precheck: 0, sas: "reg", hold: {}, dropBays: 2 }, lines: { gare: { on: true, bus: "std", fleet: 4 }, centre: { on: true, bus: "std", fleet: 3 }, relais: { on: false, bus: "artic", fleet: 3 } }, price: 0, inPass: false, last: T0.close + 1, boost: 2, route: {}, relaisCap: 2000, relaisPrice: 3 },
+      acc: { slots: false, fastPct: 0, fastPrice: 15, passOut: false, lsf: false, loops: false, vests: false, pmrShuttle: false, angela: false, drugCheck: false, appReport: true }, tr: { road: { mode: "open", cross: [], crossMode: {} }, share: null, hub: { guide: true, precheck: 0, sas: "reg", hold: {}, dropBays: 2 }, lines: { gare: { on: true, bus: "std", fleet: 4 }, centre: { on: true, bus: "std", fleet: 3 }, relais: { on: false, bus: "artic", fleet: 3 } }, price: 0, inPass: false, last: T0.close + 1, boost: 2, route: {}, relaisCap: 2000, relaisPrice: 3 },
       park: { price: type === "urban" ? 6 : 10, pre: type === "urban" ? 5 : 8, overflow: false },
       search: "std", rfid: false, braceletAtGate: type !== "urban",
       camp: { price: 35, curfew: 26 }, info: { charge: true, chargePrice: 3, lost: true, claims: true },
@@ -5601,7 +5609,8 @@ button:focus-visible,input:focus-visible{outline:3px solid var(--lime);outline-o
   Sim.autoFleet = function (ev) {
     if (!ev.layout.some(function (b) { return D.BT[b.k].stop; })) return;
     var dm = Sim.demand(ev), M = Sim.modal(ev), ppl = (dm.total || ev.cap) * M.bus;
-    D.LINEK.forEach(function (k) { var Lk = ev.tr.lines[k]; if (!Lk.on || D.LINES[k].relay) return; var share = D.LINES[k].w / 1, peak = ppl * share * 0.38, B = D.BUS[Lk.bus], perBus = B.cap * 60 / Sim.cycle(ev, k); Lk.fleet = clamp(Math.ceil(peak / perBus), 2, 30); });
+    D.LINEK.forEach(function (k) { var Lk = ev.tr.lines[k]; if (!Lk.on || D.LINES[k].relay) return; var share = D.LINES[k].w / 1, peak = ppl * share * 0.38, B = D.BUS[Lk.bus], perBus = B.cap * 60 / Sim.cycle(ev, k); Lk.fleet = clamp(Math.ceil(peak / perBus), 2, 90); });
+    var hc = Sim.hubCfg(ev); hc.dropBays = clamp(Math.ceil(ppl / 9000) + 1, hc.dropBays || 2, 4); hc.pickN = clamp(Math.ceil(ppl / 10000), hc.pickN || 1, 3);
     if (ev.tr.lines.relais.on) { var rl = ev.tr.lines.relais, perR = D.BUS[rl.bus].cap * 60 / Sim.cycle(ev, "relais"); rl.fleet = clamp(Math.ceil((dm.total || ev.cap) * M.relais * 0.38 / perR), 2, 20); }
   };
   // scénarios : on hérite d'un plan avec des défauts, à corriger pendant la préparation
@@ -5661,7 +5670,7 @@ button:focus-visible,input:focus-visible{outline:3px solid var(--lime);outline-o
     st.campSecu = ev.days > 1 ? clamp(ev.layout.filter(function (b) { return b.k === "camping"; }).length * 8, 0, 40) : 0;
     st.merchStaff = ev.layout.filter(function (b) { return b.k === "merch"; }).length * 3;
     st.boxOffice = ev.price ? clamp(Sim.entriesOf(ev).length * 4, 0, 90) : 0; st.bracelet = ev.cashless && ev.braceletAtGate ? clamp(Math.ceil(cap / 1000), 0, 120) : 0; Sim.entriesOf(ev).forEach(function (b) { if (ev.cashless && ev.braceletAtGate) b.brac = clamp(Math.ceil(D.BT[b.k].lanes / 3), b.brac || 0, 6); });
-    st.hawkers = clamp(Math.round(cap / 3000), 0, 90); st.savStaff = Math.ceil(cap / 5000) + 1;
+    st.hawkers = clamp(Math.round(cap / 3000), 0, 90); st.savStaff = Math.ceil(cap / 5000) + 1; st.crossAg = Math.min(60, Sim.crossings(ev).length * 2);
     var need = Sim.estimateUse(ev); D.RK.forEach(function (rk) { ev.stock[rk] = Math.ceil(need[rk] * ((Sim.DIFFS[ev.diff] || Sim.DIFFS.normal).stock || 1.1) / 10) * 10; });
   };
   Sim.appeal = function (ev, day) {
@@ -6142,7 +6151,7 @@ button:focus-visible,input:focus-visible{outline:3px solid var(--lime);outline-o
 
   // ================================================================ véhicules de secours, livraisons, artistes
   function callVehicle(kind, x, z, eta, extra) {
-    var ev = S.ev, V = Sim.venue(ev), side = x < 0 ? -1 : 1, v = { id: ++S.vehN, kind: kind, x: x, z: z, t0: S.t, tA: S.t + eta + (S.road.jam > 0.6 ? 4 : 0) + (S.evac && !ev.layout.some(function (b) { return b.k === "assembly"; }) ? 3 : 0), tL: 0, side: side, roadZ: Sim.roadZ(ev), gateX: clamp(x, -V.W / 2 + 6, V.W / 2 - 6) };
+    var ev = S.ev, V = Sim.venue(ev), side = x < 0 ? -1 : 1, v = { id: ++S.vehN, kind: kind, x: x, z: z, t0: S.t, tA: S.t + eta + (S.road.jam > 0.6 ? 4 : 0) + (kind !== "truck" ? (S.road.detour || 0) * 2 : 0) + (S.evac && !ev.layout.some(function (b) { return b.k === "assembly"; }) ? 3 : 0), tL: 0, side: side, roadZ: Sim.roadZ(ev), gateX: clamp(x, -V.W / 2 + 6, V.W / 2 - 6) };
     var sg = ev.layout.filter(function (b) { return b.k === "staffgate"; })[0]; if (sg && kind !== "bus") { v.gateX = sg.x; v.gateZ = Sim.gatePoint(ev, sg, 1, 2)[1]; }
     if (extra) Object.keys(extra).forEach(function (k) { v[k] = extra[k]; });
     S.veh.push(v); return v;
@@ -6609,11 +6618,14 @@ button:focus-visible,input:focus-visible{outline:3px solid var(--lime);outline-o
   F.maxLanes = maxLanes;
   function makeBuses() {
     var e = S.ev, start = e.open * 60 - 45;
-    S.bays = {}; S.picks = {};
+    S.bays = {}; S.picks = {}; S.cross = {};
     D.LINEK.forEach(function (k) { var Lk = e.tr.lines[k], ln = S.lines[k]; ln.buses = []; if (!Lk.on || !stopOf(k)) return; var hw = Sim.headway(e, k);
       for (var i = 0; i < Lk.fleet; i++) ln.buses.push({ id: k + i + "_" + S.day, k: k, type: Lk.bus, st: "origin", tNext: start + i * hw, load: 0, tDep: 0, tArr: 0, side: D.LINES[k].side }); });
   }
   F.makeBuses = makeBuses;
+  Sim.setRoad = function (m) { var e = S.ev, c = Sim.roadCfg(e); if (m === "filter" && !e.layout.some(function (b) { return D.BT[b.k].road; })) { Sim.toast("Pose d'abord les barrages"); return false; } c.mode = m; L.log({ open: "Route rouverte à la circulation.", lane: "Une voie fermée côté festival : circulation alternée.", oneway: "Route en sens unique devant le site.", filter: "Route fermée par barrages filtrants : seuls passent bus, secours et voitures des parkings. Circulation déviée." }[m], "i", "Transports"); return true; };
+  Sim.placeBlocks = function (ev) { var n = 0; Sim.blockSpots(ev).forEach(function (p) { var b = { id: Sim.newId(ev), k: "roadBlock", x: Math.round(p[0] / 2) * 2, z: p[1], rot: 0 }; if (Sim.validate(ev, b).ok) { ev.layout.push(b); n++; } }); if (n && S && S.phase === "live") { S.money.extra -= 1800 * n; L.log(n + " barrage" + (n > 1 ? "s" : "") + " filtrant" + (n > 1 ? "s" : "") + " installé" + (n > 1 ? "s" : "") + " sur la route.", "i", "Transports"); } return n; };
+  Sim.addCross = function (ev, x) { var c = Sim.roadCfg(ev); x = Math.round(x / 2) * 2; if (Sim.crossings(ev).some(function (k) { return Math.abs(k.x - x) < 10; })) { Sim.toast("Il y a déjà un passage ici"); return false; } c.cross.push(x); if (S && S.phase === "live") { S.money.extra -= 400; L.log("Nouveau passage piéton à x" + x + " (marquage, barrières, 400 €).", "i", "Transports"); } return true; };
   // quai de dépose provisoire posé en direct, le plus près possible de la gare routière
   Sim.addDropZone = function () { var e = S.ev, h = Sim.hubOf(e), lr = Sim.lotsRectOf(e), cx = h ? h.x : 0; for (var i = 0; i < 40; i++) { var b = { id: Sim.newId(e), k: "dropZone", x: Math.round((cx + (i % 2 ? 1 : -1) * (52 + Math.floor(i / 2) * 20)) / 2) * 2, z: Math.round((lr.z0 + 4) / 2) * 2, rot: 0 }; if (Sim.validate(e, b).ok) { e.layout.push(b); S.money.extra -= 2500; L.log("Quai de dépose provisoire ouvert : cônes, barrières et un agent (2 500 €).", "i", "Transports"); return b; } } Sim.toast("Pas de place libre le long de la route"); return null; };
   // quai de dépose supplémentaire dans la gare routière (jusqu'à 4)
@@ -6671,7 +6683,8 @@ button:focus-visible,input:focus-visible{outline:3px solid var(--lime);outline-o
 
   // ================================================================ marche à pied (tous les déplacements dehors)
   function walk(n, sx, sz, tx, tz, dir, kind, ref, extra) {
-    if (n <= 0.01) return; var d = Math.hypot(tx - sx, tz - sz) * 1.2 + (dir === "in" && S.road && crossesRoad(sz, tz) ? 6 : 0), tA = S.t + d / WALK * (S.mud ? 1.2 : 1) + (crossesRoad(sz, tz) && S.staff.traffic < 2 ? 1 : 0);
+    if (n <= 0.01) return; var d = Math.hypot(tx - sx, tz - sz) * 1.2 + (dir === "in" && S.road && crossesRoad(sz, tz) ? 6 : 0), tA = S.t + d / WALK * (S.mud ? 1.2 : 1);
+    if (crossesRoad(sz, tz)) { var cx0 = (sx + tx) / 2, cs = nearestCross(cx0); if (cs) { S.cross = S.cross || {}; var st = S.cross[cs.id] || (S.cross[cs.id] = { acc: 0, flow: 0, wait: 0, carF: 1 }); st.acc += n; tA += (st.wait || 0) + Math.min(4, Math.abs(cx0 - cs.x) * 0.8 / WALK); } }
     var key = kind + dir + ref + Math.floor(tA), last = S.walk[S.walk.length - 1];
     if (last && last.key === key) { last.n += n; if (extra) Object.keys(extra).forEach(function (k) { last[k] = (last[k] || 0) + extra[k]; }); return; }
     var it = { id: ++S.walkN, key: key, n: n, sx: sx, sz: sz, tx: tx, tz: tz, t0: S.t, tA: tA, dir: dir, kind: kind, ref: ref };
@@ -6679,6 +6692,30 @@ button:focus-visible,input:focus-visible{outline:3px solid var(--lime);outline-o
     S.walk.push(it);
   }
   F.walk = walk;
+  function nearestCross(x) { if (S._csT !== S.t || !S._cs) { S._cs = Sim.crossings(S.ev); S._csT = S.t; } var cs = S._cs, best = null, bd = 1e9; cs.forEach(function (c) { var d = Math.abs(c.x - x); if (d < bd) { bd = d; best = c; } }); return best; }
+  F.nearestCross = nearestCross;
+  // route : fermeture, passages piétons tenus ou non, déviation
+  function roadMode() { var m = Sim.roadCfg(S.ev).mode; if (m === "filter" && !S.ev.layout.some(function (b) { return D.BT[b.k].road; })) return "open"; return m; }
+  F.roadMode = roadMode;
+  function crossStep(gm) {
+    var e = S.ev, cfg = Sim.roadCfg(e), mode = roadMode(), conflict = mode === "filter" ? 0 : mode === "open" ? 1 : 0.5, cs = Sim.crossings(e), t = S.t; S.cross = S.cross || {};
+    cs.forEach(function (c) { var st = S.cross[c.id] || (S.cross[c.id] = { acc: 0, flow: 0, wait: 0, carF: 1 }); st.flow += (st.acc / Math.max(0.01, gm) - st.flow) * Math.min(1, 0.25 * gm); st.acc = 0; });
+    var order = cs.slice().sort(function (a, c) { return S.cross[c.id].flow - S.cross[a.id].flow; }), tended = Math.floor((S.staff.crossAg || 0) / 2), capF = 1;
+    order.forEach(function (c, i) { var st = S.cross[c.id], sh = { ped: 0.65, bal: 0.5, car: 0.3 }[cfg.crossMode[c.id] || "bal"], f = st.flow; st.tended = i < tended;
+      if (S.closing && e.tr.exitPlan) sh = Math.max(sh, 0.8);
+      if (st.tended) { st.wait = (1 - sh) * 1.6 * conflict; st.carF = 1 - sh * Math.min(1, f / 25) * conflict * 0.9; }
+      else { st.wait = 0.1; st.carF = 1 - Math.min(0.75, f / 35) * conflict;
+        if (f > 12 && conflict > 0 && !(S.hitT > t - 30) && Math.random() < 1 - Math.exp(-0.0015 * f / 12 * conflict * (S.closing && e.tr.exitPlan ? 0.3 : 1) * gm)) { S.hitT = t; S.sat -= 5; S.stats.roadHit = (S.stats.roadHit || 0) + 1; L.spawnInc("med", c.x, Sim.roadZ(e), 20, { grave: true, road: true }); L.log("Un piéton renversé au passage x" + c.x + " : la foule traverse sans signaleur.", "r", "Transports"); } }
+      capF = Math.min(capF, st.carF); });
+    S.road.capF = clamp(capF, 0.25, 1);
+    // barrages : deux agents de circulation par barrage, sinon le filtrage ralentit l'entrée des parkings
+    var nb = e.layout.filter(function (b) { return D.BT[b.k].road; }).length; S.road.blockF = mode === "filter" && nb ? clamp(S.staff.traffic / (nb * 2), 0.6, 1) : 1;
+    var day = Sim.daylight(e, t) > 0.3 ? 1 : 0.6; S.road.thru = (mode === "filter" ? 0 : conflict) * day; S.road.detour = (1 - conflict) * day;
+    S.road.busF = 1 + 0.18 * S.road.detour - (mode === "filter" ? 0.1 : 0) + (1 - S.road.capF) * 0.4;
+  }
+  F.crossStep = crossStep;
+  // vrai = les piétons traversent en ce moment (signaleurs qui arrêtent les voitures, ou route fermée)
+  F.crossPed = function (id) { if (roadMode() === "filter") return true; var st = S.cross && S.cross[id]; if (!st || !st.tended) return true; var sh = { ped: 0.65, bal: 0.5, car: 0.3 }[Sim.roadCfg(S.ev).crossMode[id] || "bal"]; if (S.closing && S.ev.tr.exitPlan) sh = Math.max(sh, 0.8); return ((S.t / 1.6) % 1) < sh; };
   function crossesRoad(a, b) { var rz = Sim.roadZ(S.ev); return (a - rz) * (b - rz) < 0; }
   function entryFor(x, z) {
     if (S.pushEntry && S.pushEntry.until > S.t && Math.random() < 0.8 * pushEff()) { var pb = Sim.find(S.ev, S.pushEntry.id); if (pb && S.entries[pb.id] && !S.entries[pb.id].closed) return pb; }
@@ -6746,6 +6783,7 @@ button:focus-visible,input:focus-visible{outline:3px solid var(--lime);outline-o
       var types = [["vip", S.pop.vipShare * 0.9], ["pmr", 0.012], ["moto", 0.05], ["public", 1]];
       var capT = 0; ids.forEach(function (id) { var l = S.lots[id]; if (l.cars < l.cap + (l.type === "public" && e.park.overflow ? 800 / Math.max(1, lotsOfType("public").length) : 0)) capT += lotRate(id) * gm; });
       if (S.jamUntil && S.t < S.jamUntil) capT *= 0.15; // accident sur la route : presque plus rien n'avance
+      capT *= (S.road.capF || 1) * (S.road.blockF || 1);
       var flow = Math.min(inQ, capT), left = flow;
       types.forEach(function (tp) { if (left <= 0) return; var want = tp[0] === "public" ? left : flow * tp[1]; want = Math.min(want, left); var rest = parkCars(want, tp[0]), parked = want - rest; left -= parked; moved += parked; if (rest > 0 && tp[0] === "pmr") S.pmrFar = (S.pmrFar || 0) + rest; });
       // plus de place : les voitures se garent dans le quartier
@@ -6761,9 +6799,9 @@ button:focus-visible,input:focus-visible{outline:3px solid var(--lime);outline-o
     // dépose minute sans station de taxis : ça bouche la route
     if (S.road.drop) S.road.drop = Math.max(0, S.road.drop - 6 * gm);
     // sortie des parkings
-    var outT = 0; ids.forEach(function (id) { var l = S.lots[id]; if (l.outQ > 0) { var o = Math.min(l.outQ, lotRate(id) * gm, l.cars); l.outQ -= o; l.cars -= o; outT += o; } });
+    var outT = 0, outF = (S.road.capF || 1) * (roadMode() === "filter" ? 1.25 : 1); ids.forEach(function (id) { var l = S.lots[id]; if (l.outQ > 0) { var o = Math.min(l.outQ, lotRate(id) * gm * outF, l.cars); l.outQ -= o; l.cars -= o; outT += o; } });
     S.road.outQ = ids.reduce(function (a, id) { return a + S.lots[id].outQ; }, 0);
-    S.road.jam = clamp((S.road.inQ + (S.road.drop || 0)) / 250 + S.road.outQ / 600, 0, 1.5);
+    S.road.jam = clamp((S.road.inQ + (S.road.drop || 0)) / 250 + S.road.outQ / 600 + (S.road.thru || 0) * 0.08 + (1 - (S.road.capF || 1)) * 0.5, 0, 1.5);
     S.stats.jamMax = Math.max(S.stats.jamMax, S.road.inQ);
     if (S.road.inQ > 260 && !S.warned.jam && !S.closing) { S.warned.jam = 1; L.decision("jam"); }
   }
@@ -6773,7 +6811,7 @@ button:focus-visible,input:focus-visible{outline:3px solid var(--lime);outline-o
     var e = S.ev, t = S.t, lastDep = e.tr.last * 60;
     D.LINEK.forEach(function (k) {
       var Lk = e.tr.lines[k], ln = S.lines[k]; if (!Lk.on) { ln.wait = 0; return; } var stop = stopOf(k); if (!stop) return;
-      var B = D.BUS[Lk.bus], trip = D.LINES[k].trip * (S.road.jam > 0.7 ? 1.35 : 1), ag = S.staff.shuttleAg / Math.max(1, Object.keys(S.stops).length), dwellK = ag >= 2 ? 0.7 : 1;
+      var B = D.BUS[Lk.bus], trip = D.LINES[k].trip * (S.road.jam > 0.7 ? 1.35 : 1) * (S.road.busF || 1), ag = S.staff.shuttleAg / Math.max(1, Object.keys(S.stops).length), dwellK = ag >= 2 ? 0.7 : 1;
       // renfort de fin de soirée
       if (t >= e.close * 60 - 20 && !ln.boosted && e.tr.boost > 0) { ln.boosted = true; for (var i = 0; i < e.tr.boost; i++) ln.buses.push({ id: k + "b" + i + "_" + S.day, k: k, type: Lk.bus, st: "origin", tNext: t + i * 3, load: 0, side: D.LINES[k].side, boost: true }); L.log("Renfort de " + e.tr.boost + " navettes sur la ligne " + D.LINES[k].n + " pour la fin de soirée.", "i", "Transports"); }
       var hub = D.BT[stop.k].hub ? stop : null, cfg = Sim.hubCfg(e); if (hub && k === "gare") S.money.shuttle -= (cfg.precheck || 0) * 30 / 60 * gm;
@@ -6823,22 +6861,22 @@ button:focus-visible,input:focus-visible{outline:3px solid var(--lime);outline-o
       if (n > 0) { hubEmit(n, bus, hub, G, cfg, gm); bus.unl -= n; ln.carried += n; }
       if (bus.unl <= 0.5 && t - bus.tStop >= Bt.dwell * 0.5) { delete bs[bus.bay]; bus.bay = null; bus.unl = 0; if (ln.qS > 15 || t >= e.close * 60 - 45) { bus.st = "toPick"; bus.tNext = t + 1; } else { bus.st = "toOrigin"; bus.tDep = t; bus.tArr = t + trip; } }
       return; }
-    if (bus.st === "toPick") { var pk = S.picks || (S.picks = {}); if (t >= bus.tNext && !pk[k]) { pk[k] = bus.id; bus.st = "board"; bus.tStop = t; bus.back = 0; } return; }
+    if (bus.st === "toPick") { var pk = S.picks || (S.picks = {}), arr = pk[k] = Array.isArray(pk[k]) ? pk[k] : []; if (t >= bus.tNext && arr.length < (cfg.pickN || 1)) { arr.push(bus.id); bus.slot = arr.indexOf(bus.id); bus.st = "board"; bus.tStop = t; bus.back = 0; } return; }
     if (bus.st === "board") {
-      var pk2 = S.picks, reg = cfg.sas === "reg", agL = ag / 3, brate = reg ? (agL >= 1 ? 40 : 24) : 58, m = Math.min(ln.qS, brate * gm, Bt.cap - bus.back); m = Math.max(0, m);
+      var pk2 = S.picks, reg = cfg.sas === "reg", agL = ag / 3 / Math.max(1, (cfg.pickN || 1) * 0.7), brate = reg ? (agL >= 1 ? 40 : 24) : 58, m = Math.min(ln.qS, brate * gm, Bt.cap - bus.back); m = Math.max(0, m);
       ln.qS -= m; bus.back += m; ln.back += m;
       // sas ouvert ou sans agents : la foule se presse au quai
       if ((!reg || agL < 1) && ln.qS > 250 && Math.random() < 1 - Math.exp(-0.02 * ln.qS / 250 * gm) && !(S.crushT > t - 20)) { S.crushT = t; S.sat -= 4; var sp = G.sas(k); L.spawnInc("med", sp[0], sp[1] + 2, 20, { crush: true }); L.log("Bousculade au quai de la ligne " + D.LINES[k].n + " : le sas n'est pas tenu, une personne au sol.", "r", "Transports"); }
-      if (bus.back >= Bt.cap - 0.5 || (ln.qS < 1 && t - bus.tStop >= 1.5) || t - bus.tStop > 14) { pk2[k] = null; bus.st = "toOrigin"; bus.tDep = t; bus.tArr = t + trip; }
+      if (bus.back >= Bt.cap - 0.5 || (ln.qS < 1 && t - bus.tStop >= 1.5) || t - bus.tStop > 14) { pk2[k] = (pk2[k] || []).filter(function (id) { return id !== bus.id; }); bus.st = "toOrigin"; bus.tDep = t; bus.tArr = t + trip; }
       return; }
   }
   // les passagers descendent par paquets : pré-contrôle au quai, cheminement balisé ou non jusqu'à l'entrée
   function hubEmit(n, bus, hub, G, cfg, gm) {
-    var e = S.ev, f = n / Math.max(1, bus.unl0), comp = scale(bus.comp, f), q = G.quay, x = q[0] + rnd(-6, 6), z = q[1];
+    var e = S.ev, f = n / Math.max(1, bus.unl0), comp = scale(bus.comp, f), q = G.quay, x = cfg.guide ? G.walkX + rnd(-1, 1) : q[0] + rnd(-6, 6), z = cfg.guide ? G.f.z0 - 0.5 : q[1];
     var share = cfg.precheck > 0 ? Math.min(1, cfg.precheck * 5 * gm / Math.max(1, n)) : 0; if (share > 0) { var stop0 = comp.fake * share * 0.7; comp.fake -= stop0; S.pop.fraudStop += stop0; comp.pre = n * share; }
     var forced = e.tr.route[hub.id] ? Sim.find(e, e.tr.route[hub.id]) : null;
     if (cfg.guide) goToEntry(n, x, z, "bus", comp, forced);
-    else { goToEntry(n * 0.6, x, z, "bus", scale(comp, 0.6), forced); goToEntry(n * 0.4, x + rnd(-20, 20), z, "bus", scale(comp, 0.4)); S.road.jam = Math.min(1, (S.road.jam || 0) + n * 0.0004); S.jaywalk = (S.jaywalk || 0) + n * 0.4; }
+    else { goToEntry(n * 0.6, x, z, "bus", scale(comp, 0.6), forced); goToEntry(n * 0.4, x + rnd(-20, 20), z, "bus", scale(comp, 0.4)); if (roadMode() !== "filter") { S.road.jam = Math.min(1, (S.road.jam || 0) + n * 0.0004); S.jaywalk = (S.jaywalk || 0) + n * 0.4; } }
   }
   function accStep(gm) {
     var e = S.ev, AC = Sim.accCfg(e), t = S.t; S.sav = S.sav || { q: 0, done: 0, fraud: 0, blocked: 0 };
@@ -7428,7 +7466,7 @@ button:focus-visible,input:focus-visible{outline:3px solid var(--lime);outline-o
   F.step = function (gm, w) {
     S = Sim.get(); var e = S.ev;
     if (e.layout.some(function (b) { return D.BT[b.k].stop; })) busStep(gm);
-    accStep(gm); F.cataStep(); F.rivStep(gm); arrivals(gm, w); roadStep(gm); walkStep(); entriesStep(gm); doubtStep(); evacStep(gm); departures(gm);
+    accStep(gm); crossStep(gm); F.cataStep(); F.rivStep(gm); arrivals(gm, w); roadStep(gm); walkStep(); entriesStep(gm); doubtStep(); evacStep(gm); departures(gm);
     S.pop.maxIn = Math.max(S.pop.maxIn, S.pop.inside); if (S.pop.inside > e.cap * 1.02) S.stats.over += gm;
     stagesStep(gm, w); barsStep(gm, w); foodStep(gm); servicesStep(gm, w); autoOrders(gm); autoBar(gm);
     S.promos = S.promos.filter(function (p) { return p.until > S.t; });
@@ -7706,7 +7744,7 @@ button:focus-visible,input:focus-visible{outline:3px solid var(--lime);outline-o
     var curb = std(0x6a6b70, 0, 0, 0.8); box(Wd + 600, 0.25, 0.5, curb, 0, 0.12, rz - 4.6, vg, false); box(Wd + 600, 0.25, 0.5, curb, 0, 0.12, rz + 4.6, vg, false);
     var dashM = new THREE.MeshBasicMaterial({ color: 0xd8d4c6 }), dashG = new THREE.PlaneGeometry(4, 0.35), nD = Math.ceil((Wd + 600) / 9), dashes = new THREE.InstancedMesh(dashG, dashM, nD), dm = new THREE.Object3D();
     for (var i = 0; i < nD; i++) { dm.position.set(-Wd / 2 - 300 + i * 9, 0.03, rz); dm.rotation.set(-Math.PI / 2, 0, 0); dm.updateMatrix(); dashes.setMatrixAt(i, dm.matrix); } vg.add(dashes);
-    var lots = ev.layout.filter(function (b) { return b.k === "parking" || b.k === "camping"; }), xs = ev.layout.filter(function (b) { return D.BT[b.k].entry; }).map(function (b) { return b.x; }).concat(lots.map(function (b) { return b.x; }));
+    var lots = ev.layout.filter(function (b) { return b.k === "parking" || b.k === "camping"; }), xs = Sim.crossings(ev).map(function (c) { return c.x; }); W._crossKey = xs.join();
     var zebra = new THREE.MeshBasicMaterial({ color: 0xe8e4da }); xs.forEach(function (x) { for (var k = 0; k < 6; k++) { var z = new THREE.Mesh(new THREE.PlaneGeometry(0.7, 8), zebra); z.rotation.x = -Math.PI / 2; z.position.set(x - 2.5 + k * 1.1, 0.035, rz); vg.add(z); } });
     for (var lx = -Wd / 2 - 60; lx <= Wd / 2 + 60; lx += 22) [rz - 6, rz + 6].forEach(function (z, j) { if (j && Math.random() < 0.3) return; var lxx = lx + (j ? 11 : 0); if (ev.layout.some(function (o) { var f = Sim.fp(o); return lxx > f.x0 - 1.5 && lxx < f.x1 + 1.5 && z > f.z0 - 2.5 && z < f.z1 + 1.5; })) return; streetLamp(vg, lxx, z, j ? Math.PI : 0); });
     // zone des parkings (sol stabilisé)
@@ -8088,6 +8126,16 @@ button:focus-visible,input:focus-visible{outline:3px solid var(--lime);outline-o
     var tot = L([f.x0 + 40, f.z0 + 6.5]); box(0.5, 4.2, 1.4, own(0x14161c, 0, 0, 0.5), tot[0], 2.1, tot[1], g); signPanel(g, [{ t: "NAVETTES", c: "#fff", s: 30 }, { t: "gare · centre · relais", c: "#cfd3da", s: 16 }], 1.3, 2.2, tot[0] + 0.27, 2.6, tot[1], { bg: "#14161c" }, Math.PI / 2);
     return { gates: g.children.filter(function (m) { return m.userData && m.userData.sas; }) };
   };
+  BUILD.roadBlock = function (b, g, T) {
+    // barrières en travers des deux voies, avec un passage tenu par les agents pour les bus et les voitures des parkings
+    [[-4.4, -1.4], [1.4, 4.4]].forEach(function (seg) { g.add(I.barrierLine([[0, seg[0]], [0, seg[1]]], 0xd8dde4)); });
+    var red = own(0xe53935, 0, 0, 0.6), wht = std(0xf3f1ea); [-4.8, 4.8].forEach(function (z) { box(0.5, 1.2, 0.5, red, 0, 0.6, z, g); });
+    for (var i = 0; i < 6; i++) { var cz = -3.6 + i * 1.45; cyl(0.12, 0.26, 0.7, own(0xff6a1a, 0, 0, 0.6), -2.2, 0.35, cz, g, 10); cyl(0.2, 0.2, 0.08, wht, -2.2, 0.45, cz, g, 10); }
+    var pole = cyl(0.06, 0.06, 3.2, std(0x666a72), 1.2, 1.6, -5.2, g, 6); signPanel(g, [{ t: "ROUTE BARRÉE", c: "#fff", s: 30 }, { t: "SAUF BUS · SECOURS · PARKINGS", c: "#fff", s: 16 }], 3.2, 1.3, 1.25, 3.1, -5.2, { bg: "#c62828" }, Math.PI / 2);
+    var lamp1 = box(0.3, 0.3, 0.3, own(0xffb020, 0xffb020, 1.5), 0, 1.35, -4.8, g, false), lamp2 = box(0.3, 0.3, 0.3, own(0xffb020, 0xffb020, 1.5), 0, 1.35, 4.8, g, false);
+    staffFig(g, 0.8, -0.6, 0xFFB020, 0, 0); staffFig(g, -0.8, 0.6, 0xFFB020, Math.PI, 0);
+    return { lamps: [lamp1, lamp2] };
+  };
   BUILD.sav = function (b, g, T) { barnum(g, 0, 0, T.w, T.d, 2.4, 0x1a1c25, 0xF0457A); box(T.w - 0.4, 1.05, 0.6, std(0x1a1c25), 0, 0.53, T.d / 2 - 0.4, g); signPanel(g, [{ t: "SAV BILLETTERIE", c: "#fff", s: 22 }], T.w * 0.8, 0.45, 0, 2.15, T.d / 2 + 0.05, { bg: "#c2185b" }); staffFig(g, -1.2, T.d / 2 - 1.1, 0xF0457A, 0, 0); staffFig(g, 1.2, T.d / 2 - 1.1, 0xF0457A, 0, 0); return {}; };
   BUILD.dropZone = function (b, g, T) { plane(T.w, T.d, own(0x2b2d33, 0, 0, 0.9), 0, 0.03, 0, g); var yel = new THREE.MeshBasicMaterial({ color: 0xFFB020 }); plane(16, 3.4, new THREE.MeshBasicMaterial({ color: 0x3a3218, transparent: true, opacity: 0.75 }), 0, 0.04, -T.d / 2 + 2.6, g); [-1, 1].forEach(function (s2) { plane(16, 0.15, yel, 0, 0.05, -T.d / 2 + 2.6 + s2 * 1.7, g); });
     box(16, 0.18, 2.2, std(0x8a8d94, 0, 0, 0.85), 0, 0.09, -T.d / 2 + 5.4, g); signPanel(g, [{ t: "DÉPOSE PROVISOIRE", c: "#111", s: 22 }], 4, 0.6, -6, 2.4, -T.d / 2 + 5.6, { bg: "#FFB020" }); cyl(0.05, 0.05, 2.2, std(0x777777), -6, 1.1, -T.d / 2 + 5.6, g, 6);
@@ -8347,6 +8395,7 @@ button:focus-visible,input:focus-visible{outline:3px solid var(--lime);outline-o
   }
   W._bmap = function () { return bmap; };
   W.syncLayout = function (ev, force) {
+    var ck = Sim.crossings(ev).map(function (c) { return c.x; }).join(); if (W._crossKey != null && ck !== W._crossKey) W.setVenue(ev, true);
     var key = JSON.stringify(ev.layout) + JSON.stringify(ev.halls);
     if (!force && key === layoutKey) return; layoutKey = key;
     var seen = {}, LG = I.layoutG;
@@ -8458,6 +8507,7 @@ button:focus-visible,input:focus-visible{outline:3px solid var(--lime);outline-o
     if (decoG && decoG.userData.bulbs) { var bu = decoG.userData.bulbs; bu.visible = dl < 0.75; if (bu.visible && !I.reduce) bulbMat.color.setScalar(0.85 + 0.15 * Math.sin(clock * 1.7)); }
     Object.keys(bmap).forEach(function (id) {
       var e = bmap[id], b = e.b, T = e.T, P = e.parts, al = null, alC = "#FFB020", pw = S ? Sim.powered(b) : true, ready = S ? Sim.ready(b) : true;
+      if (P.lamps) { var on = S && Sim.F.roadMode && Sim.F.roadMode() === "filter"; P.lamps.forEach(function (m, li) { m.visible = !!on && Math.floor(clock * 3 + li) % 2 === 0; }); }
       // montage : l'élément descend (grue / chariot), se pose avec un léger rebond et soulève de la poussière
       if (e.g.userData.grow != null) { var gr = e.g.userData.grow = Math.min(1, e.g.userData.grow + dt * 1.4), u0 = Math.min(1, gr / 0.7), dropY = 14 * (1 - u0 * u0), bnc = gr > 0.7 ? Math.sin((gr - 0.7) / 0.3 * Math.PI) * 0.35 * (1 - gr) * 3 : 0; e.g.position.y = dropY + bnc; e.g.rotation.z = gr < 0.7 ? Math.sin(gr * 14) * 0.03 * (1 - u0) : 0;
         if (gr > 0.7 && !e.g.userData.dust) { e.g.userData.dust = 1; var wd2 = Sim.dims(e.b), dr = ring(Math.max(wd2[0], wd2[1]) * 0.45, Math.max(wd2[0], wd2[1]) * 0.6, 0xc8b89a, 0.6); dr.position.set(e.b.x, 0.08, e.b.z); I.fxG.add(dr); var t0 = 0; (function puff() { t0 += 0.05; dr.scale.setScalar(1 + t0 * 1.5); dr.material.opacity = 0.6 * (1 - t0); if (t0 < 1) setTimeout(puff, 30); else { I.fxG.remove(dr); dr.geometry.dispose(); dr.material.dispose(); } })(); }
@@ -8691,17 +8741,19 @@ button:focus-visible,input:focus-visible{outline:3px solid var(--lime);outline-o
       if (seenWalk[it.id] != null) { var add = Math.floor(it.n / PER) - seenWalk[it.id]; if (add <= 0) return; seenWalk[it.id] += add; launch(it, add); return; }
       var n = Math.floor(it.n / PER + Math.random()); seenWalk[it.id] = n; launch(it, n);
     });
-    function launch(it, n) { for (var k = 0; k < n; k++) { var w = freeWalker(); if (w < 0) return; var p = wpeople[w]; p.vis = true; p.x = it.sx + rnd(-1.5, 1.5); p.z = it.sz + rnd(-1.2, 1.2); p.tx = it.tx + rnd(-2, 2); p.tz = it.tz + rnd(-1, 1); p.t0 = S.t + k * 0.05; p.path = Sim.path(p.x, p.z, p.tx, p.tz); p.item = it.id; p.kind = it.kind; } }
+    function launch(it, n) { for (var k = 0; k < n; k++) { var w = freeWalker(); if (w < 0) return; var p = wpeople[w]; p.vis = true; p.x = it.sx + rnd(-1.5, 1.5); p.z = it.sz + rnd(-1.2, 1.2); p.tx = it.tx + rnd(-2, 2); p.tz = it.tz + rnd(-1, 1); p.t0 = S.t + k * 0.05; p.path = crossPath(p.x, p.z, p.tx, p.tz); p.item = it.id; p.kind = it.kind; } }
   }
   function freeWalker() { for (var i = 0; i < NW; i++) if (!wpeople[i].vis) return i; return -1; }
   function spawnOutside(p, S) { var w = freeWalker(); if (w < 0) return; var q = wpeople[w], asm = S.ev.layout.filter(function (b) { return b.k === "assembly"; }); q.vis = true; q.x = p.x; q.z = p.z + 1; var tgt = asm.length ? asm[Math.floor(Math.random() * asm.length)] : null, V = Sim.venue(S.ev); q.tx = tgt ? tgt.x + rnd(-6, 6) : p.x + rnd(-10, 10); q.tz = tgt ? tgt.z + rnd(-4, 4) : V.D / 2 + 12 + rnd(0, 8); q.path = Sim.path(q.x, q.z, q.tx, q.tz); q.t0 = S.t; q.kind = "evac"; q.stay = true; }
+  function crossPath(x0, z0, x1, z1) { var rz = Sim.roadZ(Sim.get().ev); if ((z0 - rz) * (z1 - rz) >= 0) return Sim.path(x0, z0, x1, z1); var c = Sim.F.nearestCross((x0 + x1) / 2); if (!c) return Sim.path(x0, z0, x1, z1);
+    var sg = z0 < rz ? -1 : 1, cx = c.x + rnd(-1.6, 1.6), a = [cx, rz + sg * 5.4], b = [cx, rz - sg * 5.4]; var p = Sim.path(x0, z0, a[0], a[1]).slice(); p.push([a[0], a[1], c.id]); p.push(b); return p.concat(Sim.path(b[0], b[1], x1, z1)); }
   function moveWalkers(dt, S) {
     var sp0 = 2.3 * dt * Math.min(3, Math.max(1, W.speedMul || 1));
     for (var i = 0; i < NW; i++) {
       var p = wpeople[i]; if (!p.vis) { if (!p.hid) { hide(walkers, i); p.hid = true; } continue; } p.hid = false;
       if (S.t < p.t0) { hide(walkers, i); continue; }
       var moving = false;
-      if (p.path && p.path.length) { var w = p.path[0], dx = w[0] - p.x, dz = w[1] - p.z, d = Math.hypot(dx, dz), m = sp0 * p.sp; if (d <= m) { p.x = w[0]; p.z = w[1]; p.path.shift(); } else { p.x += dx / d * m; p.z += dz / d * m; } p.dir = turnTo(p.dir || 0, Math.atan2(dx, dz), dt); moving = true; }
+      if (p.path && p.path.length) { var w = p.path[0], dx = w[0] - p.x, dz = w[1] - p.z, d = Math.hypot(dx, dz), m = sp0 * p.sp; if (d <= m) { p.x = w[0]; p.z = w[1]; if (w[2] && !Sim.F.crossPed(w[2])) { pose(walkers, i, p.x, p.z, p.dir, 0, 0, 0); continue; } p.path.shift(); } else { p.x += dx / d * m; p.z += dz / d * m; } p.dir = turnTo(p.dir || 0, Math.atan2(dx, dz), dt); moving = true; }
       else if (!p.stay) { p.vis = false; continue; }
       if (p.stay && S.evac == null) { p.vis = false; p.stay = false; continue; }
       if (moving) p.ph += sp0 * 3.4;
@@ -8841,7 +8893,7 @@ button:focus-visible,input:focus-visible{outline:3px solid var(--lime);outline-o
       else if (bus.st === "queue") { var qi = queued.indexOf(bus); pos = [head[0] - dir * qi * (L + 2), lane]; n = bus.load; }
       else if (bus.st === "drop") { var bay = bays[bus.bay]; if (!bay) return; var fi = clamp((t - (bus.tStop || t)) / 0.7, 0, 1), tgt = [bay.x, bay.z]; pos = fi < 1 ? along2([head, [tgt[0] - dir * 12, lane], [tgt[0] - dir * 5, tgt[1]], tgt], easeIO(fi)) : tgt; n = bus.unl; }
       else if (bus.st === "toPick") { var pp = G.pick[k], fp2 = 1 - (bus.tNext - t); pos = fp2 < 1 ? along2([bus._last || pp, [pp[0], pp[1] + 0.01]], easeIO(clamp(fp2, 0, 1))) : [pp[0] - dir * (L + 3), lane]; n = 0; }
-      else if (bus.st === "board") { pos = G.pick[k]; n = bus.back; }
+      else if (bus.st === "board") { pos = bus.slot ? [G.pick[k][0] + dir * (bus.slot - 1) * (L + 1.5), lane] : G.pick[k]; n = bus.back; }
       else if (bus.st === "toOrigin") { var fo = (t - bus.tDep) / 2.4; if (fo >= 1) return; var st0 = bus._last || [hub.x, f.z0 + 3]; pos = along2([st0, [st0[0] + dir * 10, lane], [-side * (V.W / 2 + 170), lane]], easeIO(clamp(fo, 0, 1))); n = bus.back || 0; }
       else return;
       if (bus.st !== "toOrigin") bus._last = pos.slice();
@@ -8855,6 +8907,24 @@ button:focus-visible,input:focus-visible{outline:3px solid var(--lime);outline-o
   }
   // circulation de fond et bouchons sur la route
   var traffic = null, TN = 160;
+  // couloirs balisés : gare routière → passage → entrée, et couloirs de sortie en fin de soirée
+  var guideG = null, guideKey = "";
+  function corridor(pts, w) { var L1 = [], L2 = []; for (var i = 0; i < pts.length; i++) { var a = pts[Math.max(0, i - 1)], b = pts[Math.min(pts.length - 1, i + 1)], dx = b[0] - a[0], dz = b[1] - a[1], d = Math.hypot(dx, dz) || 1, nx = -dz / d * w, nz = dx / d * w; L1.push([pts[i][0] + nx, pts[i][1] + nz]); L2.push([pts[i][0] - nx, pts[i][1] - nz]); } return [L1, L2]; }
+  function drawGuide(S) {
+    var ev = S.ev, hub = Sim.hubOf(ev), cfg = Sim.hubCfg(ev), rz = Sim.roadZ(ev), segs = [], key = "";
+    if (hub && cfg.guide) { var G = Sim.hubGeo(ev, hub), c = Sim.F.nearestCross(G.quay[0]), ent = ev.tr.route[hub.id] ? Sim.find(ev, ev.tr.route[hub.id]) : Sim.entriesOf(ev).slice().sort(function (a, b2) { return Math.abs(a.x - G.quay[0]) - Math.abs(b2.x - G.quay[0]); })[0];
+      if (c && ent) { var gp = Sim.gatePoint(ev, ent, 1, Sim.ENTRY.depth + 3); segs.push([[G.f.x0 + 37, G.quay[1]], [c.x, G.quay[1] - 1.5], [c.x, G.f.z0 + 0.3], [c.x, rz + 5.6]]); segs.push([[c.x, rz - 5.6], [c.x, rz - 9], [gp[0], gp[1] + 1]]); key += "g" + c.x + ent.id + hub.id; } }
+    if (S.closing && ev.tr.exitPlan) { Sim.entriesOf(ev).forEach(function (b) { var gp = Sim.gatePoint(ev, b, 1, Sim.ENTRY.depth + 2), c = Sim.F.nearestCross(b.x); if (!c) return; segs.push([[gp[0], gp[1]], [c.x, rz - 9], [c.x, rz - 5.6]]); key += "x" + b.id + c.x; }); }
+    if (key === guideKey) return; guideKey = key; if (guideG) { I.overG.remove(guideG); I.disposeTree(guideG); guideG = null; } if (!segs.length) return;
+    guideG = new THREE.Group(); segs.forEach(function (p) { corridor(p, 1.7).forEach(function (l) { guideG.add(I.barrierLine(l, 0xd8dde4)); }); }); I.overG.add(guideG);
+  }
+  // signaleurs aux passages : deux par passage tenu, palette « STOP » face aux voitures pendant la phase piétons
+  var crossMap = {};
+  function drawCrossAgents(S, crs, rz, clock) { var seen = {};
+    crs.forEach(function (c) { var st = S.cross && S.cross[c.id]; if (!st || !st.tended) return; seen[c.id] = 1; var e = crossMap[c.id];
+      if (!e) { var g = new THREE.Group(); g.position.set(c.x, 0, rz); var fig = [], pad = []; [-1, 1].forEach(function (sd) { var f = new THREE.Group(); f.position.set(sd * 2.6, 0, sd * 4.9); f.scale.setScalar(1.25); g.add(f); var body = cyl(0.22, 0.26, 1.2, own(0xFFB020, 0xFFB020, 0.15), 0, 0.95, 0, f, 8); var head = cyl(0.16, 0.16, 0.28, std(0xd9a37a), 0, 1.72, 0, f, 8); cyl(0.03, 0.03, 0.7, std(0x333333), 0.35, 1.35, 0, f, 4); var pm = new THREE.MeshBasicMaterial({ color: 0xe53935 }), p = new THREE.Mesh(new THREE.CircleGeometry(0.32, 16), pm); p.position.set(0.35, 1.85, 0); p.rotation.y = Math.PI / 2; f.add(p); fig.push(f); pad.push(pm); }); I.vehG.add(g); e = crossMap[c.id] = { g: g, pad: pad }; }
+      var ped = Sim.F.crossPed(c.id); e.pad.forEach(function (m) { m.color.setHex(ped ? 0xe53935 : 0x3CCB6C); }); e.g.visible = true; });
+    Object.keys(crossMap).forEach(function (id) { if (!seen[id]) crossMap[id].g.visible = false; }); }
   function drawRoad(S, dt, clock) {
     var ev = S.ev, V = Sim.venue(ev), rz = Sim.roadZ(ev);
     if (!traffic) { traffic = I.carInstanced(TN); var col = new THREE.Color(); for (var i = 0; i < TN; i++) { col.setHSL(Math.random(), Math.random() * 0.4, 0.25 + Math.random() * 0.4); traffic[0].setColorAt(i, col); } traffic.forEach(function (m) { m.frustumCulled = false; I.vehG.add(m); }); }
@@ -8863,8 +8933,12 @@ button:focus-visible,input:focus-visible{outline:3px solid var(--lime);outline-o
     for (var i = 0; i < q && n < TN; i++) { var side = i % 2 ? 1 : -1, x = side * (V.W / 2 + 10 + Math.floor(i / 2) * 5.2); dmy.position.set(x, 0, rz + (side > 0 ? 2.2 : -2.2)); dmy.rotation.set(0, side > 0 ? -Math.PI / 2 : Math.PI / 2, 0); dmy.updateMatrix(); traffic.forEach(function (m) { m.setMatrixAt(n, dmy.matrix); }); n++; }
     for (var j = 0; j < qo && n < TN; j++) { var l = lots[j % Math.max(1, lots.length)]; if (!l) break; var f = Sim.fp(l), kk = Math.floor(j / Math.max(1, lots.length)), row = Math.floor(kk / 4); if (f.z0 + 3 + row * 5.5 > f.z1 - 2) continue; dmy.position.set(l.x - 4.5 + (kk % 4) * 3, 0, f.z0 + 3 + row * 5.5); dmy.rotation.set(0, Math.PI, 0); dmy.updateMatrix(); traffic.forEach(function (m) { m.setMatrixAt(n, dmy.matrix); }); n++; }
     // trafic qui roule (moins quand ça bouchonne)
+    var mode = Sim.F.roadMode ? Sim.F.roadMode() : "open", crs = Sim.crossings(ev), stopAt = {}; drawCrossAgents(S, crs, rz, clock); drawGuide(S);
     var qEnd = V.W / 2 + 10 + Math.ceil(q / 2) * 5.2, busX = []; Object.keys(vmap).forEach(function (kb) { if (kb.indexOf("bus") === 0 && vmap[kb].g.visible) busX.push(vmap[kb].g.position.x); });
-    var flowN = Math.round(18 * (1 - Math.min(0.8, S.road.jam || 0))); for (var k = 0; k < flowN && n < TN; k++) { var dir = k % 2 ? 1 : -1, sp = 22 * (1 - Math.min(0.85, S.road.jam || 0)), span = V.W + 300, xk = ((clock * sp * dir + k * 37.3) % span + span) % span - span / 2;
+    var flowN = Math.round(18 * (1 - Math.min(0.8, S.road.jam || 0)) * (mode === "filter" ? 0.15 : mode === "open" ? 1 : 0.55)); for (var k = 0; k < flowN && n < TN; k++) { var dir = k % 2 ? 1 : -1, sp = 22 * (1 - Math.min(0.85, S.road.jam || 0)), span = V.W + 300, xk = ((clock * sp * dir + k * 37.3) % span + span) % span - span / 2;
+      if (mode === "oneway" && dir < 0) continue; if (mode === "lane" && dir > 0) continue;
+      // la voiture s'arrête avant un passage où les piétons traversent ; les suivantes se rangent derrière
+      for (var ci = 0; ci < crs.length; ci++) { var c = crs[ci], ahead = (c.x - xk) * dir; if (ahead > -2 && ahead < 14 && Sim.F.crossPed(c.id) && S.cross && S.cross[c.id] && S.cross[c.id].tended) { var sk = c.id + dir; stopAt[sk] = (stopAt[sk] || 0) + 1; xk = c.x - dir * (6.2 + (stopAt[sk] - 1) * 5.2); break; } }
       if (q > 0 && (dir < 0 ? xk > 0 : xk < 0) && Math.abs(xk) > V.W / 2 + 6 && Math.abs(xk) < qEnd + 4) continue; if (dir > 0 && busX.some(function (bx) { return Math.abs(bx - xk) < 9; })) continue; dmy.position.set(xk, 0, rz + (dir > 0 ? -2.2 : 2.2)); dmy.rotation.set(0, dir > 0 ? Math.PI / 2 : -Math.PI / 2, 0); dmy.updateMatrix(); traffic.forEach(function (m) { m.setMatrixAt(n, dmy.matrix); }); n++; }
     traffic.forEach(function (m) { m.count = n; m.instanceMatrix.needsUpdate = true; });
   }
@@ -9683,13 +9757,14 @@ button:focus-visible,input:focus-visible{outline:3px solid var(--lime);outline-o
       U.line(body, "Quais de dépose", "deux bus standard par rangée ; 4 000 € par quai en plus", function () { return cfg.dropBays; }, function (d) { cfg.dropBays = clamp(cfg.dropBays + d, 2, 4); W.syncLayout(e, true); }, String, 2, 4, L());
       U.tline(body, "Cheminement balisé", "barrières et signaleurs entre le quai et l'entrée", function (v) { return v ? "Oui" : "Non"; }, function () { return !!cfg.guide; }, function (v) { cfg.guide = v; }, L());
       U.line(body, "Pré-contrôle au quai", "billets et sacs vérifiés à la descente (30 €/h par agent)", function () { return cfg.precheck; }, function (d) { cfg.precheck = clamp(cfg.precheck + d * 2, 0, 20); }, String, 0, 20, L());
+      U.line(body, "Bus en montée par ligne", "le 2e et le 3e chargent sur la voie devant le quai", function () { return cfg.pickN || 1; }, function (d) { cfg.pickN = clamp((cfg.pickN || 1) + d, 1, 3); }, String, 1, 3, L());
       U.seg(body, [["reg", "Sas régulé"], ["free", "Sas ouvert"]], function () { return cfg.sas; }, function (v) { cfg.sas = v; }, L(), 2);
       U.tline(body, "Sortie échelonnée prévue", "set de clôture et bars ouverts 45 min après la fin (6 000 €)", function (v) { return v ? "Oui" : "Non"; }, function () { return !!e.tr.staggerPlan; }, function (v) { e.tr.staggerPlan = v; }, L()); }
     D.LINEK.forEach(function (lk) {
       var Lk = e.tr.lines[lk], LD = D.LINES[lk], r = mk(body, "div", "srow"), top = mk(r, "div", "top"); mk(top, "b", null, "Ligne " + LD.n); var r2 = mk(top, "span", "r2"); note(r, LD.d + " Trajet " + LD.trip + " min.");
       var tg = mk(r, "div", "btns"); U.toggle(tg, function (v) { return v ? "En service" : "Pas de ligne"; }, function () { return Lk.on; }, function (v) { Lk.on = v; }, L());
       U.seg(r, D.BUSK.map(function (bk) { var B = D.BUS[bk]; return [bk, B.n, B.cap + " places · " + B.costH + " €/h"]; }), function () { return Lk.bus; }, function (v) { Lk.bus = v; }, L(), 2);
-      U.line(r, "Flotte", function () { return "un départ toutes les " + Sim.headway(e, lk).toFixed(1).replace(".", ",") + " min · " + nb(Sim.lineCapH(e, lk)) + " passagers/h"; }, function () { return Lk.fleet; }, function (d) { Lk.fleet = clamp(Lk.fleet + d, 1, 40); }, function (v) { return v + " bus"; }, 1, 40, L());
+      U.line(r, "Flotte", function () { return "un départ toutes les " + Sim.headway(e, lk).toFixed(1).replace(".", ",") + " min · " + nb(Sim.lineCapH(e, lk)) + " passagers/h"; }, function () { return Lk.fleet; }, function (d) { Lk.fleet = clamp(Lk.fleet + d, 1, 90); }, function (v) { return v + " bus"; }, 1, 90, L());
       if (stops.length > 1) U.seg(r, stops.map(function (s) { return [s.id, U.bName(s)]; }), function () { return Lk.stop || stops[lk === "centre" && stops.length > 1 ? 1 : 0].id; }, function (v) { Lk.stop = v; }, L(), 2);
       L().push(function () { r2.textContent = Lk.on ? nb(D.BUS[Lk.bus].costH * Lk.fleet) + " €/h" : "—"; r.style.opacity = Lk.on ? 1 : 0.6; });
     });
@@ -9705,6 +9780,7 @@ button:focus-visible,input:focus-visible{outline:3px solid var(--lime);outline-o
     U.line(body, "Prix sur place", "par voiture et par jour", function () { return e.park.price; }, function (d) { e.park.price = clamp(e.park.price + d, 0, 40); }, function (v) { return v ? v + " €" : "gratuit"; }, 0, 40, L());
     U.line(body, "Prix en prévente", "réservé avec le billet", function () { return e.park.pre; }, function (d) { e.park.pre = clamp(e.park.pre + d, 0, 40); }, function (v) { return v ? v + " €" : "gratuit"; }, 0, 40, L());
     U.tline(body, "Champ de débordement", "un champ voisin loué si les parkings sont pleins (+800 places, 2 000 €)", function (v) { return v ? "Réservé" : "Non"; }, function () { return !!e.park.overflow; }, function (v) { e.park.overflow = v; }, L());
+    U.roadPanel(body, e, L(), false);
     sec(body, "Agents");
     [["traffic", "agents de circulation"], ["shuttleAg", "accueil aux arrêts"]].forEach(function (rr) { var R = D.ROLES.filter(function (x) { return x.k === rr[0]; })[0]; U.line(body, R.n, R.d, function () { return e.staff[R.k]; }, function (d) { e.staff[R.k] = clamp(e.staff[R.k] + d, R.min, R.max); }, String, R.min, R.max, L()); });
   };
@@ -9980,6 +10056,25 @@ button:focus-visible,input:focus-visible{outline:3px solid var(--lime);outline-o
     var l3 = mk(body, "div", "line"), t3 = mk(l3, "div", "lbl", "Maraudes prévention"), s3 = mk(t3, "small"); L.push(function () { s3.textContent = S.staff.maraude + " en maraude dans la foule"; }); smallHire(l3, "maraude", 2, L);
   };
 
+  // route devant le site : fermeture, barrages, passages piétons (partagé préparation / direct)
+  U.roadPanel = function (body, e, L, live) {
+    var RC = Sim.roadCfg(e), S = Sim.get();
+    sec(body, "Route devant le site");
+    U.seg(body, [["open", "Ouverte", "circulation normale"], ["lane", "Une voie fermée", "côté festival : traversée plus facile"], ["oneway", "Sens unique", "moitié moins de voitures"], ["filter", "Fermée (barrages)", "seuls bus, secours et voitures des parkings"]], function () { return RC.mode; }, function (v) { if (live && S && S.phase === "live") Sim.setRoad(v); else { if (v === "filter" && !e.layout.some(function (b) { return D.BT[b.k].road; })) { U.toast("Pose d'abord les barrages"); return; } RC.mode = v; } }, L, 2);
+    var bl = e.layout.filter(function (b) { return D.BT[b.k].road; });
+    note(body, bl.length ? bl.length + " barrage" + (bl.length > 1 ? "s" : "") + " filtrant" + (bl.length > 1 ? "s" : "") + " sur la route (2 agents de circulation chacun). Route fermée : traversée libre, plus de bouchon devant le site, mais la circulation déviée ralentit un peu les bus et les secours." : "Aucun barrage : pose ceux proposés aux deux bouts du site, ou place-les toi-même (onglet Site, catégorie Accès).");
+    var bt = mk(body, "div", "btns"); U.btn(bt, "Poser les barrages proposés", function () { if (!Sim.placeBlocks(e)) U.toast("Les barrages sont déjà en place"); W.syncLayout(e); U.refresh(true); }, "go2");
+    bl.forEach(function (b) { U.btn(bt, "Voir x" + b.x, function () { W.focus(b.x, b.z, 26, 0.65); }); U.btn(bt, "Retirer x" + b.x, function () { e.layout = e.layout.filter(function (o) { return o !== b; }); if (RC.mode === "filter" && !e.layout.some(function (o) { return D.BT[o.k].road; })) RC.mode = "open"; W.syncLayout(e); U.refresh(true); }); });
+    sec(body, "Passages piétons");
+    Sim.crossings(e).forEach(function (c) { var x = mk(body, "div", "srow"), top = mk(x, "div", "top"); mk(top, "b", null, "Passage x" + c.x + (c.user ? " (ajouté)" : "")); var r2 = mk(top, "span", "r2");
+      U.seg(x, [["ped", "Priorité piétons", "65 % du temps aux piétons"], ["bal", "Équilibré", "50 / 50"], ["car", "Priorité voitures", "30 % aux piétons"]], function () { return RC.crossMode[c.id] || "bal"; }, function (v) { RC.crossMode[c.id] = v; }, L, 3);
+      var bb = mk(x, "div", "btns"); U.btn(bb, "Voir", function () { W.focus(c.x, Sim.roadZ(e), 24, 0.6); }); if (c.user) U.btn(bb, "Supprimer", function () { RC.cross = RC.cross.filter(function (v) { return Math.abs(v - c.x) > 1; }); W.syncLayout(e); U.refresh(true); });
+      L.push(function () { var st = S && S.cross && S.cross[c.id]; r2.textContent = st ? Math.round(st.flow) + " pers./min · attente " + (st.wait || 0).toFixed(1).replace(".", ",") + " min · " + (st.tended ? "signaleurs en poste" : "SANS signaleur") : "—"; r2.style.color = st && !st.tended && st.flow > 12 ? "var(--red, #ff3d52)" : ""; }); });
+    U.tline(body, "Plan de sortie en fin de soirée", "couloirs de barrières des sorties jusqu'aux passages, piétons prioritaires : sortie plus fluide, beaucoup moins d'accidents", function (v) { return v ? "Prévu" : "Non"; }, function () { return !!e.tr.exitPlan; }, function (v) { e.tr.exitPlan = v; }, L);
+    var bt2 = mk(body, "div", "btns"); U.btn(bt2, "Ajouter un passage au centre de la vue", function () { if (Sim.addCross(e, W.cam.tx)) { W.syncLayout(e); U.refresh(true); } });
+    var l = mk(body, "div", "line"), t = mk(l, "div", "lbl", "Signaleurs de traversée"), s2 = mk(t, "small"); L.push(function () { var nc = Sim.crossings(e).length, have = S && S.phase === "live" ? S.staff.crossAg : e.staff.crossAg; s2.textContent = (have || 0) + " signaleurs : " + Math.min(nc, Math.floor((have || 0) / 2)) + " passage(s) tenu(s) sur " + nc + " (les plus fréquentés d'abord)"; });
+    if (live && S && S.phase === "live") smallHire(l, "crossAg", 2, L); else { var R0 = D.ROLES.filter(function (x) { return x.k === "crossAg"; })[0]; U.line(body, "Signaleurs prévus", "deux par passage", function () { return e.staff.crossAg || 0; }, function (d) { e.staff.crossAg = clamp((e.staff.crossAg || 0) + d * 2, 0, R0.max); }, String, 0, R0.max, L); }
+  };
   // ================================================================ plan de circulation : tous les flux au même endroit
   T.circulation = function (body, sub, L, S) {
     var e = ev(), hub = Sim.hubOf(e), cfg = Sim.hubCfg(e); sub.textContent = "Arrivées, gare routière, route, sortie";
@@ -10002,6 +10097,7 @@ button:focus-visible,input:focus-visible{outline:3px solid var(--lime);outline-o
       U.line(body, "Pré-contrôle au quai", "agents qui vérifient billets et sacs à la descente : couloir plus rapide à l'entrée, faux billets refusés (30 €/h chacun)", function () { return cfg.precheck; }, function (d) { cfg.precheck = clamp(cfg.precheck + d * 2, 0, 20); }, function (v) { return v + " agents"; }, 0, 20, L);
       var ents = Sim.entriesOf(e); if (ents.length > 1) { sec(body, "Entrée desservie par la gare routière"); U.seg(body, [["", "La plus proche"]].concat(ents.map(function (x) { return [x.id, U.bName(x)]; })), function () { return e.tr.route[hub.id] || ""; }, function (v) { if (v) e.tr.route[hub.id] = v; else delete e.tr.route[hub.id]; }, L, 2); }
       sec(body, "Gare routière · reprise");
+      U.line(body, "Bus en montée par ligne", "1 au quai, les suivants sur la voie devant (il faut assez d'agents pour tenir le sas)", function () { return cfg.pickN || 1; }, function (d) { cfg.pickN = clamp((cfg.pickN || 1) + d, 1, 3); }, String, 1, 3, L);
       U.seg(body, [["reg", "Sas régulé", "les agents laissent monter par paquets : pas de bousculade, montée plus lente"], ["free", "Sas ouvert", "montée rapide, risque de bousculade quand la file est longue"]], function () { return cfg.sas; }, function (v) { cfg.sas = v; }, L, 2);
     }
     sec(body, "Lignes");
@@ -10014,6 +10110,7 @@ button:focus-visible,input:focus-visible{outline:3px solid var(--lime);outline-o
     U.line(body, "Dernier départ", "chaque heure en plus coûte environ " + money(Sim.busCostH(e)), function () { return e.tr.last; }, function (d) { var nv = clamp(e.tr.last + d, Math.ceil(S.t / 60), e.close + 3); if (nv > e.tr.last) S.money.shuttle -= Sim.busCostH(e) * (nv - e.tr.last) * 0.2; e.tr.last = nv; }, function (v) { return (v % 24) + "h"; }, function () { return Math.ceil(S.t / 60); }, e.close + 3, L);
     var bt2 = mk(body, "div", "btns"); U.btn(bt2, "Annoncer la dernière navette", function () { Sim.lastCall(); }, "go2"); U.btn(bt2, "Sortie échelonnée : set de clôture (6 000 €)", function () { Sim.staggerExit(); });
     L.push(function () { bt2.children[0].disabled = !!S.lastCall; bt2.children[1].disabled = !!S.stagger; });
+    U.roadPanel(body, e, L, true);
     sec(body, "Voitures et piétons");
     var k2 = mk(body, "div", "kpis"); U.kpi(k2, "Voitures en file", function () { return [nb(S.road.inQ) + " → " + nb(S.road.outQ)]; }, L); U.kpi(k2, "Parkings", function () { var c = 0, cap = 0; Object.keys(S.lots).forEach(function (id) { c += S.lots[id].cars; cap += S.lots[id].cap; }); return [cap ? Math.round(c / cap * 100) + " %" : "aucun"]; }, L); U.kpi(k2, "Piétons sur la chaussée", function () { return [nb(Math.round(S.jaywalk || 0)), S.jaywalk > 500 ? "warn" : ""]; }, L);
     var l = mk(body, "div", "line"), t2 = mk(l, "div", "lbl", "Agents de circulation"), s2 = mk(t2, "small"); L.push(function () { s2.textContent = S.staff.traffic + " agents aux carrefours et parkings"; }); smallHire(l, "traffic", 4, L);
