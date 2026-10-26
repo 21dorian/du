@@ -5002,16 +5002,17 @@ button:focus-visible,input:focus-visible{outline:3px solid var(--lime);outline-o
     exit: { n: "Issue de secours", cat: "Sécurité", w: 3, d: 2, cost: 600, exit: true, desc: "Porte dans la clôture, fermée en temps normal. Sa largeur en unités de passage (UP) fixe le débit d'évacuation." },
     assembly: { n: "Point de rassemblement", cat: "Sécurité", w: 16, d: 10, cost: 300, walk: true, assembly: 3000, desc: "Zone dehors où le public attend pendant une évacuation : comptage et retour possible." },
     staffgate: { n: "Entrée staff", cat: "Accès", w: 5, d: 3, cost: 1500, desc: "Badges de l'équipe." },
-    parking: { n: "Parking", cat: "Accès", w: 34, d: 22, cost: 6000, walk: true, parking: 1500, out: true, desc: "Choisis son type : public, VIP, PMR, staff, camping-cars ou deux-roues." },
+    parking: { n: "Parking", cat: "Accès", w: 60, d: 40, cost: 6000, walk: true, parking: 380, out: true, desc: "Choisis son type : public, VIP, PMR, staff, camping-cars ou deux-roues." },
     busHub: { n: "Gare routière navettes", cat: "Accès", w: 90, d: 18, cost: 18000, out: true, stop: true, hub: true, unique: true, desc: "Quais de dépose et de reprise séparés, files en barrières par ligne, sas d'embarquement. De l'autre côté de la route, contre la chaussée." },
     dropZone: { n: "Quai de dépose provisoire", cat: "Accès", w: 18, d: 7, cost: 2500, out: true, drop: true, desc: "Un quai de plus pour décharger les navettes quand la gare routière sature. Contre la route, côté parkings." },
+    hardBlock: { n: "Barrage piéton infranchissable", cat: "Accès", w: 5, d: 11, cost: 3500, out: true, road: true, hard: true, desc: "Route fermée à tous les véhicules (blocs béton sur toute la largeur, police) : la foule traverse librement. Seuls les secours passent, escortés par la police." },
     roadBlock: { n: "Barrage filtrant", cat: "Accès", w: 5, d: 11, cost: 1800, out: true, road: true, desc: "Barrières en travers de la route avec des agents : ne passent que les bus, les secours et les voitures qui vont aux parkings. Se pose sur la route." },
     sav: { n: "Guichet SAV billetterie", cat: "Accès", w: 6, d: 3, cost: 1200, out: true, desc: "Règle les billets à problème (QR déjà scanné, nom erroné, revente douteuse) sans bloquer les couloirs. Sur le parvis, près d'une entrée." },
     shuttle: { n: "Arrêt navettes", cat: "Accès", w: 10, d: 3, cost: 3500, out: true, stop: true, desc: "Gare routière des navettes, le long de la route. Configure les lignes dans Transports." },
     taxi: { n: "Station taxis / VTC", cat: "Accès", w: 10, d: 3, cost: 800, out: true, desc: "Dépose et reprise : moins de voitures qui tournent autour du site." },
     bikes: { n: "Parking vélos", cat: "Accès", w: 6, d: 3, cost: 600, out: true, desc: "Plus de visiteurs à vélo, moins de voitures." },
     vip: { n: "Zone VIP", cat: "Accès", w: 16, d: 12, cost: 25000, walk: true, vip: true, desc: "Billets VIP au triple du prix (5 % de la jauge)." },
-    camping: { n: "Camping", cat: "Accès", w: 38, d: 26, cost: 40000, walk: true, camping: 6000, out: true, desc: "6 000 campeurs (festival de plusieurs jours)." },
+    camping: { n: "Camping", cat: "Accès", w: 90, d: 60, cost: 40000, walk: true, camping: 3500, out: true, desc: "Environ 3 500 campeurs (≈ 15 m² par tente de 2 à 3 personnes)." },
     medic: { n: "Poste de secours", cat: "Sécurité", w: 8, d: 5, cost: 6000, medic: true, desc: "Base des secouristes." },
     secpc: { n: "PC sécurité", cat: "Sécurité", w: 5, d: 3, cost: 2500, desc: "Base des patrouilles." },
     light: { n: "Mât d'éclairage", cat: "Sécurité", w: 1, d: 1, cost: 900, light: 26, desc: "Éclaire la nuit : moins d'incidents dans la zone." },
@@ -5044,10 +5045,10 @@ button:focus-visible,input:focus-visible{outline:3px solid var(--lime);outline-o
 
   // ---------------------------------------------------------------- transports
   D.BUS = {
-    mini: { n: "Minibus", cap: 19, costH: 55, len: 7, h: 2.6, dwell: 1, col: 0xE9E4D6 },
-    std: { n: "Bus standard", cap: 55, costH: 95, len: 12, h: 3.1, dwell: 1.6, col: 0x2E6FD8 },
-    artic: { n: "Bus articulé", cap: 95, costH: 140, len: 18, h: 3.1, dwell: 2.2, col: 0xD8342E },
-    dbl: { n: "Bus à étage", cap: 85, costH: 150, len: 12, h: 4.3, dwell: 3, col: 0x1F9D6A } };
+    mini: { n: "Minibus", cap: 22, costH: 55, len: 7, h: 2.6, dwell: 1, col: 0xE9E4D6 },
+    std: { n: "Bus urbain", cap: 90, costH: 95, len: 12, h: 3.1, dwell: 1.2, col: 0x2E6FD8 },
+    artic: { n: "Bus articulé", cap: 140, costH: 140, len: 18, h: 3.1, dwell: 1.5, col: 0xD8342E },
+    dbl: { n: "Autocar (places assises)", cap: 59, costH: 120, len: 13, h: 3.7, dwell: 2.5, col: 0x1F9D6A } };
   D.BUSK = ["mini", "std", "artic", "dbl"];
   D.LINES = {
     gare: { n: "Gare", trip: 18, side: -1, w: 0.55, d: "Les visiteurs venus en train." },
@@ -5055,12 +5056,12 @@ button:focus-visible,input:focus-visible{outline:3px solid var(--lime);outline-o
     relais: { n: "Parking relais", trip: 9, side: -1, relay: true, d: "Parking moins cher à l'extérieur, relié par navette." } };
   D.LINEK = ["gare", "centre", "relais"];
   D.PTYPES = {
-    public: { n: "Public", cap: 1500, col: 0x3a3d46 },
-    vip: { n: "VIP", cap: 700, col: 0x3b3322 },
-    pmr: { n: "PMR", cap: 300, col: 0x1f3550 },
-    staff: { n: "Staff & artistes", cap: 900, col: 0x2e2a3a },
-    cc: { n: "Camping-cars", cap: 180, col: 0x2a3a2a },
-    moto: { n: "Deux-roues", cap: 2500, col: 0x3a2a2a } };
+    public: { n: "Public", cap: 380, col: 0x3a3d46 },
+    vip: { n: "VIP", cap: 320, col: 0x3b3322 },
+    pmr: { n: "PMR", cap: 250, col: 0x1f3550 },
+    staff: { n: "Staff & artistes", cap: 380, col: 0x2e2a3a },
+    cc: { n: "Camping-cars", cap: 150, col: 0x2a3a2a },
+    moto: { n: "Deux-roues", cap: 3000, col: 0x3a2a2a } };
   D.PTK = ["public", "vip", "pmr", "staff", "cc", "moto"];
   // fouille à l'entrée : vitesse des portiques, objets saisis, incidents évités
   D.SEARCH = {
@@ -5160,6 +5161,10 @@ button:focus-visible,input:focus-visible{outline:3px solid var(--lime);outline-o
     { k: "merchStaff", n: "Vendeurs merch", d: "Environ 1 vente par minute et par vendeur.", cost: 17, min: 0, max: 90 },
     { k: "boxOffice", n: "Billetterie sur place", d: "Caissiers aux entrées : un peu plus d'une vente par minute chacun.", cost: 18, min: 0, max: 90 },
     { k: "bracelet", n: "Échange bracelets", d: "Échangent le billet contre le bracelet cashless : 3 par minute chacun.", cost: 17, min: 0, max: 120 },
+    { k: "polRoad", n: "Police · fermetures de route", d: "Deux policiers par barrage : sans eux, un barrage ne tient pas (les voitures forcent le passage).", cost: 55, min: 0, max: 40 },
+    { k: "polTraffic", n: "Police · circulation", d: "Aux carrefours et passages piétons (deux par passage) et en motards : moins de bouchons, navettes escortées.", cost: 55, min: 0, max: 40 },
+    { k: "polPatrol", n: "Police · patrouilles", d: "Patrouilles en civil et en tenue dans la foule : moins de vols et de bagarres, interventions plus rapides.", cost: 55, min: 0, max: 60 },
+    { k: "polCyno", n: "Police · brigade cynophile", d: "Chiens aux entrées : beaucoup plus de produits saisis à la fouille, moins de malaises liés aux drogues.", cost: 70, min: 0, max: 12 },
     { k: "crossAg", n: "Signaleurs de traversée", d: "Aux passages piétons : arrêtent les voitures pour faire traverser la foule (deux par passage).", cost: 19, min: 0, max: 60 },
     { k: "savStaff", n: "SAV billetterie", d: "Au guichet SAV : environ un billet à problème réglé par minute chacun.", cost: 19, min: 0, max: 60 },
     { k: "maraude", n: "Maraudes prévention", d: "Repèrent les personnes en difficulté dans la foule, avant le malaise ou l'agression.", cost: 17, min: 0, max: 90 },
@@ -5240,7 +5245,7 @@ button:focus-visible,input:focus-visible{outline:3px solid var(--lime);outline-o
   // chefs d'équipe nommés : niveau 1 junior, 2 confirmé, 3 expert (coût par jour)
   D.CHEFS = { secu: { n: "Chef de la sécurité", who: ["Karim Belaïd", "Sandra Moreau", "Yves Ndiaye"], d: "moins de bagarres et d'intrusions" }, bar: { n: "Chef des bars", who: ["Léa Martin", "Tom Girard", "Inès Ferreira"], d: "service plus rapide aux bars" }, tech: { n: "Régisseur technique", who: ["Paul Lemaire", "Nadia Haddad", "Bruno Costa"], d: "moins de pannes son, tireuses et terminaux" }, log: { n: "Chef logistique", who: ["Hugo Petit", "Fatou Diallo", "Marc Weber"], d: "équipes plus rapides, livraisons mieux gérées" } };
   D.CHEF_LV = [["Aucun", 0], ["Junior", 600], ["Confirmé", 1500], ["Expert", 3200]];
-  D.STAFF_DEF = { barmen: 70, runners: 6, cleaners: 4, scanners: 12, secuIn: 12, secuStage: 20, secuPatrol: 8, medics: 8, vestStaff: 6, welcome: 2, traffic: 6, shuttleAg: 4, stewards: 10, info: 3, pmr: 2, campSecu: 0, merchStaff: 4, boxOffice: 4, bracelet: 6, hawkers: 4, maraude: 4, savStaff: 3, crossAg: 4 };
+  D.STAFF_DEF = { barmen: 70, runners: 6, cleaners: 4, scanners: 12, secuIn: 12, secuStage: 20, secuPatrol: 8, medics: 8, vestStaff: 6, welcome: 2, traffic: 6, shuttleAg: 4, stewards: 10, info: 3, pmr: 2, campSecu: 0, merchStaff: 4, boxOffice: 4, bracelet: 6, hawkers: 4, maraude: 4, savStaff: 3, crossAg: 4, polRoad: 0, polTraffic: 0, polPatrol: 0, polCyno: 0 };
   D.STOCK_DEF = { keg: 260, ice: 420, crate: 1800 };
   D.FIXED = { prod: 0.0 }; // les cachets et locations sont calculés à partir du plan
 })();
@@ -5283,9 +5288,9 @@ button:focus-visible,input:focus-visible{outline:3px solid var(--lime);outline-o
   function siteRect(ev) { var V = venue(ev); return { x0: -V.W / 2, x1: V.W / 2, z0: -V.D / 2, z1: V.D / 2 }; }
   Sim.roadZ = function (ev) { return venue(ev).D / 2 + D.PLAZA + 5; };
   function plazaRect(ev) { var V = venue(ev); return { x0: -V.W / 2 - 6, x1: V.W / 2 + 6, z0: V.D / 2 + 1, z1: V.D / 2 + D.PLAZA }; }
-  function lotsRect(ev) { var V = venue(ev); return { x0: -V.W / 2 - 6, x1: V.W / 2 + 6, z0: V.D / 2 + D.PLAZA + 10, z1: V.D / 2 + D.PLAZA + 64 }; }
+  function lotsRect(ev) { var V = venue(ev); return { x0: -V.W / 2 - 40, x1: V.W / 2 + 40, z0: V.D / 2 + D.PLAZA + 10, z1: V.D / 2 + D.PLAZA + 150 }; }
   Sim.siteRect = siteRect; Sim.plazaRect = plazaRect; Sim.lotsRect = lotsRect;
-  Sim.mapExtent = function (ev) { var V = venue(ev); return { x0: -V.W / 2 - 10, x1: V.W / 2 + 10, z0: -V.D / 2 - 8, z1: V.D / 2 + D.PLAZA + 66 }; };
+  Sim.mapExtent = function (ev) { var V = venue(ev); return { x0: -V.W / 2 - 10, x1: V.W / 2 + 10, z0: -V.D / 2 - 8, z1: V.D / 2 + D.PLAZA + 152 }; };
   function hallOf(ev, f) {
     var hs = venue(ev).halls || [];
     for (var i = 0; i < hs.length; i++) { var h = hs[i], r = { x0: h.x - h.w / 2, x1: h.x + h.w / 2, z0: h.z - h.d / 2, z1: h.z + h.d / 2 };
@@ -5347,11 +5352,13 @@ button:focus-visible,input:focus-visible{outline:3px solid var(--lime);outline-o
   Sim.crossings = function (ev) { var xs = [], add = function (x, user) { x = Math.round(x / 2) * 2; if (xs.some(function (c) { return Math.abs(c.x - x) < 10; })) return; xs.push({ id: "c" + x, x: x, user: !!user }); };
     ev.layout.forEach(function (b) { var t = D.BT[b.k]; if (t.entry || t.hub || (b.k === "parking" && (b.ptype || "public") === "public")) add(t.hub ? Sim.hubGeo(ev, b).walkX : b.x); });
     Sim.roadCfg(ev).cross.forEach(function (x) { add(x, true); }); return xs.sort(function (a, c) { return a.x - c.x; }); };
+  Sim.roadNet = function (ev) { var V = venue(ev), rz0 = Sim.roadZ(ev), lo = lotsRect(ev), DV = V.W / 2 + 45, P = Math.min(V.W / 2 - 14, 58), back = lo.z1 + 6;
+    return { DV: DV, P: P, back: back, rects: [{ x0: -DV - 4, x1: -DV + 4, z0: rz0 + 4.5, z1: back + 4 }, { x0: DV - 4, x1: DV + 4, z0: rz0 + 4.5, z1: back + 4 }, { x0: -DV - 4, x1: DV + 4, z0: back - 4, z1: back + 4 }, { x0: -P - 3.5, x1: -P + 3.5, z0: rz0 + 4.5, z1: back }, { x0: P - 3.5, x1: P + 3.5, z0: rz0 + 4.5, z1: back }] }; };
   Sim.blockSpots = function (ev) { var V = venue(ev), rz0 = Sim.roadZ(ev); return [[-V.W / 2 - 18, rz0], [V.W / 2 + 18, rz0]]; };
   Sim.hubOf = function (ev) { for (var i = 0; i < ev.layout.length; i++) if (D.BT[ev.layout[i].k].hub) return ev.layout[i]; return null; };
   // gare routière en boucle à sens unique, côté parkings :
   //   quai piéton (contre la route) · voie des quais · voie de dépassement ; entrée des bus à l'ouest, sortie à l'est
-  Sim.BUS_V = { road: 60, hub: 35 }; // vitesse d'affichage des navettes, en unités par minute de jeu
+  Sim.BUS_V = { road: 250, hub: 83 }; // vitesse d'affichage des navettes, en unités par minute de jeu
   Sim.hubGeo = function (ev, b) { var f = fp(b), nd = Sim.hubCfg(ev).dropBays, G = { f: f, zPlat0: f.z0 + 1, zPlat1: f.z0 + 8.6, zBay: f.z0 + 10.8, zPass: f.z0 + 14.6, xIn: f.x0 + 3, xOut: f.x1 - 3, walkX: f.x0 + 45, drop: [], pick: {}, queue: {} };
     for (var i = 0; i < nd; i++) G.drop.push([f.x0 + 8 + (i + 0.5) * 34 / nd, G.zBay]);
     D.LINEK.forEach(function (k, j) { var px = f.x0 + 53 + j * 14; G.pick[k] = [px, G.zBay]; G.queue[k] = { x0: px - 6, x1: px + 6, z0: f.z0 + 1.6, z1: f.z0 + 7.8 }; });
@@ -5407,6 +5414,7 @@ button:focus-visible,input:focus-visible{outline:3px solid var(--lime);outline-o
       if (t.stage && b.k !== "stageT") { var zn = Sim.zone(b, ev); if (V.fence && !within(zn, inner)) return { ok: false, why: "Pas assez de place pour le public devant la scène" }; for (var y = 0; y < ev.layout.length; y++) { var o2 = ev.layout[y]; if (o2.id === ignoreId || SMALL[o2.k]) continue; if (inter(zn, fp(o2), 0)) return { ok: false, why: "Le public de cette scène tomberait sur " + D.BT[o2.k].n.toLowerCase() }; } }
     }
     if ((t.stop || b.k === "taxi") && !t.hub && f.z1 < pl.z1 - 1.5) return { ok: false, why: "À placer le long de la route" };
+    if (!t.road && Sim.roadNet(ev).rects.some(function (r) { return inter(f, r, 0.5); })) return { ok: false, why: "Sur une route d'accès (parkings ou déviation)" };
     if ((t.hub || t.drop) && f.z0 > lo.z0 + 3) return { ok: false, why: "Colle-la contre la route : les bus y entrent directement" };
     if (V.fence && !inSite) { for (var ea = 0; ea < ev.layout.length; ea++) { var en = ev.layout[ea]; if (en.id === ignoreId || !D.BT[en.k].entry) continue; if (inter(f, Sim.approachRect(ev, en), 0)) return { ok: false, why: "Devant " + D.BT[en.k].n.toLowerCase().replace(/ \(.*\)/, "") + " : laisse libre l'accès du public (files et fouille)" }; } }
     if (t.entry && V.fence) { var ar = Sim.approachRect(ev, b); for (var eb = 0; eb < ev.layout.length; eb++) { var o3 = ev.layout[eb]; if (o3.id === ignoreId || o3.id === b.id) continue; var t3 = D.BT[o3.k]; if (t3.entry) { if (inter(ar, Sim.approachRect(ev, o3), 0)) return { ok: false, why: "Trop près d'une autre entrée : les files se mélangeraient" }; continue; } if (within(fp(o3), inner)) continue; if (inter(ar, fp(o3), 0)) return { ok: false, why: "L'accès à l'entrée tomberait sur " + t3.n.toLowerCase() }; } }
@@ -5438,7 +5446,7 @@ button:focus-visible,input:focus-visible{outline:3px solid var(--lime);outline-o
     if (!cnt(["medic"])) out.push([1, "Il faut un poste de secours"]);
     if (!L.some(function (b) { return D.BT[b.k].bar; })) out.push([1, "Il faut au moins un bar"]);
     if (V.fence) { var up = Sim.exitUP(ev), need = Sim.needUP(ev); if (up < need) out.push([1, "Commission de sécurité : " + up + " UP d'évacuation pour " + need + " exigées (1 UP pour 100 personnes). Ajoute ou élargis des issues de secours."]); }
-    var wc = cnt(["wc"]); if (wc * 1300 < ev.cap) out.push([0, "Toilettes : " + wc + " blocs pour " + ev.cap + " personnes, il en faudrait au moins " + Math.ceil(ev.cap / 1300)]);
+    var wc = cnt(["wc"]), wcNeed = Math.max(0, Math.ceil(ev.cap / 2500) - Sim.hallWcEq(ev)); if (wc < wcNeed) out.push([0, "Toilettes : " + wc + " blocs pour " + ev.cap + " personnes, il en faudrait au moins " + wcNeed + " (≈ 1 cabine pour 250 personnes, plus les urinoirs)"]);
     if (!cnt(["secpc"])) out.push([0, "Pas de PC sécurité : les patrouilles partent du stock"]);
     if (ev.days > 1 && !cnt(["camping"])) out.push([0, "Festival de plusieurs jours sans camping : moins de monde le 2e jour"]);
     if (ev.days > 1 && cnt(["camping"]) && cnt(["showers"]) * 3000 < 6000 * cnt(["camping"]) * 0.6) out.push([0, "Camping : pas assez de douches (un bloc pour 3 000 campeurs environ)"]);
@@ -5595,16 +5603,39 @@ button:focus-visible,input:focus-visible{outline:3px solid var(--lime);outline-o
     [["cashless", ax - 16, az - 8], ["cashless", ax + 30, az - 18], ["prevention", ax - 30, az - 6], ["lockers", ax + 22, az - 6], ["partner", ax - 40, az - 16], ["infoScreen", ax - 8, az - 2], ["infoScreen", ax + 8, az - 2], ["antenna", ax + 46, az - 4]].forEach(function (t) { var c = { id: Sim.newId(ev), k: t[0], x: Math.round(t[1] / 2) * 2, z: Math.round(t[2] / 2) * 2, rot: 0 }; if (c.k === "partner") c.kind = "photo"; if (Sim.findSpot(ev, c) && within(fp(c), siteRect(ev))) ev.layout.push(c); });
     // guichet SAV billetterie sur le parvis, à côté de l'entrée principale
     if (ent && V.fence) { var pr0 = plazaRect(ev); for (var sk = 0; sk < 24; sk++) { var sv = { id: Sim.newId(ev), k: "sav", x: Math.round((ent.x + (sk % 2 ? 1 : -1) * (Sim.entryGeo(ev, ent).SW / 2 + 16 + (sk >> 1) * 4)) / 2) * 2, z: Math.round((pr0.z1 - 3) / 2) * 2, rot: 0 }; if (Sim.validate(ev, sv).ok) { ev.layout.push(sv); break; } } }
+    // pas plus de blocs sanitaires que le besoin (≈ 1 cabine pour 250 personnes, urinoirs en plus)
+    var wcMax = Math.max(V.halls ? 1 : 2, Math.ceil(ev.cap / 2500) - Sim.hallWcEq(ev)), wcL = ev.layout.filter(function (b) { return b.k === "wc"; }); if (wcL.length > wcMax) { var drop = wcL.slice(wcMax); ev.layout = ev.layout.filter(function (b) { return drop.indexOf(b) < 0; }); }
+    // halls d'expo : les sanitaires des bâtiments servent, pas de cabines dans les halls
+    if (V.halls) ev.layout = ev.layout.filter(function (b) { if (b.k !== "wc") return true; var h = hallOf(ev, fp(b)); return !h; });
+    // placement par zones logiques
+    var srZ = siteRect(ev), lwZ = Sim.laneW + 5, inSiteZ = function (b) { return within(fp(b), srZ); };
+    function placeAt(k, x, z, rot, extra) { var c = { id: Sim.newId(ev), k: k, x: Math.round(x / 2) * 2, z: Math.round(z / 2) * 2, rot: rot || 0 }; if (extra) Object.keys(extra).forEach(function (q) { c[q] = extra[q]; }); if (Sim.validate(ev, c).ok) { ev.layout.push(c); return c; } return null; }
+    // blocs sanitaires : en bordure intérieure (hors voie pompiers), par paires, à distance raisonnable des bars et de la restauration
+    var wcNeedZ = Math.max(V.halls ? 0 : 1, Math.ceil(ev.cap / 2500) - Sim.hallWcEq(ev)), wcHaveZ = ev.layout.filter(function (b) { return b.k === "wc" && inSiteZ(b); }).length;
+    if (wcHaveZ < wcNeedZ && V.fence) { var ring = [], attr = ev.layout.filter(function (b) { return (D.BT[b.k].bar || D.BT[b.k].food) && inSiteZ(b); });
+      for (var rx = srZ.x0 + lwZ + 6; rx < srZ.x1 - lwZ - 6; rx += 8) { ring.push([rx, srZ.z0 + lwZ + 2, 0]); ring.push([rx, srZ.z1 - lwZ - 2, 2]); }
+      for (var rzz = srZ.z0 + lwZ + 8; rzz < srZ.z1 - lwZ - 8; rzz += 8) { ring.push([srZ.x0 + lwZ + 2, rzz, 1]); ring.push([srZ.x1 - lwZ - 2, rzz, 3]); }
+      var sc = function (p) { var d = attr.reduce(function (a, b) { return Math.min(a, Math.hypot(b.x - p[0], b.z - p[1])); }, 999); return Math.abs(d - 28); };
+      ring.sort(function (a, c) { return sc(a) - sc(c); });
+      for (var ri = 0; ri < ring.length && wcHaveZ < wcNeedZ; ri++) { var p = ring[ri]; if (placeAt("wc", p[0], p[1], p[2])) { wcHaveZ++; var along = p[2] % 2 ? [0, 8] : [8, 0]; if (wcHaveZ < wcNeedZ && placeAt("wc", p[0] + along[0], p[1] + along[1], p[2])) wcHaveZ++; } } }
+    // restauration : les food trucks se rangent en espace restauration, autour de ceux du plan
+    var foodNeedZ = Math.ceil(ev.cap / 1600), foods0 = ev.layout.filter(function (b) { return b.k === "food" && inSiteZ(b); });
+    if (foods0.length && foods0.length < foodNeedZ) { var cx = foods0.reduce(function (a, b) { return a + b.x; }, 0) / foods0.length, cz = foods0.reduce(function (a, b) { return a + b.z; }, 0) / foods0.length, rotF = foods0[0].rot || 0, slots = [];
+      for (var fr2 = -2; fr2 <= 2; fr2++) for (var fc = -5; fc <= 5; fc++) slots.push([cx + fc * 8, cz + fr2 * 13]);
+      slots.sort(function (a, c) { return Math.hypot(a[0] - cx, a[1] - cz) - Math.hypot(c[0] - cx, c[1] - cz); });
+      for (var fi = 0, fn = foods0.length; fi < slots.length && fn < foodNeedZ; fi++) { if (placeAt("food", slots[fi][0], slots[fi][1], rotF, { cuisine: D.CUISINEK[fn % D.CUISINEK.length] })) fn++; } }
     // compléments selon la jauge : toilettes, food trucks, poubelles
     var inSite = function (b) { return within(fp(b), siteRect(ev)); };
-    [["bar", Math.ceil(ev.cap / 4000)], ["wc", Math.ceil(ev.cap / 1300)], ["food", Math.ceil(ev.cap / 1600)], ["bin", Math.ceil(ev.cap / 2500)]].forEach(function (need) {
+    [["bar", Math.ceil(ev.cap / 4000)], ["wc", Math.max(V.halls ? 0 : 1, Math.ceil(ev.cap / 2500) - Sim.hallWcEq(ev))], ["food", Math.ceil(ev.cap / 1600)], ["bin", Math.ceil(ev.cap / 2500)]].forEach(function (need) {
       var have = ev.layout.filter(function (b) { return b.k === need[0] && inSite(b); }).length, anchors = ev.layout.filter(function (b) { return b.k === need[0] && inSite(b); });
       if (!anchors.length || need[0] === "food" || need[0] === "bar") anchors = ev.layout.filter(function (b) { return (D.BT[b.k].bar || D.BT[b.k].food || D.BT[b.k].stage) && inSite(b); }).sort(function () { return Math.random() - 0.5; });
       for (var i = have, tries = 0; i < need[1] && tries < 80 && anchors.length; tries++) { var a = anchors[tries % anchors.length], nb2 = { id: Sim.newId(ev), k: need[0], x: Math.round((a.x + rnd(-18, 18)) / 2) * 2, z: Math.round((a.z + rnd(-16, 16)) / 2) * 2, rot: D.BT[a.k].stage ? 0 : a.rot || 0 }; if (nb2.k === "food") nb2.cuisine = D.CUISINEK[i % D.CUISINEK.length]; if (Sim.findSpot(ev, nb2) && inSite(nb2)) { ev.layout.push(nb2); i++; } }
     });
     // parkings publics selon la part de voitures (≈ 2,4 personnes par voiture)
-    var pubLots = Sim.lotsOf(ev, "public"), needLots = Math.ceil(ev.cap * Sim.modal(ev).car / 2.4 / 1500);
-    var lr = lotsRect(ev), cands = []; for (var lz = lr.z0 + 12; lz < lr.z1 - 10; lz += 26) for (var lx = 0; lx < (lr.x1 - lr.x0) / 2 - 18; lx += 38) { cands.push([lx, lz]); if (lx) cands.push([-lx, lz]); }
+    var pubLots = Sim.lotsOf(ev, "public"), needLots = Math.ceil(ev.cap * Sim.modal(ev).car / 2.5 / D.PTYPES.public.cap);
+    // parkings en colonnes entre les routes d'accès, rangées séparées par une allée
+    var lr = lotsRect(ev), RNl = Sim.roadNet(ev), cols = [0], cands = []; for (var cx2 = 64; cx2 <= RNl.P - 34; cx2 += 64) cols.push(cx2, -cx2); for (var sx2 = RNl.P + 34; sx2 <= lr.x1 - 30; sx2 += 64) cols.push(sx2, -sx2);
+    for (var lz = lr.z0 + 22; lz + 20 <= lr.z1; lz += 44) cols.forEach(function (cx3) { cands.push([cx3, lz]); });
     cands.sort(function (a, c) { return Math.abs(a[0]) - Math.abs(c[0]) || a[1] - c[1]; });
     for (var pk = 0; pk < cands.length && pubLots.length && Sim.lotsOf(ev, "public").length < needLots; pk++) { var np = { id: Sim.newId(ev), k: "parking", x: Math.round(cands[pk][0] / 2) * 2, z: Math.round(cands[pk][1] / 2) * 2, rot: 0, ptype: "public" }; if (Sim.validate(ev, np).ok) ev.layout.push(np); }
     if (V.fence) { var exits = ev.layout.filter(function (b) { return b.k === "exit"; }); for (var g = 0; g < 60 && Sim.exitUP(ev) < Sim.needUP(ev) && exits.length; g++) { var e = exits[g % exits.length], old = e.up; e.up = Math.min(40, e.up + 4); if (!Sim.validate(ev, e, e.id).ok) e.up = old; } }
@@ -5767,6 +5798,8 @@ button:focus-visible,input:focus-visible{outline:3px solid var(--lime);outline-o
   Sim.fastRev = function (ev, dm) { var a = Sim.accCfg(ev); return ev.price && a.fastPct ? (dm.sold || 0) * a.fastPct / 100 * a.fastPrice * 0.94 : 0; };
   Sim.accessScore = function (ev) { var a = Sim.accCfg(ev); return (a.lsf ? 1 : 0) + (a.loops ? 1 : 0) + (a.vests ? 1 : 0) + (a.pmrShuttle ? 1 : 0) + (ev.layout.some(function (b) { return b.k === "pmr"; }) ? 1 : 0) + (Sim.entriesOf(ev).some(function (b) { return b.sep && b.sep.pmr; }) ? 1 : 0); };
   Sim.ecoScore = function (ev) { var e = ev.eco; return (e.cups === "reuse" ? 2 : 0) + (e.tri ? 1 : 0) + (e.solar ? 1 : 0) + (e.veggie ? 1 : 0) + (e.dry ? 1 : 0) + (e.collector ? 1 : 0) + (ev.layout.some(function (b) { return b.k === "bikes"; }) ? 1 : 0) + (ev.layout.some(function (b) { return b.k === "water"; }) ? 1 : 0); };
+  // sanitaires des halls loués : comptés en équivalent de blocs (≈ 1 cabine pour 250 personnes de jauge du hall)
+  Sim.hallWcEq = function (ev) { var V = venue(ev); return (V.halls || []).reduce(function (a, h) { return a + (ev.halls && ev.halls[h.id] ? Math.floor(h.cap / 2500) : 0); }, 0); };
   Sim.ecoCost = function (ev) { var c = 0; if (ev.eco.cups === "reuse") c += ev.cap * 0.25 * ev.days; if (ev.eco.collector) c += ev.cap * 0.3; if (ev.eco.tri) c += ev.cap * 0.12 * ev.days; if (ev.eco.solar) c += 6000; return c; };
   // production : clôtures, plus son, lumière et équipes techniques de chaque scène, par jour (moins cher dans un hall équipé)
   var STAGE_TECH = { stageL: 16000, stageM: 8000, stageS: 3000, stageT: 9000 };
@@ -6161,6 +6194,8 @@ button:focus-visible,input:focus-visible{outline:3px solid var(--lime);outline-o
   function callVehicle(kind, x, z, eta, extra) {
     var ev = S.ev, V = Sim.venue(ev), side = x < 0 ? -1 : 1, v = { id: ++S.vehN, kind: kind, x: x, z: z, t0: S.t, tA: S.t + eta + (S.road.jam > 0.6 ? 4 : 0) + (kind !== "truck" ? (S.road.detour || 0) * 2 : 0) + (S.evac && !ev.layout.some(function (b) { return b.k === "assembly"; }) ? 3 : 0), tL: 0, side: side, roadZ: Sim.roadZ(ev), gateX: clamp(x, -V.W / 2 + 6, V.W / 2 - 6) };
     var sg = ev.layout.filter(function (b) { return b.k === "staffgate"; })[0]; if (sg && kind !== "bus") { v.gateX = sg.x; v.gateZ = Sim.gatePoint(ev, sg, 1, 2)[1]; }
+    var hbs = ev.layout.filter(function (b) { return D.BT[b.k].hard; }), cut = function (sd) { return hbs.some(function (h) { return sd < 0 ? h.x < v.gateX : h.x > v.gateX; }); };
+    if (cut(v.side) && !cut(-v.side)) v.side = -v.side; else if (cut(v.side) && cut(-v.side) && kind !== "truck") v.tA += 2; // la police ouvre le barrage pour les secours
     if (extra) Object.keys(extra).forEach(function (k) { v[k] = extra[k]; });
     S.veh.push(v); return v;
   }
@@ -6279,14 +6314,14 @@ button:focus-visible,input:focus-visible{outline:3px solid var(--lime);outline-o
   function security(gm, w) {
     var t = S.t, ev = S.ev, E = DIFFS(), inside = S.pop.inside, open = !S.closing && !S.evac, k = inside / 10000;
     if (!open || inside < 300) return;
-    var SE = D.SEARCH[ev.search], AC = Sim.accCfg(ev), drugs = (1 - SE.catch * 0.6) * (AC.drugCheck ? 0.8 : 1), alc = alcohol(t);
+    var SE = D.SEARCH[ev.search], AC = Sim.accCfg(ev), drugs = (1 - SE.catch * 0.6) * (AC.drugCheck ? 0.8 : 1) * (1 - Math.min(0.3, (S.staff.polCyno || 0) * 0.05)), alc = alcohol(t);
     // malaises : densité devant les scènes, chaleur, alcool, drogue
     Object.keys(S.stages).forEach(function (id) { var st = S.stages[id], cap = D.BT[Sim.find(ev, id).k].cap, dens = st.crowd / cap; var heat = w.t > 26 ? 1 + (w.t - 26) / 4 * (S.heatAid || 1) : 1, water = ev.layout.some(function (b) { return b.k === "water"; }) && S.water.level > 0 || S.water.mains ? 1 : 1.4;
       var r = st.crowd / 10000 * 0.035 * (0.6 + dens) * heat * water * alc * drugs * (S.staff.maraude > 0 ? 0.85 : 1) * (S.micWater > t ? 0.75 : 1) / E.ev;
       if (chance(r, gm)) { var sp = zoneSpot(id); spawnInc("med", sp[0], sp[1], 25, { stage: id, grave: Math.random() < 0.12 }); log("Malaise signalé devant " + stageName(id) + ".", "r", "Secours"); } });
     // bagarres : aux bars où l'on attend longtemps, tard, dans le noir, avec des objets passés à la fouille
     Object.keys(S.bars).forEach(function (id) { var bb = S.bars[id]; if (bb.fight || bb.closed) return; var b = Sim.find(ev, id), p = Sim.workPoint(b), dark = lit(p[0], p[1]) < 0.5 ? 1.6 : 1, wait = 1 + Math.max(0, 1 - bb.svc) * 3, secu = clamp((inside / 250) / Math.max(1, S.staff.secuIn + S.staff.secuStage + S.staff.secuPatrol), 0.6, 2.2);
-      var r = (bb.dem / 60) * 0.002 * alc * alc * dark * wait * secu * (1 - 0.12 * Sim.chefLv("secu")) * (S.micCalm > t ? 0.7 : 1) * (1 - SE.catch * 0.35) * (1 + S.pop.fraudIn / 800) / E.ev;
+      var r = (bb.dem / 60) * 0.002 * alc * alc * dark * wait * secu * (1 - 0.12 * Sim.chefLv("secu")) * (S.micCalm > t ? 0.7 : 1) * (1 - SE.catch * 0.35) * (1 + S.pop.fraudIn / 800) * (1 - Math.min(0.45, (S.staff.polPatrol || 0) * 0.02)) * (S.polBoost > t ? 0.5 : 1) / E.ev;
       if (chance(r, gm)) { var inc = spawnInc("fight", p[0] + 1, p[1] + 2, 15, { bar: id }); bb.fight = inc.id; log("Bagarre devant " + barName(id) + (wait > 2 ? " : l'attente a énervé tout le monde." : "."), "r", "Sécu"); } });
     // intrusions : là où la clôture est loin des patrouilles, des caméras et de la lumière
     var V = Sim.venue(ev); if (V.fence) { var cands = []; for (var i = 0; i < 6; i++) { var side = pick(["s", "w", "e", "n"]), x = side === "s" || side === "n" ? rnd(-V.W / 2 + 8, V.W / 2 - 8) : side === "w" ? -V.W / 2 + 2 : V.W / 2 - 2, z = side === "w" || side === "e" ? rnd(-V.D / 2 + 8, V.D / 2 - 8) : side === "s" ? V.D / 2 - 2 : -V.D / 2 + 2; var watch = (Sim.F ? Sim.F.coverage(x, z) : 0) + lit(x, z) * 0.5 + S.units.filter(function (u) { return u.kind === "pat" && Math.hypot(u.x - x, u.z - z) < 25; }).length * 0.6; cands.push([x, z, watch]); }
@@ -6294,7 +6329,7 @@ button:focus-visible,input:focus-visible{outline:3px solid var(--lime);outline-o
       if (chance(rI, gm)) { spawnInc("intrus", weak[0], weak[1], 12, {}); log("Intrusion par la clôture, dans un coin mal surveillé.", "v", "Sécu"); } }
     // vols : densité, nuit, peu de caméras, pas de casiers
     var lockers = ev.layout.filter(function (b) { return b.k === "lockers"; }).length, dens2 = clamp(inside / ev.cap, 0, 1.2), sid = weightedStage(); if (sid) { var spT = zoneSpot(sid), covT = Sim.F ? Sim.F.coverage(spT[0], spT[1]) : 0;
-      if (chance(k * 0.025 * dens2 * (lit(spT[0], spT[1]) < 0.5 ? 1.5 : 1) * (1 - covT * 0.5) * (1 - Math.min(0.4, lockers * 0.08)) / E.ev, gm)) { S.thefts.n++; spawnInc("theft", spT[0], spT[1], 20, { stage: sid }); log("Vol de téléphone signalé devant " + stageName(sid) + ".", "v", "Sécu"); } }
+      if (chance(k * 0.025 * dens2 * (lit(spT[0], spT[1]) < 0.5 ? 1.5 : 1) * (1 - covT * 0.5) * (1 - Math.min(0.4, lockers * 0.08)) * (1 - Math.min(0.5, (S.staff.polPatrol || 0) * 0.025)) / E.ev, gm)) { S.thefts.n++; spawnInc("theft", spT[0], spT[1], 20, { stage: sid }); log("Vol de téléphone signalé devant " + stageName(sid) + ".", "v", "Sécu"); } }
     // harcèlement : foule dense, nuit, alcool ; la prévention et les maraudes aident
     if (sid && chance(k * 0.008 * alc * (1 - (ev.layout.some(function (b) { return b.k === "prevention"; }) ? 0.3 : 0)) * (AC.angela ? 0.8 : 1) / E.ev, gm)) { var spH = zoneSpot(sid), hi = spawnInc("harass", spH[0], spH[1], 15, { stage: sid }); if (AC.appReport && ev.app && S.app.installs > 0.15) { hi.det = S.t; hi.until = S.t + 15; } log("Signalement de harcèlement devant " + stageName(sid) + ".", "v", "Sécu"); }
     // enfant perdu : surtout en journée et aux événements familiaux
@@ -6616,7 +6651,7 @@ button:focus-visible,input:focus-visible{outline:3px solid var(--lime);outline-o
     S.waste.cap = e.layout.filter(function (b) { return b.k === "skip"; }).length * 30;
     S.fuel = Math.round(e.layout.filter(function (b) { return b.k === "generator"; }).length * 200 * e.days + 200);
     var ents = Sim.entriesOf(e), tot = 0; ents.forEach(function (b) { var E = S.entries[b.id]; E.lanes = Math.max(1, Math.round(maxLanes(b) * 0.5)); tot += E.lanes; });
-    if (e.days > 1) { var cc = e.layout.filter(function (b) { return b.k === "camping"; }).length * 6000, share = 0.35 * Math.pow(35 / (e.camp.price + 10), 0.6) * 0.8; S.camp.campers = Math.round(Math.min(cc, S.pop.plan * share)); S.money.campingTix = S.camp.campers * e.camp.price; parkCars(Math.round(S.camp.campers * 0.08 / 2), "cc", true); }
+    if (e.days > 1) { var cc = e.layout.filter(function (b) { return b.k === "camping"; }).length * D.BT.camping.camping, share = 0.35 * Math.pow(35 / (e.camp.price + 10), 0.6) * 0.8; S.camp.campers = Math.round(Math.min(cc, S.pop.plan * share)); S.money.campingTix = S.camp.campers * e.camp.price; parkCars(Math.round(S.camp.campers * 0.08 / 2), "cc", true); }
     S.app.installs = e.app ? clamp(0.25 + Sim.campaignBoost(e) * 1.5, 0, 0.7) : 0;
     S.foodsInit = true; Object.keys(S.foods).forEach(function (id) { S.foods[id].portions = 0; });
     restockFood(true);
@@ -6652,6 +6687,8 @@ button:focus-visible,input:focus-visible{outline:3px solid var(--lime);outline-o
   Sim.busExpress = function (k) { var e = S.ev, Lk = e.tr.lines[k], ln = S.lines[k]; if (!stopOf(k)) { Sim.toast("Pose d'abord une gare routière ou un arrêt"); return false; } if (!Lk.on) Lk.on = true;
     for (var i = 0; i < 3; i++) ln.buses.push({ id: k + "e" + (++S.busN || (S.busN = 1)) + "_" + S.day, k: k, type: Lk.bus, st: "toSite", load: 0, tDep: S.t, tArr: S.t + 10 + i, side: D.LINES[k].side, express: true });
     S.money.extra -= 1500; L.log("Renfort express : 3 bus en route vers le site pour la ligne " + D.LINES[k].n + " (1 500 €).", "i", "Transports"); return true; };
+  // renforts de police (crise) : arrivent en 10 min, restent une heure
+  Sim.policeBoost = function () { if (S.polBoost > S.t) { Sim.toast("Les renforts sont déjà sur place"); return false; } S.polBoost = S.t + 70; S.money.extra -= 4500; L.callVehicle("police", 0, Sim.venue(S.ev).D / 2 - 6, 10, {}); L.log("Renforts de police demandés : une compagnie arrive dans 10 min pour une heure (4 500 €).", "a", "Sécu"); return true; };
   // annonce micro et appli : l'heure du dernier départ, pour que les gens partent à temps
   Sim.lastCall = function () { if (S.lastCall) return false; S.lastCall = S.t; L.log("Annonce : dernières navettes à " + hm(S.ev.tr.last * 60) + ". Le public commence à rejoindre les quais.", "i", "Transports"); return true; };
   // sortie échelonnée : set de clôture et bars ouverts 45 min, les départs s'étalent
@@ -6703,13 +6740,14 @@ button:focus-visible,input:focus-visible{outline:3px solid var(--lime);outline-o
   function nearestCross(x) { if (S._csT !== S.t || !S._cs) { S._cs = Sim.crossings(S.ev); S._csT = S.t; } var cs = S._cs, best = null, bd = 1e9; cs.forEach(function (c) { var d = Math.abs(c.x - x); if (d < bd) { bd = d; best = c; } }); return best; }
   F.nearestCross = nearestCross;
   // route : fermeture, passages piétons tenus ou non, déviation
-  function roadMode() { var m = Sim.roadCfg(S.ev).mode; if (m === "filter" && !S.ev.layout.some(function (b) { return D.BT[b.k].road; })) return "open"; return m; }
+  function roadMode() { var m = Sim.roadCfg(S.ev).mode; if (S.ev.layout.some(function (b) { return D.BT[b.k].hard; })) return "filter"; if (m === "filter" && !S.ev.layout.some(function (b) { return D.BT[b.k].road; })) return "open"; return m; }
   F.roadMode = roadMode;
   function crossStep(gm) {
     var e = S.ev, cfg = Sim.roadCfg(e), mode = roadMode(), conflict = mode === "filter" ? 0 : mode === "open" ? 1 : 0.5, cs = Sim.crossings(e), t = S.t; S.cross = S.cross || {};
     cs.forEach(function (c) { var st = S.cross[c.id] || (S.cross[c.id] = { acc: 0, flow: 0, wait: 0, carF: 1 }); st.flow += (st.acc / Math.max(0.01, gm) - st.flow) * Math.min(1, 0.25 * gm); st.acc = 0; });
-    var order = cs.slice().sort(function (a, c) { return S.cross[c.id].flow - S.cross[a.id].flow; }), tended = Math.floor((S.staff.crossAg || 0) / 2), capF = 1;
+    var hards = e.layout.filter(function (b) { return D.BT[b.k].hard; }), order = cs.slice().sort(function (a, c) { return S.cross[c.id].flow - S.cross[a.id].flow; }), tended = Math.floor(((S.staff.crossAg || 0) + (S.staff.polTraffic || 0)) / 2), capF = 1;
     order.forEach(function (c, i) { var st = S.cross[c.id], sh = { ped: 0.65, bal: 0.5, car: 0.3 }[cfg.crossMode[c.id] || "bal"], f = st.flow; st.tended = i < tended;
+      if (hards.some(function (h) { return Math.abs(h.x - c.x) < 14; })) { st.tended = true; st.free = true; st.wait = 0; st.carF = 1; return; } st.free = false;
       if (S.closing && e.tr.exitPlan) sh = Math.max(sh, 0.8);
       if (st.tended) { st.wait = (1 - sh) * 1.6 * conflict; st.carF = 1 - sh * Math.min(1, f / 25) * conflict * 0.9; }
       else { st.wait = 0.1; st.carF = 1 - Math.min(0.75, f / 35) * conflict;
@@ -6717,9 +6755,13 @@ button:focus-visible,input:focus-visible{outline:3px solid var(--lime);outline-o
       capF = Math.min(capF, st.carF); });
     S.road.capF = clamp(capF, 0.25, 1);
     // barrages : deux agents de circulation par barrage, sinon le filtrage ralentit l'entrée des parkings
-    var nb = e.layout.filter(function (b) { return D.BT[b.k].road; }).length; S.road.blockF = mode === "filter" && nb ? clamp(S.staff.traffic / (nb * 2), 0.6, 1) : 1;
+    var nb = e.layout.filter(function (b) { return D.BT[b.k].road; }).length; S.road.blockF = mode === "filter" && nb ? clamp((S.staff.traffic + (S.staff.polRoad || 0) * 2) / (nb * 2), 0.6, 1) : 1;
+    // barrages tenus par la police : deux policiers par barrage, sinon des voitures forcent le passage
+    S.road.held = nb ? clamp((S.staff.polRoad || 0) / (nb * 2), 0, 1) : 1;
+    if (nb && S.road.held < 1 && mode === "filter" && !S.warned["polRoad" + S.day]) { S.warned["polRoad" + S.day] = 1; L.log("Barrages sans assez de policiers : des automobilistes forcent le passage. Demande la police (2 par barrage).", "a", "Transports"); }
+    if (nb && S.road.held < 1 && mode === "filter" && Math.random() < 1 - Math.exp(-0.01 * (1 - S.road.held) * gm)) { S.road.thru = Math.max(S.road.thru || 0, 0.3); S.sat -= 0.5; }
     var day = Sim.daylight(e, t) > 0.3 ? 1 : 0.6; S.road.thru = (mode === "filter" ? 0 : conflict) * day; S.road.detour = (1 - conflict) * day;
-    S.road.busF = 1 + 0.18 * S.road.detour - (mode === "filter" ? 0.1 : 0) + (1 - S.road.capF) * 0.4;
+    S.road.busF = Math.max(0.75, 1 + 0.18 * S.road.detour - (mode === "filter" ? 0.1 : 0) + (1 - S.road.capF) * 0.4 - Math.min(0.15, (S.staff.polTraffic || 0) * 0.01));
   }
   F.crossStep = crossStep;
   // vrai = les piétons traversent en ce moment (signaleurs qui arrêtent les voitures, ou route fermée)
@@ -6791,7 +6833,7 @@ button:focus-visible,input:focus-visible{outline:3px solid var(--lime);outline-o
       var types = [["vip", S.pop.vipShare * 0.9], ["pmr", 0.012], ["moto", 0.05], ["public", 1]];
       var capT = 0; ids.forEach(function (id) { var l = S.lots[id]; if (l.cars < l.cap + (l.type === "public" && e.park.overflow ? 800 / Math.max(1, lotsOfType("public").length) : 0)) capT += lotRate(id) * gm; });
       if (S.jamUntil && S.t < S.jamUntil) capT *= 0.15; // accident sur la route : presque plus rien n'avance
-      capT *= (S.road.capF || 1) * (S.road.blockF || 1);
+      capT *= (S.road.capF || 1) * (S.road.blockF || 1) * (1 + Math.min(0.2, (S.staff.polTraffic || 0) * 0.02));
       var flow = Math.min(inQ, capT), left = flow;
       types.forEach(function (tp) { if (left <= 0) return; var want = tp[0] === "public" ? left : flow * tp[1]; want = Math.min(want, left); var rest = parkCars(want, tp[0]), parked = want - rest; left -= parked; moved += parked; if (rest > 0 && tp[0] === "pmr") S.pmrFar = (S.pmrFar || 0) + rest; });
       // plus de place : les voitures se garent dans le quartier
@@ -6829,7 +6871,13 @@ button:focus-visible,input:focus-visible{outline:3px solid var(--lime);outline-o
           if (t > lastDep - trip) return; // plus de départs utiles vers le site
           // régulation : le dispatcher retient les bus au départ si l'entrée desservie déborde
           if (hub && cfg.hold[k] && t < e.close * 60 - 90) { var tgE = e.tr.route[hub.id] ? Sim.find(e, e.tr.route[hub.id]) : F.entryFor(hub.x, hub.z); if (tgE && F.entryWait(tgE.id) > 12) { bus.tNext = t + 2; if (!ln.heldT || t - ln.heldT > 30) { ln.heldT = t; L.log("Ligne " + D.LINES[k].n + " : départs retenus, l'entrée déborde.", "i", "Transports"); } return; } }
-          var hwk = Sim.headway(e, k) * (ln.boosted ? 0.5 : 0.85); if (ln.lastOrig != null && t < ln.lastOrig + hwk && t >= ln.lastOrig) return; ln.lastOrig = t; // départs cadencés : pas de bus en paquet
+          // départs à la demande : un bus part quand il y a assez de monde à la gare de départ (ou qu'ils attendent depuis longtemps),
+          // ou à vide quand la file du quai de reprise au festival le justifie ; jamais deux bus collés
+          if (ln.qO > 0.5) { if (ln.qOT == null) ln.qOT = t; } else ln.qOT = null;
+          var seats = ln.buses.reduce(function (a, b2) { return a + ((b2.st === "toSite" || b2.st === "queue" || b2.st === "drop" || b2.st === "toPick" || b2.st === "board") ? D.BUS[b2.type].cap - (b2.st === "board" ? b2.back || 0 : 0) : 0); }, 0);
+          var goOut = ln.qO >= Bt.cap * 0.7 || (ln.qO > 3 && t - ln.qOT >= Math.max(6, Sim.headway(e, k) * 1.5)), goBack = ln.qS - seats > Bt.cap * 0.5 || (t >= e.close * 60 - 60 && (S.pop.inside > 300 || ln.qS - seats > 0));
+          if (!goOut && !goBack) { bus.tNext = t + 0.5; return; }
+          var hwk = Math.min(Sim.headway(e, k), 2.5) * (ln.boosted ? 0.6 : 1); if (ln.lastOrig != null && t < ln.lastOrig + hwk && t >= ln.lastOrig) return; ln.lastOrig = t;
           var take = Math.min(Bt.cap, ln.qO); ln.qO -= take; bus.load = take; bus.comp = takeComp(ln.comp, take, take + ln.qO);
           if (!e.tr.inPass) S.money.shuttleTix += take * e.tr.price;
           bus.st = "toSite"; bus.tDep = t; bus.tArr = t + trip;
@@ -6865,17 +6913,17 @@ button:focus-visible,input:focus-visible{outline:3px solid var(--lime);outline-o
       return; }
     if (bus.st === "drop") { if (t < bus.tStop) return;
       // deux portes, ≈ 1 personne toutes les 1,5 s par porte ; plus vite avec des agents qui font avancer le quai
-      var rate = (ag >= 2 ? 48 : ag >= 1 ? 38 : 26) * (Bt.cap > 80 ? 1.4 : 1), n = Math.min(bus.unl, rate * gm);
+      var rate = (ag >= 2 ? 70 : ag >= 1 ? 58 : 45) * (Bt.cap > 120 ? 1.5 : Bt.cap < 30 ? 0.5 : Bt.cap < 70 ? 0.6 : 1), n = Math.min(bus.unl, rate * gm);
       if (n > 0) { hubEmit(n, bus, hub, G, cfg, gm); bus.unl -= n; ln.carried += n; }
       if (bus.unl <= 0.5 && t - bus.tStop >= Bt.dwell * 0.5) {
         // fin de soirée : s'il n'y a plus de bus à décharger, il attend sur son quai qu'une place se libère à la reprise
         var wantPick = ln.qS > 15 || t >= e.close * 60 - 45, pkW = (S.picks && Array.isArray(S.picks[k])) ? S.picks[k] : [], waitingArr = D.LINEK.some(function (k2) { return S.lines[k2] && S.lines[k2].buses.some(function (b2) { return b2.st === "queue"; }); });
-        if (wantPick && pkW.length >= (cfg.pickN || 1) && !waitingArr && t - bus.tStop < 25) return;
+        if (wantPick && pkW.length >= (cfg.pickN || 1) && !waitingArr && (ln.qS > 5 || t < e.close * 60)) return;
         var bx0 = (Sim.dropBays(e).filter(function (d) { return d.id === bus.bay; })[0] || { x: G.xIn }).x; delete bs[bus.bay]; bus.bay = null; bus.unl = 0; bus.fromX = bx0; bus.fromZ = G.zBay; var pkA = (S.picks || (S.picks = {}))[k] = Array.isArray(S.picks[k]) ? S.picks[k] : []; if ((ln.qS > 15 || t >= e.close * 60 - 45) && pkA.length < (cfg.pickN || 1)) { pkA.push(bus.id); bus.slot = pkA.indexOf(bus.id); bus.st = "toPick"; bus.tPick = t; bus.tNext = t + (Math.abs(G.pick[k][0] - bx0) + 8) / Sim.BUS_V.hub; } else { bus.st = "toOrigin"; bus.tDep = t; bus.tArr = t + trip; bus.outX = bx0; } }
       return; }
     if (bus.st === "toPick") { if (t >= bus.tNext) { bus.st = "board"; bus.tStop = t; bus.back = 0; } return; }
     if (bus.st === "board") { if (t < bus.tStop) return;
-      var pk2 = S.picks, reg = cfg.sas === "reg", agL = ag / 3 / Math.max(1, (cfg.pickN || 1) * 0.7), brate = reg ? (agL >= 1 ? 40 : 24) : 58, m = Math.min(ln.qS, brate * gm, Bt.cap - bus.back); m = Math.max(0, m);
+      var pk2 = S.picks, reg = cfg.sas === "reg", agL = ag / 3 / Math.max(1, (cfg.pickN || 1) * 0.7), brate = (reg ? (agL >= 1 ? 45 : 28) : 65) * (Bt.cap > 120 ? 1.4 : Bt.cap < 70 ? 0.6 : 1), m = Math.min(ln.qS, brate * gm, Bt.cap - bus.back); m = Math.max(0, m);
       ln.qS -= m; bus.back += m; ln.back += m;
       // sas ouvert ou sans agents : la foule se presse au quai
       if ((!reg || agL < 1) && ln.qS > 250 && Math.random() < 1 - Math.exp(-0.02 * ln.qS / 250 * gm) && !(S.crushT > t - 20)) { S.crushT = t; S.sat -= 4; var sp = G.sas(k); L.spawnInc("med", sp[0], sp[1] + 2, 20, { crush: true }); L.log("Bousculade au quai de la ligne " + D.LINES[k].n + " : le sas n'est pas tenu, une personne au sol.", "r", "Transports"); }
@@ -7264,7 +7312,10 @@ button:focus-visible,input:focus-visible{outline:3px solid var(--lime);outline-o
   function servicesStep(gm, w) {
     var e = S.ev, inside = S.pop.inside;
     var wcIds = Object.keys(S.wcs), wcDem = ((S.drinksMin || 0) * 0.22 + inside * 0.002) * gm, wcCap = 0;
-    wcIds.forEach(function (id) { var c = S.wcs[id]; c.cap = c.fill >= 100 ? 0 : 9 * gm * (c.fill > 80 ? 0.7 : 1); wcCap += c.cap; });
+    // bloc = 10 cabines (≈ 6 passages/min) + rampe d'urinoirs (≈ 8/min)
+    wcIds.forEach(function (id) { var c = S.wcs[id]; c.cap = c.fill >= 100 ? 0 : 14 * gm * (c.fill > 80 ? 0.7 : 1); wcCap += c.cap; });
+    var hallW = Sim.hallWcEq(e) * 14 * gm;
+    wcDem = Math.max(0, wcDem - hallW);
     var wcServ = Math.min(wcDem, wcCap); wcIds.forEach(function (id) { var c = S.wcs[id], share = wcCap ? c.cap / wcCap : 0; c.fill = Math.min(100, c.fill + wcServ * share * 0.04); c.svc += ((wcDem > 0 ? Math.min(1, wcCap / wcDem) : 1) - c.svc) * Math.min(1, 0.2 * gm); c.q = Math.max(0, wcDem / gm * share * (1 - c.svc) * 5 + (c.fill > 85 ? 6 : 0)); if (c.fill >= 100 && !c.fullLogged) { c.fullLogged = true; S.stats.wcFull++; L.log("Un bloc de toilettes est plein et fermé.", "a", "Logistique"); } if (c.fill < 90) c.fullLogged = false; });
     S.wcSvc = wcDem > 0 ? Math.min(1, wcCap / wcDem) : 1;
     var cupF = (e.eco.cups === "reuse" ? 0.6 : 1.4) * (S.wasteBoost ? 1.2 : 1);
@@ -7753,6 +7804,12 @@ button:focus-visible,input:focus-visible{outline:3px solid var(--lime);outline-o
     plane(pl.x1 - pl.x0 + 40, pl.z1 - pl.z0, pave, 0, 0.005, (pl.z0 + pl.z1) / 2, vg);
     var asph = own(real ? 0x8a8a8e : 0xffffff, 0, 0, 0.85); asph.map = groundTex(real ? "bitume" : "asphalte"); asph.map.repeat.set(60, 3); asph.userData.rough = 0.85; wetMats.push(asph);
     plane(Wd + 600, 9, asph, 0, 0.012, rz, vg);
+    // réseau routier : rues de déviation, route arrière derrière les parkings, deux accès aux parkings ; panneaux
+    var RN = Sim.roadNet(ev), sideM = own(real ? 0x8a8a8e : 0xffffff, 0, 0, 0.85); sideM.map = asph.map;
+    RN.rects.forEach(function (r) { plane(r.x1 - r.x0, r.z1 - r.z0, sideM, (r.x0 + r.x1) / 2, 0.011, (r.z0 + r.z1) / 2, vg); });
+    [-1, 1].forEach(function (sd) { var dx = sd * RN.DV; cyl(0.07, 0.07, 3, std(0x666a72), dx - sd * 6, 1.5, rz + 6.5, vg, 6); I.signPanel(vg, [{ t: "DÉVIATION", c: "#111", s: 30 }, { t: "toutes directions", c: "#111", s: 18 }], 3, 1.1, dx - sd * 6, 2.6, rz + 6.45, { bg: "#FFB020" });
+      var px = sd * RN.P; cyl(0.07, 0.07, 3, std(0x666a72), px + sd * 5, 1.5, rz + 6.5, vg, 6); I.signPanel(vg, [{ t: "P  PARKINGS", c: "#fff", s: 28 }], 2.6, 0.8, px + sd * 5, 2.7, rz + 6.45, { bg: "#2b4a8a" }); });
+    var dashN = new THREE.MeshBasicMaterial({ color: 0xd8d4c6 }); for (var dz = rz + 10; dz < RN.back - 4; dz += 9) [-RN.DV, RN.DV, -RN.P, RN.P].forEach(function (x) { var dsh = new THREE.Mesh(new THREE.PlaneGeometry(0.3, 4), dashN); dsh.rotation.x = -Math.PI / 2; dsh.position.set(x, 0.03, dz); vg.add(dsh); });
     var curb = std(0x6a6b70, 0, 0, 0.8); box(Wd + 600, 0.25, 0.5, curb, 0, 0.12, rz - 4.6, vg, false); box(Wd + 600, 0.25, 0.5, curb, 0, 0.12, rz + 4.6, vg, false);
     var dashM = new THREE.MeshBasicMaterial({ color: 0xd8d4c6 }), dashG = new THREE.PlaneGeometry(4, 0.35), nD = Math.ceil((Wd + 600) / 9), dashes = new THREE.InstancedMesh(dashG, dashM, nD), dm = new THREE.Object3D();
     for (var i = 0; i < nD; i++) { dm.position.set(-Wd / 2 - 300 + i * 9, 0.03, rz); dm.rotation.set(-Math.PI / 2, 0, 0); dm.updateMatrix(); dashes.setMatrixAt(i, dm.matrix); } vg.add(dashes);
@@ -7782,7 +7839,7 @@ button:focus-visible,input:focus-visible{outline:3px solid var(--lime);outline-o
       var foam = new THREE.Mesh(new THREE.PlaneGeometry(Wd + 400, 2.4), new THREE.MeshBasicMaterial({ color: 0xe8f2f4, transparent: true, opacity: 0.6 })); foam.rotation.x = -Math.PI / 2; foam.position.set(0, 0.2, -Dd / 2 + V.sea); vg.add(foam); seaMesh.userData.foam = foam; }
     // arbres stylisés autour du site (et bois de l'éditeur)
     var tp = [];
-    if (V.trees !== false && !V.halls && ev.venue !== "ville") for (var t = 0; t < 320; t++) { var side = Math.random(), tx, tz; if (side < 0.35) { tx = rnd(-Wd / 2 - 90, Wd / 2 + 90); tz = rnd(-Dd / 2 - 70, -Dd / 2 - 8); } else if (side < 0.75) { tx = (Math.random() < 0.5 ? -1 : 1) * rnd(Wd / 2 + 10, Wd / 2 + 90); tz = rnd(-Dd / 2 - 60, lo.z1 + 30); } else { tx = rnd(-Wd / 2 - 90, Wd / 2 + 90); tz = rnd(lo.z1 + 6, lo.z1 + 60); } if (V.sea && tz < -Dd / 2 + V.sea) continue; if (tz > rz - 9 && tz < rz + 9) continue; tp.push([tx, tz, rnd(0.8, 1.5), Math.random()]); }
+    if (V.trees !== false && !V.halls && ev.venue !== "ville") for (var t = 0; t < 320; t++) { var side = Math.random(), tx, tz; if (side < 0.35) { tx = rnd(-Wd / 2 - 90, Wd / 2 + 90); tz = rnd(-Dd / 2 - 70, -Dd / 2 - 8); } else if (side < 0.75) { tx = (Math.random() < 0.5 ? -1 : 1) * rnd(Wd / 2 + 10, Wd / 2 + 90); tz = rnd(-Dd / 2 - 60, lo.z1 + 30); } else { tx = rnd(-Wd / 2 - 90, Wd / 2 + 90); tz = rnd(lo.z1 + 6, lo.z1 + 60); } if (V.sea && tz < -Dd / 2 + V.sea) continue; if (tz > rz - 9 && tz < rz + 9) continue; if (tz > rz && Math.abs(Math.abs(tx) - (Wd / 2 + 45)) < 7) continue; tp.push([tx, tz, rnd(0.8, 1.5), Math.random()]); }
     (V.woods || []).forEach(function (o) { for (var k2 = 0; k2 < o.w * o.d / 30; k2++) tp.push([o.x + rnd(-o.w / 2, o.w / 2), o.z + rnd(-o.d / 2, o.d / 2), rnd(0.8, 1.4), Math.random()]); });
     if (tp.length) { var crownG = new THREE.IcosahedronGeometry(3, 0), tr = new THREE.InstancedMesh(crownG, own(0xffffff, 0, 0, 0.9, { flatShading: true }), tp.length), tk = new THREE.InstancedMesh(new THREE.CylinderGeometry(0.35, 0.5, 3.2, 6), std(0x2a1c12), tp.length), d3 = new THREE.Object3D(), col = new THREE.Color();
       tp.forEach(function (p, j) { var conif = p[3] < 0.35; d3.position.set(p[0], (conif ? 5.6 : 5) * p[2], p[1]); d3.scale.set(p[2] * (conif ? 0.75 : 1.1), p[2] * (conif ? 1.7 : 1), p[2] * (conif ? 0.75 : 1.1)); d3.rotation.y = p[3] * 6; d3.updateMatrix(); tr.setMatrixAt(j, d3.matrix); col.setHSL(0.27 + p[3] * 0.08, 0.35, 0.13 + p[3] * 0.07); tr.setColorAt(j, col); d3.position.y = 1.6 * p[2]; d3.scale.setScalar(p[2]); d3.updateMatrix(); tk.setMatrixAt(j, d3.matrix); });
@@ -8096,7 +8153,7 @@ button:focus-visible,input:focus-visible{outline:3px solid var(--lime);outline-o
   BUILD.prevention = function (b, g, T) { box(T.w, 1.0, 0.6, std(0x1f2129), 0, 0.5, T.d / 2 - 0.4, g); var r = new THREE.Mesh(new THREE.ConeGeometry(Math.hypot(T.w, T.d) / 2, 1, 4, 1, true), own(0xB79BFF, 0, 0, 0.8, { side: THREE.DoubleSide })); r.rotation.y = Math.PI / 4; r.scale.set(T.w / Math.hypot(T.w, T.d) * 1.41, 1, T.d / Math.hypot(T.w, T.d) * 1.41); r.position.y = 3.0; g.add(r); [[-1, -1], [1, -1], [-1, 1], [1, 1]].forEach(function (p) { cyl(0.06, 0.06, 2.6, std(0xb8bcc4), p[0] * T.w / 2, 1.3, p[1] * T.d / 2, g, 6); }); signPanel(g, [{ t: "PRÉVENTION · SAFE PLACE", c: "#fff", s: 22 }], T.w * 0.9, 0.5, 0, 2.3, T.d / 2 + 0.02, { bg: "#6a4fc0" }); staffFig(g, 0, T.d / 2 - 1.1, 0xB79BFF, 0, 0); return {}; };
   BUILD.staffgate = function (b, g, T) { [-1, 1].forEach(function (s) { box(0.3, 3, 0.3, std(0x4a4d5c), s * 2, 1.5, 0, g); }); box(4.4, 0.4, 0.4, own(0x2a2c38, 0xB79BFF, 0.8), 0, 3, 0, g); var bar = box(3.6, 0.12, 0.12, own(0xFF3D52, 0xFF3D52, 0.4), 0, 1.1, 0, g, false); staffFig(g, 2.6, 0.8, 0xB79BFF, 0, 0); signPanel(g, [{ t: "STAFF", c: "#B79BFF" }], 2.4, 0.5, 0, 3.6, 0.22, { bg: "#0a0a0d" }); return {}; };
   BUILD.parking = function (b, g, T) {
-    var type = b.ptype || "public", PT = D.PTYPES[type], cap = PT.cap, lineM = new THREE.MeshBasicMaterial({ color: 0xcfcfcf }), rows = 4, cols = Math.floor((T.w - 2) / 2.6);
+    var type = b.ptype || "public", PT = D.PTYPES[type], cap = PT.cap, lineM = new THREE.MeshBasicMaterial({ color: 0xcfcfcf }), rows = Math.max(2, Math.floor((T.d - 2) / 5.6)), cols = Math.floor((T.w - 2) / 2.6);
     plane(T.w, T.d, own(PT.col, 0, 0, 0.95), 0, 0.03, 0, g);
     for (var x = 0; x <= cols; x++) for (var r = 0; r < rows; r++) { var l = new THREE.Mesh(new THREE.PlaneGeometry(0.12, 3.6), lineM); l.rotation.x = -Math.PI / 2; l.position.set(-T.w / 2 + 1 + x * 2.6, 0.05, -T.d / 2 + 2.6 + r * 5.6); g.add(l); }
     var spots = rows * cols, cars = I.carInstanced(spots), dm = new THREE.Object3D(), col = new THREE.Color();
@@ -8139,20 +8196,37 @@ button:focus-visible,input:focus-visible{outline:3px solid var(--lime);outline-o
     return {};
   };
   BUILD.roadBlock = function (b, g, T) {
-    // fermeture complète : barrières sur toute la largeur, sauf deux barrières levantes (une par sens) tenues par les agents
-    var out = b.x < 0 ? -1 : 1, red = own(0xe53935, 0, 0, 0.6), wht = std(0xf3f1ea), conc = std(0xb8bcc4, 0, 0, 0.9);
-    g.add(I.barrierLine([[0, -5.4], [0, -4.0]], 0xd8dde4)); g.add(I.barrierLine([[0, 4.0], [0, 5.4]], 0xd8dde4));
-    // séparateur central en blocs béton rouge et blanc
-    for (var i = 0; i < 2; i++) box(0.6, 0.8, 0.9, i ? wht : red, 0, 0.4, -0.45 + i * 0.9, g);
-    var booms = []; [-1, 1].forEach(function (sd) { var post = box(0.5, 1.1, 0.5, std(0x2b2d36), 0, 0.55, sd * 3.9, g); var piv = new THREE.Group(); piv.position.set(0, 1.0, sd * 3.9); g.add(piv); var arm = new THREE.Group(); piv.add(arm);
-      for (var k = 0; k < 6; k++) box(0.12, 0.12, 0.5, k % 2 ? wht : red, 0, 0, -sd * (0.3 + k * 0.5), arm, false); booms.push({ piv: piv, sd: sd, a: 0 }); });
-    // cônes d'approche côté extérieur, panneau de fermeture et de déviation
-    for (var c = 0; c < 5; c++) { [-1, 1].forEach(function (sd) { cyl(0.12, 0.26, 0.7, own(0xff6a1a, 0, 0, 0.6), out * (3 + c * 2.4), 0.35, sd * (1.2 + c * 0.55), g, 10); }); }
-    cyl(0.06, 0.06, 3.2, std(0x666a72), out * 2.2, 1.6, -6.2, g, 6); signPanel(g, [{ t: "ROUTE BARRÉE", c: "#fff", s: 30 }, { t: "SAUF BUS · SECOURS · PARKINGS", c: "#fff", s: 16 }], 3.2, 1.3, out * 2.2, 3.1, -6.15, { bg: "#c62828" }, out > 0 ? Math.PI / 2 : -Math.PI / 2);
-    cyl(0.06, 0.06, 2.8, std(0x666a72), out * 16, 1.4, 6.4, g, 6); signPanel(g, [{ t: "DÉVIATION", c: "#111", s: 30 }, { t: out > 0 ? "◀ autres directions" : "autres directions ▶", c: "#111", s: 18 }], 3, 1.1, out * 16, 2.6, 6.45, { bg: "#FFB020" }, out > 0 ? Math.PI / 2 : -Math.PI / 2);
-    var lamp1 = box(0.3, 0.3, 0.3, own(0xffb020, 0xffb020, 1.5), 0, 1.35, -5.3, g, false), lamp2 = box(0.3, 0.3, 0.3, own(0xffb020, 0xffb020, 1.5), 0, 1.35, 5.3, g, false);
-    staffFig(g, out * 1.2, -2.2, 0xFFB020, out > 0 ? -Math.PI / 2 : Math.PI / 2, 0); staffFig(g, out * 1.2, 2.2, 0xFFB020, out > 0 ? -Math.PI / 2 : Math.PI / 2, 0);
-    return { lamps: [lamp1, lamp2], booms: booms };
+    // fermeture de route : blocs béton anti-intrusion en chicane, une barrière levante par voie gardée par les agents, police sur le bas-côté
+    var out = b.x < 0 ? -1 : 1, conc = std(0xb9bcc2, 0, 0, 0.95), red = own(0xd32f2f, 0, 0, 0.7), wht = std(0xf3f1ea);
+    function bloc(x, z, rotY) { var gb = new THREE.Group(); gb.position.set(x, 0, z); gb.rotation.y = rotY || 0; g.add(gb); box(2.0, 0.8, 0.6, conc, 0, 0.4, 0, gb); box(2.02, 0.16, 0.62, red, 0, 0.62, 0, gb, false); box(0.5, 0.17, 0.63, wht, -0.5, 0.62, 0, gb, false); box(0.5, 0.17, 0.63, wht, 0.5, 0.62, 0, gb, false); }
+    // ligne de blocs sur les bas-côtés et au milieu ; chicane côté extérieur pour casser la vitesse
+    [-5.6, 5.6].forEach(function (z) { bloc(0, z, Math.PI / 2); bloc(0, z + (z > 0 ? 1.9 : -1.9), Math.PI / 2); }); bloc(0, -0.3, Math.PI / 2); bloc(0, 0.3 + 0.0, Math.PI / 2);
+    bloc(out * 7, -3.4, 0.15 * out); bloc(out * 7, 3.4, -0.15 * out);
+    // barrières levantes (une par voie), poteaux rouges et blancs
+    var booms = []; [-1, 1].forEach(function (sd) { box(0.45, 1.15, 0.45, std(0x2b2d36), 0.6 * out, 0.58, sd * 4.4, g); var piv = new THREE.Group(); piv.position.set(0.6 * out, 1.05, sd * 4.4); g.add(piv); var arm = new THREE.Group(); piv.add(arm);
+      for (var k = 0; k < 7; k++) box(0.12, 0.12, 0.52, k % 2 ? wht : red, 0, 0, -sd * (0.3 + k * 0.52), arm, false); booms.push({ piv: piv, sd: sd, a: 0 }); });
+    // entonnoir de cônes et feux à éclats côté extérieur
+    for (var c = 0; c < 6; c++) [-1, 1].forEach(function (sd) { cyl(0.12, 0.26, 0.7, own(0xff6a1a, 0, 0, 0.6), out * (9 + c * 3), 0.35, sd * (3.6 + c * 0.25), g, 10); cyl(0.2, 0.2, 0.08, wht, out * (9 + c * 3), 0.47, sd * (3.6 + c * 0.25), g, 10); });
+    var lamp1 = box(0.3, 0.3, 0.3, own(0xffb020, 0xffb020, 1.5), out * 0.6, 1.4, -5.4, g, false), lamp2 = box(0.3, 0.3, 0.3, own(0xffb020, 0xffb020, 1.5), out * 0.6, 1.4, 5.4, g, false);
+    // panneau face à la circulation qui arrive
+    cyl(0.06, 0.06, 3.2, std(0x666a72), out * 14, 1.6, -6.6, g, 6); signPanel(g, [{ t: "ROUTE BARRÉE", c: "#fff", s: 30 }, { t: "SAUF BUS · SECOURS · PARKINGS", c: "#fff", s: 16 }], 3.2, 1.3, out * 14, 3.1, -6.55, { bg: "#c62828" }, out > 0 ? Math.PI / 2 : -Math.PI / 2);
+    // voiture de police garée sur le bas-côté, gyrophares
+    var pc = new THREE.Group(); pc.position.set(out * 3.5, 0, -7.6); g.add(pc); box(2.0, 1.1, 4.4, std(0xf3f1ea, 0, 0, 0.4), 0, 0.85, 0, pc); box(2.02, 0.35, 4.42, std(0x1e3a8a), 0, 0.75, 0, pc, false); box(1.8, 0.5, 2.2, own(0x1a2430, 0x203040, 0.3, 0.1), 0, 1.6, -0.2, pc, false); var gyro = box(0.9, 0.18, 0.3, own(0x3b82ff, 0x3b82ff, 1.5), 0, 1.95, -0.2, pc, false);
+    [[-1, 1], [1, 1], [-1, -1], [1, -1]].forEach(function (w) { var wh = cyl(0.38, 0.38, 0.3, std(0x111111), w[0] * 0.95, 0.38, w[1] * 1.4, pc, 10); wh.rotation.z = Math.PI / 2; });
+    staffFig(g, out * 1.8, -2.4, 0xFFB020, out > 0 ? -Math.PI / 2 : Math.PI / 2, 0); staffFig(g, out * 1.8, 2.4, 0xFFB020, out > 0 ? -Math.PI / 2 : Math.PI / 2, 0); staffFig(g, out * 2.6, -6.4, 0x1e3a8a, out > 0 ? -Math.PI / 2 : Math.PI / 2, 0);
+    return { lamps: [lamp1, lamp2, gyro], booms: booms };
+  };
+  BUILD.hardBlock = function (b, g, T) {
+    // deux rangées de blocs béton sur toute la largeur, clôture Heras derrière, fourgon de police : aucun véhicule ne passe
+    var conc = std(0xb9bcc2, 0, 0, 0.95), red = own(0xd32f2f, 0, 0, 0.7), wht = std(0xf3f1ea);
+    function bloc(x, z) { var gb = new THREE.Group(); gb.position.set(x, 0, z); gb.rotation.y = Math.PI / 2; g.add(gb); box(2.0, 0.8, 0.6, conc, 0, 0.4, 0, gb); box(2.02, 0.16, 0.62, red, 0, 0.62, 0, gb, false); box(0.5, 0.17, 0.63, wht, -0.5, 0.62, 0, gb, false); box(0.5, 0.17, 0.63, wht, 0.5, 0.62, 0, gb, false); }
+    [-1.6, 1.6].forEach(function (x) { for (var z = -5.4; z <= 5.5; z += 2.1) bloc(x + (Math.round(z) % 2 ? 0.15 : -0.15), z); });
+    var her = own(0x8f959e, 0, 0, 0.45, { metalness: 0.5, transparent: true, opacity: 0.55 }); [-3, 3].forEach(function (x) { box(0.08, 2.0, 11, her, x, 1.0, 0, g); });
+    [-1, 1].forEach(function (sd) { cyl(0.06, 0.06, 3.2, std(0x666a72), sd * 5, 1.6, -6.4, g, 6); I.signPanel(g, [{ t: "ROUTE FERMÉE", c: "#fff", s: 28 }, { t: "zone piétonne · déviation", c: "#fff", s: 16 }], 3, 1.2, sd * 5, 3.1, -6.35, { bg: "#c62828" }, sd > 0 ? Math.PI / 2 : -Math.PI / 2); });
+    var pv = new THREE.Group(); pv.position.set(4.6, 0, 7.8); g.add(pv); box(2.2, 2.2, 5, std(0xf3f1ea, 0, 0, 0.4), 0, 1.4, 0, pv); box(2.22, 0.5, 5.02, std(0x1e3a8a), 0, 1.1, 0, pv, false); var gyro = box(1.2, 0.2, 0.4, own(0x3b82ff, 0x3b82ff, 1.6), 0, 2.6, 1, pv, false);
+    [[-1, 1], [1, 1], [-1, -1], [1, -1]].forEach(function (w) { var wh = cyl(0.42, 0.42, 0.3, std(0x111111), w[0] * 1.05, 0.42, w[1] * 1.6, pv, 10); wh.rotation.z = Math.PI / 2; });
+    staffFig(g, 2.2, -1.5, 0x1e3a8a, Math.PI / 2, 0); staffFig(g, -2.2, 1.5, 0x1e3a8a, -Math.PI / 2, 0); staffFig(g, 2.4, 3.5, 0x1e3a8a, Math.PI / 2, 0);
+    return { lamps: [gyro] };
   };
   BUILD.sav = function (b, g, T) { barnum(g, 0, 0, T.w, T.d, 2.4, 0x1a1c25, 0xF0457A); box(T.w - 0.4, 1.05, 0.6, std(0x1a1c25), 0, 0.53, T.d / 2 - 0.4, g); signPanel(g, [{ t: "SAV BILLETTERIE", c: "#fff", s: 22 }], T.w * 0.8, 0.45, 0, 2.15, T.d / 2 + 0.05, { bg: "#c2185b" }); staffFig(g, -1.2, T.d / 2 - 1.1, 0xF0457A, 0, 0); staffFig(g, 1.2, T.d / 2 - 1.1, 0xF0457A, 0, 0); return {}; };
   BUILD.dropZone = function (b, g, T) { plane(T.w, T.d, own(0x2b2d33, 0, 0, 0.9), 0, 0.03, 0, g); var yel = new THREE.MeshBasicMaterial({ color: 0xFFB020 }); plane(16, 3.4, new THREE.MeshBasicMaterial({ color: 0x3a3218, transparent: true, opacity: 0.75 }), 0, 0.04, -T.d / 2 + 2.6, g); [-1, 1].forEach(function (s2) { plane(16, 0.15, yel, 0, 0.05, -T.d / 2 + 2.6 + s2 * 1.7, g); });
@@ -8739,7 +8813,7 @@ button:focus-visible,input:focus-visible{outline:3px solid var(--lime);outline-o
   function turnTo(a, b, dt) { var d = b - a; d = Math.atan2(Math.sin(d), Math.cos(d)); return a + d * Math.min(1, dt * 9); }
   function moveCrowd(dt, S, clock) {
     if (!Sim.nav) return;
-    var nav = Sim.nav, NX = nav.NX, NZ = nav.NZ, CS = nav.CS, gx0 = nav.gx0, gz0 = nav.gz0, E = S.evac && S.evac.kind === "general" && S.evac.phase !== "alert", base = (E ? clamp(40 * (W.gps || 0.4) * Math.max(1, W.speedMul || 1), 3.2, 9) : 2.2 * Math.min(3, Math.max(1, W.speedMul || 1))) * dt * (S.evac && S.evac.kind === "lockdown" ? 0 : 1), bpm = W.beat || 2, mud = S.mud;
+    var nav = Sim.nav, NX = nav.NX, NZ = nav.NZ, CS = nav.CS, gx0 = nav.gx0, gz0 = nav.gz0, E = S.evac && S.evac.kind === "general" && S.evac.phase !== "alert", base = Math.min(1.4, 40 * (E ? 1.25 : 1) * (W.gps || 0.4) * (W.speedMul || 1) * dt) * (S.evac && S.evac.kind === "lockdown" ? 0 : 1), bpm = W.beat || 2, mud = S.mud;
     if (!occ || occN !== NX * NZ) { occN = NX * NZ; occ = new Uint8Array(occN); } occ.fill(0);
     for (var i0 = 0; i0 < NP; i0++) { var p0 = people[i0]; if (!p0.vis) continue; var c0 = Math.floor((p0.x - gx0) / CS) + Math.floor((p0.z - gz0) / CS) * NX; if (c0 >= 0 && c0 < occN && occ[c0] < 255) occ[c0]++; }
     if (E) { var act = 0; for (var a0 = 0; a0 < NP; a0++) if (people[a0].vis) act++; var lagF = act > S.pop.inside / PER + 15 ? Math.min(6, act / Math.max(1, S.pop.inside / PER + 15)) : 1;
@@ -8796,7 +8870,7 @@ button:focus-visible,input:focus-visible{outline:3px solid var(--lime);outline-o
     var sg = z0 < rz ? -1 : 1, cx = c.x + rnd(-1.6, 1.6), a = [cx, rz + sg * 5.4], b = [cx, rz - sg * 5.4]; var p = Sim.path(x0, z0, a[0], a[1]).slice(); p.push([a[0], a[1], c.id]); p.push(b); return p.concat(Sim.path(b[0], b[1], x1, z1)); }
   function moveWalkers(dt, S) {
     var rzW = Sim.roadZ(S.ev), csW = Sim.crossings(S.ev); I.crossBusy = {};
-    var sp0 = 2.3 * dt * Math.min(3, Math.max(1, W.speedMul || 1));
+    var sp0 = Math.min(1.6, 40 * (W.gps || 0.4) * (W.speedMul || 1) * dt);
     for (var i = 0; i < NW; i++) {
       var p = wpeople[i]; if (!p.vis) { if (!p.hid) { hide(walkers, i); p.hid = true; } continue; } p.hid = false;
       if (S.t < p.t0) { hide(walkers, i); continue; }
@@ -8885,7 +8959,7 @@ button:focus-visible,input:focus-visible{outline:3px solid var(--lime);outline-o
       e.g.visible = u.active; if (!u.active) return;
       // rendu lissé : l'agent marche vers sa position simulée au lieu de sauter d'un pas de simulation à l'autre
       var px = e.g.position.x, pz = e.g.position.z, dd = Math.hypot(u.x - px, u.z - pz), moving = dd > 0.05;
-      if (!e.placed || dd > 40) { e.g.position.set(u.x, 0, u.z); e.placed = 1; } else if (moving) { var st = Math.min(dd, Math.max(dt * 4.5 * Math.min(3, Math.max(1, W.speedMul || 1)), dd * dt * 3)); e.g.position.set(px + (u.x - px) / dd * st, 0, pz + (u.z - pz) / dd * st); }
+      if (!e.placed || dd > 40) { e.g.position.set(u.x, 0, u.z); e.placed = 1; } else if (moving) { var st = Math.min(dd, Math.max(42 * (W.gps || 0.4) * (W.speedMul || 1) * dt, dd * dt * 2)); e.g.position.set(px + (u.x - px) / dd * st, 0, pz + (u.z - pz) / dd * st); }
       var hd = moving ? Math.atan2(u.x - px, u.z - pz) : u.dir; if (hd != null) e.g.rotation.y = turnTo(e.g.rotation.y, hd, dt);
       if (moving) e.ph += dt * 12; var sw = moving ? Math.sin(e.ph) * 0.7 : 0;
       [e.a, e.b].forEach(function (p) { if (!p) return; p.userData.legs[0].rotation.x = sw; p.userData.legs[1].rotation.x = -sw; p.position.y = moving ? Math.abs(Math.sin(e.ph)) * 0.06 : 0; });
@@ -8926,6 +9000,7 @@ button:focus-visible,input:focus-visible{outline:3px solid var(--lime);outline-o
     var pl = vPaths[v.id]; if (!pl || pl.key !== dest.join() + gx) { var pts = [[off, rz], [gx, rz], [gx, gz]]; if (into) { var inn = [gx, gz - 8 * Math.sign(gz || 1)]; pts.push(inn); try { Sim.path(inn[0], inn[1], dest[0], dest[1]).forEach(function (q) { pts.push([q[0], q[1]]); }); } catch (e) { pts.push(dest); } }
       var segs = [], tot = 0; for (var i = 1; i < pts.length; i++) { var d = Math.hypot(pts[i][0] - pts[i - 1][0], pts[i][1] - pts[i - 1][1]); if (d < 0.01) continue; segs.push([pts[i - 1], pts[i], d]); tot += d; } pl = vPaths[v.id] = { key: dest.join() + gx, segs: segs, tot: tot }; }
     function alongP(f) { var s2 = f * pl.tot; for (var i = 0; i < pl.segs.length; i++) { var sg = pl.segs[i]; if (s2 <= sg[2] || i === pl.segs.length - 1) { var k = clamp(s2 / sg[2], 0, 1), a = sg[0], b = sg[1]; return [a[0] + (b[0] - a[0]) * k, a[1] + (b[1] - a[1]) * k, Math.atan2(b[0] - a[0], b[1] - a[1])]; } s2 -= sg[2]; } return [dest[0], dest[1], 0]; }
+    T = Math.max(0.4, pl.tot / 300);
     if (t < A - T) return null; if (t < A) return alongP(clamp(1 - (A - t) / T, 0, 1));
     if (!L || t < L) return alongP(1);
     if (t < L + T) { var q = alongP(clamp(1 - (t - L) / T, 0, 1)); q[2] += Math.PI; return q; } return null;
@@ -8943,17 +9018,17 @@ button:focus-visible,input:focus-visible{outline:3px solid var(--lime);outline-o
     D.LINEK.forEach(function (k) { (S.lines[k] ? S.lines[k].buses : []).forEach(function (bus) { all.push([k, bus]); }); });
     var queued = all.filter(function (x) { return x[1].st === "queue"; }).sort(function (a, c) { return (a[1].qT || 0) - (c[1].qT || 0); });
     var drawn = [];
-    all.forEach(function (kb) { var k = kb[0], bus = kb[1], side = bus.side || -1, B = D.BUS[bus.type], L = B.len * 0.55, laneIn = side < 0 ? laneE : laneW, laneOut = side < 0 ? laneW : laneE, far = side * (V.W / 2 + 170), pos = null, n = 0, vb = vbus[bus.id];
+    all.forEach(function (kb) { var k = kb[0], bus = kb[1], side = -1, B = D.BUS[bus.type], L = B.len * 0.55, laneIn = rz + 2.2, laneOut = rz + 2.2, far = -(V.W / 2 + 170), farOut = V.W / 2 + 170, pos = null, n = 0, vb = vbus[bus.id];
       var cur = vb && vb.last ? vb.last : null;
       if (bus.st === "toSite") { var road = [[far, laneIn], [G.xIn, laneIn], A], rl = routeLen(road), rem = (bus.tArr - t) * VR; if (rem > rl) return; pos = routeAt(road, rl - Math.max(0, rem)); n = bus.load; }
-      else if (bus.st === "queue") { var qi = queued.findIndex(function (x) { return x[1] === bus; }), nA = 2, sp = L + 2.5; pos = qi < nA ? [G.xIn, G.zPass - 1 - qi * sp, 0] : [G.xIn - side * (4 + (qi - nA + 1) * sp), laneIn, side < 0 ? Math.PI / 2 : -Math.PI / 2]; n = bus.load; }
+      else if (bus.st === "queue") { var qi = queued.findIndex(function (x) { return x[1] === bus; }), nA = 2, sp = L + 2.5; pos = qi < nA ? [G.xIn, G.zPass - 1 - qi * sp, 0] : [G.xIn - (4 + (qi - nA + 1) * sp), laneIn, Math.PI / 2]; n = bus.load; }
       else if (bus.st === "drop" || bus.st === "toPick" || bus.st === "board") {
         // trajet déduit de l'état de la simulation (quai, heure d'attribution) : rien n'est « rejoué » quand le jeu avance vite
         var r, t0;
-        if (bus.st === "drop") { var bay = bays[bus.bay]; if (!bay) return; r = bay.hub ? [A, [G.xIn, G.zPass], [bay.x - 8, G.zPass], [bay.x - 2.5, G.zBay], [bay.x, G.zBay]] : [[G.xIn, laneIn], [bay.x - side * 9, laneIn], [bay.x, bay.z]]; t0 = bus.tAssign || t; }
+        if (bus.st === "drop") { var bay = bays[bus.bay]; if (!bay) return; r = bay.hub ? [A, [G.xIn, G.zPass], [bay.x - 8, G.zPass], [bay.x - 2.5, G.zBay], [bay.x, G.zBay]] : [[bay.x - 30, laneIn], [bay.x - 9, laneIn], [bay.x, bay.z]]; t0 = bus.tAssign || t; }
         else { var px = G.pick[k][0] - (bus.slot || 0) * (L + 1.2), fx = bus.fromX != null ? bus.fromX : G.xIn; r = [[fx, G.zBay], [fx + 3, G.zPass], [px - 7, G.zPass], [px - 2.5, G.zBay], [px, G.zBay]]; t0 = bus.tPick || t; }
         pos = routeAt(r, (t - t0) * VH); n = bus.st === "drop" ? bus.unl : bus.st === "board" ? bus.back : 0; }
-      else if (bus.st === "toOrigin") { var ox0 = bus.outX != null ? bus.outX : G.xOut - 6, rr = [[ox0, G.zBay], [ox0 + 3, G.zPass], [G.xOut, G.zPass], [G.xOut, f.z0 + 0.5], [G.xOut + side * 4, laneOut], [far, laneOut]];
+      else if (bus.st === "toOrigin") { var ox0 = bus.outX != null ? bus.outX : G.xOut - 6, rr = [[ox0, G.zBay], [ox0 + 3, G.zPass], [G.xOut, G.zPass], [G.xOut, f.z0 + 0.5], [G.xOut + 4, laneOut], [farOut, laneOut]];
         var d0 = t - (bus.tDep || t), inHub = routeLen(rr.slice(0, 4)), dd = d0 * VH <= inHub ? d0 * VH : inHub + (d0 - inHub / VH) * VR; if (dd >= routeLen(rr)) return; pos = routeAt(rr, dd); n = bus.back || 0; }
       else return;
       // espacement : jamais deux bus l'un dans l'autre (le suivant attend derrière)
@@ -8995,18 +9070,26 @@ button:focus-visible,input:focus-visible{outline:3px solid var(--lime);outline-o
     // route barrée : la file des voitures des parkings attend devant le barrage, l'agent les laisse passer une à une
     var blk = (Sim.F.roadMode && Sim.F.roadMode() === "filter") ? ev.layout.filter(function (b) { return D.BT[b.k].road; }) : [], qBase = function (sd) { var bb = blk.filter(function (b) { return b.x * sd > 0; }).map(function (b) { return Math.abs(b.x); }); return bb.length ? Math.max(V.W / 2 + 10, Math.min.apply(null, bb) + 6) : V.W / 2 + 10; };
     I.roadVeh = []; var pulse = Math.floor(clock / 2.5) % 2 === 0;
-    for (var i = 0; i < q && n < TN; i++) { var side = i % 2 ? 1 : -1, x = side * (qBase(side) + Math.floor(i / 2) * 5.2); if (i < 2 && pulse) I.roadVeh.push([x - side * 6, rz + (side > 0 ? 2.2 : -2.2)]); dmy.position.set(x, 0, rz + (side > 0 ? 2.2 : -2.2)); dmy.rotation.set(0, side > 0 ? -Math.PI / 2 : Math.PI / 2, 0); dmy.updateMatrix(); traffic.forEach(function (m) { m.setMatrixAt(n, dmy.matrix); }); n++; }
+    for (var i = 0; i < q && n < TN; i++) { var side = i % 2 ? 1 : -1, x = side * (qBase(side) + Math.floor(i / 2) * 5.2); if (i < 2 && pulse) I.roadVeh.push([x - side * 6, rz + (side > 0 ? -2.2 : 2.2)]); dmy.position.set(x, 0, rz + (side > 0 ? -2.2 : 2.2)); dmy.rotation.set(0, side > 0 ? -Math.PI / 2 : Math.PI / 2, 0); dmy.updateMatrix(); traffic.forEach(function (m) { m.setMatrixAt(n, dmy.matrix); }); n++; }
     for (var j = 0; j < qo && n < TN; j++) { var l = lots[j % Math.max(1, lots.length)]; if (!l) break; var f = Sim.fp(l), kk = Math.floor(j / Math.max(1, lots.length)), row = Math.floor(kk / 4); if (f.z0 + 3 + row * 5.5 > f.z1 - 2) continue; dmy.position.set(l.x - 4.5 + (kk % 4) * 3, 0, f.z0 + 3 + row * 5.5); dmy.rotation.set(0, Math.PI, 0); dmy.updateMatrix(); traffic.forEach(function (m) { m.setMatrixAt(n, dmy.matrix); }); n++; }
+    if (mode === "filter") { var RNd = Sim.roadNet(ev), DV = RNd.DV, bk = RNd.back, eastL = rz + 2.2, westL = rz - 2.2;
+      // vers l'est : arrive par l'ouest, descend la rue de déviation, longe l'arrière des parkings, remonte et repart vers l'est ; inversement vers l'ouest
+      var loopE = [[-(V.W / 2 + 300), eastL], [-DV - 1.8, eastL], [-DV - 1.8, bk + 1.8], [DV - 1.8, bk + 1.8], [DV - 1.8, westL + 4.4], [DV + 3, eastL], [V.W / 2 + 300, eastL]], loopW = [[V.W / 2 + 300, westL], [DV + 1.8, westL], [DV + 1.8, bk - 1.8], [-DV + 1.8, bk - 1.8], [-DV + 1.8, eastL], [-DV - 3, westL], [-(V.W / 2 + 300), westL]];
+      for (var dk = 0; dk < 16 && n < TN; dk++) { var path = dk % 2 ? loopW : loopE, tl = 0; for (var pi2 = 1; pi2 < path.length; pi2++) tl += Math.hypot(path[pi2][0] - path[pi2 - 1][0], path[pi2][1] - path[pi2 - 1][1]); var dd2 = ((S.t * 300 + dk * 97) % tl), pp2 = null;
+        for (var pj = 1; pj < path.length; pj++) { var a2 = path[pj - 1], b2 = path[pj], l2 = Math.hypot(b2[0] - a2[0], b2[1] - a2[1]); if (dd2 <= l2) { var f2 = dd2 / l2; pp2 = [a2[0] + (b2[0] - a2[0]) * f2, a2[1] + (b2[1] - a2[1]) * f2, Math.atan2(b2[0] - a2[0], b2[1] - a2[1])]; break; } dd2 -= l2; }
+        if (!pp2) continue; dmy.position.set(pp2[0], 0, pp2[1]); dmy.rotation.set(0, pp2[2], 0); dmy.updateMatrix(); traffic.forEach(function (m) { m.setMatrixAt(n, dmy.matrix); }); n++; } }
+    // voitures qui vont aux parkings par les routes d'accès
+    if (!S.closing && (S.road.inQ > 0.5 || Sim.lotsOf(ev, "public").some(function (l) { return S.lots[l.id] && S.t - (S.lots[l.id].lastIn || -99) < 1.5; }))) { var RNp = Sim.roadNet(ev); [-1, 1].forEach(function (sd) { for (var ak = 0; ak < 3 && n < TN; ak++) { var ph = (S.t * 300 / (RNp.back - rz) + ak / 3 + (sd > 0 ? 0.5 : 0)) % 1, az = rz + 4 + ph * (RNp.back - rz - 8); dmy.position.set(sd * RNp.P + 1.6, 0, az); dmy.rotation.set(0, 0, 0); dmy.updateMatrix(); traffic.forEach(function (m) { m.setMatrixAt(n, dmy.matrix); }); n++; } }); }
     // voitures qui entrent et cherchent une place dans les parkings qui se remplissent
-    if (!S.closing) Sim.lotsOf(ev, "public").forEach(function (l, li) { var lot = S.lots[l.id]; if (!lot || lot.cars >= lot.cap - 5 || !(S.t - (lot.lastIn || -99) < 1.5)) return; var f = Sim.fp(l); for (var j = 0; j < 3 && n < TN; j++) { var ph = (clock * 0.12 + j / 3 + li * 0.17) % 1, z = f.z0 + 1 + ph * (f.z1 - f.z0 - 4), x = l.x + (j % 2 ? 2.2 : -2.2); dmy.position.set(x, 0, z); dmy.rotation.set(0, 0, 0); dmy.updateMatrix(); traffic.forEach(function (m) { m.setMatrixAt(n, dmy.matrix); }); I.roadVeh && I.roadVeh.push([x, z]); n++; } });
+    if (!S.closing) Sim.lotsOf(ev, "public").forEach(function (l, li) { var lot = S.lots[l.id]; if (!lot || lot.cars >= lot.cap - 5 || !(S.t - (lot.lastIn || -99) < 1.5)) return; var f = Sim.fp(l); for (var j = 0; j < 3 && n < TN; j++) { var ph = (S.t * 83 / Math.max(20, f.z1 - f.z0) + j / 3 + li * 0.17) % 1, z = f.z0 + 1 + ph * (f.z1 - f.z0 - 4), x = l.x + (j % 2 ? 2.2 : -2.2); dmy.position.set(x, 0, z); dmy.rotation.set(0, 0, 0); dmy.updateMatrix(); traffic.forEach(function (m) { m.setMatrixAt(n, dmy.matrix); }); I.roadVeh && I.roadVeh.push([x, z]); n++; } });
     // trafic qui roule (moins quand ça bouchonne)
     var mode = Sim.F.roadMode ? Sim.F.roadMode() : "open", crs = Sim.crossings(ev), stopAt = {}; drawCrossAgents(S, crs, rz, clock); drawGuide(S);
     var qEnd = V.W / 2 + 10 + Math.ceil(q / 2) * 5.2, busX = []; Object.keys(vmap).forEach(function (kb) { if (vmap[kb].g.visible) { var vp = [vmap[kb].g.position.x, vmap[kb].g.position.z]; I.roadVeh.push(vp); if (kb.indexOf("bus") === 0) busX.push(vp); } });
-    var flowN = Math.round(18 * (1 - Math.min(0.8, S.road.jam || 0)) * (mode === "filter" ? 0 : mode === "open" ? 1 : 0.55)); for (var k = 0; k < flowN && n < TN; k++) { var dir = k % 2 ? 1 : -1, sp = 22 * (1 - Math.min(0.85, S.road.jam || 0)), span = V.W + 300, xk = ((clock * sp * dir + k * 37.3) % span + span) % span - span / 2;
-      if (mode === "oneway" && dir < 0) continue; if (mode === "lane" && dir > 0) continue;
+    var flowN = Math.round(18 * (1 - Math.min(0.8, S.road.jam || 0)) * (mode === "filter" ? 0 : mode === "open" ? 1 : 0.55)); for (var k = 0; k < flowN && n < TN; k++) { var dir = k % 2 ? 1 : -1, sp = 300 * (1 - Math.min(0.85, S.road.jam || 0)), span = V.W + 300, xk = ((S.t * sp * dir + k * 37.3) % span + span) % span - span / 2;
+      if (mode === "oneway" && dir < 0) continue; if (mode === "lane" && dir < 0) continue;
       // la voiture s'arrête avant un passage où les piétons traversent ; les suivantes se rangent derrière
       for (var ci = 0; ci < crs.length; ci++) { var c = crs[ci], ahead = (c.x - xk) * dir; if (ahead > -2 && ahead < 14 && ((Sim.F.crossPed(c.id) && S.cross && S.cross[c.id] && S.cross[c.id].tended) || (I.crossBusy && I.crossBusy[c.id] > 0))) { var sk = c.id + dir; stopAt[sk] = (stopAt[sk] || 0) + 1; xk = c.x - dir * (6.2 + (stopAt[sk] - 1) * 5.2); break; } }
-      if (q > 0 && (dir < 0 ? xk > 0 : xk < 0) && Math.abs(xk) > V.W / 2 + 6 && Math.abs(xk) < qEnd + 4) continue; var zl = rz + (dir > 0 ? -2.2 : 2.2); if (busX.some(function (bp) { return Math.abs(bp[0] - xk) < 9 && Math.abs(bp[1] - zl) < 1.8; })) continue; dmy.position.set(xk, 0, rz + (dir > 0 ? -2.2 : 2.2)); dmy.rotation.set(0, dir > 0 ? Math.PI / 2 : -Math.PI / 2, 0); dmy.updateMatrix(); traffic.forEach(function (m) { m.setMatrixAt(n, dmy.matrix); }); n++; }
+      if (q > 0 && (dir < 0 ? xk > 0 : xk < 0) && Math.abs(xk) > V.W / 2 + 6 && Math.abs(xk) < qEnd + 4) continue; var zl = rz + (dir > 0 ? 2.2 : -2.2); if (busX.some(function (bp) { return Math.abs(bp[0] - xk) < 9 && Math.abs(bp[1] - zl) < 1.8; })) continue; dmy.position.set(xk, 0, rz + (dir > 0 ? 2.2 : -2.2)); dmy.rotation.set(0, dir > 0 ? Math.PI / 2 : -Math.PI / 2, 0); dmy.updateMatrix(); traffic.forEach(function (m) { m.setMatrixAt(n, dmy.matrix); }); n++; }
     traffic.forEach(function (m) { m.count = n; m.instanceMatrix.needsUpdate = true; });
   }
   function drawVehicles(S, clock, dl) {
@@ -9467,6 +9550,7 @@ button:focus-visible,input:focus-visible{outline:3px solid var(--lime);outline-o
   };
   // ---------------------------------------------------------------- barre de tâches
   var ICONS = {
+    police: '<path d="M12 3l7 3v5c0 5-3 8-7 10-4-2-7-5-7-10V6z"/><path d="M9 12l2 2 4-4"/>',
     accueil: '<circle cx="12" cy="7" r="3"/><path d="M5 20c1-4 4-6 7-6s6 2 7 6"/><path d="M18 4l2 2-2 2"/>',
     circulation: '<path d="M4 19h16"/><path d="M6 15l4-8 4 6 4-4"/><circle cx="10" cy="7" r="1.5"/><circle cx="18" cy="9" r="1.5"/>',
     synthese: '<path d="M4 19V9M10 19V5M16 19v-7M22 19H2"/>', entrees: '<path d="M4 20V6l8-3 8 3v14"/><path d="M9 20v-6h6v6"/>', flux: '<path d="M3 12h4l3-7 4 14 3-7h4"/>', transport: '<rect x="4" y="3" width="16" height="14" rx="3"/><path d="M4 11h16"/><circle cx="8" cy="20" r="1.5"/><circle cx="16" cy="20" r="1.5"/>', parking: '<rect x="3" y="3" width="18" height="18" rx="3"/><path d="M9 17V7h4a3 3 0 0 1 0 6H9"/>',
@@ -9486,6 +9570,7 @@ button:focus-visible,input:focus-visible{outline:3px solid var(--lime);outline-o
     ["bars", "Bars", function (S) { var low = 0, q = 0; Object.keys(S.bars).forEach(function (k) { var bb = S.bars[k]; if (D.RK.some(function (rk) { return bb[rk] / bb.cap[rk] < 0.25; }) || bb.broken || bb.term) low++; if (bb.svc < 0.75) q++; }); return [U.ev.bar.happy.on && Sim.F.hhOn() ? "happy hour" : low ? low + " à remplir" : q ? q + " en file" : "OK", low ? "warn" : ""]; }],
     ["tech", "Technique", function (S) { var w = 0; Object.keys(S.gens).forEach(function (k) { if (!S.gens[k].ok || S.gens[k].warn) w++; }); Object.keys(S.bars).forEach(function (k) { if (S.bars[k].foam || S.bars[k].broken) w++; }); return [w ? w + " alerte" + (w > 1 ? "s" : "") : "RAS", w ? "warn" : ""]; }],
     ["logistique", "Logistique", function (S) { var o = S.orders.length, lowS = D.RK.some(function (rk) { return S.stock[rk] < D.RES[rk].carry * 3; }); return [o ? o + " en route" : nb(S.stock.keg) + " fûts", lowS ? "bad" : ""]; }],
+    ["police", "Police", function (S) { var n = (S.staff.polRoad || 0) + (S.staff.polTraffic || 0) + (S.staff.polPatrol || 0) + (S.staff.polCyno || 0); return [S.polBoost > S.t ? "renforts" : n + " policiers", S.road && S.road.held < 1 ? "warn" : ""]; }],
     ["securite", "Sécurité", function (S) { return [S.drone.on ? "drone en vol" : nb(Object.keys(S.seized).reduce(function (a, k) { return a + S.seized[k]; }, 0)) + " saisies", ""]; }],
     ["urgences", "Urgences", function (S) { var n = S.inc.filter(function (i) { return i.det <= S.t; }).length; return [n ? n + " en cours" : "RAS", n ? "bad" : "", n]; }],
     ["evac", "Évacuation", function (S) { return [S.evac ? (S.evac.kind === "zone" ? "zone" : U.evacPhase(S.evac).split(",")[0]) : "prête", S.evac ? "bad" : ""]; }],
@@ -9538,8 +9623,8 @@ button:focus-visible,input:focus-visible{outline:3px solid var(--lime);outline-o
     var key = c.who + c.until; if (key !== callKey) { callKey = key; $("callW").textContent = "📻 " + c.who + " · canal " + c.ch; $("callT").textContent = c.txt; var o = $("callO"); o.textContent = ""; c.opts.forEach(function (lb, i) { var b = mk(o, "button", i === 0 ? "go2" : null, lb); b.onclick = function () { Sim.answerCall(i); A.sfx("tap"); U.refresh(true); }; }); }
   }
   // ---------------------------------------------------------------- régie (onglets dans ui_live.js)
-  U.GROUPS = [["Public", ["synthese", "circulation", "entrees", "accueil", "flux", "transport", "parking"]], ["Site", ["scenes", "tech", "services", "logistique", "ecrans", "sol"]], ["Ventes", ["bars", "food", "finances"]], ["Sécurité", ["securite", "urgences", "evac", "catas", "equipe"]], ["Infos", ["persos", "presse", "radio", "cameras"]]];
-  U.TABN = { accueil: "Régie accueil", circulation: "Plan de circulation", synthese: "Synthèse", entrees: "Entrées", flux: "Flux & barrières", transport: "Navettes", parking: "Parkings", scenes: "Scènes", tech: "Technique", services: "Services", logistique: "Logistique", ecrans: "Écrans", sol: "Sol", bars: "Bars & ventes", food: "Food & stands", finances: "Finances", securite: "Sécurité", urgences: "Urgences", evac: "Évacuation", catas: "Catastrophes", equipe: "Équipe", persos: "Personnages", presse: "Presse & avis", radio: "Radio", cameras: "Caméras" };
+  U.GROUPS = [["Public", ["synthese", "circulation", "entrees", "accueil", "flux", "transport", "parking"]], ["Site", ["scenes", "tech", "services", "logistique", "ecrans", "sol"]], ["Ventes", ["bars", "food", "finances"]], ["Sécurité", ["securite", "police", "urgences", "evac", "catas", "equipe"]], ["Infos", ["persos", "presse", "radio", "cameras"]]];
+  U.TABN = { police: "Police", accueil: "Régie accueil", circulation: "Plan de circulation", synthese: "Synthèse", entrees: "Entrées", flux: "Flux & barrières", transport: "Navettes", parking: "Parkings", scenes: "Scènes", tech: "Technique", services: "Services", logistique: "Logistique", ecrans: "Écrans", sol: "Sol", bars: "Bars & ventes", food: "Food & stands", finances: "Finances", securite: "Sécurité", urgences: "Urgences", evac: "Évacuation", catas: "Catastrophes", equipe: "Équipe", persos: "Personnages", presse: "Presse & avis", radio: "Radio", cameras: "Caméras" };
   U.LIVE = {};
   function sheetStruct() { var S = Sim.get(); return U.sheetTab + "|" + S.inc.filter(function (i) { return i.det <= S.t; }).map(function (i) { return i.id + (i.picked ? "p" : "") + (i.job != null ? "j" : ""); }).join() + "|" + (S.evac ? S.evac.kind + S.evac.phase : "") + "|" + S.units.filter(function (u) { return u.active; }).length + "|" + S.orders.length + "|" + S.day + "|" + S.barriers.length + "|" + S.press.articles.length; }
   function buildSheet() {
@@ -10128,6 +10213,9 @@ button:focus-visible,input:focus-visible{outline:3px solid var(--lime);outline-o
     U.seg(body, [["open", "Ouverte", "circulation normale"], ["lane", "Une voie fermée", "côté festival : traversée plus facile"], ["oneway", "Sens unique", "moitié moins de voitures"], ["filter", "Fermée (barrages)", "seuls bus, secours et voitures des parkings"]], function () { return RC.mode; }, function (v) { if (live && S && S.phase === "live") Sim.setRoad(v); else { if (v === "filter" && !e.layout.some(function (b) { return D.BT[b.k].road; })) { U.toast("Pose d'abord les barrages"); return; } RC.mode = v; } }, L, 2);
     var bl = e.layout.filter(function (b) { return D.BT[b.k].road; });
     note(body, bl.length ? bl.length + " barrage" + (bl.length > 1 ? "s" : "") + " filtrant" + (bl.length > 1 ? "s" : "") + " sur la route (2 agents de circulation chacun). Route fermée : traversée libre, plus de bouchon devant le site, mais la circulation déviée ralentit un peu les bus et les secours." : "Aucun barrage : pose ceux proposés aux deux bouts du site, ou place-les toi-même (onglet Site, catégorie Accès).");
+    var hb = e.layout.filter(function (b) { return D.BT[b.k].hard; }); if (hb.length) note(body, hb.length + " barrage" + (hb.length > 1 ? "s" : "") + " piéton" + (hb.length > 1 ? "s" : "") + " infranchissable" + (hb.length > 1 ? "s" : "") + " : la route est coupée, la foule traverse librement, la circulation passe par la déviation.");
+    var bt0 = mk(body, "div", "btns"); U.btn(bt0, "Barrage infranchissable au centre de la vue", function () { var b0 = { id: Sim.newId(e), k: "hardBlock", x: Math.round(W.cam.tx / 2) * 2, z: Sim.roadZ(e), rot: 0 }, v = Sim.validate(e, b0); if (!v.ok) { U.toast(v.why); return; } e.layout.push(b0); if (S && S.phase === "live") { S.money.extra -= 3500; Sim.log("Barrage piéton infranchissable posé à x" + b0.x + " (3 500 €). Pense aux policiers pour le tenir.", "i", "Transports"); } W.syncLayout(e); U.refresh(true); }, "go2");
+    hb.forEach(function (b) { U.btn(bt0, "Retirer x" + b.x, function () { e.layout = e.layout.filter(function (o) { return o !== b; }); W.syncLayout(e); U.refresh(true); }); });
     var bt = mk(body, "div", "btns"); U.btn(bt, "Poser les barrages proposés", function () { if (!Sim.placeBlocks(e)) U.toast("Les barrages sont déjà en place"); W.syncLayout(e); U.refresh(true); }, "go2");
     bl.forEach(function (b) { U.btn(bt, "Voir x" + b.x, function () { W.focus(b.x, b.z, 26, 0.65); }); U.btn(bt, "Retirer x" + b.x, function () { e.layout = e.layout.filter(function (o) { return o !== b; }); if (RC.mode === "filter" && !e.layout.some(function (o) { return D.BT[o.k].road; })) RC.mode = "open"; W.syncLayout(e); U.refresh(true); }); });
     sec(body, "Passages piétons");
@@ -10140,6 +10228,21 @@ button:focus-visible,input:focus-visible{outline:3px solid var(--lime);outline-o
     var l = mk(body, "div", "line"), t = mk(l, "div", "lbl", "Signaleurs de traversée"), s2 = mk(t, "small"); L.push(function () { var nc = Sim.crossings(e).length, have = S && S.phase === "live" ? S.staff.crossAg : e.staff.crossAg; s2.textContent = (have || 0) + " signaleurs : " + Math.min(nc, Math.floor((have || 0) / 2)) + " passage(s) tenu(s) sur " + nc + " (les plus fréquentés d'abord)"; });
     if (live && S && S.phase === "live") smallHire(l, "crossAg", 2, L); else { var R0 = D.ROLES.filter(function (x) { return x.k === "crossAg"; })[0]; U.line(body, "Signaleurs prévus", "deux par passage", function () { return e.staff.crossAg || 0; }, function (d) { e.staff.crossAg = clamp((e.staff.crossAg || 0) + d * 2, 0, R0.max); }, String, 0, R0.max, L); }
   };
+  // ================================================================ police
+  T.police = function (body, sub, L, S) {
+    var e = ev(); sub.textContent = "Fermetures de route, circulation, sécurité du public, renforts";
+    var k = mk(body, "div", "kpis");
+    U.kpi(k, "Policiers sur le site", function () { return [nb((S.staff.polRoad || 0) + (S.staff.polTraffic || 0) + (S.staff.polPatrol || 0) + (S.staff.polCyno || 0))]; }, L);
+    U.kpi(k, "Barrages tenus", function () { var nbk = e.layout.filter(function (b) { return D.BT[b.k].road; }).length; return [nbk ? Math.round((S.road.held == null ? 1 : S.road.held) * 100) + " %" : "aucun barrage", nbk && S.road.held < 1 ? "warn" : "ok"]; }, L);
+    U.kpi(k, "Coût de la police", function () { return [money(((S.staff.polRoad || 0) + (S.staff.polTraffic || 0) + (S.staff.polPatrol || 0)) * 55 + (S.staff.polCyno || 0) * 70) + "/h"]; }, L);
+    U.kpi(k, "Renforts de crise", function () { return [S.polBoost > S.t ? "sur place jusqu'à " + hm(S.polBoost) : "disponibles"]; }, L);
+    note(body, "La police est mise à disposition par la préfecture et facturée au festival. Deux policiers par barrage de route ; aux passages piétons et carrefours, ils remplacent les signaleurs.");
+    [["polRoad", "Fermetures de route", function () { return "2 par barrage · " + e.layout.filter(function (b) { return D.BT[b.k].road; }).length + " barrage(s)"; }], ["polTraffic", "Circulation", function () { return "carrefours, passages, motards d'escorte des navettes"; }], ["polPatrol", "Patrouilles dans la foule", function () { return "vols et bagarres en baisse, interventions plus rapides"; }], ["polCyno", "Brigade cynophile", function () { return "aux entrées : produits saisis, moins de malaises"; }]].forEach(function (r) {
+      var l = mk(body, "div", "line"), t = mk(l, "div", "lbl", r[1]), s2 = mk(t, "small"); L.push(function () { s2.textContent = (S.staff[r[0]] || 0) + " policiers · " + r[2](); }); smallHire(l, r[0], r[0] === "polCyno" ? 1 : 2, L); });
+    sec(body, "Crise");
+    U.wide(body, "red", "Demander des renforts de police", "une compagnie en 10 min pour une heure : menace, mouvement de foule, évacuation (4 500 €)", function () { Sim.policeBoost(); U.refresh(true); }, L, function () { return S.polBoost > S.t; });
+  };
+
   // ================================================================ plan de circulation : tous les flux au même endroit
   T.circulation = function (body, sub, L, S) {
     var e = ev(), hub = Sim.hubOf(e), cfg = Sim.hubCfg(e); sub.textContent = "Arrivées, gare routière, route, sortie";
