@@ -5265,6 +5265,8 @@ button:focus-visible,input:focus-visible{outline:3px solid var(--lime);outline-o
   function front(b) { var a = (b.rot || 0) * Math.PI / 2; return [Math.sin(a), Math.cos(a)]; }
   function inter(a, b, m) { m = m || 0; return a.x0 < b.x1 + m && a.x1 > b.x0 - m && a.z0 < b.z1 + m && a.z1 > b.z0 - m; }
   function within(f, r) { return f.x0 >= r.x0 && f.x1 <= r.x1 && f.z0 >= r.z0 && f.z1 <= r.z1; }
+  // emprise visuelle : fournie par le rendu (débord réel de chaque modèle), sinon l'emprise au sol
+  Sim.visFp = function (b) { var f = fp(b), p = Sim.visPad ? Sim.visPad(b) : null; if (!p) return f; return { x0: f.x0 - p[0], x1: f.x1 + p[1], z0: f.z0 - p[2], z1: f.z1 + p[3], w: f.w + p[0] + p[1], d: f.d + p[2] + p[3] }; };
   Sim.fp = fp; Sim.front = front; Sim.dims = dims; Sim.inter = inter; Sim.within = within;
   function venue(ev) { if (ev.custom) { if (!ev._cv || ev._cvk !== JSON.stringify(ev.custom)) { Object.defineProperty(ev, "_cv", { value: D.custom(ev.custom), writable: true, enumerable: false, configurable: true }); Object.defineProperty(ev, "_cvk", { value: JSON.stringify(ev.custom), writable: true, enumerable: false, configurable: true }); } return ev._cv; }
     var B = D.VENUES[ev.venue], sc = Sim.siteScale(ev); if (sc === 1) { if (ev.layoutS && ev.layoutS !== 1) Sim.remapLayout(ev, ev.layoutS, 1); return B; }
@@ -5397,7 +5399,8 @@ button:focus-visible,input:focus-visible{outline:3px solid var(--lime);outline-o
     if (h && (b.k === "parking" || b.k === "camping" || b.k === "shuttle" || b.k === "generator" || t.exit || b.k === "assembly")) return { ok: false, why: "Pas à l'intérieur d'un hall" };
     if ((t.entry || b.k === "staffgate" || t.exit) && !V.fence) return { ok: false, why: "Ce lieu n'a pas de clôture" };
     if (t.entry || b.k === "staffgate" || t.exit) { var dEdge = Math.min(Math.abs(f.x0 - site.x0), Math.abs(f.x1 - site.x1), Math.abs(f.z0 - site.z0), Math.abs(f.z1 - site.z1)); if (dEdge > 2.5 || !inSite) return { ok: false, why: "À placer contre la clôture" }; var n = Sim.outward(ev, b); if ((n[0] && (b.rot || 0) % 2 === 0) || (n[1] && (b.rot || 0) % 2 === 1)) return { ok: false, why: "Tourne-la dans le sens de la clôture (touche R)" }; }
-    for (var j = 0; j < ev.layout.length; j++) { var o = ev.layout[j]; if (o.id === ignoreId) continue; if (inter(f, fp(o), SMALL[b.k] || SMALL[o.k] ? 0 : (t.hub || D.BT[o.k].hub) ? 3 : 0.6)) return { ok: false, why: "Chevauche " + D.BT[o.k].n.toLowerCase() }; }
+    var fv = Sim.visFp(b);
+    for (var j = 0; j < ev.layout.length; j++) { var o = ev.layout[j]; if (o.id === ignoreId) continue; if (!SMALL[b.k] && !SMALL[o.k] && inter(fv, Sim.visFp(o), 0.2)) return { ok: false, why: "Trop près de " + D.BT[o.k].n.toLowerCase().replace(/ \(.*\)/, "") + " (les auvents et enseignes se touchent)" }; if (inter(f, fp(o), SMALL[b.k] || SMALL[o.k] ? 0 : (t.hub || D.BT[o.k].hub) ? 3 : 0.6)) return { ok: false, why: "Chevauche " + D.BT[o.k].n.toLowerCase() }; }
     if (inSite && !SMALL[b.k] && !t.entry && !t.exit && b.k !== "staffgate" && onFireLane(ev, f)) return { ok: false, why: "Sur la voie pompiers : garde 8 m libres le long de la clôture" };
     if (inSite && !SMALL[b.k]) {
       for (var z = 0; z < ev.layout.length; z++) { var st = ev.layout[z]; if (st.id === ignoreId || !D.BT[st.k].stage || st.k === "stageT") continue; if (inter(f, Sim.zone(st, ev), 0)) return { ok: false, why: "Devant " + D.BT[st.k].n.toLowerCase() + " : laisse la place au public" }; }
@@ -5480,6 +5483,7 @@ button:focus-visible,input:focus-visible{outline:3px solid var(--lime);outline-o
       if (t.walk || b.k === "shelter" || SMALL[b.k] || b.k === "screen" || b.k === "pmr") return;
       if (b.k === "stageT") { var fr = front(b), bx = b.x - fr[0] * f.d * 0.28, bz = b.z - fr[1] * f.d * 0.28, hw = (fr[0] ? f.d * 0.22 : f.w / 2), hd = (fr[0] ? f.w / 2 : f.d * 0.22); mark(bx - hw, bx + hw, bz - hd, bz + hd, 1); return; }
       mark(f.x0, f.x1, f.z0, f.z1, 1);
+      if (t.hub) { var HG = Sim.hubGeo(ev, b); mark(HG.xIn + 4.5, HG.xOut - 4.5, HG.zPlat0 + 0.6, HG.zPlat1 - 0.2, 0); mark(HG.walkX - 2, HG.walkX + 2, f.z0 - 1, HG.zPlat0 + 1, 0); }
     });
     if (S && S.barriers) S.barriers.forEach(function (br) { var n = Math.ceil(Math.hypot(br.x1 - br.x0, br.z1 - br.z0) / 0.7) + 1; for (var i = 0; i <= n; i++) { var x = br.x0 + (br.x1 - br.x0) * i / n, z = br.z0 + (br.z1 - br.z0) * i / n, cx = Math.floor((x - gx0) / CS), cz = Math.floor((z - gz0) / CS); if (cx >= 0 && cz >= 0 && cx < NX && cz < NZ && grid[cz * NX + cx] !== 1) grid[cz * NX + cx] = 3; } });
     NAV = { CS: CS, gx0: gx0, gz0: gz0, NX: NX, NZ: NZ, grid: grid, fields: {}, ev: ev, ver: (NAV ? NAV.ver + 1 : 1) };
@@ -6777,7 +6781,7 @@ button:focus-visible,input:focus-visible{outline:3px solid var(--lime);outline-o
   function lotsOfType(type) { return Object.keys(S.lots).filter(function (id) { return S.lots[id].type === type; }); }
   function parkCars(n, type, instant) {
     var ids = lotsOfType(type); if (!ids.length && type !== "public") ids = lotsOfType("public");
-    for (var i = 0; i < ids.length && n > 0; i++) { var l = S.lots[ids[i]], cap = l.cap + (type === "public" && S.ev.park.overflow ? 800 / Math.max(1, lotsOfType("public").length) : 0), put = Math.min(n, cap - l.cars); if (put > 0) { l.cars += put; n -= put; } }
+    for (var i = 0; i < ids.length && n > 0; i++) { var l = S.lots[ids[i]], cap = l.cap + (type === "public" && S.ev.park.overflow ? 800 / Math.max(1, lotsOfType("public").length) : 0), put = Math.min(n, cap - l.cars); if (put > 0) { l.cars += put; n -= put; l.lastIn = S.t; } }
     return n;
   }
   function roadStep(gm) {
@@ -8408,6 +8412,16 @@ button:focus-visible,input:focus-visible{outline:3px solid var(--lime);outline-o
     rm.forEach(function (o) { if (o.parent) o.parent.remove(o); if (!o.geometry._shared && !(o.geometry.type === "BoxGeometry" || o.geometry.type === "CylinderGeometry")) o.geometry.dispose(); });
   }
   W._bmap = function () { return bmap; };
+  // débord réel du modèle 3D autour de son emprise au sol (mesuré une fois par type et orientation)
+  var padCache = {}, NOPAD = { entry: 1, entryS: 1, entryL: 1, exit: 1, staffgate: 1, stageL: 1, stageM: 1, stageS: 1, parking: 1, camping: 1, busHub: 1, roadBlock: 1, dropZone: 1, assembly: 1, shelter: 1, vip: 1, light: 1, bin: 1, heater: 1, cctv: 1 };
+  W.visPad = function (b) { if (NOPAD[b.k] || !BUILD[b.k]) return null; var key = b.k + ":" + ((b.rot || 0) % 4); if (key in padCache) return padCache[key];
+    var g = new THREE.Group(), T = D.BT[b.k], res = null; g.rotation.y = (b.rot || 0) * Math.PI / 2;
+    try { BUILD[b.k]({ id: "pad", k: b.k, x: 0, z: 0, rot: b.rot || 0, cuisine: b.cuisine, posts: b.posts, ptype: b.ptype, up: b.up }, g, T); g.updateMatrixWorld(true); var bb = new THREE.Box3();
+      g.traverse(function (o) { if (!o.isMesh || o.isSprite || !o.geometry || (o.material && o.material.visible === false)) return; o.geometry.computeBoundingBox(); var bx = o.geometry.boundingBox.clone().applyMatrix4(o.matrixWorld); if (bx.max.y < 0.15) return; bb.union(bx); });
+      if (!bb.isEmpty()) { var wd = Sim.dims(b), r = (b.rot || 0) % 2, w = r ? wd[1] : wd[0], d = r ? wd[0] : wd[1], cap = function (v) { v = Math.min(4, Math.max(0, v)); return v < 0.3 ? 0 : v; };
+        res = [cap(-w / 2 - bb.min.x), cap(bb.max.x - w / 2), cap(-d / 2 - bb.min.z), cap(bb.max.z - d / 2)]; if (!res[0] && !res[1] && !res[2] && !res[3]) res = null; } } catch (e) { res = null; }
+    I.disposeTree(g); padCache[key] = res; return res; };
+  Sim.visPad = W.visPad;
   W.syncLayout = function (ev, force) {
     var ck = Sim.crossings(ev).map(function (c) { return c.x; }).join(); if (W._crossKey != null && ck !== W._crossKey) W.setVenue(ev, true);
     var key = JSON.stringify(ev.layout) + JSON.stringify(ev.halls);
@@ -8516,7 +8530,20 @@ button:focus-visible,input:focus-visible{outline:3px solid var(--lime);outline-o
     return g; }
   // ================================================================ animation du plan à chaque image
   var scrT = 0;
+  // ---- particules d'ambiance : fumée des food trucks, échappement des groupes, confettis des têtes d'affiche
+  var PUFFN = 420, puffs = [], puffTex = null, puffG = null, oiseaux = null;
+  function puffInit() { if (puffG) return; var c = document.createElement("canvas"); c.width = c.height = 64; var x = c.getContext("2d"), gr = x.createRadialGradient(32, 32, 2, 32, 32, 30); gr.addColorStop(0, "rgba(255,255,255,0.9)"); gr.addColorStop(1, "rgba(255,255,255,0)"); x.fillStyle = gr; x.fillRect(0, 0, 64, 64); puffTex = new THREE.CanvasTexture(c);
+    puffG = new THREE.Group(); I.fxG.add(puffG); for (var i = 0; i < PUFFN; i++) { var sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: puffTex, transparent: true, depthWrite: false, opacity: 0 })); sp.visible = false; puffG.add(sp); puffs.push({ s: sp, life: 0 }); } }
+  function puff(x, y, z, col, size, life, vx, vy, vz, grav, op) { puffInit(); for (var i = 0; i < PUFFN; i++) { var p = puffs[(I._pi = ((I._pi || 0) + 1) % PUFFN)]; if (p.life <= 0) { p.life = p.max = life; p.x = x; p.y = y; p.z = z; p.vx = vx; p.vy = vy; p.vz = vz; p.g = grav || 0; p.sz = size; p.op = op || 0.5; p.s.material.color.setHex(col); p.s.visible = true; return; } } }
+  I.puff = puff;
+  function puffStep(dt) { if (!puffG) return; for (var i = 0; i < PUFFN; i++) { var p = puffs[i]; if (p.life <= 0) continue; p.life -= dt; if (p.life <= 0) { p.s.visible = false; continue; } var k = p.life / p.max; p.vy -= p.g * dt; p.x += p.vx * dt; p.y += p.vy * dt; p.z += p.vz * dt; if (p.y < 0.05 && p.g) { p.y = 0.05; p.vx *= 0.3; p.vz *= 0.3; p.vy = 0; } p.s.position.set(p.x, p.y, p.z); var sc = p.g ? p.sz : p.sz * (1.6 - k); p.s.scale.set(sc, sc, sc); p.s.material.opacity = p.op * Math.min(1, k * 3); } }
+  // oiseaux en vol en journée, au-dessus du site
+  function birdsStep(dt, clock, dl, ev) { if (!oiseaux) { var geo = new THREE.BufferGeometry(); geo.setAttribute("position", new THREE.Float32BufferAttribute([0, 0, 0, -0.9, 0.25, -0.3, 0, 0, 0.35, 0, 0, 0, 0.9, 0.25, -0.3, 0, 0, 0.35], 3)); geo.computeVertexNormals(); oiseaux = new THREE.InstancedMesh(geo, new THREE.MeshBasicMaterial({ color: 0x1a1c22, side: THREE.DoubleSide }), 28); oiseaux.frustumCulled = false; I.fxG.add(oiseaux); }
+    oiseaux.visible = dl > 0.35 && !I.reduce; if (!oiseaux.visible) return; var V = Sim.venue(ev), d = new THREE.Object3D();
+    for (var i = 0; i < 28; i++) { var flock = i % 2, a = clock * (0.05 + flock * 0.03) + i * 0.21, r = V.W * (0.25 + flock * 0.12) + Math.sin(i * 3.1) * 8; d.position.set(Math.cos(a) * r + (flock ? 20 : -30), 38 + Math.sin(i * 1.7) * 5 + Math.sin(clock + i) * 0.6, Math.sin(a) * r * 0.7); d.rotation.set(0, -a, 0); var fl = Math.sin(clock * 9 + i * 1.3); d.scale.set(1.2, 1 + fl * 0.9, 1.2); d.updateMatrix(); oiseaux.setMatrixAt(i, d.matrix); } oiseaux.instanceMatrix.needsUpdate = true; }
+  var _v3 = new THREE.Vector3();
   I.drawLayout = function (dt, S, ev, opt, dl, w) {
+    var nowT = performance.now(), rdt = Math.min(0.1, (nowT - (I._lt || nowT)) / 1000); I._lt = nowT; puffStep(rdt); birdsStep(rdt, nowT / 1000, dl, ev);
     var clock = I.clock, cam = W.cam; scrT += dt; var scr = scrT > 0.12; if (scr) scrT = 0;
     if (decoG && decoG.userData.bulbs) { var bu = decoG.userData.bulbs; bu.visible = dl < 0.75; if (bu.visible && !I.reduce) bulbMat.color.setScalar(0.85 + 0.15 * Math.sin(clock * 1.7)); }
     Object.keys(bmap).forEach(function (id) {
@@ -8531,7 +8558,8 @@ button:focus-visible,input:focus-visible{outline:3px solid var(--lime);outline-o
       e.sel.visible = opt.sel === id;
       if (!ready && S) { al = "MONTAGE · prêt à " + Sim.hm(S.notReady[id]); alC = "#9A9AAE"; }
       if (T.stage && P.light) {
-        var st = S && S.stages[id], set = S && Sim.setOfStage(id), hot = !!set, off = S && (st.out || !pw || Sim.evacStops() || (S.evac && S.evac.kind === "shelter" && !T.covered && !Sim.hallOf(ev, b)) || (S.evac && S.evac.kind === "zone" && S.evac.stage === id) || (st.pause && st.pause > S.t) || (S.stormStop && !T.covered && !Sim.hallOf(ev, b)) || !ready);
+        if (S && !I.reduce && T.stage) { var cs0 = Sim.setOfStage(id), art0 = cs0 && Sim.artist(ev, cs0.art); if (art0 && art0.pop >= 80 && S.t - cs0.start < 2.5 && Math.random() < rdt * 25) { _v3.set((Math.random() - 0.5) * D.BT[b.k].w * 0.8, 6, D.BT[b.k].d / 2 + 2); e.g.localToWorld(_v3); var cc = [0xF0457A, 0x4DC3FF, 0xFFB020, 0xB79BFF, 0xE8E36A, 0xffffff][Math.floor(Math.random() * 6)], fwx = e.g.getWorldDirection(new THREE.Vector3()); puff(_v3.x, _v3.y, _v3.z, cc, 0.35, 4, fwx.x * 4 + (Math.random() - 0.5) * 5, 5 + Math.random() * 4, fwx.z * 4 + (Math.random() - 0.5) * 5, 6, 0.95); } }
+        var st = S && S.stages[id], set = S && Sim.setOfStage(id), hot = !!set, off = S && (!st || st.out || !pw || Sim.evacStops() || (S.evac && S.evac.kind === "shelter" && !T.covered && !Sim.hallOf(ev, b)) || (S.evac && S.evac.kind === "zone" && S.evac.stage === id) || (st.pause && st.pause > S.t) || (S.stormStop && !T.covered && !Sim.hallOf(ev, b)) || !ready); if (S && !st) st = { crowd: 0, press: 0, blocked: false, out: false }; // scène posée après le lancement : pas encore simulée
         var night = dl < 0.6;
         P.light.intensity = off ? 0 : (hot ? 1.4 : 0.6) * (1.1 - dl * 0.6) + (I.reduce ? 0 : 0.3 * Math.max(0, Math.sin(clock * W.beat * Math.PI)));
         P.beams.forEach(function (bm) { bm.c.visible = !off && night; bm.c.material.opacity = hot ? 0.11 * (1 - dl) : 0.04; if (!I.reduce) { bm.p.rotation.z = Math.sin(clock * bm.sp + bm.ph) * 0.55; bm.p.rotation.x = Math.cos(clock * bm.sp * 0.7 + bm.ph) * 0.35 + 0.2; } bm.c.material.color.setHSL((clock * 0.05 + bm.ph) % 1, 0.85, 0.6); });
@@ -8551,6 +8579,9 @@ button:focus-visible,input:focus-visible{outline:3px solid var(--lime);outline-o
         P.led.material.color.setHex(bb.closed || !pw ? 0x222222 : bb.svc < 0.75 ? 0xFFB020 : 0x3CCB6C); P.roof.emissiveIntensity = opt.sel === id ? 0.5 : 0.05 + (1 - dl) * 0.15;
         P.barmen.forEach(function (f, i) { f.visible = !bb.closed && i < Math.ceil(bb.barmen / Math.max(1, D.BT[b.k].maxBarmen / P.barmen.length)); if (f.visible && !I.reduce && bb.served > 0) f.rotation.y = Math.sin(clock * 3 + i) * 0.6; });
         blockAt(e, bb.closed, ev); }
+      if (!I.reduce && e.g.userData.grow == null && S) { var em = (e.em = (e.em || 0) + rdt);
+        if (T.food && S.foods[id] && !S.foods[id].out && pw && em > 0.18) { e.em = 0; _v3.set(-D.BT.food.w * 0.3, 3.7, -0.3); e.g.localToWorld(_v3); puff(_v3.x, _v3.y, _v3.z, 0xe6e2da, 2.1, 3.2, (w && w.wind ? w.wind / 40 : 0.3), 1.1, 0.15, 0, 0.6); }
+        if (b.k === "generator" && S.gens && S.gens[id] && S.gens[id].ok && em > 0.5 - Math.min(0.3, (S.gens[id].load || 0) * 0.2)) { e.em = 0; _v3.set(D.BT.generator.w * 0.3, 2.6, 0); e.g.localToWorld(_v3); puff(_v3.x, _v3.y, _v3.z, 0x4a4d54, 1.6, 2.4, 0.3, 1.6, 0, 0, 0.7); } }
       if (T.food && S && S.foods[id]) { var fd = S.foods[id]; P.hatch.material.emissiveIntensity = fd.out || !pw ? 0 : 0.7; if (fd.out) { al = "RUPTURE"; alC = "#FF3D52"; } else if (fd.svc < 0.65) { al = "FILE"; alC = "#B79BFF"; } }
       if (T.wc && S && S.wcs[id]) { var c2 = S.wcs[id]; al = c2.fill >= 100 ? "PLEIN · FERMÉ" : c2.fill > 70 && c2.job == null ? "SALE · " + Math.round(c2.fill) + " %" : null; alC = c2.fill >= 100 ? "#FF3D52" : "#FFB020"; }
       if (T.bin && S && S.bins[id]) { var bn = S.bins[id]; P.fill.scale.y = Math.max(0.01, bn.level / 100); P.fill.position.y = 0.1 + bn.level / 100 * 0.6 + (bn.level >= 100 ? 0.25 : 0); P.fillMat.color.setHex(bn.level > 85 ? 0xd4a24a : 0x9aa0aa); al = bn.level >= 100 && bn.job == null ? "DÉBORDE" : null; alC = "#FF3D52"; }
@@ -8704,6 +8735,7 @@ button:focus-visible,input:focus-visible{outline:3px solid var(--lime);outline-o
   function fieldOf(gi) { var g = groups[gi]; if (!g) return null; return Sim.field("g:" + g.key, g.cells); }
   // grille d'occupation pour éviter que les gens se superposent (et faire des bouchons visibles)
   var occ = null, occN = 0;
+  W._people = function () { return { crowd: people, walkers: wpeople }; };
   function turnTo(a, b, dt) { var d = b - a; d = Math.atan2(Math.sin(d), Math.cos(d)); return a + d * Math.min(1, dt * 9); }
   function moveCrowd(dt, S, clock) {
     if (!Sim.nav) return;
@@ -8965,6 +8997,8 @@ button:focus-visible,input:focus-visible{outline:3px solid var(--lime);outline-o
     I.roadVeh = []; var pulse = Math.floor(clock / 2.5) % 2 === 0;
     for (var i = 0; i < q && n < TN; i++) { var side = i % 2 ? 1 : -1, x = side * (qBase(side) + Math.floor(i / 2) * 5.2); if (i < 2 && pulse) I.roadVeh.push([x - side * 6, rz + (side > 0 ? 2.2 : -2.2)]); dmy.position.set(x, 0, rz + (side > 0 ? 2.2 : -2.2)); dmy.rotation.set(0, side > 0 ? -Math.PI / 2 : Math.PI / 2, 0); dmy.updateMatrix(); traffic.forEach(function (m) { m.setMatrixAt(n, dmy.matrix); }); n++; }
     for (var j = 0; j < qo && n < TN; j++) { var l = lots[j % Math.max(1, lots.length)]; if (!l) break; var f = Sim.fp(l), kk = Math.floor(j / Math.max(1, lots.length)), row = Math.floor(kk / 4); if (f.z0 + 3 + row * 5.5 > f.z1 - 2) continue; dmy.position.set(l.x - 4.5 + (kk % 4) * 3, 0, f.z0 + 3 + row * 5.5); dmy.rotation.set(0, Math.PI, 0); dmy.updateMatrix(); traffic.forEach(function (m) { m.setMatrixAt(n, dmy.matrix); }); n++; }
+    // voitures qui entrent et cherchent une place dans les parkings qui se remplissent
+    if (!S.closing) Sim.lotsOf(ev, "public").forEach(function (l, li) { var lot = S.lots[l.id]; if (!lot || lot.cars >= lot.cap - 5 || !(S.t - (lot.lastIn || -99) < 1.5)) return; var f = Sim.fp(l); for (var j = 0; j < 3 && n < TN; j++) { var ph = (clock * 0.12 + j / 3 + li * 0.17) % 1, z = f.z0 + 1 + ph * (f.z1 - f.z0 - 4), x = l.x + (j % 2 ? 2.2 : -2.2); dmy.position.set(x, 0, z); dmy.rotation.set(0, 0, 0); dmy.updateMatrix(); traffic.forEach(function (m) { m.setMatrixAt(n, dmy.matrix); }); I.roadVeh && I.roadVeh.push([x, z]); n++; } });
     // trafic qui roule (moins quand ça bouchonne)
     var mode = Sim.F.roadMode ? Sim.F.roadMode() : "open", crs = Sim.crossings(ev), stopAt = {}; drawCrossAgents(S, crs, rz, clock); drawGuide(S);
     var qEnd = V.W / 2 + 10 + Math.ceil(q / 2) * 5.2, busX = []; Object.keys(vmap).forEach(function (kb) { if (vmap[kb].g.visible) { var vp = [vmap[kb].g.position.x, vmap[kb].g.position.z]; I.roadVeh.push(vp); if (kb.indexOf("bus") === 0) busX.push(vp); } });
