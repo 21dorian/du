@@ -5003,6 +5003,8 @@ button:focus-visible,input:focus-visible{outline:3px solid var(--lime);outline-o
     assembly: { n: "Point de rassemblement", cat: "Sécurité", w: 16, d: 10, cost: 300, walk: true, assembly: 3000, desc: "Zone dehors où le public attend pendant une évacuation : comptage et retour possible." },
     staffgate: { n: "Entrée staff", cat: "Accès", w: 5, d: 3, cost: 1500, desc: "Badges de l'équipe." },
     parking: { n: "Parking", cat: "Accès", w: 34, d: 22, cost: 6000, walk: true, parking: 1500, out: true, desc: "Choisis son type : public, VIP, PMR, staff, camping-cars ou deux-roues." },
+    busHub: { n: "Gare routière navettes", cat: "Accès", w: 80, d: 26, cost: 18000, out: true, stop: true, hub: true, unique: true, desc: "Quais de dépose et de reprise séparés, files en barrières par ligne, sas d'embarquement. De l'autre côté de la route, contre la chaussée." },
+    dropZone: { n: "Quai de dépose provisoire", cat: "Accès", w: 18, d: 7, cost: 2500, out: true, drop: true, desc: "Un quai de plus pour décharger les navettes quand la gare routière sature. Contre la route, côté parkings." },
     shuttle: { n: "Arrêt navettes", cat: "Accès", w: 10, d: 3, cost: 3500, out: true, stop: true, desc: "Gare routière des navettes, le long de la route. Configure les lignes dans Transports." },
     taxi: { n: "Station taxis / VTC", cat: "Accès", w: 10, d: 3, cost: 800, out: true, desc: "Dépose et reprise : moins de voitures qui tournent autour du site." },
     bikes: { n: "Parking vélos", cat: "Accès", w: 6, d: 3, cost: 600, out: true, desc: "Plus de visiteurs à vélo, moins de voitures." },
@@ -5033,7 +5035,7 @@ button:focus-visible,input:focus-visible{outline:3px solid var(--lime);outline-o
   D.UP_RATE = 45; // personnes par minute et par UP
   // dehors : le parvis entre la clôture et la route, et la zone au-delà de la route
   D.OUT_PLAZA = { shuttle: 1, taxi: 1, bikes: 1, info: 1, medic: 1, secpc: 1, wc: 1, light: 1, bin: 1, cctv: 1, assembly: 1 };
-  D.OUT_LOTS = { parking: 1, camping: 1, showers: 1, wc: 1, light: 1, bin: 1, tank: 1, assembly: 1, cctv: 1, medic: 1, info: 1 };
+  D.OUT_LOTS = { busHub: 1, dropZone: 1, parking: 1, camping: 1, showers: 1, wc: 1, light: 1, bin: 1, tank: 1, assembly: 1, cctv: 1, medic: 1, info: 1 };
   // éléments qui peuvent aller dehors (entre la route et le bas de la carte)
   D.OUTSIDE = {}; Object.keys(D.OUT_PLAZA).concat(Object.keys(D.OUT_LOTS)).forEach(function (k) { D.OUTSIDE[k] = 1; });
   D.PLAZA = 25; // profondeur du parvis (unités)
@@ -5332,6 +5334,16 @@ button:focus-visible,input:focus-visible{outline:3px solid var(--lime);outline-o
   // emprise réelle d'une scène : ailes de son, tours, camions et escaliers autour du plateau
   Sim.apron = function (b) { var f = fp(b), fr = front(b), m = { stageL: [7.5, 5.5], stageM: [8, 5.5], stageS: [5, 3] }[b.k]; if (!m) return f; var r = { x0: f.x0, x1: f.x1, z0: f.z0, z1: f.z1 };
     if (fr[1]) { r.x0 -= m[0]; r.x1 += m[0]; if (fr[1] > 0) r.z0 -= m[1]; else r.z1 += m[1]; } else { r.z0 -= m[0]; r.z1 += m[0]; if (fr[0] > 0) r.x0 -= m[1]; else r.x1 += m[1]; } return r; };
+  // gare routière : quais de dépose à gauche, quais de reprise (un par ligne) à droite, files en barrières derrière
+  Sim.hubCfg = function (ev) { var h = ev.tr.hub || (ev.tr.hub = { guide: true, precheck: 0, sas: "reg", hold: {}, dropBays: 2 }); if (!h.hold) h.hold = {}; if (!h.dropBays) h.dropBays = 2; return h; };
+  Sim.lotsRectOf = function (ev) { return lotsRect(ev); };
+  Sim.hubOf = function (ev) { for (var i = 0; i < ev.layout.length; i++) if (D.BT[ev.layout[i].k].hub) return ev.layout[i]; return null; };
+  Sim.hubGeo = function (ev, b) { var f = fp(b), nd = Sim.hubCfg(ev).dropBays, zb = f.z0 + 3, drop = [], pick = {}, queue = {};
+    for (var i = 0; i < nd; i++) drop.push([f.x0 + 4 + (i % 2 + 0.5) * 17, zb + Math.floor(i / 2) * 5.5]);
+    D.LINEK.forEach(function (k, j) { var px = f.x0 + 42 + j * 13.5; pick[k] = [px, zb]; queue[k] = { x0: px - 6.2, x1: px + 6.2, z0: f.z0 + 7.5, z1: f.z1 - 1.5 }; });
+    return { f: f, drop: drop, pick: pick, queue: queue, quay: [f.x0 + 21, zb + Math.ceil(nd / 2) * 5.5], sas: function (k) { return [pick[k][0], f.z0 + 6.6]; } }; };
+  // tous les quais de dépose : ceux de la gare routière et les quais provisoires posés par le joueur
+  Sim.dropBays = function (ev) { var out = [], h = Sim.hubOf(ev); if (h) Sim.hubGeo(ev, h).drop.forEach(function (p, i) { out.push({ id: h.id + ":" + i, x: p[0], z: p[1], hub: h.id }); }); ev.layout.forEach(function (b) { if (D.BT[b.k].drop) { var f = fp(b); out.push({ id: b.id, x: b.x, z: f.z0 + 2.6, hub: null }); } }); return out; };
   // dégagement intérieur derrière une entrée / issue : rien ne doit boucher la sortie du flux
   Sim.innerRect = function (ev, b) { var t = T(b), f = fp(b), n = Sim.outward(ev, b), dep = t.entry ? 12 : 7, hw = t.entry ? Sim.entryGeo(ev, b).SW / 2 + 4 : (n[1] ? f.x1 - f.x0 : f.z1 - f.z0) / 2 + 1;
     if (n[1]) return n[1] > 0 ? { x0: b.x - hw, x1: b.x + hw, z0: f.z0 - dep, z1: f.z0 } : { x0: b.x - hw, x1: b.x + hw, z0: f.z1, z1: f.z1 + dep };
@@ -5378,7 +5390,8 @@ button:focus-visible,input:focus-visible{outline:3px solid var(--lime);outline-o
       for (var z = 0; z < ev.layout.length; z++) { var st = ev.layout[z]; if (st.id === ignoreId || !D.BT[st.k].stage || st.k === "stageT") continue; if (inter(f, Sim.zone(st, ev), 0)) return { ok: false, why: "Devant " + D.BT[st.k].n.toLowerCase() + " : laisse la place au public" }; }
       if (t.stage && b.k !== "stageT") { var zn = Sim.zone(b, ev); if (V.fence && !within(zn, inner)) return { ok: false, why: "Pas assez de place pour le public devant la scène" }; for (var y = 0; y < ev.layout.length; y++) { var o2 = ev.layout[y]; if (o2.id === ignoreId || SMALL[o2.k]) continue; if (inter(zn, fp(o2), 0)) return { ok: false, why: "Le public de cette scène tomberait sur " + D.BT[o2.k].n.toLowerCase() }; } }
     }
-    if ((t.stop || b.k === "taxi") && f.z1 < pl.z1 - 1.5) return { ok: false, why: "À placer le long de la route" };
+    if ((t.stop || b.k === "taxi") && !t.hub && f.z1 < pl.z1 - 1.5) return { ok: false, why: "À placer le long de la route" };
+    if ((t.hub || t.drop) && f.z0 > lo.z0 + 3) return { ok: false, why: "Colle-la contre la route : les bus y entrent directement" };
     if (V.fence && !inSite) { for (var ea = 0; ea < ev.layout.length; ea++) { var en = ev.layout[ea]; if (en.id === ignoreId || !D.BT[en.k].entry) continue; if (inter(f, Sim.approachRect(ev, en), 0)) return { ok: false, why: "Devant " + D.BT[en.k].n.toLowerCase().replace(/ \(.*\)/, "") + " : laisse libre l'accès du public (files et fouille)" }; } }
     if (t.entry && V.fence) { var ar = Sim.approachRect(ev, b); for (var eb = 0; eb < ev.layout.length; eb++) { var o3 = ev.layout[eb]; if (o3.id === ignoreId || o3.id === b.id) continue; var t3 = D.BT[o3.k]; if (t3.entry) { if (inter(ar, Sim.approachRect(ev, o3), 0)) return { ok: false, why: "Trop près d'une autre entrée : les files se mélangeraient" }; continue; } if (within(fp(o3), inner)) continue; if (inter(ar, fp(o3), 0)) return { ok: false, why: "L'accès à l'entrée tomberait sur " + t3.n.toLowerCase() }; } }
     if (!SMALL[b.k]) for (var ai = 0; ai < ev.layout.length; ai++) { var ao = ev.layout[ai]; if (ao.id === ignoreId || ao.id === b.id || SMALL[ao.k]) continue; if ((D.BT[ao.k].stage && inter(f, Sim.apron(ao), 0)) || (t.stage && inter(Sim.apron(b), fp(ao), 0))) return { ok: false, why: "Trop près de " + (t.stage ? D.BT[ao.k].n.toLowerCase() : D.BT[ao.k].n.toLowerCase()) + " (structure, son et camions de la scène)" }; }
@@ -5509,7 +5522,7 @@ button:focus-visible,input:focus-visible{outline:3px solid var(--lime);outline-o
       cap: T0.cap, price: T0.price, door: T0.price ? T0.price + 10 : 0, vipPrice: T0.price * 3, cashless: type !== "urban", filter: true,
       prices: {}, on: {}, staff: JSON.parse(JSON.stringify(D.STAFF_DEF)), stock: JSON.parse(JSON.stringify(D.STOCK_DEF)), halls: {}, layout: [], lineup: [], catalog: D.makeCatalog(60 + 45 * T0.days), diff: "normal", autoPause: true,
       control: { run: "auto", clean: "auto", pat: "auto", med: "auto" }, edition: profile ? profile.edition : 1,
-      tr: { lines: { gare: { on: true, bus: "std", fleet: 4 }, centre: { on: true, bus: "std", fleet: 3 }, relais: { on: false, bus: "artic", fleet: 3 } }, price: 0, inPass: false, last: T0.close + 1, boost: 2, route: {}, relaisCap: 2000, relaisPrice: 3 },
+      tr: { share: null, hub: { guide: true, precheck: 0, sas: "reg", hold: {}, dropBays: 2 }, lines: { gare: { on: true, bus: "std", fleet: 4 }, centre: { on: true, bus: "std", fleet: 3 }, relais: { on: false, bus: "artic", fleet: 3 } }, price: 0, inPass: false, last: T0.close + 1, boost: 2, route: {}, relaisCap: 2000, relaisPrice: 3 },
       park: { price: type === "urban" ? 6 : 10, pre: type === "urban" ? 5 : 8, overflow: false },
       search: "std", rfid: false, braceletAtGate: type !== "urban",
       camp: { price: 35, curfew: 26 }, info: { charge: true, chargePrice: 3, lost: true, claims: true },
@@ -5540,7 +5553,11 @@ button:focus-visible,input:focus-visible{outline:3px solid var(--lime);outline-o
     if (V.fence) { var site0 = siteRect(ev), lanesNow = function () { return Sim.entriesOf(ev).reduce(function (a, b) { return a + (b.lanes || D.BT[b.k].lanes || 0); }, 0); }, ez = Sim.entriesOf(ev)[0];
       for (var ek = 0; ek < 160 && ez && lanesNow() < ev.cap / 1500; ek++) { var nx = (ek % 2 ? 1 : -1) * (40 + (ek >> 1) * 6), ne = { id: Sim.newId(ev), k: "entryL", x: Math.round((ez.x + nx) / 2) * 2, z: ez.z, rot: ez.rot || 0 }; if (Math.abs(ne.x) > site0.x1 - 24) continue; Sim.initEntry(ne); if (Sim.validate(ev, ne).ok) ev.layout.push(ne); }
       var sides = [[site0.x0 + 1, 1], [site0.x1 - 1, 1]]; for (var xk = 0; xk < 20 && Sim.exitUP(ev) < Sim.needUP(ev); xk++) { var sd = sides[xk % 2], zz = Math.round((site0.z0 + 20 + ((xk >> 1) * 37) % Math.max(20, site0.z1 - site0.z0 - 40)) / 2) * 2, nex = { id: Sim.newId(ev), k: "exit", x: Math.round(sd[0] + (sd[0] < 0 ? 1 : -1)), z: zz, rot: 1, up: 20 }; if (Sim.findSpot(ev, nex) && Sim.validate(ev, nex).ok) ev.layout.push(nex); } }
-    tpl.filter(function (t) { var bt = D.BT[t[0]]; return !(bt && (bt.entry || bt.exit || t[0] === "staffgate")); }).forEach(function (t) {
+    // gare routière face à l'entrée principale, de l'autre côté de la route (si le lieu a des navettes)
+    if (V.fence && tpl.some(function (t) { return t[0] === "shuttle"; })) { var lr0 = lotsRect(ev), ez0 = Sim.entriesOf(ev)[0], hx0 = ez0 ? ez0.x : 0;
+      for (var hk = 0; hk < 30; hk++) { var hb = { id: Sim.newId(ev), k: "busHub", x: Math.round((hx0 + (hk % 2 ? 1 : -1) * Math.ceil(hk / 2) * 10) / 2) * 2, z: Math.round((lr0.z0 + 13) / 2) * 2, rot: 0 }; if (Sim.validate(ev, hb).ok) { ev.layout.push(hb); break; } } }
+    var hasHub = ev.layout.some(function (b) { return b.k === "busHub"; });
+    tpl.filter(function (t) { var bt = D.BT[t[0]]; return !(hasHub && t[0] === "shuttle") && !(bt && (bt.entry || bt.exit || t[0] === "staffgate")); }).forEach(function (t) {
       var b = { id: Sim.newId(ev), k: t[0], x: mx(t[1]), z: mz(t[2]), rot: t[3] || 0 }; if (t[5]) b.ptype = t[5]; if (t[6]) b.up = t[6];
       Sim.initEntry(b); Sim.initBar(b); if (b.k === "exit" && !b.up) b.up = 10; if (b.k === "food") b.cuisine = D.CUISINEK[Math.floor(Math.random() * D.CUISINEK.length)];
       if (Sim.findSpot(ev, b)) ev.layout.push(b);
@@ -5578,7 +5595,7 @@ button:focus-visible,input:focus-visible{outline:3px solid var(--lime);outline-o
   };
   // taille de la flotte de navettes selon la demande de retour en fin de soirée
   Sim.autoFleet = function (ev) {
-    if (!ev.layout.some(function (b) { return b.k === "shuttle"; })) return;
+    if (!ev.layout.some(function (b) { return D.BT[b.k].stop; })) return;
     var dm = Sim.demand(ev), M = Sim.modal(ev), ppl = (dm.total || ev.cap) * M.bus;
     D.LINEK.forEach(function (k) { var Lk = ev.tr.lines[k]; if (!Lk.on || D.LINES[k].relay) return; var share = D.LINES[k].w / 1, peak = ppl * share * 0.38, B = D.BUS[Lk.bus], perBus = B.cap * 60 / Sim.cycle(ev, k); Lk.fleet = clamp(Math.ceil(peak / perBus), 2, 30); });
     if (ev.tr.lines.relais.on) { var rl = ev.tr.lines.relais, perR = D.BUS[rl.bus].cap * 60 / Sim.cycle(ev, "relais"); rl.fleet = clamp(Math.ceil((dm.total || ev.cap) * M.relais * 0.38 / perR), 2, 20); }
@@ -5634,7 +5651,7 @@ button:focus-visible,input:focus-visible{outline:3px solid var(--lime);outline-o
     st.scanners = ev.price ? Math.min(lanes, Math.ceil(cap / 1200)) : 0; st.secuIn = Math.min(lanes * 2, Math.ceil(cap / 1000) + 2);
     st.secuStage = Math.round(cap / 700); st.secuPatrol = clamp(Math.round(cap / 2200) * 2, 4, 72); st.medics = clamp(Math.round(cap / 2500) * 2, 2, 48);
     st.vestStaff = ev.layout.some(function (b) { return b.k === "vest"; }) ? Math.round(cap / 1000 * (D.CLIMATE.t[ev.month] < 12 ? 1 : 0.3)) : 0; st.welcome = 2;
-    var lots = Sim.lotsOf(ev).length, stops = ev.layout.filter(function (b) { return b.k === "shuttle"; }).length;
+    var lots = Sim.lotsOf(ev).length, stops = ev.layout.filter(function (b) { return D.BT[b.k].stop; }).length;
     st.traffic = clamp(lots * 3, 0, 120); st.shuttleAg = clamp(stops * 4, 0, 90); st.stewards = clamp(Math.round(cap / 1500) + 4, 2, 180);
     st.info = clamp(ev.layout.filter(function (b) { return b.k === "info"; }).length * 2 + 1, 0, 16); st.pmr = clamp(Math.round(cap / 8000) + 1, 0, 48);
     st.campSecu = ev.days > 1 ? clamp(ev.layout.filter(function (b) { return b.k === "camping"; }).length * 8, 0, 40) : 0;
@@ -5680,7 +5697,7 @@ button:focus-visible,input:focus-visible{outline:3px solid var(--lime);outline-o
   };
   // part modale estimée (voiture, navette, relais, autres)
   Sim.modal = function (ev) {
-    var lines = D.LINEK.filter(function (k) { return ev.tr.lines[k].on && !D.LINES[k].relay; }), stop = ev.layout.some(function (b) { return b.k === "shuttle"; }), urban = ev.type === "urban";
+    var lines = D.LINEK.filter(function (k) { return ev.tr.lines[k].on && !D.LINES[k].relay; }), stop = ev.layout.some(function (b) { return D.BT[b.k].stop; }), urban = ev.type === "urban";
     var car = urban ? 0.28 : 0.46, bus = urban ? 0.22 : 0.27, oth = urban ? 0.5 : 0.27;
     if (!stop || !lines.length) { car += bus * 0.7; oth += bus * 0.3; bus = 0; }
     else { var hw = lines.reduce(function (a, k) { return a + Sim.headway(ev, k); }, 0) / lines.length, pf = ev.tr.inPass ? 1.15 : Math.pow(2.5 / (ev.tr.price + 2.5), 0.8), hf = clamp(1.3 - hw / 40, 0.4, 1.2); var nb = bus * pf * hf; car += (bus - nb) * 0.7; oth += (bus - nb) * 0.3; bus = nb; }
@@ -5688,7 +5705,9 @@ button:focus-visible,input:focus-visible{outline:3px solid var(--lime);outline-o
     if (ev.layout.some(function (b) { return b.k === "taxi"; })) { oth += car * 0.04; car *= 0.96; }
     var pp = Math.pow(10 / (ev.park.price + 5), 0.4), nc = car * clamp(pp, 0.6, 1.15); oth += car - nc; car = nc;
     var relais = 0; if (ev.tr.lines.relais.on && stop) { relais = car * clamp(0.15 + (ev.park.price - ev.tr.relaisPrice) / 40, 0.05, 0.5); car -= relais; }
-    var tot = car + bus + oth + relais; return { car: car / tot, bus: bus / tot, other: oth / tot, relais: relais / tot };
+    var tot = car + bus + oth + relais; car /= tot; bus /= tot; oth /= tot; relais /= tot;
+    if (ev.tr.share != null && stop && lines.length) { var dsh = ev.tr.share - bus, rest = car + oth; if (rest > 0) { car = Math.max(0.02, car - dsh * car / rest); oth = Math.max(0.02, oth - dsh * oth / rest); } bus = ev.tr.share; tot = car + bus + oth + relais; car /= tot; bus /= tot; oth /= tot; relais /= tot; }
+    return { car: car, bus: bus, other: oth, relais: relais };
   };
   Sim.cycle = function (ev, k) { var L = D.LINES[k], B = D.BUS[ev.tr.lines[k].bus]; return 2 * L.trip + B.dwell * 2 + 3; };
   Sim.headway = function (ev, k) { var f = Math.max(1, ev.tr.lines[k].fleet); return Sim.cycle(ev, k) / f; };
@@ -5715,7 +5734,7 @@ button:focus-visible,input:focus-visible{outline:3px solid var(--lime);outline-o
     b.prod = -Sim.prodCost(ev);
     b.copyright = -(b.tickets + b.door + b.vip) * 0.06; b.security = -ev.cap * 0.35 * ev.days - (D.SEARCH[ev.search].cost || 0) * ev.days - (ev.rfid ? ev.cap * 0.4 : 0) - (Sim.planCost ? Sim.planCost(ev) : 0);
     b.cashless = ev.cashless ? -(1500 + ev.cap * 0.25) : 0;
-    b.shuttle = ev.layout.some(function (x) { return x.k === "shuttle"; }) ? -Sim.busCostH(ev) * (ev.tr.last - ev.open + 1) * ev.days : 0;
+    b.shuttle = ev.layout.some(function (x) { return D.BT[x.k].stop; }) ? -Sim.busCostH(ev) * (ev.tr.last - ev.open + 1) * ev.days : 0;
     b.comms = -(ev.campaigns || []).reduce(function (a, k) { var c = D.CAMPAIGNS.filter(function (x) { return x.k === k; })[0]; return a + (c ? c.cost : 0); }, 0) - (ev.app ? 15000 : 0);
     b.eco = -Sim.ecoCost(ev);
     b.total = Object.keys(b).reduce(function (a, k) { return a + b[k]; }, 0); b.demand = dm; return b;
@@ -6447,7 +6466,7 @@ button:focus-visible,input:focus-visible{outline:3px solid var(--lime);outline-o
     if (!S || S.phase !== "live" || S.paused) return;
     var ev = S.ev, t0 = S.t; S.t += gm; var t = S.t, w = S.wx_now = Sim.weatherAt(S, t), closeT = ev.close * 60;
     S.mud = Sim.venue(ev).outdoor && ev.venue !== "halls" && ev.venue !== "ville" && (S.mudLevel = clamp((S.mudLevel || 0) + (w.rain - 0.25) * 0.01 * gm, 0, 1)) > 0.4;
-    if (t >= closeT && !S.closing) { S.closing = true; log("Fin des concerts. Le public quitte le site.", "i", "Régie"); }
+    if (t >= closeT && !S.closing) { S.closing = true; log("Fin des concerts. Le public quitte le site.", "i", "Régie"); if (ev.tr.staggerPlan && Sim.staggerExit) Sim.staggerExit(); }
     stepSets();
     if (S.staffQ > 0) S.staffQ = Math.max(0, S.staffQ - S.staff.welcome * 10 * gm);
     if (!S.warned["relief" + S.day] && t >= ev.open * 60 + (closeT - ev.open * 60) * 0.5 && closeT - ev.open * 60 > 420) { S.warned["relief" + S.day] = 1; var rl = Math.round(S.staffTot * 0.35); S.staffQ += rl; log("Relève de l'équipe : " + rl + " personnes à badger.", "v", "Accueil"); }
@@ -6581,10 +6600,23 @@ button:focus-visible,input:focus-visible{outline:3px solid var(--lime);outline-o
   F.maxLanes = maxLanes;
   function makeBuses() {
     var e = S.ev, start = e.open * 60 - 45;
+    S.bays = {}; S.picks = {};
     D.LINEK.forEach(function (k) { var Lk = e.tr.lines[k], ln = S.lines[k]; ln.buses = []; if (!Lk.on || !stopOf(k)) return; var hw = Sim.headway(e, k);
       for (var i = 0; i < Lk.fleet; i++) ln.buses.push({ id: k + i + "_" + S.day, k: k, type: Lk.bus, st: "origin", tNext: start + i * hw, load: 0, tDep: 0, tArr: 0, side: D.LINES[k].side }); });
   }
   F.makeBuses = makeBuses;
+  // quai de dépose provisoire posé en direct, le plus près possible de la gare routière
+  Sim.addDropZone = function () { var e = S.ev, h = Sim.hubOf(e), lr = Sim.lotsRectOf(e), cx = h ? h.x : 0; for (var i = 0; i < 40; i++) { var b = { id: Sim.newId(e), k: "dropZone", x: Math.round((cx + (i % 2 ? 1 : -1) * (52 + Math.floor(i / 2) * 20)) / 2) * 2, z: Math.round((lr.z0 + 4) / 2) * 2, rot: 0 }; if (Sim.validate(e, b).ok) { e.layout.push(b); S.money.extra -= 2500; L.log("Quai de dépose provisoire ouvert : cônes, barrières et un agent (2 500 €).", "i", "Transports"); return b; } } Sim.toast("Pas de place libre le long de la route"); return null; };
+  // quai de dépose supplémentaire dans la gare routière (jusqu'à 4)
+  Sim.hubBays = function (d) { var c = Sim.hubCfg(S.ev), nv = clamp(c.dropBays + d, 2, 4); if (nv === c.dropBays) return false; if (d > 0) { var bs = S.bays || {}; S.money.extra -= 4000; L.log("Un quai de dépose de plus à la gare routière (4 000 €).", "i", "Transports"); } else { var last = Sim.hubOf(S.ev).id + ":" + (c.dropBays - 1); if (S.bays && S.bays[last]) { Sim.toast("Un bus décharge sur ce quai"); return false; } } c.dropBays = nv; return true; };
+  // renfort express : 3 bus d'un dépôt voisin, sur place en 10 min
+  Sim.busExpress = function (k) { var e = S.ev, Lk = e.tr.lines[k], ln = S.lines[k]; if (!stopOf(k)) { Sim.toast("Pose d'abord une gare routière ou un arrêt"); return false; } if (!Lk.on) Lk.on = true;
+    for (var i = 0; i < 3; i++) ln.buses.push({ id: k + "e" + (++S.busN || (S.busN = 1)) + "_" + S.day, k: k, type: Lk.bus, st: "toSite", load: 0, tDep: S.t, tArr: S.t + 10 + i, side: D.LINES[k].side, express: true });
+    S.money.extra -= 1500; L.log("Renfort express : 3 bus en route vers le site pour la ligne " + D.LINES[k].n + " (1 500 €).", "i", "Transports"); return true; };
+  // annonce micro et appli : l'heure du dernier départ, pour que les gens partent à temps
+  Sim.lastCall = function () { if (S.lastCall) return false; S.lastCall = S.t; L.log("Annonce : dernières navettes à " + hm(S.ev.tr.last * 60) + ". Le public commence à rejoindre les quais.", "i", "Transports"); return true; };
+  // sortie échelonnée : set de clôture et bars ouverts 45 min, les départs s'étalent
+  Sim.staggerExit = function () { if (S.stagger) return false; S.stagger = S.t; S.money.artists -= 6000; S.sat += 2; L.log("Sortie échelonnée : set de clôture et bars ouverts encore 45 min après la fin (6 000 €).", "i", "Régie"); return true; };
   // flotte en direct : ajouter ou retirer des navettes sur une ligne
   Sim.fleet = function (k, d) {
     var e = S.ev, Lk = e.tr.lines[k], ln = S.lines[k]; if (!stopOf(k)) { Sim.toast("Pose d'abord un arrêt de navette"); return false; }
@@ -6592,7 +6624,7 @@ button:focus-visible,input:focus-visible{outline:3px solid var(--lime);outline-o
     var idle = ln.buses.filter(function (b) { return b.st === "origin"; }); if (!idle.length) { Sim.toast("Toutes les navettes de la ligne roulent"); return false; }
     var rm = idle[idle.length - 1]; ln.buses = ln.buses.filter(function (b) { return b !== rm; }); Lk.fleet = Math.max(0, Lk.fleet - 1); if (!Lk.fleet) Lk.on = false; L.log("Une navette retirée de la ligne " + D.LINES[k].n + ".", "", "Accueil"); return true;
   };
-  function stopOf(k) { var e = S.ev, st = e.layout.filter(function (b) { return b.k === "shuttle"; }); if (!st.length) return null; var id = e.tr.lines[k].stop; return (id && Sim.find(e, id)) || st[k === "centre" && st.length > 1 ? 1 : 0]; }
+  function stopOf(k) { var e = S.ev, hb = Sim.hubOf(e); if (hb) return hb; var st = e.layout.filter(function (b) { return b.k === "shuttle"; }); if (!st.length) return null; var id = e.tr.lines[k].stop; return (id && Sim.find(e, id)) || st[k === "centre" && st.length > 1 ? 1 : 0]; }
   F.stopOf = stopOf;
 
   // ================================================================ temps d'attente, débits
@@ -6609,6 +6641,7 @@ button:focus-visible,input:focus-visible{outline:3px solid var(--lime);outline-o
     var r = Math.min(palpCap, scanCap) * (e.mode === "std" ? 1 : 0.75) * pref * readiness() * (S.ev.minors && S.ev.minors.ageBracelet ? 0.97 : 1);
     if (!(b.sep && b.sep.exit)) r *= clamp(1 - e.out / Math.max(1, r * 3), 0.6, 1);
     if (e.slow > 0 && e.Q > 0) r *= clamp(1 - e.slow / e.Q * 0.5, 0.6, 1);
+    if (e.pre > 0 && e.Q > 0) r *= 1 + 0.45 * clamp(e.pre / e.Q, 0, 1);
     return r;
   };
   Sim.queueTotal = function () { return Object.keys(S.entries).reduce(function (a, k) { var e = S.entries[k]; return a + e.Q + e.boxQ + e.bracQ + e.vipQ + e.pmrQ + e.pressQ; }, 0); };
@@ -6721,14 +6754,18 @@ button:focus-visible,input:focus-visible{outline:3px solid var(--lime);outline-o
       var B = D.BUS[Lk.bus], trip = D.LINES[k].trip * (S.road.jam > 0.7 ? 1.35 : 1), ag = S.staff.shuttleAg / Math.max(1, Object.keys(S.stops).length), dwellK = ag >= 2 ? 0.7 : 1;
       // renfort de fin de soirée
       if (t >= e.close * 60 - 20 && !ln.boosted && e.tr.boost > 0) { ln.boosted = true; for (var i = 0; i < e.tr.boost; i++) ln.buses.push({ id: k + "b" + i + "_" + S.day, k: k, type: Lk.bus, st: "origin", tNext: t + i * 3, load: 0, side: D.LINES[k].side, boost: true }); L.log("Renfort de " + e.tr.boost + " navettes sur la ligne " + D.LINES[k].n + " pour la fin de soirée.", "i", "Transports"); }
+      var hub = D.BT[stop.k].hub ? stop : null, cfg = Sim.hubCfg(e); if (hub && k === "gare") S.money.shuttle -= (cfg.precheck || 0) * 30 / 60 * gm;
       ln.buses.forEach(function (bus) {
         var Bt = D.BUS[bus.type];
         if (bus.st === "origin" && t >= bus.tNext) {
           if (t > lastDep - trip) return; // plus de départs utiles vers le site
+          // régulation : le dispatcher retient les bus au départ si l'entrée desservie déborde
+          if (hub && cfg.hold[k] && t < e.close * 60 - 90) { var tgE = e.tr.route[hub.id] ? Sim.find(e, e.tr.route[hub.id]) : F.entryFor(hub.x, hub.z); if (tgE && F.entryWait(tgE.id) > 12) { bus.tNext = t + 2; if (!ln.heldT || t - ln.heldT > 30) { ln.heldT = t; L.log("Ligne " + D.LINES[k].n + " : départs retenus, l'entrée déborde.", "i", "Transports"); } return; } }
           var hwk = Sim.headway(e, k) * (ln.boosted ? 0.5 : 0.85); if (ln.lastOrig != null && t < ln.lastOrig + hwk && t >= ln.lastOrig) return; ln.lastOrig = t; // départs cadencés : pas de bus en paquet
           var take = Math.min(Bt.cap, ln.qO); ln.qO -= take; bus.load = take; bus.comp = takeComp(ln.comp, take, take + ln.qO);
           if (!e.tr.inPass) S.money.shuttleTix += take * e.tr.price;
           bus.st = "toSite"; bus.tDep = t; bus.tArr = t + trip;
+        } else if (hub && bus.st !== "origin" && bus.st !== "toOrigin") { hubBus(bus, k, ln, Lk, Bt, trip, hub, cfg, ag, gm);
         } else if (bus.st === "toSite" && t >= bus.tArr) {
           bus.st = "stop"; var sp = [stop.x + rnd(-2, 2), Sim.fp(stop).z0 - 1];
           if (bus.load > 0) { var forced = e.tr.route[stop.id] ? Sim.find(e, e.tr.route[stop.id]) : null, follow = ag >= 1 ? 0.85 : 0.45; if (forced) { goToEntry(bus.load * follow, sp[0], sp[1], "bus", scale(bus.comp, follow), forced); goToEntry(bus.load * (1 - follow), sp[0], sp[1], "bus", scale(bus.comp, 1 - follow)); } else goToEntry(bus.load, sp[0], sp[1], "bus", bus.comp); ln.carried += bus.load; }
@@ -6744,10 +6781,44 @@ button:focus-visible,input:focus-visible{outline:3px solid var(--lime);outline-o
       if (Lk.on) S.money.shuttle -= ln.buses.filter(function (b) { return b.st !== "origin" || t < lastDep; }).length * B.costH / 60 * gm;
       // dernier départ : alerte si la file est longue
       if (t >= lastDep - 25 && !S.warned["lastbus" + S.day] && D.LINEK.reduce(function (a, x) { return a + S.lines[x].qS; }, 0) > 300) { S.warned["lastbus" + S.day] = 1; L.decision("lastbus", { n: Object.keys(S.lines).reduce(function (a, x) { return a + S.lines[x].qS; }, 0) }); }
-      if (t >= lastDep && ln.qS > 0 && !ln.strandLogged && !ln.buses.some(function (b) { return b.st === "stop"; })) { ln.strandLogged = true; var st = Math.max(0, ln.qS - (S.taxis || 0)); S.taxis = Math.max(0, (S.taxis || 0) - ln.qS); ln.stranded += st; S.stats.stranded += st; ln.qS = 0; if (st > 50) { L.log(Math.round(st) + " personnes sans navette pour rentrer (ligne " + D.LINES[k].n + ").", "r", "Transports"); S.sat -= Math.min(6, st / 150); L.pressCrisis("strand"); } }
+      if (t >= lastDep && ln.qS > 0 && !ln.strandLogged && !ln.buses.some(function (b) { return b.st === "stop"; })) { ln.strandLogged = true; var st = Math.max(0, ln.qS - (S.taxis || 0)) * (S.lastCall ? 0.6 : 1); S.taxis = Math.max(0, (S.taxis || 0) - ln.qS); ln.stranded += st; S.stats.stranded += st; ln.qS = 0; if (st > 50) { L.log(Math.round(st) + " personnes sans navette pour rentrer (ligne " + D.LINES[k].n + ").", "r", "Transports"); S.sat -= Math.min(6, st / 150); L.pressCrisis("strand"); } }
     });
   }
-  function scale(c, f) { c = c || { door: 0, vip: 0, fake: 0 }; return { door: c.door * f, vip: c.vip * f, fake: c.fake * f }; }
+  // ---- gare routière : file de bus sur la route, dépose progressive, quai de reprise par ligne, sas
+  function bayState() { var bs = S.bays || (S.bays = {}); return bs; }
+  function freeBay() { var bs = bayState(), list = Sim.dropBays(S.ev); for (var i = 0; i < list.length; i++) if (!bs[list[i].id]) return list[i]; return null; }
+  F.freeBay = freeBay;
+  function hubBus(bus, k, ln, Lk, Bt, trip, hub, cfg, ag, gm) {
+    var e = S.ev, t = S.t, bs = bayState(), G = Sim.hubGeo(e, hub);
+    if ((bus.st === "toSite" && t >= bus.tArr) || bus.st === "queue") {
+      var bay = freeBay(); if (bay) { bs[bay.id] = bus.id; bus.bay = bay.id; bus.st = "drop"; bus.unl = bus.load; bus.unl0 = Math.max(1, bus.load); bus.load = 0; bus.tStop = t; if (bus.qT) { S.stats.busWait = (S.stats.busWait || 0) + (t - bus.qT); bus.qT = 0; } }
+      else if (bus.st !== "queue") { bus.st = "queue"; bus.qT = t; S.stats.busQueued = (S.stats.busQueued || 0) + 1; }
+      else { S.road.jam = Math.min(1, (S.road.jam || 0) + 0.004 * gm); if (t - bus.qT > 6 && !ln.qLog) { ln.qLog = 1; L.log("Les navettes font la queue sur la route : tous les quais de dépose sont pris.", "a", "Transports"); } }
+      return; }
+    if (bus.st === "drop") {
+      // deux portes, ≈ 1 personne toutes les 1,5 s par porte ; plus vite avec des agents qui font avancer le quai
+      var rate = (ag >= 2 ? 48 : ag >= 1 ? 38 : 26) * (Bt.cap > 80 ? 1.4 : 1), n = Math.min(bus.unl, rate * gm);
+      if (n > 0) { hubEmit(n, bus, hub, G, cfg, gm); bus.unl -= n; ln.carried += n; }
+      if (bus.unl <= 0.5 && t - bus.tStop >= Bt.dwell * 0.5) { delete bs[bus.bay]; bus.bay = null; bus.unl = 0; if (ln.qS > 15 || t >= e.close * 60 - 45) { bus.st = "toPick"; bus.tNext = t + 1; } else { bus.st = "toOrigin"; bus.tDep = t; bus.tArr = t + trip; } }
+      return; }
+    if (bus.st === "toPick") { var pk = S.picks || (S.picks = {}); if (t >= bus.tNext && !pk[k]) { pk[k] = bus.id; bus.st = "board"; bus.tStop = t; bus.back = 0; } return; }
+    if (bus.st === "board") {
+      var pk2 = S.picks, reg = cfg.sas === "reg", agL = ag / 3, brate = reg ? (agL >= 1 ? 40 : 24) : 58, m = Math.min(ln.qS, brate * gm, Bt.cap - bus.back); m = Math.max(0, m);
+      ln.qS -= m; bus.back += m; ln.back += m;
+      // sas ouvert ou sans agents : la foule se presse au quai
+      if ((!reg || agL < 1) && ln.qS > 250 && Math.random() < 1 - Math.exp(-0.02 * ln.qS / 250 * gm) && !(S.crushT > t - 20)) { S.crushT = t; S.sat -= 4; var sp = G.sas(k); L.spawnInc("med", sp[0], sp[1] + 2, 20, { crush: true }); L.log("Bousculade au quai de la ligne " + D.LINES[k].n + " : le sas n'est pas tenu, une personne au sol.", "r", "Transports"); }
+      if (bus.back >= Bt.cap - 0.5 || (ln.qS < 1 && t - bus.tStop >= 1.5) || t - bus.tStop > 14) { pk2[k] = null; bus.st = "toOrigin"; bus.tDep = t; bus.tArr = t + trip; }
+      return; }
+  }
+  // les passagers descendent par paquets : pré-contrôle au quai, cheminement balisé ou non jusqu'à l'entrée
+  function hubEmit(n, bus, hub, G, cfg, gm) {
+    var e = S.ev, f = n / Math.max(1, bus.unl0), comp = scale(bus.comp, f), q = G.quay, x = q[0] + rnd(-6, 6), z = q[1];
+    var share = cfg.precheck > 0 ? Math.min(1, cfg.precheck * 5 * gm / Math.max(1, n)) : 0; if (share > 0) { var stop0 = comp.fake * share * 0.7; comp.fake -= stop0; S.pop.fraudStop += stop0; comp.pre = n * share; }
+    var forced = e.tr.route[hub.id] ? Sim.find(e, e.tr.route[hub.id]) : null;
+    if (cfg.guide) goToEntry(n, x, z, "bus", comp, forced);
+    else { goToEntry(n * 0.6, x, z, "bus", scale(comp, 0.6), forced); goToEntry(n * 0.4, x + rnd(-20, 20), z, "bus", scale(comp, 0.4)); S.road.jam = Math.min(1, (S.road.jam || 0) + n * 0.0004); S.jaywalk = (S.jaywalk || 0) + n * 0.4; }
+  }
+  function scale(c, f) { c = c || { door: 0, vip: 0, fake: 0 }; return { door: (c.door || 0) * f, vip: (c.vip || 0) * f, fake: (c.fake || 0) * f, pre: (c.pre || 0) * f }; }
 
   // ================================================================ arrivée à pied aux entrées et départs
   function walkStep() {
@@ -6764,7 +6835,7 @@ button:focus-visible,input:focus-visible{outline:3px solid var(--lime);outline-o
         if (b.sep && b.sep.pmr) E.pmrQ += pmr; else { E.Q += pmr; S.pmrBad = (S.pmrBad || 0) + pmr; }
         if (b.sep && b.sep.press) E.pressQ += press; else E.Q += press;
         if (brac && b.brac > 0 && S.staff.bracelet > 0) E.bracQ += rest; else { E.Q += rest; if (brac) E.slow += rest * 0.5; }
-        E.fake += it.fake || 0;
+        E.fake += it.fake || 0; E.pre = (E.pre || 0) + (it.pre || 0);
       } else {
         // départs arrivés à destination
         if (it.kind === "car") { var lot = S.lots[it.ref]; if (lot) lot.outQ += it.n / 2.4; }
@@ -6788,7 +6859,7 @@ button:focus-visible,input:focus-visible{outline:3px solid var(--lime);outline-o
       }
       // portiques : pré-filtrage, palpation puis scan
       var r = Sim.laneRate(id) * (e.price ? 1 : 1.5), pass = closed ? 0 : Math.min(E.Q, r * gm), fs = E.Q > 0 ? E.fake / E.Q : 0, fk = pass * fs, caught = fk * (E.mode === "std" ? 0.6 : 0.95) * (e.rfid ? 1.3 : 1);
-      caught = Math.min(caught, fk); E.slow = Math.max(0, E.slow - pass * (E.Q > 0 ? E.slow / E.Q : 0)); E.Q -= pass; E.fake = Math.max(0, E.fake - fk);
+      caught = Math.min(caught, fk); E.slow = Math.max(0, E.slow - pass * (E.Q > 0 ? E.slow / E.Q : 0)); E.pre = Math.max(0, (E.pre || 0) - pass * (E.Q > 0 ? (E.pre || 0) / E.Q : 0)); E.Q -= pass; E.fake = Math.max(0, E.fake - fk);
       S.pop.inside += pass - caught; S.pop.fraudIn += fk - caught; S.pop.fraudStop += caught; passed += pass - caught; E.inRate += ((pass - caught) / gm - E.inRate) * Math.min(1, 0.15 * gm);
       // objets saisis à la fouille
       var SE = D.SEARCH[e.search]; D.SEIZED.forEach(function (o) { var k = pass * o[1] * 0.02 * SE.catch; S.seized[o[0]] = (S.seized[o[0]] || 0) + k; E.seized += k; });
@@ -6810,8 +6881,9 @@ button:focus-visible,input:focus-visible{outline:3px solid var(--lime);outline-o
   function departures(gm) {
     var e = S.ev, closeT = e.close * 60, span = (closeT - e.open * 60) / 60, h = (S.t - e.open * 60) / 60;
     if (S.evac && (S.evac.kind === "general" || S.evac.kind === "lockdown")) return;
-    var outRate = S.closing ? 1.8 : h > span - 3 ? 0.08 + 0.1 * (h - (span - 3)) : e.price ? 0.015 : 0.3; if (S.sat < 45) outRate += 0.1;
-    var leave = S.pop.inside * outRate / 60 * gm; if (S.closing) leave = Math.max(leave, Math.min(S.pop.inside, 200 * gm));
+    var stag = S.closing && S.stagger && S.t < closeT + 45, lastT = e.tr.last * 60;
+    var outRate = S.closing ? (stag ? 0.7 : 1.8) : h > span - 3 ? 0.08 + 0.1 * (h - (span - 3)) : e.price ? 0.015 : 0.3; if (S.sat < 45) outRate += 0.1; if (S.lastCall && S.t < lastT && S.t > lastT - 75 && !S.closing) outRate += 0.1;
+    var leave = S.pop.inside * outRate / 60 * gm; if (S.closing) leave = Math.max(leave, Math.min(S.pop.inside, (stag ? 70 : 200) * gm));
     leave = Math.min(leave, S.pop.inside); if (leave <= 0) return; S.pop.inside -= leave; S.pop.fraudIn = Math.min(S.pop.fraudIn, S.pop.inside);
     S.pop.rateOut = (S.pop.rateOut || 0) + (leave / gm - (S.pop.rateOut || 0)) * Math.min(1, 0.1 * gm);
     sendOut(leave);
@@ -6826,7 +6898,7 @@ button:focus-visible,input:focus-visible{outline:3px solid var(--lime);outline-o
     if (car > 0) { var lots = Object.keys(S.lots).filter(function (id) { return S.lots[id].cars > S.lots[id].outQ && S.lots[id].type !== "staff" && S.lots[id].type !== "cc"; }), wt = lots.reduce(function (a, id) { return a + S.lots[id].cars; }, 0);
       lots.forEach(function (id) { var b = Sim.find(e, id), nn = car * S.lots[id].cars / Math.max(1, wt), g = exitVia(b.x, b.z); if (g[2]) S.entries[g[2].id].out += nn; walk(nn, g[0], g[1], b.x + rnd(-6, 6), Sim.fp(b).z0 + 2, "out", "car", id); });
       if (!lots.length) { var ep = edgePoint(1); walk(car, 0, Sim.venue(e).D / 2 + 3, ep[0], ep[1], "out", "other", "edge"); } }
-    D.LINEK.forEach(function (k) { var nl = M.lines[k] * f; M.lines[k] -= nl; if (nl <= 0) return; var stop = stopOf(k); if (!stop) return; var g = exitVia(stop.x, stop.z); if (g[2]) S.entries[g[2].id].out += nl; walk(nl, g[0], g[1], stop.x + rnd(-3, 3), Sim.fp(stop).z0 - 1.5, "out", "bus", k); });
+    D.LINEK.forEach(function (k) { var nl = M.lines[k] * f; M.lines[k] -= nl; if (nl <= 0) return; var stop = stopOf(k); if (!stop) return; var g = exitVia(stop.x, stop.z); if (g[2]) S.entries[g[2].id].out += nl; if (D.BT[stop.k].hub) { var qr = Sim.hubGeo(e, stop).queue[k]; walk(nl, g[0], g[1], (qr.x0 + qr.x1) / 2, qr.z1 - 1, "out", "bus", k); } else walk(nl, g[0], g[1], stop.x + rnd(-3, 3), Sim.fp(stop).z0 - 1.5, "out", "bus", k); });
     var oth = M.other * f; M.other -= oth; if (oth > 0) { var ep2 = edgePoint(Math.random() < 0.5 ? -1 : 1), g2 = exitVia(ep2[0], ep2[1]); if (g2[2]) S.entries[g2[2].id].out += oth; walk(oth, g2[0], g2[1], ep2[0], ep2[1], "out", "other", "edge"); }
     var cp = M.camp * f; M.camp -= cp;
     if (S.camp.campers > 0 && e.days > 1) { var campB = e.layout.filter(function (b) { return b.k === "camping"; })[0]; if (campB) { var g3 = exitVia(campB.x, campB.z); walk(Math.min(n * 0.3, S.camp.campers * 0.02), g3[0], g3[1], campB.x, campB.z, "out", "camp", campB.id); } }
@@ -7319,7 +7391,7 @@ button:focus-visible,input:focus-visible{outline:3px solid var(--lime);outline-o
   // ================================================================ pas de simulation
   F.step = function (gm, w) {
     S = Sim.get(); var e = S.ev;
-    if (e.layout.some(function (b) { return b.k === "shuttle"; })) busStep(gm);
+    if (e.layout.some(function (b) { return D.BT[b.k].stop; })) busStep(gm);
     F.cataStep(); F.rivStep(gm); arrivals(gm, w); roadStep(gm); walkStep(); entriesStep(gm); doubtStep(); evacStep(gm); departures(gm);
     S.pop.maxIn = Math.max(S.pop.maxIn, S.pop.inside); if (S.pop.inside > e.cap * 1.02) S.stats.over += gm;
     stagesStep(gm, w); barsStep(gm, w); foodStep(gm); servicesStep(gm, w); autoOrders(gm); autoBar(gm);
@@ -7948,6 +8020,41 @@ button:focus-visible,input:focus-visible{outline:3px solid var(--lime);outline-o
     var agent = staffFig(g, T.w / 2 - 2, -T.d / 2 - 1.2, 0xE8E36A, Math.PI, 0);
     return { cars: cars, spots: spots, cap: cap, agent: agent };
   };
+  // ---------------------------------------------------------------- gare routière des navettes
+  var LINE_COL = { gare: 0x4DC3FF, centre: 0xFFB020, relais: 0xB79BFF };
+  I.LINE_COL = LINE_COL;
+  // file en serpentin d'une ligne, du sas vers le fond (coordonnées du monde)
+  I.hubSerp = function (ev, b, k) { var q = Sim.hubGeo(ev, b).queue[k], pts = [], rows = Math.floor((q.z1 - q.z0) / 1.3); for (var r = 0; r < rows; r++) { var z = q.z0 + 0.65 + r * 1.3, a = r % 2 ? q.x1 - 0.7 : q.x0 + 0.7, c = r % 2 ? q.x0 + 0.7 : q.x1 - 0.7; pts.push([a, z], [c, z]); } pts.unshift([(q.x0 + q.x1) / 2, q.z0 - 1.2]); return pts; };
+  BUILD.busHub = function (b, g, T) {
+    var ev = Sim._ev || I.curEv, G = Sim.hubGeo(ev, b), f = G.f, ox = b.x, oz = b.z, L = function (p) { return [p[0] - ox, p[1] - oz]; };
+    var asph = own(0x2b2d33, 0, 0, 0.9); plane(T.w, T.d, asph, 0, 0.03, 0, g);
+    var paint = new THREE.MeshBasicMaterial({ color: 0xe8e4da }), yel = new THREE.MeshBasicMaterial({ color: 0xFFB020 });
+    // quais de dépose : marquage jaune, numéro, abri, bordure de quai
+    G.drop.forEach(function (p, i) { var q = L(p); plane(16, 3.4, new THREE.MeshBasicMaterial({ color: 0x3a3218, transparent: true, opacity: 0.75 }), q[0], 0.04, q[1], g); [-1, 1].forEach(function (s2) { plane(16, 0.15, yel, q[0], 0.05, q[1] + s2 * 1.7, g); });
+      signPanel(g, [{ t: "DÉPOSE " + (i + 1), c: "#111", s: 26 }], 3.2, 0.7, q[0] - 6, 2.6, q[1] + 2.4, { bg: "#FFB020" }); cyl(0.05, 0.05, 2.3, std(0x777777), q[0] - 6, 1.15, q[1] + 2.4, g, 6); });
+    var dq = L(G.quay); box(36, 0.18, 2.6, std(0x8a8d94, 0, 0, 0.85), dq[0] - 2, 0.09, dq[1], g); box(36, 0.05, 0.25, yel, dq[0] - 2, 0.2, dq[1] - 1.2, g, false);
+    var shel = own(0x9fb8d6, 0, 0, 0.1, { transparent: true, opacity: 0.2, depthWrite: false }); [-12, 0, 12].forEach(function (x2) { box(4, 2.2, 0.06, shel, dq[0] + x2, 1.2, dq[1] + 1.25, g, false); box(4.3, 0.1, 1.8, own(0x2a2c36, 0, 0, 0.6), dq[0] + x2, 2.4, dq[1] + 0.5, g); [-1.9, 1.9].forEach(function (px) { cyl(0.05, 0.05, 2.4, std(0x6a6d74), dq[0] + x2 + px, 1.2, dq[1] + 1.25, g, 6); }); });
+    // quais de reprise : un par ligne, couleur de ligne, sas et file en barrières
+    D.LINEK.forEach(function (k) { var p = L(G.pick[k]), col = LINE_COL[k], q = G.queue[k];
+      plane(12.6, 3.4, new THREE.MeshBasicMaterial({ color: col, transparent: true, opacity: 0.18 }), p[0], 0.04, p[1], g); plane(12.6, 0.15, new THREE.MeshBasicMaterial({ color: col }), p[0], 0.05, p[1] - 1.7, g);
+      signPanel(g, [{ t: "REPRISE", c: "#111", s: 20 }, { t: D.LINES[k].n.toUpperCase(), c: "#111", s: 28 }], 3.4, 1.2, p[0], 3.1, p[1] + 2.2, { bg: hex(col) }); cyl(0.06, 0.06, 2.6, std(0x777777), p[0] - 1.5, 1.3, p[1] + 2.2, g, 6); cyl(0.06, 0.06, 2.6, std(0x777777), p[0] + 1.5, 1.3, p[1] + 2.2, g, 6);
+      box(12.4, 0.18, 2.2, std(0x8a8d94, 0, 0, 0.85), p[0], 0.09, p[1] + 2.8, g);
+      // serpentin : lignes de barrières entre les rangs, ouverture alternée
+      var rows = Math.floor((q.z1 - q.z0) / 1.3); for (var r = 0; r <= rows; r++) { var z = q.z0 + r * 1.3, gapL = r % 2 === 1; var a = [gapL ? q.x0 + 1.6 : q.x0, z], c = [gapL ? q.x1 : q.x1 - 1.6, z]; if (r === 0 || r === rows) { a = [q.x0, z]; c = [q.x1, z]; } var m = I.barrierLine([L(a), L(c)], r === 0 ? col : 0xb8bcc4); g.add(m); }
+      [q.x0, q.x1].forEach(function (x3) { g.add(I.barrierLine([L([x3, q.z0]), L([x3, q.z1])])); });
+      // sas : portillon entre la file et le quai
+      var sp = L(G.sas(k)); box(0.2, 1.2, 0.2, std(0x4a4d5c), sp[0] - 1.3, 0.6, sp[1], g); box(0.2, 1.2, 0.2, std(0x4a4d5c), sp[0] + 1.3, 0.6, sp[1], g); var gate = box(2.4, 0.1, 0.08, own(col, col, 0.6), sp[0], 1.0, sp[1], g, false); gate.userData.sas = k;
+      signPanel(g, [{ t: "SAS", c: "#fff", s: 24 }], 1.1, 0.45, sp[0], 1.9, sp[1], { bg: "#0a0a0d" }); });
+    // pré-contrôle billets et sacs sur le quai de dépose
+    barnum(g, dq[0] - 16, dq[1] + 3.2, 4, 3, 2.4, 0xf2f0ea, 0x4DC3FF); signPanel(g, [{ t: "PRÉ-CONTRÔLE", c: "#fff", s: 22 }], 3.4, 0.45, dq[0] - 16, 2.2, dq[1] + 4.75, { bg: "#2e6fd8" });
+    // mâts d'éclairage et totem
+    var lm = own(0xfff2d0, 0xffd9a0, 1.2, 0.4); [[f.x0 + 2, f.z1 - 1], [f.x1 - 2, f.z1 - 1], [(f.x0 + f.x1) / 2, f.z1 - 1]].forEach(function (p) { var q = L(p); cyl(0.14, 0.2, 10, std(0x3a3d44, 0, 0, 0.5), q[0], 5, q[1], g, 6); box(1.6, 0.3, 0.8, lm, q[0], 10, q[1] - 0.3, g, false); });
+    var tot = L([f.x0 + 40, f.z0 + 6.5]); box(0.5, 4.2, 1.4, own(0x14161c, 0, 0, 0.5), tot[0], 2.1, tot[1], g); signPanel(g, [{ t: "NAVETTES", c: "#fff", s: 30 }, { t: "gare · centre · relais", c: "#cfd3da", s: 16 }], 1.3, 2.2, tot[0] + 0.27, 2.6, tot[1], { bg: "#14161c" }, Math.PI / 2);
+    return { gates: g.children.filter(function (m) { return m.userData && m.userData.sas; }) };
+  };
+  BUILD.dropZone = function (b, g, T) { plane(T.w, T.d, own(0x2b2d33, 0, 0, 0.9), 0, 0.03, 0, g); var yel = new THREE.MeshBasicMaterial({ color: 0xFFB020 }); plane(16, 3.4, new THREE.MeshBasicMaterial({ color: 0x3a3218, transparent: true, opacity: 0.75 }), 0, 0.04, -T.d / 2 + 2.6, g); [-1, 1].forEach(function (s2) { plane(16, 0.15, yel, 0, 0.05, -T.d / 2 + 2.6 + s2 * 1.7, g); });
+    box(16, 0.18, 2.2, std(0x8a8d94, 0, 0, 0.85), 0, 0.09, -T.d / 2 + 5.4, g); signPanel(g, [{ t: "DÉPOSE PROVISOIRE", c: "#111", s: 22 }], 4, 0.6, -6, 2.4, -T.d / 2 + 5.6, { bg: "#FFB020" }); cyl(0.05, 0.05, 2.2, std(0x777777), -6, 1.1, -T.d / 2 + 5.6, g, 6);
+    for (var i = 0; i < 5; i++) { var c = cyl(0.2, 0.28, 0.7, own(0xff6a1a, 0, 0, 0.6), -7 + i * 3.5, 0.35, -T.d / 2 + 0.6, g, 10); } return {}; };
   BUILD.shuttle = function (b, g, T) { box(T.w, 0.12, T.d, std(0x55585f), 0, 0.06, 0, g); box(T.w, 2.6, 0.1, own(0x9fb8d6, 0, 0, 0.1, { transparent: true, opacity: 0.35 }), 0, 1.3, -T.d / 2 + 0.2, g, false); box(T.w + 0.4, 0.2, T.d, std(0x2b4a8a), 0, 2.7, 0, g); [-1, 1].forEach(function (s) { cyl(0.08, 0.08, 2.7, std(0xb8bcc4), s * T.w / 2, 1.35, -T.d / 2 + 0.2, g, 6); }); var sign = signPanel(g, [{ t: "NAVETTES", c: "#fff" }, { t: "Gare · Centre-ville · Relais", c: "#cfe6ff", s: 18 }], T.w * 0.7, 1.0, 0, 3.4, 0, { bg: "#2b4a8a" }); box(1.2, 0.5, 0.4, std(0x6a4a2a), -T.w / 4, 0.5, -T.d / 2 + 0.6, g); return {}; };
   BUILD.taxi = function (b, g, T) { box(T.w, 0.12, T.d, std(0x55585f), 0, 0.06, 0, g); cyl(0.08, 0.08, 3, std(0x777777), -T.w / 2 + 0.5, 1.5, 0, g, 6); signPanel(g, [{ t: "TAXI · VTC", c: "#111" }], 2.4, 0.6, -T.w / 2 + 0.5, 3.1, 0, { bg: "#FFD23A" }); var cars = I.carInstanced(3), dm = new THREE.Object3D(); for (var i = 0; i < 3; i++) { dm.position.set(-T.w / 2 + 2.5 + i * 2.8, 0, 0.5); dm.rotation.y = Math.PI / 2; dm.updateMatrix(); cars.forEach(function (m) { m.setMatrixAt(i, dm.matrix); }); cars[0].setColorAt(i, new THREE.Color(0xf2c230)); } cars.forEach(function (m) { g.add(m); }); return {}; };
   BUILD.bikes = function (b, g, T) { for (var i = 0; i < 8; i++) { var x = -T.w / 2 + 0.5 + i * (T.w - 1) / 7; var r = new THREE.Mesh(new THREE.TorusGeometry(0.4, 0.04, 6, 12, Math.PI), std(0x9aa0a8)); r.position.set(x, 0, 0); g.add(r); if (Math.random() < 0.7) { var w1 = new THREE.Mesh(new THREE.TorusGeometry(0.32, 0.05, 6, 12), std(0x111111)); w1.position.set(x, 0.33, -0.5); w1.rotation.y = Math.PI / 2; g.add(w1); var w2 = w1.clone(); w2.position.z = 0.5; g.add(w2); box(0.06, 0.06, 1.0, own(Math.random() * 0xffffff, 0, 0, 0.5), x, 0.6, 0, g, false); } } return {}; };
@@ -8611,6 +8718,14 @@ button:focus-visible,input:focus-visible{outline:3px solid var(--lime);outline-o
     // arrêts de navettes : on attend sous l'abri
     ev.layout.forEach(function (b) { if (b.k !== "shuttle") return; var q = 0; D.LINEK.forEach(function (k) { var st = Sim.F.stopOf(k); if (st && st.id === b.id && S.lines[k]) q += S.lines[k].qS; }); var n = Math.round(q / PER), f = Sim.fp(b); for (var i = 0; i < n && qn < NQ; i++) { var row = Math.floor(i / 14), col = i % 14; pose(qpool, qn, f.x0 + 0.4 + col * 0.75 + (row % 2) * 0.3, f.z0 - 1 - row * 0.8, Math.PI, 0, 0, 0); qn++; } });
     // évacués aux points de rassemblement (ceux qui ne marchent plus)
+    // gare routière : files de reprise en serpentin, passagers qui descendent et qui montent
+    var hubB = Sim.hubOf(ev); if (hubB && S.lines) { var HG = Sim.hubGeo(ev, hubB), bays = {}; Sim.dropBays(ev).forEach(function (bb) { bays[bb.id] = bb; });
+      D.LINEK.forEach(function (k) { var ln = S.lines[k]; if (!ln) return; var path = I.hubSerp(ev, hubB, k); put(path, Math.round(Math.min(ln.qS, 2000) / 2.5), 0.62);
+        ln.buses.forEach(function (bus) { var B = D.BUS[bus.type], Lb = B.len * 0.55;
+          if (bus.st === "drop" && bus.unl > 0.5) { var bay = bays[bus.bay]; if (!bay) return; var door = [bay.x + (bus.side < 0 ? 1 : -1) * Lb * 0.3, bay.z + 1.4], quay = [HG.quay[0] + (door[0] - HG.quay[0]) * 0.3, HG.quay[1] + 1], ph = (procT * 1.6) % 1, m = Math.min(26, Math.ceil(bus.unl / 2.5));
+            for (var i = 0; i < m && qn < NQ; i++) { var fr = (i / m + ph) % 1, x = door[0] + (quay[0] - door[0]) * fr + Math.sin(i * 7.3) * 0.5, z = door[1] + (quay[1] - door[1]) * fr + Math.cos(i * 3.1) * 0.4; pose(qpool, qn, x, z, Math.atan2(quay[0] - door[0], quay[1] - door[1]), Math.sin(procT * 9 + i) * 0.6, 0, Math.abs(Math.sin(procT * 9 + i)) * 0.04); qn++; } }
+          if (bus.st === "board" && ln.qS > 0.5) { var pk = HG.pick[k], sas = HG.sas(k), door2 = [pk[0] + (bus.side < 0 ? 1 : -1) * Lb * 0.3, pk[1] + 1.4], ph2 = (procT * 1.3) % 1;
+            for (var j = 0; j < 10 && qn < NQ; j++) { var f2 = (j / 10 + ph2) % 1; pose(qpool, qn, sas[0] + (door2[0] - sas[0]) * f2, sas[1] + (door2[1] - sas[1]) * f2, Math.atan2(door2[0] - sas[0], door2[1] - sas[1]), Math.sin(procT * 9 + j) * 0.6, 0, 0); qn++; } } }); }); }
     if (S.evac && S.evac.kind === "general") { var asm = ev.layout.filter(function (b) { return b.k === "assembly"; }), outN = Math.round(Math.min(S.pop.outside || 0, 6000) / PER / 2); asm.forEach(function (a, k) { var f = Sim.fp(a), n = Math.ceil(outN / Math.max(1, asm.length)); for (var i = 0; i < n && qn < NQ; i++) { pose(qpool, qn, f.x0 + 1 + (i % 20) * ((f.x1 - f.x0 - 2) / 20), f.z0 + 1 + Math.floor(i / 20) * 0.75, Math.PI, 0, 0, 0); qn++; } }); }
     for (var k = qn; k < (qpool.lastN || NQ); k++) hide(qpool, k); qpool.lastN = qn; flush(qpool);
   }
@@ -8677,6 +8792,30 @@ button:focus-visible,input:focus-visible{outline:3px solid var(--lime);outline-o
     if (!L || t < L) return alongP(1);
     if (t < L + T) { var q = alongP(clamp(1 - (t - L) / T, 0, 1)); q[2] += Math.PI; return q; } return null;
   }
+  // ---- bus de la gare routière
+  function easeIO(f) { return f < 0.5 ? 2 * f * f : 1 - Math.pow(-2 * f + 2, 2) / 2; }
+  function along2(pts, f) { var tot = 0, seg = []; for (var i = 1; i < pts.length; i++) { var d = Math.hypot(pts[i][0] - pts[i - 1][0], pts[i][1] - pts[i - 1][1]); seg.push(d); tot += d; } var s = clamp(f, 0, 1) * tot; for (var j = 0; j < seg.length; j++) { if (s <= seg[j] || j === seg.length - 1) { var k = seg[j] ? clamp(s / seg[j], 0, 1) : 1, a = pts[j], b = pts[j + 1]; return [a[0] + (b[0] - a[0]) * k, a[1] + (b[1] - a[1]) * k]; } s -= seg[j]; } return pts[pts.length - 1]; }
+  function drawHubBuses(S, hub, seen, clock, dl) {
+    var ev = S.ev, V = Sim.venue(ev), rz = Sim.roadZ(ev), lane = rz + 2.2, G = Sim.hubGeo(ev, hub), f = G.f, bays = {}, t = S.t; Sim.dropBays(ev).forEach(function (bb) { bays[bb.id] = bb; });
+    var queued = []; D.LINEK.forEach(function (k) { (S.lines[k] ? S.lines[k].buses : []).forEach(function (bus) { if (bus.st === "queue") queued.push(bus); }); }); queued.sort(function (a, c) { return (a.qT || 0) - (c.qT || 0); });
+    D.LINEK.forEach(function (k) { var ln = S.lines[k]; if (!ln) return; ln.buses.forEach(function (bus) {
+      var side = bus.side || -1, dir = -side, B = D.BUS[bus.type], L = B.len * 0.55, entryX = side < 0 ? f.x0 - 2 : f.x1 + 2, head = [entryX - dir * 6, lane], far = [side * (V.W / 2 + 170), lane], pos = null, n = 0;
+      if (bus.st === "toSite") { var fr = 1 - (bus.tArr - t) / 2.4; if (fr <= 0) return; pos = along2([far, head], easeIO(Math.min(1, fr))); n = bus.load; }
+      else if (bus.st === "queue") { var qi = queued.indexOf(bus); pos = [head[0] - dir * qi * (L + 2), lane]; n = bus.load; }
+      else if (bus.st === "drop") { var bay = bays[bus.bay]; if (!bay) return; var fi = clamp((t - (bus.tStop || t)) / 0.7, 0, 1), tgt = [bay.x, bay.z]; pos = fi < 1 ? along2([head, [tgt[0] - dir * 12, lane], [tgt[0] - dir * 5, tgt[1]], tgt], easeIO(fi)) : tgt; n = bus.unl; }
+      else if (bus.st === "toPick") { var pp = G.pick[k], fp2 = 1 - (bus.tNext - t); pos = fp2 < 1 ? along2([bus._last || pp, [pp[0], pp[1] + 0.01]], easeIO(clamp(fp2, 0, 1))) : [pp[0] - dir * (L + 3), lane]; n = 0; }
+      else if (bus.st === "board") { pos = G.pick[k]; n = bus.back; }
+      else if (bus.st === "toOrigin") { var fo = (t - bus.tDep) / 2.4; if (fo >= 1) return; var st0 = bus._last || [hub.x, f.z0 + 3]; pos = along2([st0, [st0[0] + dir * 10, lane], [-side * (V.W / 2 + 170), lane]], easeIO(clamp(fo, 0, 1))); n = bus.back || 0; }
+      else return;
+      if (bus.st !== "toOrigin") bus._last = pos.slice();
+      var key = "bus" + bus.id; seen[key] = 1; var e = vmap[key] || (vmap[key] = busMesh(bus.type)); e.g.visible = true;
+      var px = e.g.position.x, pz = e.g.position.z, mv = Math.hypot(pos[0] - px, pos[1] - pz); e.g.position.set(pos[0], 0, pos[1]);
+      var hd = mv > 0.02 && e.placed ? Math.atan2(pos[0] - px, pos[1] - pz) : (bus.st === "board" || bus.st === "drop" || bus.st === "queue" || !e.placed ? (dir > 0 ? Math.PI / 2 : -Math.PI / 2) : e.g.rotation.y); var da = hd - e.g.rotation.y; da = Math.atan2(Math.sin(da), Math.cos(da)); e.g.rotation.y += e.placed ? da * 0.25 : da; e.placed = 1;
+      e.door.visible = !(bus.st === "drop" || bus.st === "board"); e.hl.material.emissiveIntensity = dl < 0.5 ? 1.5 : 0;
+      // nombre de passagers à bord, au-dessus du bus
+      var txt = Math.round(n) + " / " + B.cap; if (!e.lab) { e.lab = label(txt, { h: 0.85, bg: "rgba(10,12,18,0.85)" }); e.lab.position.y = B.h + 1.4; e.g.add(e.lab); e.labT = txt; } else if (e.labT !== txt) { relabel(e.lab, txt); e.labT = txt; }
+    }); });
+  }
   // circulation de fond et bouchons sur la route
   var traffic = null, TN = 160;
   function drawRoad(S, dt, clock) {
@@ -8696,7 +8835,8 @@ button:focus-visible,input:focus-visible{outline:3px solid var(--lime);outline-o
     var seen = {}, ev = S.ev, V = Sim.venue(ev), rz = Sim.roadZ(ev);
     (S.veh || []).forEach(function (v) { var p = vehPos(v, S); if (!p) return; seen["v" + v.id] = 1; var e = vmap["v" + v.id] || (vmap["v" + v.id] = vehMesh(v)); e.g.visible = true; e.g.position.set(p[0], 0, p[1]); var da = p[2] - e.g.rotation.y; da = Math.atan2(Math.sin(da), Math.cos(da)); e.g.rotation.y += e.seen ? da * 0.18 : da; e.seen = 1; var Lg = e.g.userData.lights; if (Lg) { var on = Math.floor(clock * 6) % 2; Lg[0].visible = !!on; Lg[1].visible = !on; e.g.userData.pl.color.setHex(on ? 0x3b82ff : 0xff3d52); } });
     // navettes : arrivée, arrêt portes ouvertes, départ ; plusieurs bus à quai se rangent l'un derrière l'autre
-    if (S.lines) { var slots = {};
+    var hubB = Sim.hubOf(ev); if (hubB && S.lines) drawHubBuses(S, hubB, seen, clock, dl);
+    else if (S.lines) { var slots = {};
       D.LINEK.forEach(function (k) { var ln = S.lines[k]; if (!ln) return; var stop = Sim.F.stopOf(k); if (!stop) return; ln.buses.forEach(function (bus) {
         var near = bus.st === "stop" || (bus.st === "toSite" && bus.tArr - S.t < 2.2) || (bus.st === "toOrigin" && S.t - bus.tDep < 2.2); if (!near) return; (slots[stop.id] = slots[stop.id] || { stop: stop, list: [] }).list.push(bus); }); });
       Object.keys(slots).forEach(function (sid) { var st = slots[sid], stop = st.stop, list = st.list.sort(function (a, b) { var ra = a.st === "stop" ? 0 : a.st === "toSite" ? 1 : 2, rb = b.st === "stop" ? 0 : b.st === "toSite" ? 1 : 2; return ra - rb || (a.tArr || 0) - (b.tArr || 0); }), off = 0;
@@ -9149,6 +9289,7 @@ button:focus-visible,input:focus-visible{outline:3px solid var(--lime);outline-o
   };
   // ---------------------------------------------------------------- barre de tâches
   var ICONS = {
+    circulation: '<path d="M4 19h16"/><path d="M6 15l4-8 4 6 4-4"/><circle cx="10" cy="7" r="1.5"/><circle cx="18" cy="9" r="1.5"/>',
     synthese: '<path d="M4 19V9M10 19V5M16 19v-7M22 19H2"/>', entrees: '<path d="M4 20V6l8-3 8 3v14"/><path d="M9 20v-6h6v6"/>', flux: '<path d="M3 12h4l3-7 4 14 3-7h4"/>', transport: '<rect x="4" y="3" width="16" height="14" rx="3"/><path d="M4 11h16"/><circle cx="8" cy="20" r="1.5"/><circle cx="16" cy="20" r="1.5"/>', parking: '<rect x="3" y="3" width="18" height="18" rx="3"/><path d="M9 17V7h4a3 3 0 0 1 0 6H9"/>',
     scenes: '<path d="M3 18h18"/><path d="M5 18V8h14v10"/><path d="M8 8l4-4 4 4"/><circle cx="12" cy="13" r="2"/>', tech: '<path d="M13 2L4 14h7l-1 8 9-12h-7z"/>', bars: '<path d="M6 4h9v15a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2z"/><path d="M15 8h2a2 2 0 0 1 2 2v3a2 2 0 0 1-2 2h-2"/><path d="M6 8h9"/>', food: '<path d="M4 11h16a8 8 0 0 1-16 0z"/><path d="M8 7c0-2 2-2 2-4M13 7c0-2 2-2 2-4"/>',
     services: '<circle cx="12" cy="12" r="9"/><path d="M12 8v.1M11 12h1v5h1"/>', logistique: '<path d="M3 7l9-4 9 4-9 4z"/><path d="M3 7v10l9 4 9-4V7"/><path d="M12 11v10"/>', equipe: '<circle cx="9" cy="8" r="3"/><path d="M3 20c0-3.3 2.7-6 6-6s6 2.7 6 6"/><path d="M16 4.5a3 3 0 0 1 0 6"/><path d="M18 14c2 .8 3 2.8 3 6"/>', securite: '<path d="M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6z"/>',
@@ -9158,6 +9299,7 @@ button:focus-visible,input:focus-visible{outline:3px solid var(--lime);outline-o
   var TASKS = [
     ["entrees", "Entrées", function (S) { var w = Sim.waitMin(); return [w >= 999 ? "bloquée" : Math.round(w) + " min", w > 20 ? "bad" : w > 10 ? "warn" : ""]; }],
     ["flux", "Flux", function (S) { return [S.barriers.length ? S.barriers.length + " barrière" + (S.barriers.length > 1 ? "s" : "") : "densité", ""]; }],
+    ["circulation", "Circulation", function (S) { var q = 0, bq = 0; D.LINEK.forEach(function (k) { var ln = S.lines[k]; if (!ln) return; q += ln.qS; ln.buses.forEach(function (b) { if (b.st === "queue") bq++; }); }); return [bq ? bq + " bus en file" : nb(q) + " au quai", bq > 3 || q > 1500 ? "bad" : bq || q > 600 ? "warn" : ""]; }],
     ["transport", "Navettes", function (S) { var q = D.LINEK.reduce(function (a, k) { return a + (S.lines[k] ? S.lines[k].qO + S.lines[k].qS : 0); }, 0); return [nb(q) + " en attente", q > 1500 ? "bad" : q > 600 ? "warn" : ""]; }],
     ["parking", "Parkings", function (S) { var c = 0, cap = 0; Object.keys(S.lots).forEach(function (k) { c += S.lots[k].cars; cap += S.lots[k].cap; }); return [cap ? Math.round(c / cap * 100) + " %" + (S.road.inQ > 20 ? " · bouchon" : "") : "aucun", S.road.jam > 0.5 ? "bad" : S.road.jam > 0.2 ? "warn" : ""]; }],
     ["scenes", "Scènes", function (S) { var m = 0; Sim.stagesOf(U.ev).forEach(function (b) { m = Math.max(m, S.stages[b.id].crowd / D.BT[b.k].cap); }); var n = S.evac ? 0 : Sim.currentSets().length; return [(S.evac ? "arrêtées · " : n ? n + " live · " : "") + Math.round(m * 100) + " % max", m > 1 ? "bad" : m > 0.9 ? "warn" : ""]; }],
@@ -9216,8 +9358,8 @@ button:focus-visible,input:focus-visible{outline:3px solid var(--lime);outline-o
     var key = c.who + c.until; if (key !== callKey) { callKey = key; $("callW").textContent = "📻 " + c.who + " · canal " + c.ch; $("callT").textContent = c.txt; var o = $("callO"); o.textContent = ""; c.opts.forEach(function (lb, i) { var b = mk(o, "button", i === 0 ? "go2" : null, lb); b.onclick = function () { Sim.answerCall(i); A.sfx("tap"); U.refresh(true); }; }); }
   }
   // ---------------------------------------------------------------- régie (onglets dans ui_live.js)
-  U.GROUPS = [["Public", ["synthese", "entrees", "flux", "transport", "parking"]], ["Site", ["scenes", "tech", "services", "logistique", "ecrans", "sol"]], ["Ventes", ["bars", "food", "finances"]], ["Sécurité", ["securite", "urgences", "evac", "catas", "equipe"]], ["Infos", ["persos", "presse", "radio", "cameras"]]];
-  U.TABN = { synthese: "Synthèse", entrees: "Entrées", flux: "Flux & barrières", transport: "Navettes", parking: "Parkings", scenes: "Scènes", tech: "Technique", services: "Services", logistique: "Logistique", ecrans: "Écrans", sol: "Sol", bars: "Bars & ventes", food: "Food & stands", finances: "Finances", securite: "Sécurité", urgences: "Urgences", evac: "Évacuation", catas: "Catastrophes", equipe: "Équipe", persos: "Personnages", presse: "Presse & avis", radio: "Radio", cameras: "Caméras" };
+  U.GROUPS = [["Public", ["synthese", "circulation", "entrees", "flux", "transport", "parking"]], ["Site", ["scenes", "tech", "services", "logistique", "ecrans", "sol"]], ["Ventes", ["bars", "food", "finances"]], ["Sécurité", ["securite", "urgences", "evac", "catas", "equipe"]], ["Infos", ["persos", "presse", "radio", "cameras"]]];
+  U.TABN = { circulation: "Plan de circulation", synthese: "Synthèse", entrees: "Entrées", flux: "Flux & barrières", transport: "Navettes", parking: "Parkings", scenes: "Scènes", tech: "Technique", services: "Services", logistique: "Logistique", ecrans: "Écrans", sol: "Sol", bars: "Bars & ventes", food: "Food & stands", finances: "Finances", securite: "Sécurité", urgences: "Urgences", evac: "Évacuation", catas: "Catastrophes", equipe: "Équipe", persos: "Personnages", presse: "Presse & avis", radio: "Radio", cameras: "Caméras" };
   U.LIVE = {};
   function sheetStruct() { var S = Sim.get(); return U.sheetTab + "|" + S.inc.filter(function (i) { return i.det <= S.t; }).map(function (i) { return i.id + (i.picked ? "p" : "") + (i.job != null ? "j" : ""); }).join() + "|" + (S.evac ? S.evac.kind + S.evac.phase : "") + "|" + S.units.filter(function (u) { return u.active; }).length + "|" + S.orders.length + "|" + S.day + "|" + S.barriers.length + "|" + S.press.articles.length; }
   function buildSheet() {
@@ -9486,12 +9628,19 @@ button:focus-visible,input:focus-visible{outline:3px solid var(--lime);outline-o
 
   // ================================================================ transports et parkings
   P.transport = function (body) {
-    var e = ev(), stops = e.layout.filter(function (b) { return b.k === "shuttle"; });
+    var e = ev(), stops = e.layout.filter(function (b) { return D.BT[b.k].stop; }), hub = Sim.hubOf(e), cfg = Sim.hubCfg(e);
     var k = mk(body, "div", "kpis");
     U.kpi(k, "En voiture", function () { return [Math.round(Sim.modal(e).car * 100) + " %"]; }, L()); U.kpi(k, "En navette", function () { return [Math.round(Sim.modal(e).bus * 100) + " %"]; }, L());
     U.kpi(k, "Parking relais", function () { return [Math.round(Sim.modal(e).relais * 100) + " %"]; }, L()); U.kpi(k, "À pied, vélo, taxi", function () { return [Math.round(Sim.modal(e).other * 100) + " %"]; }, L());
     sec(body, "Navettes");
-    if (!stops.length) mk(body, "div", "warnbox", "Pose un arrêt de navette le long de la route (onglet Site, catégorie Accès) pour faire rouler des lignes.");
+    if (!stops.length) mk(body, "div", "warnbox", "Pose une gare routière (ou un simple arrêt) de l'autre côté de la route (onglet Site, catégorie Accès) pour faire rouler des lignes.");
+    U.line(body, "Part du public en navette", function () { return e.tr.share == null ? "automatique : selon le prix, la fréquence et le lieu" : "ton choix : la flotte doit suivre"; }, function () { return e.tr.share == null ? -1 : Math.round(e.tr.share * 100); }, function (d) { var v = e.tr.share == null ? Math.round(Sim.modal(e).bus * 100) : Math.round(e.tr.share * 100); v = v + d * 5; e.tr.share = v < 0 ? null : clamp(v, 0, 70) / 100; }, function (v) { return v < 0 ? "auto (" + Math.round(Sim.modal(e).bus * 100) + " %)" : v + " %"; }, -1, 70, L());
+    if (hub) { sec(body, "Gare routière");
+      U.line(body, "Quais de dépose", "deux bus standard par rangée ; 4 000 € par quai en plus", function () { return cfg.dropBays; }, function (d) { cfg.dropBays = clamp(cfg.dropBays + d, 2, 4); W.syncLayout(e, true); }, String, 2, 4, L());
+      U.tline(body, "Cheminement balisé", "barrières et signaleurs entre le quai et l'entrée", function (v) { return v ? "Oui" : "Non"; }, function () { return !!cfg.guide; }, function (v) { cfg.guide = v; }, L());
+      U.line(body, "Pré-contrôle au quai", "billets et sacs vérifiés à la descente (30 €/h par agent)", function () { return cfg.precheck; }, function (d) { cfg.precheck = clamp(cfg.precheck + d * 2, 0, 20); }, String, 0, 20, L());
+      U.seg(body, [["reg", "Sas régulé"], ["free", "Sas ouvert"]], function () { return cfg.sas; }, function (v) { cfg.sas = v; }, L(), 2);
+      U.tline(body, "Sortie échelonnée prévue", "set de clôture et bars ouverts 45 min après la fin (6 000 €)", function (v) { return v ? "Oui" : "Non"; }, function () { return !!e.tr.staggerPlan; }, function (v) { e.tr.staggerPlan = v; }, L()); }
     D.LINEK.forEach(function (lk) {
       var Lk = e.tr.lines[lk], LD = D.LINES[lk], r = mk(body, "div", "srow"), top = mk(r, "div", "top"); mk(top, "b", null, "Ligne " + LD.n); var r2 = mk(top, "span", "r2"); note(r, LD.d + " Trajet " + LD.trip + " min.");
       var tg = mk(r, "div", "btns"); U.toggle(tg, function (v) { return v ? "En service" : "Pas de ligne"; }, function () { return Lk.on; }, function (v) { Lk.on = v; }, L());
@@ -9751,6 +9900,46 @@ button:focus-visible,input:focus-visible{outline:3px solid var(--lime);outline-o
     sec(body, "Signaleurs");
     note(body, "Les signaleurs orientent le public : avec assez de signaleurs, la foule suit vite tes barrières et déviations. Sinon, une partie force le passage ou se perd.");
     var l = mk(body, "div", "line"), t = mk(l, "div", "lbl", "Signaleurs"), s = mk(t, "small"); L.push(function () { s.textContent = S.staff.stewards + " en poste, recommandé " + Math.ceil(e.cap / 500); }); smallHire(l, "stewards", 4, L);
+  };
+
+  // ================================================================ plan de circulation : tous les flux au même endroit
+  T.circulation = function (body, sub, L, S) {
+    var e = ev(), hub = Sim.hubOf(e), cfg = Sim.hubCfg(e); sub.textContent = "Arrivées, gare routière, route, sortie";
+    var k = mk(body, "div", "kpis");
+    U.kpi(k, "Attente aux entrées", function () { var w = Sim.waitMin(); return [w >= 999 ? "bloquée" : Math.round(w) + " min", w > 20 ? "bad" : w > 10 ? "warn" : "ok"]; }, L);
+    U.kpi(k, "Bus en file sur la route", function () { var n = 0; D.LINEK.forEach(function (lk) { (S.lines[lk] ? S.lines[lk].buses : []).forEach(function (b) { if (b.st === "queue") n++; }); }); return [n + "", n > 3 ? "bad" : n ? "warn" : "ok"]; }, L);
+    U.kpi(k, "Au quai de reprise", function () { var q = D.LINEK.reduce(function (a, lk) { return a + (S.lines[lk] ? S.lines[lk].qS : 0); }, 0); return [nb(q) + " pers.", q > 1500 ? "bad" : q > 600 ? "warn" : ""]; }, L);
+    U.kpi(k, "Route", function () { return [Math.round((S.road.jam || 0) * 100) + " % saturée", S.road.jam > 0.5 ? "bad" : S.road.jam > 0.2 ? "warn" : "ok"]; }, L);
+    U.kpi(k, "Arrivées / heure", function () { return [nb(Math.round((S.pop.rateIn || 0) * 60))]; }, L);
+    U.kpi(k, "Départs / heure", function () { return [nb(Math.round((S.pop.rateOut || 0) * 60))]; }, L);
+    if (!hub) { mk(body, "div", "warnbox", "Pas de gare routière : les navettes s'arrêtent le long de la route, sans quai de dépose ni file organisée. Pose une « Gare routière navettes » de l'autre côté de la route (préparation, onglet Site)."); }
+    else {
+      sec(body, "Gare routière · dépose");
+      var dk = mk(body, "div", "kpis");
+      U.kpi(dk, "Quais de dépose", function () { var all = Sim.dropBays(e), used = all.filter(function (b) { return S.bays && S.bays[b.id]; }).length; return [used + " / " + all.length + " occupés", used >= all.length ? "warn" : ""]; }, L);
+      U.kpi(dk, "Débarquent en ce moment", function () { var n = 0; D.LINEK.forEach(function (lk) { (S.lines[lk] ? S.lines[lk].buses : []).forEach(function (b) { if (b.st === "drop") n += b.unl || 0; }); }); return [nb(Math.round(n)) + " pers."]; }, L);
+      U.kpi(dk, "Attente des bus", function () { return [S.stats.busQueued ? Math.round((S.stats.busWait || 0) / Math.max(1, S.stats.busQueued)) + " min en moy." : "aucune"]; }, L);
+      var bt0 = mk(body, "div", "btns"); U.btn(bt0, "+1 quai dans la gare (4 000 €)", function () { Sim.hubBays(1); W.syncLayout(e, true); }, "go2"); U.btn(bt0, "Poser un quai provisoire (2 500 €)", function () { if (Sim.addDropZone()) W.syncLayout(e); }); U.btn(bt0, "Voir la gare", function () { view(hub.x, hub.z + 4, 48, 0.8); });
+      U.tline(body, "Cheminement balisé jusqu'à l'entrée", "barrières et signaleurs : tout le monde suit le bon trajet, personne sur la chaussée", function (v) { return v ? "Balisé" : "Libre"; }, function () { return !!cfg.guide; }, function (v) { cfg.guide = v; Sim.log(v ? "Cheminement balisé entre la gare routière et l'entrée." : "Balisage retiré : les passagers rejoignent l'entrée comme ils veulent.", "i", "Transports"); }, L);
+      U.line(body, "Pré-contrôle au quai", "agents qui vérifient billets et sacs à la descente : couloir plus rapide à l'entrée, faux billets refusés (30 €/h chacun)", function () { return cfg.precheck; }, function (d) { cfg.precheck = clamp(cfg.precheck + d * 2, 0, 20); }, function (v) { return v + " agents"; }, 0, 20, L);
+      var ents = Sim.entriesOf(e); if (ents.length > 1) { sec(body, "Entrée desservie par la gare routière"); U.seg(body, [["", "La plus proche"]].concat(ents.map(function (x) { return [x.id, U.bName(x)]; })), function () { return e.tr.route[hub.id] || ""; }, function (v) { if (v) e.tr.route[hub.id] = v; else delete e.tr.route[hub.id]; }, L, 2); }
+      sec(body, "Gare routière · reprise");
+      U.seg(body, [["reg", "Sas régulé", "les agents laissent monter par paquets : pas de bousculade, montée plus lente"], ["free", "Sas ouvert", "montée rapide, risque de bousculade quand la file est longue"]], function () { return cfg.sas; }, function (v) { cfg.sas = v; }, L, 2);
+    }
+    sec(body, "Lignes");
+    D.LINEK.forEach(function (lk) { var Lk = e.tr.lines[lk], ln = S.lines[lk]; if (!ln) return; var x = srow(body, "Ligne " + D.LINES[lk].n), det = mk(x.r, "p", "note"), m = meter(x.r);
+      var bt = mk(x.r, "div", "btns"); U.btn(bt, "+1 bus", function () { Sim.fleet(lk, 1); }, "go2"); U.btn(bt, "−1 bus", function () { Sim.fleet(lk, -1); }); U.btn(bt, "Renfort express +3", function () { Sim.busExpress(lk); });
+      if (hub) U.toggle(bt, function (v) { return v ? "Départs retenus si l'entrée déborde" : "Départs réguliers"; }, function () { return !!cfg.hold[lk]; }, function (v) { cfg.hold[lk] = v; }, L);
+      L.push(function () { var c = {}; ln.buses.forEach(function (b) { c[b.st] = (c[b.st] || 0) + 1; }); var on = Lk.on && Sim.F.stopOf(lk); tag(x.tg, on ? (ln.qS > 400 ? "SATURÉE" : "EN SERVICE") : "ARRÊTÉE", on ? (ln.qS > 400 ? "red" : "lime") : "grey"); x.r2.textContent = ln.buses.length + " bus · " + nb(Sim.lineCapH(e, lk)) + " places/h";
+        det.textContent = "Attendent au départ : " + nb(ln.qO) + " · au quai de reprise : " + nb(ln.qS) + " (≈ " + Math.round(ln.waitS || 0) + " min) · " + ((c.toSite || 0) + (c.toOrigin || 0)) + " sur la route, " + (c.queue || 0) + " en file, " + ((c.drop || 0) + (c.board || 0)) + " à quai · " + nb(ln.carried) + " amenés, " + nb(ln.back) + " ramenés"; m(ln.qS / 10, ln.qS > 400 ? "bad" : ln.qS > 150 ? "warn" : ""); }); });
+    sec(body, "Fin de soirée");
+    U.line(body, "Dernier départ", "chaque heure en plus coûte environ " + money(Sim.busCostH(e)), function () { return e.tr.last; }, function (d) { var nv = clamp(e.tr.last + d, Math.ceil(S.t / 60), e.close + 3); if (nv > e.tr.last) S.money.shuttle -= Sim.busCostH(e) * (nv - e.tr.last) * 0.2; e.tr.last = nv; }, function (v) { return (v % 24) + "h"; }, function () { return Math.ceil(S.t / 60); }, e.close + 3, L);
+    var bt2 = mk(body, "div", "btns"); U.btn(bt2, "Annoncer la dernière navette", function () { Sim.lastCall(); }, "go2"); U.btn(bt2, "Sortie échelonnée : set de clôture (6 000 €)", function () { Sim.staggerExit(); });
+    L.push(function () { bt2.children[0].disabled = !!S.lastCall; bt2.children[1].disabled = !!S.stagger; });
+    sec(body, "Voitures et piétons");
+    var k2 = mk(body, "div", "kpis"); U.kpi(k2, "Voitures en file", function () { return [nb(S.road.inQ) + " → " + nb(S.road.outQ)]; }, L); U.kpi(k2, "Parkings", function () { var c = 0, cap = 0; Object.keys(S.lots).forEach(function (id) { c += S.lots[id].cars; cap += S.lots[id].cap; }); return [cap ? Math.round(c / cap * 100) + " %" : "aucun"]; }, L); U.kpi(k2, "Piétons sur la chaussée", function () { return [nb(Math.round(S.jaywalk || 0)), S.jaywalk > 500 ? "warn" : ""]; }, L);
+    var l = mk(body, "div", "line"), t2 = mk(l, "div", "lbl", "Agents de circulation"), s2 = mk(t2, "small"); L.push(function () { s2.textContent = S.staff.traffic + " agents aux carrefours et parkings"; }); smallHire(l, "traffic", 4, L);
+    var l2 = mk(body, "div", "line"), t3 = mk(l2, "div", "lbl", "Accueil navettes"), s3 = mk(t3, "small"); L.push(function () { s3.textContent = S.staff.shuttleAg + " agents : descente et montée plus rapides, sas tenu"; }); smallHire(l2, "shuttleAg", 2, L);
   };
 
   // ================================================================ navettes
