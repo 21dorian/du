@@ -5452,6 +5452,7 @@ button:focus-visible,input:focus-visible{outline:3px solid var(--lime);outline-o
     if (ev.days > 1 && cnt(["camping"]) && cnt(["showers"]) * 3000 < 6000 * cnt(["camping"]) * 0.6) out.push([0, "Camping : pas assez de douches (un bloc pour 3 000 campeurs environ)"]);
     if (D.CLIMATE.t[ev.month] < 10 && !cnt(["vest"])) out.push([0, "Il fera froid : prévois un vestiaire"]);
     if (D.CLIMATE.t[ev.month] >= 17 && V.outdoor && !cnt(["water"])) out.push([0, "Il peut faire chaud : prévois des points d'eau"]);
+    var stg = L.filter(function (b) { return D.BT[b.k].stage && !D.BT[b.k].covered && !Sim.hallOf(ev, b); }); for (var si = 0; si < stg.length; si++) for (var sj = si + 1; sj < stg.length; sj++) { var A = stg[si], B = stg[sj], dS = Math.hypot(A.x - B.x, A.z - B.z), fa = Sim.front(A), fb = Sim.front(B), face = (fa[0] * (B.x - A.x) + fa[1] * (B.z - A.z)) > 0 && (fb[0] * (A.x - B.x) + fb[1] * (A.z - B.z)) > 0; if (dS < 60 || (face && dS < 100)) { out.push([0, "Pollution sonore : " + Sim.bName(A, ev) + " et " + Sim.bName(B, ev) + " à " + Math.round(dS * 2) + " m" + (face ? ", face à face" : "") + ". Éloigne-les (≥ " + (face ? 200 : 120) + " m) ou mets-les dos à dos."]); break; } }
     if (!cnt(["backstage"])) out.push([0, "Sans backstage, les artistes arrivent plus souvent en retard"]);
     if (!cnt(["generator"]) && (ev.venue === "parc" || ev.venue === "plage")) out.push([0, "Pas de groupe électrogène sur un site sans réseau : coupures fréquentes"]);
     if ((ev.venue === "parc" || ev.venue === "plage") && !cnt(["tank"])) out.push([0, "Pas de réseau d'eau ici : il faut des citernes pour les points d'eau, bars et douches"]);
@@ -5629,7 +5630,7 @@ button:focus-visible,input:focus-visible{outline:3px solid var(--lime);outline-o
     [["bar", Math.ceil(ev.cap / 4000)], ["wc", Math.max(V.halls ? 0 : 1, Math.ceil(ev.cap / 2500) - Sim.hallWcEq(ev))], ["food", Math.ceil(ev.cap / 1600)], ["bin", Math.ceil(ev.cap / 2500)]].forEach(function (need) {
       var have = ev.layout.filter(function (b) { return b.k === need[0] && inSite(b); }).length, anchors = ev.layout.filter(function (b) { return b.k === need[0] && inSite(b); });
       if (!anchors.length || need[0] === "food" || need[0] === "bar") anchors = ev.layout.filter(function (b) { return (D.BT[b.k].bar || D.BT[b.k].food || D.BT[b.k].stage) && inSite(b); }).sort(function () { return Math.random() - 0.5; });
-      for (var i = have, tries = 0; i < need[1] && tries < 80 && anchors.length; tries++) { var a = anchors[tries % anchors.length], nb2 = { id: Sim.newId(ev), k: need[0], x: Math.round((a.x + rnd(-18, 18)) / 2) * 2, z: Math.round((a.z + rnd(-16, 16)) / 2) * 2, rot: D.BT[a.k].stage ? 0 : a.rot || 0 }; if (nb2.k === "food") nb2.cuisine = D.CUISINEK[i % D.CUISINEK.length]; if (Sim.findSpot(ev, nb2) && inSite(nb2)) { ev.layout.push(nb2); i++; } }
+      for (var i = have, tries = 0; i < need[1] && tries < 80 && anchors.length; tries++) { var a = anchors[tries % anchors.length], nb2 = { id: Sim.newId(ev), k: need[0], x: Math.round((a.x + rnd(-18, 18)) / 2) * 2, z: Math.round((a.z + rnd(-16, 16)) / 2) * 2, rot: D.BT[a.k].stage ? 0 : a.rot || 0 }; if (need[0] === "bar" && D.BT[a.k].stage) { var zA = Sim.zone(a), frA = Sim.front(a), sdA = tries % 2 ? 1 : -1; if (frA[1]) { nb2.x = Math.round((sdA > 0 ? zA.x1 + 8 : zA.x0 - 8) / 2) * 2; nb2.z = Math.round(rnd(zA.z0 + 4, zA.z1 - 4) / 2) * 2; } else { nb2.z = Math.round((sdA > 0 ? zA.z1 + 8 : zA.z0 - 8) / 2) * 2; nb2.x = Math.round(rnd(zA.x0 + 4, zA.x1 - 4) / 2) * 2; } } if (nb2.k === "food") nb2.cuisine = D.CUISINEK[i % D.CUISINEK.length]; if (Sim.findSpot(ev, nb2) && inSite(nb2)) { ev.layout.push(nb2); i++; } }
     });
     // parkings publics selon la part de voitures (≈ 2,4 personnes par voiture)
     var pubLots = Sim.lotsOf(ev, "public"), needLots = Math.ceil(ev.cap * Sim.modal(ev).car / 2.5 / D.PTYPES.public.cap);
@@ -6032,7 +6033,7 @@ button:focus-visible,input:focus-visible{outline:3px solid var(--lime);outline-o
   Sim.syncUnits = syncUnits;
   function isFree(u) { return u.active && (u.phase === "idle" || u.phase === "home" || u.phase === "resting"); }
   Sim.isFree = isFree;
-  var KIND_OF = { keg: "run", ice: "run", crate: "run", fix: "run", term: "run", sound: "run", gen: "run", check: "run", fuel: "run", genCheck: "run", trash: "clean", wcclean: "clean", fight: "pat", intrus: "pat", fire: "pat", colis: "pat", calm: "pat", lost: "pat", theft: "pat", harass: "pat", sweep: "pat", med: "med" };
+  var KIND_OF = { keg: "run", ice: "run", crate: "run", fix: "run", term: "run", sound: "run", gen: "run", check: "run", fuel: "run", genCheck: "run", trash: "clean", wcclean: "clean", fight: "pat", intrus: "pat", fire: "pat", colis: "pat", calm: "pat", lost: "pat", theft: "pat", harass: "pat", heras: "pat", sweep: "pat", med: "med" };
   Sim.KIND_OF = KIND_OF;
   function findInc(id) { for (var i = 0; i < S.inc.length; i++) if (S.inc[i].id === id) return S.inc[i]; return null; }
   Sim.findInc = findInc;
@@ -6093,6 +6094,7 @@ button:focus-visible,input:focus-visible{outline:3px solid var(--lime);outline-o
       else if (k === "colis") steps = [go(p, "Va au colis"), { work: 3, lbl: "Pose un périmètre", act: "colis" }, { work: 12, lbl: "Tient le périmètre" }];
       else if (k === "lost") steps = [go(p, "Cherche l'enfant"), { work: 5, lbl: "Ramène l'enfant au point info", act: "lost" }];
       else if (k === "theft") steps = [go(p, "Va voir la victime"), { work: 5, lbl: "Prend la plainte, regarde les caméras", act: "theft" }];
+      else if (k === "heras") steps = [go(p, "Court à la barrière qui cède"), { work: 5, lbl: "Relève, leste et double la barrière", act: "heras" }];
       else if (k === "harass") steps = [go(p, "Va vers la victime"), { work: 6, lbl: "Met la victime en sécurité", act: "harass" }];
     }
     u.job = job; u.steps = steps; u.phase = "busy"; nextStep(u);
@@ -6131,6 +6133,7 @@ button:focus-visible,input:focus-visible{outline:3px solid var(--lime);outline-o
       else { u.carry = "med"; u.steps.unshift({ work: 2, lbl: "Confie au poste", act: "medDone" }); u.steps.unshift(go(Sim.workPoint(baseOf("med")), "Accompagne au poste de secours", true)); } },
     medDone: function (u, j) { var inc = findInc(j.ref); u.carry = null; S.stats.medOk++; if (inc) closeInc(inc); log(u.name + " a pris en charge un malaise.", "g", "Secours"); sfx("ok"); },
     fight: function (u, j) { var inc = findInc(j.ref); S.stats.fightOk++; if (inc) closeInc(inc); log(u.name + " a stoppé une bagarre.", "g", "Sécu"); sfx("ok"); },
+    heras: function (u, j) { var inc = findInc(j.ref); if (inc) closeInc(inc); S.stats.herasOk = (S.stats.herasOk || 0) + 1; log(u.name + " a relevé et lesté la barrière" + (inc && inc.stage ? " devant " + stageName(inc.stage) : "") + " : la foule est contenue.", "g", "Sécu"); sfx("ok"); },
     intrus: function (u, j) { var inc = findInc(j.ref); S.stats.intrOk++; if (inc) closeInc(inc); log(u.name + " a intercepté des resquilleurs.", "g", "Sécu"); sfx("ok"); },
     fire: function (u, j) { var inc = findInc(j.ref); if (!inc || inc.big) return; closeInc(inc); log(u.name + " a éteint le départ de feu.", "g", "Sécu"); sfx("ok"); },
     colis: function (u, j) { var inc = findInc(j.ref); if (!inc) return; inc.secured = true; inc.picked = true; inc.until = S.t + 15; log("Périmètre posé autour du colis. La police et les démineurs arrivent.", "a", "Sécu"); callVehicle("police", inc.x, inc.z, 5, {}); },
@@ -6241,7 +6244,7 @@ button:focus-visible,input:focus-visible{outline:3px solid var(--lime);outline-o
   L.diff = DIFFS;
 
   // ================================================================ incidents (avec causes visibles)
-  var INC_N = { med: "Malaise", fight: "Bagarre", intrus: "Intrusion", fire: "Départ de feu", colis: "Colis suspect", power: "Coupure électrique", lost: "Enfant perdu", theft: "Vol", harass: "Harcèlement", insp: "Inspection" };
+  var INC_N = { med: "Malaise", fight: "Bagarre", intrus: "Intrusion", fire: "Départ de feu", colis: "Colis suspect", power: "Coupure électrique", lost: "Enfant perdu", theft: "Vol", harass: "Harcèlement", insp: "Inspection", heras: "Barrière qui cède" };
   Sim.INC_N = INC_N;
   function spawnInc(type, x, z, life, extra) {
     if (type === "med" && S.medBoost > S.t) life += 8;
@@ -6319,6 +6322,12 @@ button:focus-visible,input:focus-visible{outline:3px solid var(--lime);outline-o
     Object.keys(S.stages).forEach(function (id) { var st = S.stages[id], cap = D.BT[Sim.find(ev, id).k].cap, dens = st.crowd / cap; var heat = w.t > 26 ? 1 + (w.t - 26) / 4 * (S.heatAid || 1) : 1, water = ev.layout.some(function (b) { return b.k === "water"; }) && S.water.level > 0 || S.water.mains ? 1 : 1.4;
       var r = st.crowd / 10000 * 0.035 * (0.6 + dens) * heat * water * alc * drugs * (S.staff.maraude > 0 ? 0.85 : 1) * (S.micWater > t ? 0.75 : 1) / E.ev;
       if (chance(r, gm)) { var sp = zoneSpot(id); spawnInc("med", sp[0], sp[1], 25, { stage: id, grave: Math.random() < 0.12 }); log("Malaise signalé devant " + stageName(id) + ".", "r", "Secours"); } });
+    // barrières qui cèdent : crash-barrières sous la pression d'une scène bondée pendant un concert, Heras couchées par le vent
+    S.herasN = S.herasN || {}; var hn = S.herasN[S.day] || 0;
+    if (hn < 3) Object.keys(S.stages).forEach(function (id) { var st = S.stages[id], cap = D.BT[Sim.find(ev, id).k].cap, dens = st.crowd / cap; if (dens < 0.85 || !Sim.setOfStage(id) || S.inc.some(function (x) { return x.type === "heras" && x.stage === id; })) return;
+      var rH = (dens - 0.85) * 0.12 * (1 + (st.press || 0) / 60) * (S.staff.secuStage > 0 ? Math.max(0.35, 1 - S.staff.secuStage * 0.04) : 1.4) * alc / E.ev;
+      if (chance(rH, gm)) { S.herasN[S.day] = ++hn; var zH = Sim.zone(Sim.find(ev, id)), frH = Sim.front(Sim.find(ev, id)), bx = (zH.x0 + zH.x1) / 2 + rnd(-6, 6), bz = (zH.z0 + zH.z1) / 2; if (frH[1]) bz = frH[1] > 0 ? zH.z0 + 2 : zH.z1 - 2; else bx = frH[0] > 0 ? zH.x0 + 2 : zH.x1 - 2; spawnInc("heras", bx, bz, 8, { stage: id }); log("Radio : « La crash-barrière plie devant " + stageName(id) + ", ça pousse fort, renforts ! »", "r", "Sécu"); banner("<b>Barrière qui cède</b> devant " + stageName(id) + ". Envoie une patrouille.", "red", 4500); } });
+    if (hn < 3 && Sim.venue(ev).fence && Sim.venue(ev).outdoor && w.wind > 55 && chance((w.wind - 55) / 10 * 0.01 / E.ev, gm)) { S.herasN[S.day] = ++hn; var VH = Sim.venue(ev), sdH = pick([-1, 1]); spawnInc("heras", sdH * (VH.W / 2 - 2), rnd(-VH.D / 2 + 10, VH.D / 2 - 10), 14, {}); log("Radio : « Rafale, trois Heras couchées côté " + (sdH < 0 ? "ouest" : "est") + ", la clôture est ouverte ! »", "r", "Sécu"); }
     // bagarres : aux bars où l'on attend longtemps, tard, dans le noir, avec des objets passés à la fouille
     Object.keys(S.bars).forEach(function (id) { var bb = S.bars[id]; if (bb.fight || bb.closed) return; var b = Sim.find(ev, id), p = Sim.workPoint(b), dark = lit(p[0], p[1]) < 0.5 ? 1.6 : 1, wait = 1 + Math.max(0, 1 - bb.svc) * 3, secu = clamp((inside / 250) / Math.max(1, S.staff.secuIn + S.staff.secuStage + S.staff.secuPatrol), 0.6, 2.2);
       var r = (bb.dem / 60) * 0.002 * alc * alc * dark * wait * secu * (1 - 0.12 * Sim.chefLv("secu")) * (S.micCalm > t ? 0.7 : 1) * (1 - SE.catch * 0.35) * (1 + S.pop.fraudIn / 800) * (1 - Math.min(0.45, (S.staff.polPatrol || 0) * 0.02)) * (S.polBoost > t ? 0.5 : 1) / E.ev;
@@ -6360,6 +6369,7 @@ button:focus-visible,input:focus-visible{outline:3px solid var(--lime);outline-o
       else if (inc.type === "intrus") { S.stats.intrKo++; S.pop.fraudIn += 40; S.pop.inside += 40; log("Une quarantaine de resquilleurs sont entrés par la clôture.", "r", "Sécu"); closeInc(inc); }
       else if (inc.type === "lost") { S.stats.lostKo++; S.sat -= 2; log("L'enfant a été retrouvé par la police, la famille est furieuse.", "r", "Accueil"); closeInc(inc); }
       else if (inc.type === "theft" || inc.type === "harass") { S.sat -= 1; closeInc(inc); }
+      else if (inc.type === "heras") { S.sat -= 5; closeInc(inc); if (inc.stage && S.stages[inc.stage]) { S.stages[inc.stage].press = Math.min(95, (S.stages[inc.stage].press || 0) + 35); spawnInc("med", inc.x, inc.z - 1, 25, { stage: inc.stage, grave: Math.random() < 0.25 }); log("La barrière a cédé devant " + stageName(inc.stage) + " : des spectateurs sont tombés, un blessé.", "r", "Sécu"); } else { S.pop.fraudIn += 120; S.pop.inside += 120; log("Un pan de clôture Heras est à terre : une centaine de personnes sont entrées sans billet.", "r", "Sécu"); } }
       else if (inc.type === "colis") { S.sat -= 8; inc.secured = true; inc.until = t + 15; S.stages[inc.stage] && (S.stages[inc.stage].press = Math.min(95, S.stages[inc.stage].press + 50)); log("Panique autour du colis non sécurisé : bousculade.", "r", "Sécu"); callVehicle("police", inc.x, inc.z, 4, {}); pressCrisis("colis"); }
       else if (inc.type === "fire") { inc.big = true; inc.picked = true; S.stats.fires++; S.disaster = (S.disaster || 0) + 1; S.sat -= 15; S.stages[inc.stage].blocked = true; callVehicle("fire", inc.x, inc.z, 6, { inc: inc.id }); log("Le feu s'est propagé ! Pompiers appelés, zone fermée.", "r", "Sécu"); decision("fireBig", { stage: inc.stage }); pressCrisis("fire"); }
     });
@@ -6474,7 +6484,7 @@ button:focus-visible,input:focus-visible{outline:3px solid var(--lime);outline-o
       if (ss.st === "wait" && !ss.asked && t >= s.start - 45) { ss.asked = true; var p = (1 - a.rel) * 0.35 * (back ? 0.8 : 1.6) * (S.staff.welcome < 2 ? 1.3 : 1) * H.late * R.late * (S.road.jam > 0.6 ? 1.3 : 1); if (Math.random() < p) { var why = R.late > 1 ? "il est venu par ses propres moyens et cherche l'entrée artistes" : H.late > 1 ? "son hôtel est loin du site" : S.road.jam > 0.6 ? "son van est bloqué dans les bouchons" : "son avion a du retard"; decision("delay", { set: s.id, min: Math.round(rnd(15, 45) / 5) * 5, why: why }); } else if (R.cost > 0) callVehicle("van", 0, 0, 5, {}); }
       if (ss.st === "wait" && t >= st) { ss.st = "live"; if (a.pop >= 60) { banner("<b>" + a.n + "</b> monte sur " + stageName(s.stage) + ".", "ice", 3500); log(a.n + " monte sur " + stageName(s.stage) + ".", "i", "Artistes"); } if (Sim.onSet) Sim.onSet(s); if (a.pop >= 65 && S.sat > 72 && Math.random() < 0.35) ss.encore = true; }
       if (ss.st === "live" && ss.encore && !ss.ovAsked && t >= en - 3) { ss.ovAsked = true; decision("overrun", { set: s.id }); }
-      if (ss.st === "live" && t >= en) { ss.st = "done"; if (S.curfew && t > S.curfew + 10 && !S.warned.curfewFine) { S.warned.curfewFine = 1; S.money.fines -= 8000; log("Dépassement de l'heure limite : 8 000 € d'amende.", "r", "Régie"); } }
+      if (ss.st === "live" && t >= en) { ss.st = "done"; if (S.stages[s.stage]) S.stages[s.stage].endT = t; if (S.curfew && t > S.curfew + 10 && !S.warned.curfewFine) { S.warned.curfewFine = 1; S.money.fines -= 8000; log("Dépassement de l'heure limite : 8 000 € d'amende.", "r", "Régie"); } }
     });
   }
   L.stepSets = stepSets;
@@ -6533,7 +6543,7 @@ button:focus-visible,input:focus-visible{outline:3px solid var(--lime);outline-o
     if (!S.warned["relief" + S.day] && t >= ev.open * 60 + (closeT - ev.open * 60) * 0.5 && closeT - ev.open * 60 > 420) { S.warned["relief" + S.day] = 1; var rl = Math.round(S.staffTot * 0.35); S.staffQ += rl; log("Relève de l'équipe : " + rl + " personnes à badger.", "v", "Accueil"); }
     S.money.staff -= Sim.liveCostH() / 60 * gm;
     Sim.F.step(gm, w);
-    technical(gm, w); security(gm, w); incTimers(); L.inspections(gm); stepOrders(); stepVehicles(); callStep(); goalStep(); weatherStep();
+    technical(gm, w); security(gm, w); incTimers(); L.inspections(gm); stepOrders(); stepVehicles(); callStep(); goalStep(); weatherStep(); Object.keys(S.money).forEach(function (mk) { if (typeof S.money[mk] === "number" && !isFinite(S.money[mk])) S.money[mk] = 0; }); if (!isFinite(S.sat)) S.sat = 60;
     var exposedF = S.evac && S.evac.kind === "shelter" ? (S.pop.inside > 0 ? (S.evac.exposed || 0) / S.pop.inside : 0) : 1;
     if (S.stormRisk && w.storm && chance(0.01 * (+S.stormRisk || 1) * exposedF, gm)) { S.stormRisk = false; var stageIds = Object.keys(S.stages), sb = pick(stageIds.filter(function (id) { var b = Sim.find(ev, id); return !D.BT[b.k].covered && !Sim.hallOf(ev, b); })); if (sb) { S.stages[sb].out = true; S.sat -= 12; S.stats.stormHurt += 3; for (var q = 0; q < 3; q++) { var sp2 = zoneSpot(sb); spawnInc("med", sp2[0], sp2[1], 25, { stage: sb, grave: q === 0 }); } log("Rafale : des éléments de " + stageName(sb) + " sont tombés. Des blessés.", "r", "Sécu"); pressCrisis("storm"); } }
     if (w.t > 30 && !S.warned.heat) { S.warned.heat = 1; decision("heat"); }
@@ -6897,6 +6907,8 @@ button:focus-visible,input:focus-visible{outline:3px solid var(--lime);outline-o
       if (Lk.on) S.money.shuttle -= ln.buses.filter(function (b) { return b.st !== "origin" || t < lastDep; }).length * B.costH / 60 * gm;
       // dernier départ : alerte si la file est longue
       if (t >= lastDep - 25 && !S.warned["lastbus" + S.day] && D.LINEK.reduce(function (a, x) { return a + S.lines[x].qS; }, 0) > 300) { S.warned["lastbus" + S.day] = 1; L.decision("lastbus", { n: Object.keys(S.lines).reduce(function (a, x) { return a + S.lines[x].qS; }, 0) }); }
+      if (ln.qS > B.cap * 4 && !ln.satLogged) { ln.satLogged = true; L.log("Radio : « Gare routière saturée, " + Math.round(ln.qS) + " personnes sur le quai de la ligne " + D.LINES[k].n + ". Il faut plus de bus. »", "r", "Transports"); }
+      if (ln.qS < B.cap) ln.satLogged = false;
       if (t >= lastDep && ln.qS > 0 && !ln.strandLogged && !ln.buses.some(function (b) { return b.st === "stop"; })) { ln.strandLogged = true; var st = Math.max(0, ln.qS - (S.taxis || 0)) * (S.lastCall ? 0.6 : 1); S.taxis = Math.max(0, (S.taxis || 0) - ln.qS); ln.stranded += st; S.stats.stranded += st; ln.qS = 0; if (st > 50) { L.log(Math.round(st) + " personnes sans navette pour rentrer (ligne " + D.LINES[k].n + ").", "r", "Transports"); S.sat -= Math.min(6, st / 150); L.pressCrisis("strand"); } }
     });
   }
@@ -7004,6 +7016,7 @@ button:focus-visible,input:focus-visible{outline:3px solid var(--lime);outline-o
     S.pop.rateIn = (S.pop.rateIn || 0) + (passed / gm - (S.pop.rateIn || 0)) * Math.min(1, 0.1 * gm);
     if (!Object.keys(S.entries).length && !Sim.venue(e).fence) { /* ville : entrée libre par les rues */ }
     var wq = Sim.waitMin(); if (Sim.queueTotal() > 100 && !S.closing && !S.evac) S.stats.maxWait = Math.max(S.stats.maxWait, Math.min(wq, 180));
+    if (wq > 30 && !S.closing && !S.evac && !S.warned["accSat" + S.day]) { S.warned["accSat" + S.day] = 1; L.log("Radio : « Contrôle d'accès saturé, " + Math.round(wq) + " min de file, ça pousse sur les barrières du serpentin. Ouvre des couloirs. »", "r", "Accueil"); }
     if (wq > 50) Object.keys(S.entries).forEach(function (id) { var lq = S.entries[id].Q * 0.008 * gm; S.entries[id].Q -= lq; S.pop.queueLeft += lq; });
     // vestiaire et casiers à l'arrivée
     var w = S.wx_now, vestIds = Object.keys(S.vests), vestUse = clamp((15 - w.t) / 14, 0.05, 0.85) * (e.venue === "halls" ? 1.2 : 1), vestRate = S.staff.vestStaff * 3 * readiness() / Math.max(1, vestIds.length);
@@ -7250,6 +7263,8 @@ button:focus-visible,input:focus-visible{outline:3px solid var(--lime);outline-o
   F.prodPrice = prodPrice;
   function barsStep(gm, w) {
     var e = S.ev, t = S.t, inside = S.pop.inside, amb = 0.7 + 0.3 * S.sat / 100, alc = L.alcohol(t), ids = Object.keys(S.bars), rd = readiness(), drinksMin = 0, dl = e.bar.deals;
+    // entre deux concerts, la foule d'une scène qui vient de finir se rue aux bars
+    var interN = Object.keys(S.stages).filter(function (sid) { var st = S.stages[sid]; return st.endT != null && t - st.endT < 20 && !Sim.setOfStage(sid); }).length, rush = 1 + Math.min(0.8, interN * 0.35); S.barRush = rush;
     var topSvc = S.topupSvc == null ? 1 : S.topupSvc, minors = e.minors && e.minors.idCheck ? 0.95 : 1, scrP = promo("screen");
     // attractivité de chaque bar : foule proche, file, mise en avant
     var ws = {}; ids.forEach(function (id) { var bb = S.bars[id], b = Sim.find(e, id); if (bb.closed || bb.barmen <= 0 || (S.closing && t > e.close * 60 + 15) || !Sim.ready(b) || Sim.evacStops()) { ws[id] = 0; return; } var wv = inside * 0.02; Object.keys(S.stages).forEach(function (sid) { var sb = Sim.find(e, sid), zn = Sim.zone(sb); wv += S.stages[sid].crowd * Math.exp(-Math.hypot(b.x - (zn.x0 + zn.x1) / 2, b.z - (zn.z0 + zn.z1) / 2) / 20); }); if (Sim.hallOf(e, b)) wv *= 1.1; if (scrP && scrP.bar === id) wv *= 1.6; var p = Sim.workPoint(b); if (!F.reachable(p[0], p[1])) wv = 0; ws[id] = wv; });
@@ -7259,7 +7274,7 @@ button:focus-visible,input:focus-visible{outline:3px solid var(--lime);outline-o
       if (!e.on[p.k] || p.vip) return;
       var pr = prodPrice(p), el = pr > 0 ? Math.pow(p.ref / pr, 1.5) : 2.2, boost = 1;
       if (dl.pintSoft && p.k === "soft") boost *= 1.25; if (dl.bucket && p.k === "beer") boost *= 1.18; if (dl.tokens) boost *= 1.05; if (hhOn()) boost *= 1.1;
-      var tot = inside * Sim.prodRate(p, w.t, e, t) / 60 * el * (p.soft ? 1 : alc) * amb * boost * gm * (p.k === "water" && (S.water.mains || S.water.level > 0) && e.layout.some(function (x) { return x.k === "water"; }) ? 0.6 : 1);
+      var tot = inside * Sim.prodRate(p, w.t, e, t) / 60 * el * (p.soft ? 1 : alc) * amb * boost * rush * gm * (p.k === "water" && (S.water.mains || S.water.level > 0) && e.layout.some(function (x) { return x.k === "water"; }) ? 0.6 : 1);
       var who = ids.filter(function (id) { var T = D.BT[Sim.find(e, id).k]; return ws[id] > 0 && T.menu.indexOf(p.k) >= 0 && stockOk(S.bars[id], p); }), sw = who.reduce(function (a, id) { var T = D.BT[Sim.find(e, id).k]; return a + ws[id] * (T.menu[0] === p.k ? 2.2 : 1); }, 0);
       who.forEach(function (id) { var T = D.BT[Sim.find(e, id).k], d = tot * ws[id] * (T.menu[0] === p.k ? 2.2 : 1) / sw; dem[id].list.push([p, d, pr]); dem[id].tot += d; });
     });
@@ -7282,6 +7297,8 @@ button:focus-visible,input:focus-visible{outline:3px solid var(--lime);outline-o
       bb.dem = dd.tot / gm; bb.served = served / gm; bb.servedTap = tapServed / gm; drinksMin += served / gm; var ratio = dd.tot > 0 ? served / dd.tot : 1; bb.svc += (ratio - bb.svc) * Math.min(1, 0.2 * gm);
       bb.q = Math.max(0, bb.dem * (1 - bb.svc) * 6); bb.wait = bb.svc < 0.98 ? (1 - bb.svc) * 30 : 1;
       if (bb.fight) S.sat -= 0.03 * gm;
+      // au-delà d'un quart d'heure d'attente, ça râle et l'ambiance baisse
+      if (bb.wait > 12 && !S.closing) { S.sat -= (bb.wait - 12) * 0.0025 * gm * Math.min(1, bb.dem / 40); S.warned = S.warned || {}; if (!S.warned["barq" + id + S.day]) { S.warned["barq" + id + S.day] = 1; L.log("Radio : « " + Math.round(bb.wait) + " min d'attente à " + L.barName(id) + (rush > 1.2 ? ", c'est le rush de l'entracte" : "") + ", ça commence à râler. »", "a", "Logistique"); } }
     });
     // vendeurs ambulants dans la foule des scènes
     if (S.staff.hawkers > 0 && e.on.beer && !S.evac && !S.closing && S.stock.keg > 0.5) { var stCrowd = Object.keys(S.stages).reduce(function (a, k) { return a + S.stages[k].crowd; }, 0), hn = Math.min(S.staff.hawkers * 1.4 * gm, stCrowd * 0.0025 * gm * alc); S.money.bars += hn * prodPrice(D.PROD.beer); S.stats.drinks.beer += hn; S.stock.keg = Math.max(0, S.stock.keg - hn / 180); drinksMin += hn / gm; S.hawkSold = (S.hawkSold || 0) + hn; }
@@ -7677,7 +7694,7 @@ button:focus-visible,input:focus-visible{outline:3px solid var(--lime);outline-o
 
   // ================================================================ aides de construction (partagées)
   var MATS = {};
-  function std(col, em, ei, rough, extra) { var key = !extra ? col + "|" + (em || 0) + "|" + (ei || 0) + "|" + rough : null; if (key && MATS[key]) return MATS[key]; var m = new THREE.MeshStandardMaterial({ color: col, emissive: em || 0, emissiveIntensity: ei || 0, roughness: rough == null ? 0.75 : rough, metalness: 0.05 }); if (extra) Object.assign(m, extra); else MATS[key] = m; return m; }
+  function std(col, em, ei, rough, extra) { var key = !extra ? col + "|" + (em || 0) + "|" + (ei || 0) + "|" + rough : null; if (key && MATS[key]) return MATS[key]; var m = new THREE.MeshStandardMaterial({ color: col, emissive: em || 0, emissiveIntensity: ei || 0, roughness: rough == null ? 0.75 : rough, metalness: 0.05 }); if (extra) Object.assign(m, extra); else MATS[key] = m; m.userData.shared = true; return m; }
   function own(col, em, ei, rough, extra) { var m = new THREE.MeshStandardMaterial({ color: col, emissive: em || 0, emissiveIntensity: ei || 0, roughness: rough == null ? 0.75 : rough, metalness: 0.05 }); if (extra) Object.assign(m, extra); return m; }
   var GEO = {};
   function boxG(w, h, d) { var k = w + "," + h + "," + d; return GEO[k] || (GEO[k] = new THREE.BoxGeometry(w, h, d)); }
@@ -7718,7 +7735,9 @@ button:focus-visible,input:focus-visible{outline:3px solid var(--lime);outline-o
   }
   function ring(r1, r2, col, op) { var m = new THREE.Mesh(new THREE.RingGeometry(r1, r2, 48), new THREE.MeshBasicMaterial({ color: col || 0xECE8DC, transparent: true, opacity: op || 0.95, side: THREE.DoubleSide, depthWrite: false })); m.rotation.x = -Math.PI / 2; m.position.y = 0.06; return m; }
   function hex(n) { return "#" + n.toString(16).padStart(6, "0"); }
-  function disposeTree(g) { g.traverse(function (o) { if (o.isSprite) { var i = SPRITES.indexOf(o); if (i >= 0) SPRITES.splice(i, 1); if (o.material.map) o.material.map.dispose(); o.material.dispose(); } else if (o.isMesh && o.geometry && !o.geometry._shared && o.geometry.type !== "BoxGeometry" && o.geometry.type !== "CylinderGeometry") { o.geometry.dispose(); } }); }
+  // libère géométries, matériaux et textures propres à l'objet (les matériaux et textures en cache sont conservés)
+  function disposeMat(m) { if (!m || (m.userData && m.userData.shared)) return; ["map", "emissiveMap", "alphaMap", "roughnessMap", "normalMap"].forEach(function (k) { var t = m[k]; if (t && !(I.sharedTex && I.sharedTex(t))) t.dispose(); }); m.dispose(); }
+  function disposeTree(g) { g.traverse(function (o) { if (o.isSprite) { var i = SPRITES.indexOf(o); if (i >= 0) SPRITES.splice(i, 1); if (o.material.map) o.material.map.dispose(); o.material.dispose(); } else if (o.isMesh || o.isLine || o.isPoints) { if (o.geometry && !o.geometry._shared && o.geometry.type !== "BoxGeometry" && o.geometry.type !== "CylinderGeometry") o.geometry.dispose(); if (Array.isArray(o.material)) o.material.forEach(disposeMat); else disposeMat(o.material); } }); }
   Object.assign(I, { std: std, own: own, box: box, cyl: cyl, plane: plane, label: label, relabel: relabel, signTex: signTex, ring: ring, hex: hex, disposeTree: disposeTree, rr: rr, boxG: boxG });
 
   // ================================================================ ciel : dégradé, soleil, étoiles, lune
@@ -8024,7 +8043,7 @@ button:focus-visible,input:focus-visible{outline:3px solid var(--lime);outline-o
   function colBoxes(list) { var pos = [], nor = [], col = [], c = new THREE.Color(); list.forEach(function (b) { var g = b.sph ? new THREE.SphereGeometry(b[0], 8, 6).toNonIndexed() : new THREE.BoxGeometry(b[0], b[1], b[2]).toNonIndexed(); g.translate(b[3], b[4], b[5]); c.setHex(b[6]); var P = g.attributes.position.array, N = g.attributes.normal.array; for (var i = 0; i < P.length; i++) { pos.push(P[i]); nor.push(N[i]); } for (i = 0; i < P.length / 3; i++) col.push(c.r, c.g, c.b); g.dispose(); }); var out = new THREE.BufferGeometry(); out.setAttribute("position", new THREE.Float32BufferAttribute(pos, 3)); out.setAttribute("normal", new THREE.Float32BufferAttribute(nor, 3)); out.setAttribute("color", new THREE.Float32BufferAttribute(col, 3)); out._shared = true; return out; }
   I.colBoxes = colBoxes;
   function staffFig(g, x, z, vest, rot, h, anim) {
-    if (!SFM) SFM = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.7, metalness: 0.05 });
+    if (!SFM) { SFM = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.7, metalness: 0.05 }); SFM.userData.shared = true; }
     var key = vest + (anim ? "a" : ""); if (!SF[key]) { var hd = [0.16, 0, 0, 0, 1.33, 0, 0xe0b895]; hd.sph = true; var L = [[0.42, 0.55, 0.26, 0, 0.88, 0, vest], [0.43, 0.06, 0.27, 0, 0.78, 0, 0xf3f1ea], hd]; if (!anim) L.push([0.14, 0.6, 0.16, -0.1, 0.3, 0, 0x1d1f26], [0.14, 0.6, 0.16, 0.1, 0.3, 0, 0x1d1f26]); SF[key] = colBoxes(L); }
     var p = new THREE.Group(); p.position.set(x, h || 0, z); p.rotation.y = rot || 0; var m = new THREE.Mesh(SF[key], SFM); m.castShadow = true; p.add(m);
     if (anim) { if (!LEGG) { LEGG = new THREE.BoxGeometry(0.14, 0.6, 0.16); LEGG.translate(0, -0.3, 0); LEGG._shared = true; } var lm = std(0x1d1f26), l1 = new THREE.Mesh(LEGG, lm), l2 = new THREE.Mesh(LEGG, lm); l1.position.set(-0.1, 0.6, 0); l2.position.set(0.1, 0.6, 0); p.add(l1); p.add(l2); p.userData.legs = [l1, l2]; }
@@ -8322,6 +8341,7 @@ button:focus-visible,input:focus-visible{outline:3px solid var(--lime);outline-o
   }
   // ================================================================ bâtiments réalistes (maquette) : scènes, chapiteau, barnums, bars, services, logistique
   var TEXC = {};
+  I.sharedTex = function (t) { for (var k in TEXC) if (TEXC[k] === t) return true; return !!(t.userData && t.userData.shared); };
   // tôle ondulée de conteneur, bardage d'Algeco, toile rayée : textures dessinées une fois
   function corrTex() { if (TEXC.corr) return TEXC.corr; var c = document.createElement("canvas"); c.width = 128; c.height = 64; var x = c.getContext("2d"); for (var i = 0; i < 128; i += 8) { var g = x.createLinearGradient(i, 0, i + 8, 0); g.addColorStop(0, "#9a9a9a"); g.addColorStop(0.5, "#ffffff"); g.addColorStop(1, "#8a8a8a"); x.fillStyle = g; x.fillRect(i, 0, 8, 64); } var t = new THREE.CanvasTexture(c); t.wrapS = t.wrapT = THREE.RepeatWrapping; t.repeat.set(4, 1); TEXC.corr = t; return t; }
   function cabinTex() { if (TEXC.cab) return TEXC.cab; var c = document.createElement("canvas"); c.width = 256; c.height = 96; var x = c.getContext("2d"); x.fillStyle = "#e8e6df"; x.fillRect(0, 0, 256, 96); x.fillStyle = "#c9c6bd"; for (var i = 0; i < 256; i += 64) x.fillRect(i, 0, 3, 96); x.fillStyle = "#2c3a4a"; for (var j = 0; j < 4; j++) { x.fillRect(14 + j * 64, 26, 36, 30); x.fillStyle = "#9fc4e0"; x.fillRect(16 + j * 64, 28, 32, 26); x.fillStyle = "#2c3a4a"; } x.fillStyle = "#b9b5aa"; x.fillRect(0, 86, 256, 10); var t = new THREE.CanvasTexture(c); TEXC.cab = t; return t; }
@@ -8636,7 +8656,7 @@ button:focus-visible,input:focus-visible{outline:3px solid var(--lime);outline-o
         var st = S && S.stages[id], set = S && Sim.setOfStage(id), hot = !!set, off = S && (!st || st.out || !pw || Sim.evacStops() || (S.evac && S.evac.kind === "shelter" && !T.covered && !Sim.hallOf(ev, b)) || (S.evac && S.evac.kind === "zone" && S.evac.stage === id) || (st.pause && st.pause > S.t) || (S.stormStop && !T.covered && !Sim.hallOf(ev, b)) || !ready); if (S && !st) st = { crowd: 0, press: 0, blocked: false, out: false }; // scène posée après le lancement : pas encore simulée
         var night = dl < 0.6;
         P.light.intensity = off ? 0 : (hot ? 1.4 : 0.6) * (1.1 - dl * 0.6) + (I.reduce ? 0 : 0.3 * Math.max(0, Math.sin(clock * W.beat * Math.PI)));
-        P.beams.forEach(function (bm) { bm.c.visible = !off && night; bm.c.material.opacity = hot ? 0.11 * (1 - dl) : 0.04; if (!I.reduce) { bm.p.rotation.z = Math.sin(clock * bm.sp + bm.ph) * 0.55; bm.p.rotation.x = Math.cos(clock * bm.sp * 0.7 + bm.ph) * 0.35 + 0.2; } bm.c.material.color.setHSL((clock * 0.05 + bm.ph) % 1, 0.85, 0.6); });
+        P.beams.forEach(function (bm) { bm.c.visible = !off && night; bm.c.material.opacity = hot ? 0.11 * (1 - dl) : 0.04; if (!I.reduce) { var bph = hot ? clock * (W.beat || 2) * Math.PI * 0.25 : clock * bm.sp; bm.p.rotation.z = Math.sin(bph + bm.ph) * 0.55; bm.p.rotation.x = Math.cos(bph * 0.7 + bm.ph) * 0.35 + 0.2; } bm.c.material.color.setHSL((clock * 0.05 + bm.ph) % 1, 0.85, 0.6); });
         P.lasers.visible = !off && hot && night && Math.floor(clock * W.beat / 4) % 3 === 0; if (P.lasers.visible) P.lasers.children.forEach(function (l, i) { l.rotation.set(-0.1 - (i % 3) * 0.06, (i - 5) * 0.09 + Math.sin(clock * 2 + i) * 0.15, 0); l.material.color.setHSL((clock * 0.1 + i * 0.05) % 1, 1, 0.55); });
         P.smoke.forEach(function (sp, i) { sp.material.opacity = !off && hot && night ? 0.12 + 0.05 * Math.sin(clock + i) : 0; sp.position.y = 2 + ((clock * 0.3 + i * 0.5) % 4); });
         if (scr) drawStageScreen(P, clock, hot && !off, off, S, id, set, ev);
@@ -8747,7 +8767,7 @@ button:focus-visible,input:focus-visible{outline:3px solid var(--lime);outline-o
   function buildGroups(S) {
     var ev = S.ev; groups = []; gIndex = {};
     function add(key, cellsFn, zone, kind, b) { gIndex[key] = groups.length; groups.push({ key: key, cells: cellsFn, zone: zone, kind: kind, want: 0, have: 0, b: b, id: b ? b.id : null, members: [] }); }
-    ev.layout.forEach(function (b) { var T = D.BT[b.k]; if (!Sim.within(Sim.fp(b), Sim.siteRect(ev))) return; if (T.stage || T.bar || T.food || T.wc || T.vest || T.merch || T.partner || b.k === "shelter" || b.k === "vip" || b.k === "info" || b.k === "cashless" || b.k === "pmr") { var z = Sim.zone(b); add(b.k + ":" + b.id, (function (zz) { return function () { return Sim.rectCells(zz.x0, zz.x1, zz.z0, zz.z1); }; })(z), z, T.stage ? "stage" : T.bar ? "bar" : T.food ? "food" : T.wc ? "wc" : T.vest ? "vest" : T.merch ? "merch" : b.k === "vip" ? "vip" : b.k === "info" || b.k === "cashless" ? "info" : b.k === "pmr" ? "pmr" : T.partner ? "partner" : "shelter", b); if (T.stage) { var fr0 = Sim.front(b); groups[groups.length - 1].face = Math.atan2(-fr0[0], -fr0[1]); groups[groups.length - 1].fr = fr0; } } });
+    ev.layout.forEach(function (b) { var T = D.BT[b.k]; if (!Sim.within(Sim.fp(b), Sim.siteRect(ev))) return; if (T.stage || T.bar || T.food || T.wc || T.vest || T.merch || T.partner || b.k === "shelter" || b.k === "water" || b.k === "vip" || b.k === "info" || b.k === "cashless" || b.k === "pmr") { var z = Sim.zone(b); add(b.k + ":" + b.id, (function (zz) { return function () { return Sim.rectCells(zz.x0, zz.x1, zz.z0, zz.z1); }; })(z), z, b.k === "water" ? "water" : T.stage ? "stage" : T.bar ? "bar" : T.food ? "food" : T.wc ? "wc" : T.vest ? "vest" : T.merch ? "merch" : b.k === "vip" ? "vip" : b.k === "info" || b.k === "cashless" ? "info" : b.k === "pmr" ? "pmr" : T.partner ? "partner" : "shelter", b); if (T.stage) { var fr0 = Sim.front(b); groups[groups.length - 1].face = Math.atan2(-fr0[0], -fr0[1]); groups[groups.length - 1].fr = fr0; } } });
     var V = Sim.venue(ev), pts = 0;
     for (var tries = 0; pts < 14 && tries < 500; tries++) { var x = rnd(-V.W / 2 + 8, V.W / 2 - 8), z = rnd(-V.D / 2 + 8, V.D / 2 - 8), c = Sim.cellOf(x, z); if (Sim.nav.grid[c[1] * Sim.nav.NX + c[0]] !== 0) continue; (function (zx, zz) { add("w:" + pts, function () { return Sim.rectCells(zx - 3, zx + 3, zz - 3, zz + 3); }, { x0: zx - 3, x1: zx + 3, z0: zz - 3, z1: zz + 3 }, "wander"); })(x, z); pts++; }
     var exitsFn = function () { var out = []; Sim.entriesOf(ev).forEach(function (b) { var p = Sim.gatePoint(ev, b, 1, 3); out = out.concat(Sim.rectCells(p[0] - 4, p[0] + 4, p[1] - 1, p[1] + 1)); }); if (!out.length) out = Sim.rectCells(-V.W / 2 + 4, V.W / 2 - 4, V.D / 2 + 2, V.D / 2 + 4); return out; };
@@ -8762,6 +8782,18 @@ button:focus-visible,input:focus-visible{outline:3px solid var(--lime);outline-o
     return [b.x + off + (row % 2 ? 0.08 : -0.08), b.z + fr[1] * (f.d / 2 + dist), Math.atan2(-fr[0], -fr[1])];
   }
   function stageSpot(g, p) { var z = g.zone, fr = g.fr, u = p.sx, v = Math.pow(p.sz, 0.65); if (fr[0]) return [fr[0] > 0 ? z.x0 + v * (z.x1 - z.x0) : z.x1 - v * (z.x1 - z.x0), z.z0 + u * (z.z1 - z.z0)]; return [z.x0 + u * (z.x1 - z.x0), fr[1] > 0 ? z.z0 + v * (z.z1 - z.z0) : z.z1 - v * (z.z1 - z.z0)]; }
+  var wearC = null, wearX = null, wearM = null, wearKey = "", wearT = 0;
+  function stampWear(S, dt) {
+    var ev = S.ev, V = Sim.venue(ev); if (W.groundKey(ev) !== "pelouse" || !V.outdoor) { if (wearM) wearM.visible = false; return; }
+    var key = V.W + "x" + V.D;
+    if (!wearM || wearKey !== key) { if (wearM) { I.scene.remove(wearM); wearM.geometry.dispose(); wearM.material.map.dispose(); wearM.material.dispose(); } wearKey = key; wearC = document.createElement("canvas"); wearC.width = 512; wearC.height = Math.max(64, Math.round(512 * V.D / V.W)); wearX = wearC.getContext("2d");
+      wearM = new THREE.Mesh(new THREE.PlaneGeometry(V.W, V.D), new THREE.MeshStandardMaterial({ map: new THREE.CanvasTexture(wearC), transparent: true, depthWrite: false, roughness: 1, polygonOffset: true, polygonOffsetFactor: -2 })); wearM.rotation.x = -Math.PI / 2; wearM.position.y = 0.02; wearM.renderOrder = 1; wearM.receiveShadow = true; I.scene.add(wearM); }
+    wearM.visible = true; wearT += (W.gps || 0.4) * (W.speedMul || 1) * dt; if (wearT < 3) return;
+    var gmin = Math.min(wearT, 30), mud = S.mudLevel || 0, sx = wearC.width / V.W, sz = wearC.height / V.D, a = Math.min(0.08, 0.008 * gmin / 3); wearT = 0;
+    wearX.fillStyle = mud > 0.3 ? "rgba(58,42,24," + (a * 1.8).toFixed(3) + ")" : "rgba(112,96,62," + a.toFixed(3) + ")";
+    [people, wpeople].forEach(function (arr) { for (var i = 0; i < arr.length; i++) { var p = arr[i]; if (!p.vis) continue; wearX.fillRect((p.x + V.W / 2) * sx - 1.5, (p.z + V.D / 2) * sz - 1.5, 3, 3); } });
+    wearM.material.map.needsUpdate = true; var mc = 1 - 0.3 * Math.min(1, mud); wearM.material.color.setRGB(mc, mc * 0.97, mc * 0.93);
+  }
   function updateCrowdTargets(S) {
     if (S.evac && S.evac.kind === "lockdown" && fieldsReady) return; // confinement : chacun reste où il est
     if (!fieldsReady || navVer !== Sim.nav.ver) { var old = groups; buildGroups(S); people.forEach(function (p) { if (p.vis && p.g != null && old[p.g]) { var nk = gIndex[old[p.g].key]; p.g = nk != null ? nk : null; } }); }
@@ -8774,7 +8806,8 @@ button:focus-visible,input:focus-visible{outline:3px solid var(--lime);outline-o
       else if (k === "wc") { var w = S.wcs[id]; want[i] = w ? Math.min(30, (w.q || 0) / 2 + 1) : 0; }
       else if (k === "vest") { var v = S.vests[id]; want[i] = v ? Math.min(60, (v.qIn + v.qOut) / PER) : 0; }
       else if (k === "merch") { var m = S.merchs[id]; want[i] = m ? Math.min(25, (m.q || 0) / 2 + 1) : 0; }
-      else if (k === "shelter") want[i] = S.evac && S.evac.kind === "shelter" ? D.BT.shelter.shelterCap / PER : (S.exposure > 0 || (S.wx_now && S.wx_now.rain > 0.3)) ? 160 / PER * 1.5 : 1;
+      else if (k === "shelter") want[i] = S.evac && S.evac.kind === "shelter" ? D.BT.shelter.shelterCap / PER : (S.exposure > 0 || (S.wx_now && S.wx_now.rain > 0.3)) ? 160 / PER * 1.5 : S.wx_now && S.wx_now.t > 28 && (W.dl || 0) > 0.5 ? 220 / PER : 1;
+      else if (k === "water") { var wx = S.wx_now || {}; want[i] = wx.t > 25 && (W.dl || 0) > 0.3 ? Math.min(30, inside * 0.004 * (wx.t - 24) / 6 / PER + 2) : 0.5; }
       else if (k === "vip") want[i] = inside * (S.pop.vipShare || 0) / PER * 0.4;
       else if (k === "info") want[i] = 2; else if (k === "pmr") want[i] = inside * 0.008 / PER * 0.5; else if (k === "partner") want[i] = 4;
       if (k !== "stage" && k !== "wander" && k !== "exit" && !Sim.F.reachable((g.zone.x0 + g.zone.x1) / 2, (g.zone.z0 + g.zone.z1) / 2)) want[i] = 0;
@@ -8800,7 +8833,7 @@ button:focus-visible,input:focus-visible{outline:3px solid var(--lime);outline-o
     }
     for (i = 0; i < NP; i++) { var r = people[i]; if (r.vis && !r.leave && r.g != null && groups[r.g]) groups[r.g].members.push(i); }
     // rangs dans les files : chacun avance quand ceux de devant partent
-    groups.forEach(function (g) { if (g.kind === "bar" || g.kind === "food" || g.kind === "wc" || g.kind === "vest" || g.kind === "merch" || g.kind === "info") g.members.forEach(function (idx, rank) { var p = people[idx], s = queueSpot(g, rank); p.tx = s[0]; p.tz = s[1]; p.face = s[2]; p.queue = true; }); else if (g.kind === "stage") g.members.forEach(function (idx) { var p = people[idx], s = stageSpot(g, p); p.tx = s[0]; p.tz = s[1]; p.queue = false; p.face = g.face; }); else g.members.forEach(function (idx) { var p = people[idx]; if (!g.zone) return; p.tx = g.zone.x0 + p.sx * (g.zone.x1 - g.zone.x0); p.tz = g.zone.z0 + p.sz * (g.zone.z1 - g.zone.z0); p.queue = false; p.face = null; }); });
+    groups.forEach(function (g) { if (g.kind === "bar" || g.kind === "food" || g.kind === "wc" || g.kind === "vest" || g.kind === "merch" || g.kind === "info" || g.kind === "water") g.members.forEach(function (idx, rank) { var p = people[idx], s = queueSpot(g, rank); p.tx = s[0]; p.tz = s[1]; p.face = s[2]; p.queue = true; }); else if (g.kind === "stage") g.members.forEach(function (idx) { var p = people[idx], s = stageSpot(g, p); p.tx = s[0]; p.tz = s[1]; p.queue = false; p.face = g.face; }); else g.members.forEach(function (idx) { var p = people[idx]; if (!g.zone) return; p.tx = g.zone.x0 + p.sx * (g.zone.x1 - g.zone.x0); p.tz = g.zone.z0 + p.sz * (g.zone.z1 - g.zone.z0); p.queue = false; p.face = null; }); });
   }
   // évacuation : la porte ouverte la plus proche par le chemin réel
   function nearestDoorEuclid(p, S) { var best = null, bd = 1e9; Object.keys(S.evac.doors || {}).forEach(function (id) { var d = S.evac.doors[id]; if (!d.open) return; var dd = Math.hypot(d.x - p.x, d.z - p.z); if (dd < bd) { bd = dd; best = id; } }); return best; }
@@ -9111,12 +9144,13 @@ button:focus-visible,input:focus-visible{outline:3px solid var(--lime);outline-o
   }
 
   // ================================================================ incidents
-  var imap = {}, INC_COL = { med: 0xFF3D52, fight: 0xFF8A1F, intrus: 0xB79BFF, fire: 0xFF6A00, colis: 0xFFB020, power: 0x9A9AAE, lost: 0x4DC3FF, theft: 0xB79BFF, harass: 0xF0457A, insp: 0xECE8DC };
+  var imap = {}, INC_COL = { med: 0xFF3D52, fight: 0xFF8A1F, intrus: 0xB79BFF, fire: 0xFF6A00, colis: 0xFFB020, power: 0x9A9AAE, lost: 0x4DC3FF, theft: 0xB79BFF, harass: 0xF0457A, insp: 0xECE8DC, heras: 0xC9CED6 };
   function makeInc(inc) {
     var g = new THREE.Group(); g.position.set(inc.x, 0, inc.z); I.incG.add(g); var col = INC_COL[inc.type] || 0xFFB020;
     var pulse = ring(1.6, 2.1, col, 0.85); g.add(pulse);
     if (inc.type === "med") { var v = cyl(0.3, 0.3, 1.2, std(0xf1d7bf), 0, 0.35, 0, g); v.rotation.z = Math.PI / 2; }
     if (inc.type === "intrus") for (var i = 0; i < 3; i++) I.staffFig(g, -0.7 + i * 0.7, 0.6, 0x222222, 0, 0);
+    if (inc.type === "heras") { var hm = std(0xb8bcc2, 0, 0, 0.55); for (var hi = 0; hi < 3; hi++) { var pn = box(2.2, 1.2, 0.08, hm, -2.2 + hi * 2.2, hi === 1 ? 0.25 : 0.5, 0, g, false); pn.rotation.x = hi === 1 ? -1.25 : -0.4; } for (var hj = 0; hj < 4; hj++) I.staffFig(g, -1.5 + hj, 1.2, 0x2a2c3a, 0, 0); }
     if (inc.type === "lost") cyl(0.15, 0.18, 0.7, std(0x4DC3FF), 0, 0.35, 0, g);
     if (inc.type === "colis") { box(0.8, 0.6, 0.6, std(0x8a6a3a), 0, 0.3, 0, g); var tape = ring(3.6, 3.8, 0xFFB020, 1); tape.position.y = 0.5; tape.visible = false; g.add(tape); g.userData.tape = tape; }
     if (inc.type === "power") { var dark = new THREE.Mesh(new THREE.CircleGeometry(D.BT.generator.gen, 48), new THREE.MeshBasicMaterial({ color: 0x000000, transparent: true, opacity: 0.35, depthWrite: false })); dark.rotation.x = -Math.PI / 2; dark.position.y = 0.08; g.add(dark); }
@@ -9182,12 +9216,15 @@ button:focus-visible,input:focus-visible{outline:3px solid var(--lime);outline-o
     });
   }
   W.clearVehicles = function () { Object.keys(vmap).forEach(function (k) { I.vehG.remove(vmap[k].g); }); vmap = {}; };
-  W.clearDynamic = function () { Object.keys(imap).forEach(function (id) { I.incG.remove(imap[id].g); I.disposeTree(imap[id].g); }); imap = {}; Object.keys(vmap).forEach(function (k) { I.vehG.remove(vmap[k].g); }); vmap = {}; Object.keys(umap).forEach(function (k) { I.unitsG.remove(umap[k].g); I.disposeTree(umap[k].g); }); umap = {}; Object.keys(pmap).forEach(function (k) { I.unitsG.remove(pmap[k].g); I.disposeTree(pmap[k].g); }); pmap = {}; Object.keys(barMeshes).forEach(function (id) { I.overG.remove(barMeshes[id]); }); barMeshes = {}; barVer = ""; I.hit = I.hit.filter(function (m) { return m.userData.type === "bld" || m.userData.type === "hall"; }); W.resetCrowd(); qVer = -1; };
+  W.clearDynamic = function () {
+    if (wearX) wearX.clearRect(0, 0, wearC.width, wearC.height); if (wearM) wearM.material.map.needsUpdate = true;
+    // nouvelle partie : signaleurs, couloirs balisés et trajets mémorisés de l'ancienne partie
+    Object.keys(crossMap).forEach(function (id) { I.vehG.remove(crossMap[id].g); I.disposeTree(crossMap[id].g); }); crossMap = {}; if (guideG) { I.overG.remove(guideG); I.disposeTree(guideG); guideG = null; } guideKey = ""; vbus = {}; vPaths = {}; Object.keys(imap).forEach(function (id) { I.incG.remove(imap[id].g); I.disposeTree(imap[id].g); }); imap = {}; Object.keys(vmap).forEach(function (k) { I.vehG.remove(vmap[k].g); }); vmap = {}; Object.keys(umap).forEach(function (k) { I.unitsG.remove(umap[k].g); I.disposeTree(umap[k].g); }); umap = {}; Object.keys(pmap).forEach(function (k) { I.unitsG.remove(pmap[k].g); I.disposeTree(pmap[k].g); }); pmap = {}; Object.keys(barMeshes).forEach(function (id) { I.overG.remove(barMeshes[id]); }); barMeshes = {}; barVer = ""; I.hit = I.hit.filter(function (m) { return m.userData.type === "bld" || m.userData.type === "hall"; }); W.resetCrowd(); qVer = -1; };
 
   // ================================================================ image par image
   I.drawPeople = function (dt, S, ev, opt, dl, w) {
     var clock = I.clock;
-    if (S.phase === "live") { crowdT += dt; if (crowdT > 0.5) { crowdT = 0; updateCrowdTargets(S); spawnWalkers(S); } }
+    if (S.phase === "live") { crowdT += dt; if (crowdT > 0.5) { stampWear(S, crowdT); crowdT = 0; updateCrowdTargets(S); spawnWalkers(S); } }
     moveCrowd(dt, S, clock); moveWalkers(dt, S); drawQueues(S, clock, dt); drawUnits(S, dt, clock); drawVehicles(S, clock, dl); drawRoad(S, dt, clock); drawIncidents(S, clock, opt.selInc); drawBarriers(S); drawPersonas(S, dt, clock);
     if (S.fireworks && S.fireworks !== W._fwSeen) { W._fwSeen = S.fireworks; W.fireworks(16, 0, -20); }
   };
@@ -9429,9 +9466,9 @@ button:focus-visible,input:focus-visible{outline:3px solid var(--lime);outline-o
     if (U.sheetOpen && !U.wide900()) U.closeSheet(); U.refresh(true);
   }
   document.addEventListener("keydown", function (e) {
-    if (/INPUT|TEXTAREA/.test((e.target || {}).tagName || "")) return; var ev = U.ev, edit = U.edit;
+    if (/INPUT|TEXTAREA|SELECT/.test((e.target || {}).tagName || "")) return; var ev = U.ev, edit = U.edit;
     if (U.mode === "prep") {
-      if (e.key === "r" || e.key === "R") { if (edit.place) { edit.rot = (edit.rot + 1) % 4; W.ghost(edit.place, edit.gx, edit.gz, edit.rot, Sim.validate(ev, newB(edit.place, edit.gx, edit.gz, edit.rot)).ok, newB(edit.place, 0, 0, 0)); } else if (U.sel) { var b = Sim.find(ev, U.sel.id); if (b) { var o = b.rot || 0; b.rot = (o + 1) % 4; if (!Sim.validate(ev, b, b.id).ok) b.rot = o; U.afterLayout(b); } } }
+      if (e.key === "r" || e.key === "R") { if (edit.place) { edit.rot = (edit.rot + 1) % 4; W.ghost(edit.place, edit.gx, edit.gz, edit.rot, Sim.validate(ev, newB(edit.place, edit.gx, edit.gz, edit.rot)).ok, newB(edit.place, 0, 0, 0)); } else if (U.sel) { var b = Sim.find(ev, U.sel.id); if (b) { var o = b.rot || 0; b.rot = (o + 1) % 4; var vr = Sim.validate(ev, b, b.id); if (!vr.ok) { b.rot = o; U.toast("Rotation impossible : " + (vr.why || "pas la place")); } U.afterLayout(b); } } }
       if (e.key === "Escape") { edit.place = null; edit.moving = null; U.sel = null; W.ghost(null); W.select(null); drawPrep(); }
       if ((e.key === "Delete" || e.key === "Backspace") && U.sel) { U.removeBuilding(U.sel.id); }
     }
@@ -9534,7 +9571,7 @@ button:focus-visible,input:focus-visible{outline:3px solid var(--lime);outline-o
   U.incState = function (inc) { var S = Sim.get(); return inc.big ? "les pompiers interviennent" : inc.secured ? "périmètre posé, démineurs en route" : inc.wait ? "secouristes sur place, ambulance en route" : inc.picked ? "pris en charge" : inc.type === "power" ? "zone dans le noir depuis " + Math.round(S.t - inc.t0) + " min" : inc.type === "insp" ? "contrôle en cours, " + Math.max(0, Math.ceil(inc.until - S.t)) + " min" : inc.job != null ? (S.units[inc.job] ? S.units[inc.job].name + " y va" : "équipe en route") : Math.max(0, Math.ceil(inc.until - S.t)) + " min pour agir"; };
   U.incButtons = function (acts, inc, btn) {
     var S = Sim.get(), ev = U.ev;
-    var lbl = { med: "Envoyer des secouristes", fight: "Envoyer une patrouille", intrus: "Envoyer une patrouille", fire: "Patrouille avec extincteur", colis: "Poser un périmètre", lost: "Envoyer une patrouille", theft: "Envoyer une patrouille", harass: "Envoyer une patrouille" }[inc.type];
+    var lbl = { med: "Envoyer des secouristes", fight: "Envoyer une patrouille", intrus: "Envoyer une patrouille", heras: "Envoyer une patrouille", fire: "Patrouille avec extincteur", colis: "Poser un périmètre", lost: "Envoyer une patrouille", theft: "Envoyer une patrouille", harass: "Envoyer une patrouille" }[inc.type];
     if (inc.type === "power") { if (inc.gen) btn("fix", "Réparer", function () { var u = Sim.busyBy("gen", inc.gen); return u ? u.name + " y va" : "envoyer la technique au groupe"; }, function () { Sim.order("gen", inc.gen); }, function () { return S.gens[inc.gen] && S.gens[inc.gen].job != null; }); }
     else if (inc.type === "insp") btn("ghost", "Inspection", function () { return "laisse-les travailler"; }, function () {}, function () { return true; });
     else if (lbl) btn(inc.type === "med" ? "fix" : "orange", lbl, function () { return inc.job != null ? (S.units[inc.job] ? S.units[inc.job].name + " y va" : "en route") : inc.picked || inc.secured || inc.big ? "fait" : Math.max(0, Math.ceil(inc.until - S.t)) + " min"; }, function () { Sim.order(inc.type, inc.id); }, function () { return inc.job != null || inc.picked || inc.big || inc.secured; });
