@@ -5267,7 +5267,8 @@ button:focus-visible,input:focus-visible{outline:3px solid var(--lime);outline-o
   function T(b) { return D.BT[b.k]; }
   function dims(b) { var t = T(b), w = t.w, d = t.d; if (t.exit) { w = D.exitW(b.up || 10); d = 2; } return [w, d]; }
   function fp(b) { var wd = dims(b), r = (b.rot || 0) % 2, w = r ? wd[1] : wd[0], d = r ? wd[0] : wd[1]; return { x0: b.x - w / 2, x1: b.x + w / 2, z0: b.z - d / 2, z1: b.z + d / 2, w: w, d: d }; }
-  function front(b) { var a = (b.rot || 0) * Math.PI / 2; return [Math.sin(a), Math.cos(a)]; }
+  // façade d'un bâtiment : valeurs entières (sin(π) vaut 1e-16 en flottant, ce qui faisait croire à une façade tournée vers l'est)
+  function front(b) { var a = (b.rot || 0) * Math.PI / 2; return [Math.round(Math.sin(a) * 1e6) / 1e6, Math.round(Math.cos(a) * 1e6) / 1e6]; }
   function inter(a, b, m) { m = m || 0; return a.x0 < b.x1 + m && a.x1 > b.x0 - m && a.z0 < b.z1 + m && a.z1 > b.z0 - m; }
   function within(f, r) { return f.x0 >= r.x0 && f.x1 <= r.x1 && f.z0 >= r.z0 && f.z1 <= r.z1; }
   // emprise visuelle : fournie par le rendu (débord réel de chaque modèle), sinon l'emprise au sol
@@ -5547,7 +5548,9 @@ button:focus-visible,input:focus-visible{outline:3px solid var(--lime);outline-o
   };
   Sim.fieldAt = function (f, x, z) { var c = cellOf(x, z); return f[c[1] * NAV.NX + c[0]]; };
   Sim.rectCells = function (x0, x1, z0, z1) { var out = [], a = cellOf(x0, z0), b = cellOf(x1, z1); for (var x = a[0]; x <= b[0]; x++) for (var z = a[1]; z <= b[1]; z++) out.push([x, z]); return out; };
-  Sim.workPoint = function (b) { if (!b) return Sim.freePoint(0, 0); var z = Sim.zone(b); return Sim.freePoint((z.x0 + z.x1) / 2, (z.z0 + z.z1) / 2); };
+  // point de travail devant un bâtiment ; jamais sur la voie pompiers le long de la clôture
+  Sim.workPoint = function (b) { if (!b) return Sim.freePoint(0, 0); var z = Sim.zone(b), x = (z.x0 + z.x1) / 2, y = (z.z0 + z.z1) / 2, ev = Sim._ev || (Sim.get && Sim.get() && Sim.get().ev), sr = ev ? siteRect(ev) : null, m = Sim.laneW + 2.6;
+    if (sr && within(fp(b), sr)) { x = clamp(x, sr.x0 + m, sr.x1 - m); y = clamp(y, sr.z0 + m, sr.z1 - m); } return Sim.freePoint(x, y); };
 
   // ================================================================ création d'un événement
   Sim.defaultEvent = function (type, profile) {
@@ -6030,7 +6033,9 @@ button:focus-visible,input:focus-visible{outline:3px solid var(--lime);outline-o
     return b;
   }
   L.baseOf = baseOf;
-  Sim.home = function (u) { var b = baseOf(u.kind), p = Sim.workPoint(b), off = ((u.k % 6) - 2.5) * 1.6, row = Math.floor(u.k / 6) * 1.4; return Sim.freePoint(p[0] + off, p[1] + row); };
+  // point de repos des équipes : en rangs devant leur base, du côté de la façade, jamais sur la voie pompiers le long de la clôture
+  Sim.home = function (u) { var b = baseOf(u.kind), p = Sim.workPoint(b), fr = Sim.front(b), off = ((u.k % 6) - 2.5) * 1.6, row = 1 + Math.floor(u.k / 6) * 1.4, x = p[0] + fr[1] * off + fr[0] * row, z = p[1] - fr[0] * off + fr[1] * row, sr = Sim.siteRect(S.ev), m = (Sim.laneW || 4) + 2.6;
+    if (Sim.within(Sim.fp(b), sr)) { x = Sim.clamp(x, sr.x0 + m, sr.x1 - m); z = Sim.clamp(z, sr.z0 + m, sr.z1 - m); } return Sim.freePoint(x, z); };
   function syncUnits(kind) {
     var role = D.ROLES.filter(function (r) { return r.unit === kind; })[0], n = Math.min(16, role.pair ? Math.floor((S.staff[role.k] || 0) / 2) : (S.staff[role.k] || 0));
     var list = S.units.filter(function (u) { return u.kind === kind; });
@@ -7956,7 +7961,7 @@ button:focus-visible,input:focus-visible{outline:3px solid var(--lime);outline-o
   W.fit = function (snap) { if (!curEv) return; var V = Sim.venue(curEv), A = avail(), portrait = A.w / A.h < 0.9, tn = Math.tan(20 * Math.PI / 180), across = portrait ? V.D + D.PLAZA + 20 : V.W + 16, along = portrait ? V.W + 16 : V.D + D.PLAZA + 24;
     cam.ttx = 0; cam.ttz = portrait ? D.PLAZA / 2 : D.PLAZA / 2 + 2; cam.tyaw = portrait ? Math.PI / 2 : 0; cam.tpitch = portrait ? 1.05 : 0.92; cam.tdist = Math.max(across * A.fh / (2 * tn * A.w), along * 0.62 * A.fh / (2 * tn * A.h)) * 1.06; cam.follow = null; cam.followP = null;
     if (snap) { cam.tx = cam.ttx; cam.tz = cam.ttz; cam.yaw = cam.tyaw; cam.pitch = cam.tpitch; cam.dist = cam.tdist; } };
-  W.focus = function (x, z, dist, pitch, yaw) { cam.ttx = x; cam.ttz = z; cam.tdist = dist || 40; if (pitch != null) cam.tpitch = pitch; if (yaw != null) cam.tyaw = yaw; cam.follow = null; cam.followP = null; };
+  W.focus = function (x, z, dist, pitch, yaw) { cam.ttx = x; cam.ttz = z; cam.tdist = dist || 40; if (pitch != null) cam.tpitch = pitch; if (yaw != null) cam.tyaw = yaw; cam.follow = null; cam.followP = null; if (arguments[5]) { cam.tx = x; cam.tz = z; cam.dist = cam.tdist; cam.pitch = cam.tpitch; cam.yaw = cam.tyaw; } };
   W.followUnit = function (id) { cam.follow = id; cam.followP = null; cam.tdist = Math.min(cam.tdist, 35); cam.tpitch = 0.8; };
   W.followPersona = function (id) { cam.followP = id; cam.follow = null; cam.tdist = 26; cam.tpitch = 0.62; };
   W.rotate = function (d) { cam.tyaw += d; };
@@ -8089,6 +8094,8 @@ button:focus-visible,input:focus-visible{outline:3px solid var(--lime);outline-o
     for (var i = 0; i < 6; i++) { var piv = new THREE.Group(); piv.position.set(-w * 0.4 + i * w * 0.16, h - 0.6, d / 2 - 1.0); g.add(piv); var hd = box(0.5, 0.5, 0.5, std(0x2a2c33), 0, 0, 0, piv, false); var cone = new THREE.Mesh(new THREE.ConeGeometry(2.6, h * 1.9, 18, 1, true), new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.06, blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide })); cone.geometry.translate(0, -h * 0.95, 0); piv.add(cone); beams.push({ p: piv, c: cone, ph: Math.random() * 6, sp: 0.5 + Math.random() * 0.7 }); }
     // lasers (nuit)
     var lasers = new THREE.Group(); for (var l = 0; l < 10; l++) { var geo = new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(0, 0, 0), new THREE.Vector3(0, 0, 36)]), ln = new THREE.Line(geo, new THREE.LineBasicMaterial({ color: 0x33ff88, transparent: true, opacity: 0.7, blending: THREE.AdditiveBlending, depthWrite: false })); ln.position.set(0, h - 1.5, d / 2); lasers.add(ln); } lasers.visible = false; g.add(lasers);
+    // en hall, les lasers restent dans la salle (ils traversaient les murs)
+    var evL = I.curEv; if (evL && Sim.venue(evL).halls && Sim.hallOf(evL, b)) lasers.scale.set(1, 1, 0.4);
     var pl = new THREE.PointLight(0xffffff, 1.2, w * 2.6, 2); pl.position.set(0, h * 0.8, d / 2 + 4); g.add(pl);
     // fumée (brouillard de scène)
     var smoke = []; for (var f = 0; f < 6; f++) { var sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: I.smokeTex(), transparent: true, opacity: 0, depthWrite: false, color: 0xbfc6d6 })); sp.position.set(rnd(-w / 2, w / 2), 2 + Math.random() * 2, d / 2 + rnd(0, 4)); sp.scale.setScalar(rnd(6, 10)); g.add(sp); smoke.push(sp); }
@@ -8124,7 +8131,9 @@ button:focus-visible,input:focus-visible{outline:3px solid var(--lime);outline-o
     // barmen (on montre ceux en poste, jusqu'à 8)
     var barmen = []; for (var n = 0; n < Math.min(8, Math.ceil(w / 1.2)); n++) barmen.push(staffFig(g, -w / 2 + 0.7 + n * (w - 1.4) / Math.max(1, Math.min(8, Math.ceil(w / 1.2)) - 1), d / 2 - 0.9, 0x111318, 0, 0));
     // jauges de stock (au sol, côté régie)
-    var gs = {}; D.RK.forEach(function (rk, j) { var z = d / 2 + 0.9 + j * 0.42, mat = own(D.RES[rk].col, D.RES[rk].col, 0.7), geo = new THREE.BoxGeometry(1, 0.1, 0.28); geo.translate(0.5, 0, 0); var fill = new THREE.Mesh(geo, mat); fill.position.set(-w / 2, 0.08, z); g.add(fill); gs[rk] = { m: fill, mat: mat, w: w }; });
+    // jauges de stock (bière, glace, caisses) sur un panneau fixé à la paroi latérale, pas au sol où l'on fait la queue
+    var gL = Math.min(d - 0.8, 2.4); box(0.04, 0.95, gL + 0.2, std(0x15161b), -w / 2 - 0.08, 1.75, 0, g, false);
+    var gs = {}; D.RK.forEach(function (rk, j) { var mat = own(D.RES[rk].col, D.RES[rk].col, 0.7), geo = new THREE.BoxGeometry(1, 0.2, 0.04); geo.translate(0.5, 0, 0); var fill = new THREE.Mesh(geo, mat); fill.rotation.y = Math.PI / 2; fill.position.set(-w / 2 - 0.11, 2.05 - j * 0.3, gL / 2); g.add(fill); gs[rk] = { m: fill, mat: mat, w: gL }; });
     return { roof: roofM, led: led, gs: gs, barmen: barmen };
   }
   ["bar", "barL", "barCocktail", "barWine", "barCraft", "barSoft"].forEach(function (k) { BUILD[k] = barBuilder; });
@@ -8275,7 +8284,20 @@ button:focus-visible,input:focus-visible{outline:3px solid var(--lime);outline-o
   BUILD.taxi = function (b, g, T) { box(T.w, 0.12, T.d, std(0x55585f), 0, 0.06, 0, g); cyl(0.08, 0.08, 3, std(0x777777), -T.w / 2 + 0.5, 1.5, 0, g, 6); signPanel(g, [{ t: "TAXI · VTC", c: "#111" }], 2.4, 0.6, -T.w / 2 + 0.5, 3.1, 0, { bg: "#FFD23A" }); var cars = I.carInstanced(3), dm = new THREE.Object3D(); for (var i = 0; i < 3; i++) { dm.position.set(-T.w / 2 + 2.5 + i * 2.8, 0, 0.5); dm.rotation.y = Math.PI / 2; dm.updateMatrix(); cars.forEach(function (m) { m.setMatrixAt(i, dm.matrix); }); cars[0].setColorAt(i, new THREE.Color(0xf2c230)); } cars.forEach(function (m) { g.add(m); }); return {}; };
   BUILD.bikes = function (b, g, T) { for (var i = 0; i < 8; i++) { var x = -T.w / 2 + 0.5 + i * (T.w - 1) / 7; var r = new THREE.Mesh(new THREE.TorusGeometry(0.4, 0.04, 6, 12, Math.PI), std(0x9aa0a8)); r.position.set(x, 0, 0); g.add(r); if (Math.random() < 0.7) { var w1 = new THREE.Mesh(new THREE.TorusGeometry(0.32, 0.05, 6, 12), std(0x111111)); w1.position.set(x, 0.33, -0.5); w1.rotation.y = Math.PI / 2; g.add(w1); var w2 = w1.clone(); w2.position.z = 0.5; g.add(w2); box(0.06, 0.06, 1.0, own(Math.random() * 0xffffff, 0, 0, 0.5), x, 0.6, 0, g, false); } } return {}; };
   BUILD.vip = function (b, g, T) { plane(T.w, T.d, std(0x2a2416, 0, 0, 0.6), 0, 0.06, 0, g); var gm = std(0xC9A227, 0xC9A227, 0.2, 0.4); box(T.w, 1, 0.15, gm, 0, 0.5, -T.d / 2, g); box(T.w, 1, 0.15, gm, 0, 0.5, T.d / 2, g); box(0.15, 1, T.d, gm, -T.w / 2, 0.5, 0, g); box(0.15, 1, T.d, gm, T.w / 2, 0.5, 0, g); box(6, 1.1, 1.4, std(0x111111), 0, 0.55, -T.d / 2 + 1.5, g); for (var i = 0; i < 4; i++) { var x = -T.w / 3 + (i % 2) * T.w / 1.5, z = -T.d / 6 + Math.floor(i / 2) * T.d / 3; box(2.4, 0.5, 1, std(0xe8e0d0), x, 0.25, z, g); cyl(0.05, 0.05, 2.6, std(0x999999), x + 1.4, 1.3, z, g, 4); var um = new THREE.Mesh(new THREE.ConeGeometry(1.4, 0.6, 8), own(0xC9A227, 0, 0, 0.7)); um.position.set(x + 1.4, 2.7, z); um.castShadow = true; g.add(um); } signPanel(g, [{ t: "VIP", c: "#C9A227" }], 2.4, 0.8, 0, 2.2, -T.d / 2 + 0.8, { bg: "#0a0a0d" }); return {}; };
-  BUILD.camping = function (b, g, T) { var cols = [0xF0457A, 0x4DC3FF, 0xFFB020, 0x8a7cff, 0xB79BFF, 0xFF8A65, 0xE8E36A, 0x3CCB6C], n = 160, geo = new THREE.SphereGeometry(1, 8, 5, 0, Math.PI * 2, 0, Math.PI / 2), tents = new THREE.InstancedMesh(geo, own(0xffffff, 0, 0, 0.8), n), dm = new THREE.Object3D(), col = new THREE.Color(); for (var i = 0; i < n; i++) { dm.position.set(rnd(-T.w / 2 + 1.5, T.w / 2 - 1.5), 0, rnd(-T.d / 2 + 1.5, T.d / 2 - 1.5)); dm.scale.set(rnd(0.9, 1.4), rnd(0.8, 1.1), rnd(1, 1.5)); dm.rotation.y = Math.random() * 3; dm.updateMatrix(); tents.setMatrixAt(i, dm.matrix); col.setHex(cols[i % cols.length]); tents.setColorAt(i, col); } tents.castShadow = true; g.add(tents); signPanel(g, [{ t: "CAMPING", c: "#fff" }], 4, 0.9, 0, 3, -T.d / 2, { bg: "#3a8d5d" }); return { tents: tents, n: n }; };
+  // camping : pelouse, allée centrale et allées transversales en grave (accès secours), tentes rangées par parcelles, campeurs devant leurs tentes
+  BUILD.camping = function (b, g, T) {
+    var cols = [0xF0457A, 0x4DC3FF, 0xFFB020, 0x8a7cff, 0xB79BFF, 0xFF8A65, 0xE8E36A, 0x3CCB6C, 0x2e6fd8, 0xd8dde4], grass = own(0x3f6e2f, 0, 0, 0.95), grave = own(0x9a8f78, 0, 0, 0.95);
+    plane(T.w, T.d, grass, 0, 0.035, 0, g); plane(4, T.d, grave, 0, 0.045, 0, g);
+    var bands = []; for (var z = -T.d / 2 + 15; z < T.d / 2 - 5; z += 15) { plane(T.w, 2.6, grave, 0, 0.045, z, g); bands.push(z); }
+    var spots = []; for (var x = -T.w / 2 + 2; x <= T.w / 2 - 2; x += 3.2) { if (Math.abs(x) < 3.6) continue; for (var zz = -T.d / 2 + 2; zz <= T.d / 2 - 2; zz += 3.4) { if (bands.some(function (bz) { return Math.abs(zz - bz) < 2.4; })) continue; spots.push([x + rnd(-0.5, 0.5), zz + rnd(-0.4, 0.4)]); } }
+    spots.sort(function (p, q) { return (Math.abs(p[0]) * 0.4 + p[1]) - (Math.abs(q[0]) * 0.4 + q[1]); });
+    var n = spots.length, geo = new THREE.SphereGeometry(1, 8, 5, 0, Math.PI * 2, 0, Math.PI / 2), tents = new THREE.InstancedMesh(geo, own(0xffffff, 0, 0, 0.8), n), dm = new THREE.Object3D(), col = new THREE.Color();
+    for (var i = 0; i < n; i++) { dm.position.set(spots[i][0], 0, spots[i][1]); dm.scale.set(rnd(1.0, 1.35), rnd(0.8, 1.05), rnd(1.1, 1.45)); dm.rotation.y = (Math.random() < 0.5 ? 0 : Math.PI / 2) + rnd(-0.2, 0.2); dm.updateMatrix(); tents.setMatrixAt(i, dm.matrix); col.setHex(cols[i % cols.length]); tents.setColorAt(i, col); }
+    tents.castShadow = true; g.add(tents);
+    // quelques campeurs le long de l'allée centrale et devant les premières tentes
+    for (var c = 0; c < 18; c++) { var sp = spots[Math.floor(c * Math.min(n, 220) / 18)]; if (sp) staffFig(g, sp[0] + (sp[0] > 0 ? -1.4 : 1.4), sp[1] + 0.8, cols[c % cols.length], Math.random() * 6, 0); }
+    signPanel(g, [{ t: "CAMPING", c: "#fff" }], 4, 0.9, 0, 3, -T.d / 2, { bg: "#3a8d5d" }); return { tents: tents, n: n };
+  };
   BUILD.assembly = function (b, g, T) { plane(T.w, T.d, own(0x1d3a24, 0, 0, 0.9, { transparent: true, opacity: 0.8 }), 0, 0.04, 0, g); var lm = new THREE.MeshBasicMaterial({ color: 0x3CCB6C }); [[0, -T.d / 2, T.w, 0.25], [0, T.d / 2, T.w, 0.25], [-T.w / 2, 0, 0.25, T.d], [T.w / 2, 0, 0.25, T.d]].forEach(function (s) { var m = new THREE.Mesh(new THREE.PlaneGeometry(s[2], s[3]), lm); m.rotation.x = -Math.PI / 2; m.position.set(s[0], 0.05, s[1]); g.add(m); }); cyl(0.08, 0.08, 3.4, std(0x777777), 0, 1.7, -T.d / 2, g, 6); signPanel(g, [{ t: "POINT DE", c: "#fff", s: 26 }, { t: "RASSEMBLEMENT", c: "#fff", s: 26 }], 3.4, 1.4, 0, 3.6, -T.d / 2, { bg: "#2a8a4a" }); return {}; };
   // issue de secours : portail qui s'ouvre, signalétique verte lumineuse
   BUILD.exit = function (b, g, T) {
@@ -8399,6 +8421,8 @@ button:focus-visible,input:focus-visible{outline:3px solid var(--lime);outline-o
     var beams = [];
     for (var i = 0; i < (small ? 4 : 8); i++) { var piv = new THREE.Group(); piv.position.set(-w * 0.42 + i * w * 0.84 / ((small ? 4 : 8) - 1), h - 0.75, d / 2 - 0.6); g.add(piv); box(0.45, 0.5, 0.45, std(0x22242b), 0, 0, 0, piv, false); var cone = new THREE.Mesh(new THREE.ConeGeometry(2.4, h * 1.9, 18, 1, true), new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.06, blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide })); cone.geometry.translate(0, -h * 0.95, 0); piv.add(cone); beams.push({ p: piv, c: cone, ph: Math.random() * 6, sp: 0.5 + Math.random() * 0.7 }); }
     var lasers = new THREE.Group(); for (var l = 0; l < 10; l++) { var geo = new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(0, 0, 0), new THREE.Vector3(0, 0, 36)]), ln = new THREE.Line(geo, new THREE.LineBasicMaterial({ color: 0x33ff88, transparent: true, opacity: 0.7, blending: THREE.AdditiveBlending, depthWrite: false })); ln.position.set(0, h - 1.5, d / 2); lasers.add(ln); } lasers.visible = false; g.add(lasers);
+    // en hall, les lasers restent dans la salle (ils traversaient les murs)
+    var evL = I.curEv; if (evL && Sim.venue(evL).halls && Sim.hallOf(evL, b)) lasers.scale.set(1, 1, 0.4);
     var pl = new THREE.PointLight(0xffffff, 1.2, w * 2.6, 2); pl.position.set(0, h * 0.8, d / 2 + 4); g.add(pl);
     var smoke = []; for (var f = 0; f < 6; f++) { var sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: I.smokeTex(), transparent: true, opacity: 0, depthWrite: false, color: 0xbfc6d6 })); sp.position.set(rnd(-w / 2, w / 2), deckH + 1 + Math.random() * 2, d / 2 + rnd(0, 4)); sp.scale.setScalar(rnd(6, 10)); g.add(sp); smoke.push(sp); }
     // pyrotechnie : jets de flamme et CO2 au nez de scène
@@ -8457,7 +8481,9 @@ button:focus-visible,input:focus-visible{outline:3px solid var(--lime);outline-o
     var barmen = []; for (var n = 0; n < Math.min(8, Math.ceil(w / 1.2)); n++) barmen.push(staffFig(g, -w / 2 + 0.7 + n * (w - 1.4) / Math.max(1, Math.min(8, Math.ceil(w / 1.2)) - 1), d / 2 - 0.9, 0x111318, 0, 0));
     // mange-debout sur les côtés
     [-1, 1].forEach(function (s) { var x = s * (w / 2 - 0.4), z = d / 2 + 3.2; cyl(0.05, 0.05, 1.05, std(0x2b2d33), x, 0.53, z, g, 6); cyl(0.38, 0.38, 0.04, std(0xe8e4da, 0, 0, 0.5), x, 1.07, z, g, 16); cyl(0.3, 0.3, 0.03, std(0x2b2d33), x, 0.02, z, g, 12); });
-    var gs = {}; D.RK.forEach(function (rk, j) { var z = d / 2 + 0.9 + j * 0.42, mat = own(D.RES[rk].col, D.RES[rk].col, 0.7), geo = new THREE.BoxGeometry(1, 0.1, 0.28); geo.translate(0.5, 0, 0); var fill = new THREE.Mesh(geo, mat); fill.position.set(-w / 2, 0.08, z); g.add(fill); gs[rk] = { m: fill, mat: mat, w: w }; });
+    // jauges de stock (bière, glace, caisses) sur un panneau fixé à la paroi latérale, pas au sol où l'on fait la queue
+    var gL = Math.min(d - 0.8, 2.4); box(0.04, 0.95, gL + 0.2, std(0x15161b), -w / 2 - 0.08, 1.75, 0, g, false);
+    var gs = {}; D.RK.forEach(function (rk, j) { var mat = own(D.RES[rk].col, D.RES[rk].col, 0.7), geo = new THREE.BoxGeometry(1, 0.2, 0.04); geo.translate(0.5, 0, 0); var fill = new THREE.Mesh(geo, mat); fill.rotation.y = Math.PI / 2; fill.position.set(-w / 2 - 0.11, 2.05 - j * 0.3, gL / 2); g.add(fill); gs[rk] = { m: fill, mat: mat, w: gL }; });
     return { roof: roofM, led: led, gs: gs, barmen: barmen };
   }
   ["bar", "barL", "barCocktail", "barWine", "barCraft", "barSoft"].forEach(function (k) { BUILD[k] = barBuilder2; });
@@ -8682,7 +8708,7 @@ button:focus-visible,input:focus-visible{outline:3px solid var(--lime);outline-o
         var night = dl < 0.6;
         P.light.intensity = off ? 0 : (hot ? 1.4 : 0.6) * (1.1 - dl * 0.6) + (I.reduce ? 0 : 0.3 * Math.max(0, Math.sin(clock * W.beat * Math.PI)));
         P.beams.forEach(function (bm) { bm.c.visible = !off && night; bm.c.material.opacity = hot ? 0.11 * (1 - dl) : 0.04; if (!I.reduce) { var bph = hot ? clock * (W.beat || 2) * Math.PI * 0.25 : clock * bm.sp; bm.p.rotation.z = Math.sin(bph + bm.ph) * 0.55; bm.p.rotation.x = Math.cos(bph * 0.7 + bm.ph) * 0.35 + 0.2; } bm.c.material.color.setHSL((clock * 0.05 + bm.ph) % 1, 0.85, 0.6); });
-        P.lasers.visible = !off && hot && night && Math.floor(clock * W.beat / 4) % 3 === 0; if (P.lasers.visible) P.lasers.children.forEach(function (l, i) { l.rotation.set(-0.1 - (i % 3) * 0.06, (i - 5) * 0.09 + Math.sin(clock * 2 + i) * 0.15, 0); l.material.color.setHSL((clock * 0.1 + i * 0.05) % 1, 1, 0.55); });
+        P.lasers.visible = !off && hot && night && Math.floor(clock * W.beat / 4) % 3 === 0; if (P.lasers.visible && S && Sim.venue(S.ev).halls) P.lasers.scale.z = 0.3; if (P.lasers.visible) P.lasers.children.forEach(function (l, i) { l.rotation.set(-0.1 - (i % 3) * 0.06, (i - 5) * 0.09 + Math.sin(clock * 2 + i) * 0.15, 0); l.material.color.setHSL((clock * 0.1 + i * 0.05) % 1, 1, 0.55); });
         P.smoke.forEach(function (sp, i) { sp.material.opacity = !off && hot && night ? 0.12 + 0.05 * Math.sin(clock + i) : 0; sp.position.y = 2 + ((clock * 0.3 + i * 0.5) % 4); });
         if (scr) drawStageScreen(P, clock, hot && !off, off, S, id, set, ev);
         // le groupe ou le DJ sur scène, la pyrotechnie sur les refrains (nuit, artiste populaire)
@@ -8720,7 +8746,7 @@ button:focus-visible,input:focus-visible{outline:3px solid var(--lime);outline-o
       if (b.k === "parking" && S && S.lots[id]) { var lot = S.lots[id], n = Math.round(Math.min(1, lot.cars / Math.max(1, lot.cap)) * P.spots); I.lotN[id] = n; I.lotGeo[id] = P; var shown = Math.max(0, n - (I.lotPend[id] || 0)); P.cars.forEach(function (m) { m.count = shown; }); if (lot.cars >= lot.cap - 1) { al = "COMPLET"; alC = "#FF3D52"; } else if (lot.outQ > 40) { al = Math.round(lot.outQ) + " voitures pour sortir"; alC = "#FFB020"; } }
       if (b.k === "tank" && S && P.lvl) { var lv = S.water.cap ? S.water.level / S.water.cap : 1; P.lvl.scale.y = Math.max(0.03, lv); if (lv < 0.25) { al = "EAU " + Math.round(lv * 100) + " %"; alC = lv < 0.05 ? "#FF3D52" : "#FFB020"; } }
       if (b.k === "skip" && S && P.fill) { var sv = S.waste.cap ? S.waste.vol / S.waste.cap : 0; P.fill.scale.y = Math.max(0.05, Math.min(1, sv)); if (sv > 0.8) { al = "BENNES " + Math.round(sv * 100) + " %"; alC = sv >= 1 ? "#FF3D52" : "#FFB020"; } }
-      if (b.k === "camping" && S && P.tents) P.tents.count = Math.round(P.n * Math.min(1, (S.camp.campers || 0) / 5000));
+      if (b.k === "camping" && S && P.tents) P.tents.count = Math.round(P.n * Math.min(1, (S.camp.campers || 0) / Math.max(1, D.BT.camping.camping * S.ev.layout.filter(function (x) { return x.k === "camping"; }).length)));
       if (b.k === "shuttle" && S) { var qq = D.LINEK.reduce(function (a, k) { var L2 = S.lines[k]; return a + (L2 && F.stopOf(k) && F.stopOf(k).id === id ? L2.qS : 0); }, 0); if (qq > 60) { al = Math.round(qq) + " attendent"; alC = qq > 400 ? "#FF3D52" : "#FFB020"; } }
       if (P.info && (scr || !S)) drawInfoScreen(e, S, ev, clock);
       if (al && S && S.phase === "live") { relabel(e.alert, al, alC); e.alert.visible = true; e.alert.position.y = (ALERT_H[b.k] || 4) + (I.reduce ? 0 : Math.abs(Math.sin(clock * 3 + b.x)) * 0.35); } else e.alert.visible = false;
@@ -8794,7 +8820,9 @@ button:focus-visible,input:focus-visible{outline:3px solid var(--lime);outline-o
     function add(key, cellsFn, zone, kind, b) { gIndex[key] = groups.length; groups.push({ key: key, cells: cellsFn, zone: zone, kind: kind, want: 0, have: 0, b: b, id: b ? b.id : null, members: [] }); }
     ev.layout.forEach(function (b) { var T = D.BT[b.k]; if (!Sim.within(Sim.fp(b), Sim.siteRect(ev))) return; if (T.stage || T.bar || T.food || T.wc || T.vest || T.merch || T.partner || b.k === "shelter" || b.k === "water" || b.k === "vip" || b.k === "info" || b.k === "cashless" || b.k === "pmr") { var z = Sim.zone(b); add(b.k + ":" + b.id, (function (zz) { return function () { return Sim.rectCells(zz.x0, zz.x1, zz.z0, zz.z1); }; })(z), z, b.k === "water" ? "water" : T.stage ? "stage" : T.bar ? "bar" : T.food ? "food" : T.wc ? "wc" : T.vest ? "vest" : T.merch ? "merch" : b.k === "vip" ? "vip" : b.k === "info" || b.k === "cashless" ? "info" : b.k === "pmr" ? "pmr" : T.partner ? "partner" : "shelter", b); if (T.stage) { var fr0 = Sim.front(b), gg0 = groups[groups.length - 1]; gg0.face = Math.atan2(-fr0[0], -fr0[1]); gg0.fr = fr0; gg0.foh = Sim.fohRect(b); gg0.capF = T.cap / PER; } } });
     var V = Sim.venue(ev), pts = 0;
-    for (var tries = 0; pts < 14 && tries < 500; tries++) { var x = rnd(-V.W / 2 + 8, V.W / 2 - 8), z = rnd(-V.D / 2 + 8, V.D / 2 - 8), c = Sim.cellOf(x, z); if (Sim.nav.grid[c[1] * Sim.nav.NX + c[0]] !== 0) continue; (function (zx, zz) { add("w:" + pts, function () { return Sim.rectCells(zx - 3, zx + 3, zz - 3, zz + 3); }, { x0: zx - 3, x1: zx + 3, z0: zz - 3, z1: zz + 3 }, "wander"); })(x, z); pts++; }
+    // points de passage sur les axes entre les pôles (scènes, bars, restauration, entrées) : la foule circule sur des chemins, pas au hasard dans l'herbe
+    var poles = ev.layout.filter(function (b) { var T = D.BT[b.k]; return (T.stage || T.bar || T.food || T.entry) && Sim.within(Sim.fp(b), Sim.siteRect(ev)); }).map(function (b) { var T = D.BT[b.k]; if (T.stage) { var zz = Sim.zone(b); return [(zz.x0 + zz.x1) / 2, (zz.z0 + zz.z1) / 2]; } return [b.x, b.z]; });
+    for (var tries = 0; pts < 14 && tries < 500; tries++) { var pa = poles.length > 1 ? poles[Math.floor(Math.random() * poles.length)] : null, pb = pa ? poles[Math.floor(Math.random() * poles.length)] : null, tt = rnd(0.25, 0.75), onAx = pa && pb !== pa && tries < 400, x = onAx ? pa[0] + (pb[0] - pa[0]) * tt + rnd(-4, 4) : rnd(-V.W / 2 + 8, V.W / 2 - 8), z = onAx ? pa[1] + (pb[1] - pa[1]) * tt + rnd(-4, 4) : rnd(-V.D / 2 + 8, V.D / 2 - 8), c = Sim.cellOf(x, z); if (Sim.nav.grid[c[1] * Sim.nav.NX + c[0]] !== 0) continue; (function (zx, zz) { add("w:" + pts, function () { return Sim.rectCells(zx - 3, zx + 3, zz - 3, zz + 3); }, { x0: zx - 3, x1: zx + 3, z0: zz - 3, z1: zz + 3 }, "wander"); })(x, z); pts++; }
     var exitsFn = function () { var out = []; Sim.entriesOf(ev).forEach(function (b) { var p = Sim.gatePoint(ev, b, 1, 3); out = out.concat(Sim.rectCells(p[0] - 4, p[0] + 4, p[1] - 1, p[1] + 1)); }); if (!out.length) out = Sim.rectCells(-V.W / 2 + 4, V.W / 2 - 4, V.D / 2 + 2, V.D / 2 + 4); return out; };
     add("leave", exitsFn, null, "exit");
     fieldsReady = true; navVer = Sim.nav.ver;
@@ -8803,6 +8831,8 @@ button:focus-visible,input:focus-visible{outline:3px solid var(--lime);outline-o
   // place dans une file d'attente devant un comptoir : colonnes perpendiculaires, l'une derrière l'autre
   function queueSpot(g, rank) {
     var b = g.b, fr = Sim.front(b), f = Sim.fp(b), cols = g.kind === "bar" ? Math.max(2, Math.min(8, ((b.posts && b.posts.tills) || 3) + 1)) : g.kind === "wc" ? 3 : g.kind === "food" ? 2 : 3, col = rank % cols, row = Math.floor(rank / cols), span = (fr[0] ? f.z1 - f.z0 : f.x1 - f.x0) * 0.8, off = -span / 2 + (col + 0.5) * span / cols, dist = 1.4 + row * 0.75;
+    // food truck : deux files serrées devant le guichet (décalé vers l'arrière du camion), pas devant la cabine
+    if (g.kind === "food") { var Tw = D.BT[b.k].w; off = -Tw * 0.12 + (col - 0.5) * 0.9; dist = 1.1 + row * 0.7; off *= fr[0] ? -fr[0] : fr[1]; }
     if (fr[0]) return [b.x + fr[0] * (f.w / 2 + dist), b.z + off + (row % 2 ? 0.08 : -0.08), Math.atan2(-fr[0], -fr[1])];
     return [b.x + off + (row % 2 ? 0.08 : -0.08), b.z + fr[1] * (f.d / 2 + dist), Math.atan2(-fr[0], -fr[1])];
   }
@@ -8872,6 +8902,7 @@ button:focus-visible,input:focus-visible{outline:3px solid var(--lime);outline-o
   // grille d'occupation pour éviter que les gens se superposent (et faire des bouchons visibles)
   var occ = null, occN = 0;
   W._people = function () { return { crowd: people, walkers: wpeople }; };
+  W._groups = function () { return groups; };
   function turnTo(a, b, dt) { var d = b - a; d = Math.atan2(Math.sin(d), Math.cos(d)); return a + d * Math.min(1, dt * 9); }
   function moveCrowd(dt, S, clock) {
     if (!Sim.nav) return;
