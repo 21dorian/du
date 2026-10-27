@@ -5012,7 +5012,9 @@ button:focus-visible,input:focus-visible{outline:3px solid var(--lime);outline-o
     taxi: { n: "Station taxis / VTC", cat: "Accès", w: 10, d: 3, cost: 800, out: true, desc: "Dépose et reprise : moins de voitures qui tournent autour du site." },
     bikes: { n: "Parking vélos", cat: "Accès", w: 6, d: 3, cost: 600, out: true, desc: "Plus de visiteurs à vélo, moins de voitures." },
     vip: { n: "Zone VIP", cat: "Accès", w: 16, d: 12, cost: 25000, walk: true, vip: true, desc: "Billets VIP au triple du prix (5 % de la jauge)." },
-    camping: { n: "Camping", cat: "Accès", w: 90, d: 60, cost: 40000, walk: true, camping: 3500, out: true, desc: "Environ 3 500 campeurs (≈ 15 m² par tente de 2 à 3 personnes)." },
+    camping: { n: "Camping", cat: "Accès", w: 90, d: 60, cost: 40000, walk: true, camping: 3500, out: true, desc: "Environ 3 500 campeurs (≈ 15 m² par tente de 2 à 3 personnes). Se pose sur un côté du site, contre la clôture." },
+    campGate: { n: "Accueil camping", cat: "Accès", w: 18, d: 14, cost: 6000, campGate: true, out: true, desc: "Contrôle du pass camping, pose du bracelet et fouille légère. Les campeurs y passent une seule fois, avec leurs affaires." },
+    entryCamp: { n: "Porte campeurs", cat: "Accès", w: 12, d: 3, cost: 9000, entry: true, lanes: 4, campOnly: true, desc: "Entrée réservée aux campeurs qui ont déjà leur bracelet : contrôle du bracelet et fouille, sans billetterie. Se pose sur la clôture côté camping." },
     medic: { n: "Poste de secours", cat: "Sécurité", w: 8, d: 5, cost: 6000, medic: true, desc: "Base des secouristes." },
     secpc: { n: "PC sécurité", cat: "Sécurité", w: 5, d: 3, cost: 2500, desc: "Base des patrouilles." },
     light: { n: "Mât d'éclairage", cat: "Sécurité", w: 1, d: 1, cost: 900, light: 26, desc: "Éclaire la nuit : moins d'incidents dans la zone." },
@@ -5038,6 +5040,8 @@ button:focus-visible,input:focus-visible{outline:3px solid var(--lime);outline-o
   D.UP_RATE = 45; // personnes par minute et par UP
   // dehors : le parvis entre la clôture et la route, et la zone au-delà de la route
   D.OUT_PLAZA = { sav: 1, shuttle: 1, taxi: 1, bikes: 1, info: 1, medic: 1, secpc: 1, wc: 1, light: 1, bin: 1, cctv: 1, assembly: 1 };
+  // côtés du site (entre la clôture latérale et la campagne) : camping et ses services
+  D.OUT_SIDE = { camping: 1, campGate: 1, showers: 1, wc: 1, light: 1, bin: 1, tank: 1, cctv: 1, info: 1 };
   D.OUT_LOTS = { busHub: 1, dropZone: 1, parking: 1, camping: 1, showers: 1, wc: 1, light: 1, bin: 1, tank: 1, assembly: 1, cctv: 1, medic: 1, info: 1 };
   // éléments qui peuvent aller dehors (entre la route et le bas de la carte)
   D.OUTSIDE = {}; Object.keys(D.OUT_PLAZA).concat(Object.keys(D.OUT_LOTS)).forEach(function (k) { D.OUTSIDE[k] = 1; });
@@ -5157,6 +5161,7 @@ button:focus-visible,input:focus-visible{outline:3px solid var(--lime);outline-o
     { k: "stewards", n: "Signaleurs", d: "Orientent le public dans les allées : la foule suit mieux tes barrières et déviations.", cost: 19, min: 0, max: 180 },
     { k: "info", n: "Point info", d: "Objets perdus, enfants perdus, recharge, réclamations.", cost: 18, min: 0, max: 48 },
     { k: "pmr", n: "Accompagnement PMR", d: "Accompagnent les personnes à mobilité réduite.", cost: 18, min: 0, max: 48 },
+    { k: "campAcc", n: "Accueil camping", d: "Scannent le pass camping, posent le bracelet et fouillent les sacs : environ 1,5 campeur par minute chacun.", cost: 18, min: 0, max: 60 },
     { k: "campSecu", n: "Sécurité camping", d: "Rondes de nuit au camping : moins de vols et de bruit.", cost: 32, min: 0, max: 120 },
     { k: "merchStaff", n: "Vendeurs merch", d: "Environ 1 vente par minute et par vendeur.", cost: 17, min: 0, max: 90 },
     { k: "boxOffice", n: "Billetterie sur place", d: "Caissiers aux entrées : un peu plus d'une vente par minute chacun.", cost: 18, min: 0, max: 90 },
@@ -5291,7 +5296,9 @@ button:focus-visible,input:focus-visible{outline:3px solid var(--lime);outline-o
   function plazaRect(ev) { var V = venue(ev); return { x0: -V.W / 2 - 6, x1: V.W / 2 + 6, z0: V.D / 2 + 1, z1: V.D / 2 + D.PLAZA }; }
   function lotsRect(ev) { var V = venue(ev); return { x0: -V.W / 2 - 40, x1: V.W / 2 + 40, z0: V.D / 2 + D.PLAZA + 10, z1: V.D / 2 + D.PLAZA + 150 }; }
   Sim.siteRect = siteRect; Sim.plazaRect = plazaRect; Sim.lotsRect = lotsRect;
-  Sim.mapExtent = function (ev) { var V = venue(ev); return { x0: -V.W / 2 - 10, x1: V.W / 2 + 10, z0: -V.D / 2 - 8, z1: V.D / 2 + D.PLAZA + 152 }; };
+  Sim.sideRect = function (ev, side) { var V = venue(ev), z1 = V.D / 2 + D.PLAZA - 6; return side > 0 ? { x0: V.W / 2 + 4, x1: V.W / 2 + 110, z0: -V.D / 2, z1: z1 } : { x0: -V.W / 2 - 110, x1: -V.W / 2 - 4, z0: -V.D / 2, z1: z1 }; };
+  // la carte s'élargit quand on construit sur les côtés (camping)
+  Sim.mapExtent = function (ev) { var V = venue(ev), x0 = -V.W / 2 - 10, x1 = V.W / 2 + 10; (ev.layout || []).forEach(function (b) { if (!D.OUT_SIDE[b.k] || b.z > V.D / 2 + D.PLAZA) return; var f = fp(b); if (f.x1 > V.W / 2 + 2) x1 = Math.max(x1, f.x1 + 10); if (f.x0 < -V.W / 2 - 2) x0 = Math.min(x0, f.x0 - 10); }); return { x0: x0, x1: x1, z0: -V.D / 2 - 8, z1: V.D / 2 + D.PLAZA + 152 }; };
   function hallOf(ev, f) {
     var hs = venue(ev).halls || [];
     for (var i = 0; i < hs.length; i++) { var h = hs[i], r = { x0: h.x - h.w / 2, x1: h.x + h.w / 2, z0: h.z - h.d / 2, z1: h.z + h.d / 2 };
@@ -5321,7 +5328,7 @@ button:focus-visible,input:focus-visible{outline:3px solid var(--lime);outline-o
   // plan des files devant une entrée, en coordonnées (a, d) : barrières, serpentin, couloirs spéciaux, caisses
   Sim.queueLayout = function (b, G, kinds) {
     var E = Sim.ENTRY, LW = G.LW, SW = G.SW, nSpec = 0; kinds.forEach(function (k) { if (k !== "std") nSpec++; });
-    var genL = -SW / 2 + nSpec * LW, genR = SW / 2, genC = (genL + genR) / 2, hw = (genR - genL) / 2, bars = [], main = [], spec = {}, sR = 1, R = E.rows;
+    var genL = -SW / 2 + nSpec * LW, genR = SW / 2, genC = (genL + genR) / 2, hw = (genR - genL) / 2, bars = [], main = [], spec = {}, sR = Sim.queueSide(b, G), R = E.rows;
     var dL = function (k) { return E.serp0 + k * E.row; }, dR = function (k) { return E.serp0 + (k + 0.5) * E.row; }, tailA = genC + sR * Math.max(0.5, hw - 0.9);
     if (b.q === "line") {
       kinds.forEach(function (k, i) { if (k !== "std") return; var a = -SW / 2 + (i + 0.5) * LW; main.push([[a, 6.6], [a, E.pre - 0.6]]); });
@@ -5336,12 +5343,16 @@ button:focus-visible,input:focus-visible{outline:3px solid var(--lime);outline-o
     }
     kinds.forEach(function (k, i) { if (k === "std" || k === "exit") return; var a = -SW / 2 + (i + 0.5) * LW; spec[k] = [[a, 6.6], [a, 15]]; });
     if (nSpec) bars.push([[genL, 6.8], [genL, 15.2]]);
-    // ligne de pré-filtrage, ouverte à l'entrée du serpentin et devant les couloirs spéciaux
-    var lo = -SW / 2 - 1, hi = SW / 2 + 1; bars.push([[lo, E.pre], [Math.max(lo, tailA - 1.3), E.pre]]); bars.push([[Math.min(hi, tailA + 1.3), E.pre], [hi, E.pre]]);
+    // sas de pré-filtrage : un couloir de 2,6 m à l'entrée du serpentin, du côté d'où arrive le public (pas une barrière sur toute la largeur)
+    if (b.q !== "line") { var back = dL(R); bars.push([[tailA - 1.3, back], [tailA - 1.3, E.pre + 2.2]]); bars.push([[tailA + 1.3, back], [tailA + 1.3, E.pre + 2.2]]); }
     function boothX(side, c) { return side * (SW / 2 + 2.4 + c * 2.35); }
-    var box = [], brac = []; for (var c = 0; c < Math.min(3, b.box || 0); c++) box.push([[boothX(-1, c), E.pre + 1.7], [boothX(-1, c), E.pre + 6]]); for (var c2 = 0; c2 < 0; c2++) brac.push([[boothX(1, c2), E.pre + 1.7], [boothX(1, c2), E.pre + 6]]);
-    return { bars: bars, main: main, spec: spec, box: box, brac: brac, tail: [tailA, E.pre + 2.4], head: [genC, 6.8], boothX: boothX, genL: genL, genR: genR };
+    var box = [], brac = []; for (var c = 0; c < Math.min(3, b.box || 0); c++) box.push([[boothX(sR, c), E.pre + 1.7], [boothX(sR, c), E.pre + 6]]); for (var c2 = 0; c2 < 0; c2++) brac.push([[boothX(1, c2), E.pre + 1.7], [boothX(1, c2), E.pre + 6]]);
+    return { bars: bars, main: main, spec: spec, box: box, brac: brac, tail: [tailA, E.pre + 2.4], head: [genC, 6.8], boothX: boothX, genL: genL, genR: genR, side: sR };
   };
+  // côté de l'entrée du serpentin : celui du passage piéton le plus proche (le public arrive de là)
+  // abscisse de l'entrée du serpentin (le sas), pour que les arrivants y aillent directement
+  Sim.tailA = function (b, G) { var sep = b.sep || {}, nS = (sep.exit ? 1 : 0) + (sep.vip ? 1 : 0) + (sep.pmr ? 1 : 0) + (sep.press ? 1 : 0) + (sep.camp ? 1 : 0), genL = -G.SW / 2 + nS * G.LW, genR = G.SW / 2, hw = (genR - genL) / 2; if (b.q === "line") return (genL + genR) / 2; return (genL + genR) / 2 + Sim.queueSide(b, G) * Math.max(0.5, hw - 0.9); };
+  Sim.queueSide = function (b, G) { var ev = Sim._ev || (Sim.get && Sim.get() && Sim.get().ev); if (!ev || !Sim.crossings) return 1; var best = null, bd = 1e9; Sim.crossings(ev).forEach(function (c) { var d = Math.abs(c.x - b.x); if (d < bd) { bd = d; best = c; } }); if (!best) return 1; var a = (best.x - b.x) * G.along[0]; return a < -1 ? -1 : 1; };
   // emprise de l'accès devant une entrée (parvis) : rien ne doit y être posé
   // emprise réelle d'une scène : ailes de son, tours, camions et escaliers autour du plateau
   Sim.apron = function (b) { var f = fp(b), fr = front(b), m = { stageL: [7.5, 5.5], stageM: [8, 5.5], stageS: [5, 3] }[b.k]; if (!m) return f; var r = { x0: f.x0, x1: f.x1, z0: f.z0, z1: f.z1 };
@@ -5401,7 +5412,10 @@ button:focus-visible,input:focus-visible{outline:3px solid var(--lime);outline-o
     var onPlaza = within(f, pl), onLots = within(f, lo);
     if (t.road) { var rz0 = Sim.roadZ(ev); if (Math.abs(b.z - rz0) > 1.5) return { ok: false, why: "Le barrage se pose en travers de la route" }; for (var rb = 0; rb < ev.layout.length; rb++) { var ro = ev.layout[rb]; if (ro.id !== ignoreId && ro.id !== b.id && D.BT[ro.k].road && Math.abs(ro.x - b.x) < 12) return { ok: false, why: "Trop près d'un autre barrage" }; } return { ok: true }; }
     if (!inSite) {
-      if (!(D.OUT_PLAZA[b.k] && onPlaza) && !(D.OUT_LOTS[b.k] && onLots)) {
+      var onSide = D.OUT_SIDE[b.k] && (within(f, Sim.sideRect(ev, 1)) || within(f, Sim.sideRect(ev, -1)));
+      if (b.k === "camping" && !onSide) return { ok: false, why: "Le camping se pose sur un côté du site, contre la clôture latérale" };
+      if (!(D.OUT_PLAZA[b.k] && onPlaza) && !(D.OUT_LOTS[b.k] && onLots) && !onSide) {
+        if (b.k === "campGate") return { ok: false, why: "L'accueil camping se pose devant le camping, côté route" };
         if (D.OUT_LOTS[b.k] && !D.OUT_PLAZA[b.k]) return { ok: false, why: "À placer de l'autre côté de la route" };
         if (D.OUT_PLAZA[b.k]) return { ok: false, why: "À placer sur le parvis, entre la clôture et la route" };
         return { ok: false, why: "En dehors du site" };
@@ -5461,6 +5475,8 @@ button:focus-visible,input:focus-visible{outline:3px solid var(--lime);outline-o
     if (D.CLIMATE.t[ev.month] < 10 && !cnt(["vest"])) out.push([0, "Il fera froid : prévois un vestiaire"]);
     if (D.CLIMATE.t[ev.month] >= 17 && V.outdoor && !cnt(["water"])) out.push([0, "Il peut faire chaud : prévois des points d'eau"]);
     var stg = L.filter(function (b) { return D.BT[b.k].stage && !D.BT[b.k].covered && !Sim.hallOf(ev, b); }); for (var si = 0; si < stg.length; si++) for (var sj = si + 1; sj < stg.length; sj++) { var A = stg[si], B = stg[sj], dS = Math.hypot(A.x - B.x, A.z - B.z), fa = Sim.front(A), fb = Sim.front(B), face = (fa[0] * (B.x - A.x) + fa[1] * (B.z - A.z)) > 0 && (fb[0] * (A.x - B.x) + fb[1] * (A.z - B.z)) > 0; if (dS < 60 || (face && dS < 100)) { out.push([0, "Pollution sonore : " + Sim.bName(A, ev) + " et " + Sim.bName(B, ev) + " à " + Math.round(dS * 2) + " m" + (face ? ", face à face" : "") + ". Éloigne-les (≥ " + (face ? 200 : 120) + " m) ou mets-les dos à dos."]); break; } }
+    if (cnt(["camping"]) && !cnt(["campGate"])) out.push([0, "Camping sans accueil camping : pas de contrôle des pass ni de bracelets, les campeurs passent par les entrées du festival"]);
+    if (cnt(["camping"]) && !cnt(["entryCamp"]) && !ev.layout.some(function (b) { return b.sep && b.sep.camp; })) out.push([0, "Campeurs : pose une porte campeurs côté camping ou ouvre un couloir campeurs à une entrée"]);
     if (!cnt(["backstage"])) out.push([0, "Sans backstage, les artistes arrivent plus souvent en retard"]);
     if (!cnt(["generator"]) && (ev.venue === "parc" || ev.venue === "plage")) out.push([0, "Pas de groupe électrogène sur un site sans réseau : coupures fréquentes"]);
     if ((ev.venue === "parc" || ev.venue === "plage") && !cnt(["tank"])) out.push([0, "Pas de réseau d'eau ici : il faut des citernes pour les points d'eau, bars et douches"]);
@@ -5601,8 +5617,9 @@ button:focus-visible,input:focus-visible{outline:3px solid var(--lime);outline-o
     var lo = lotsRect(ev);
     if (ev.days > 1) {
       ev.layout = ev.layout.filter(function (b) { return !(b.k === "parking" && (b.ptype === "pmr" || b.ptype === "staff")); });
-      var cz = lo.z0 + 40, out = [["camping", 0, cz, 0], ["showers", 28, cz - 10, 0], ["showers", 28, cz - 4, 0], ["wc", 28, cz + 2, 0], ["wc", 28, cz + 7, 0], ["parking", -42, cz - 2, 0, "cc"], ["light", 24, cz + 12, 0], ["parking", 0, lo.z0 + 12, 0, "pmr"]];
+      var cz = lo.z0 + 40, out = [["parking", -42, cz - 2, 0, "cc"], ["parking", 0, lo.z0 + 12, 0, "pmr"]];
       out.forEach(function (t) { var c = { id: Sim.newId(ev), k: t[0], x: t[1], z: t[2], rot: t[3] }; if (t[4]) c.ptype = t[4]; if (Sim.findSpot(ev, c)) ev.layout.push(c); });
+      Sim.placeCamping(ev);
     }
     if (ev.venue === "halls" || ev.venue === "ville") ev.layout = ev.layout.filter(function (b) { return b.k !== "tank"; });
     if (!ev.price) ev.layout = ev.layout.filter(function (b) { return b.k !== "vip"; });
@@ -5678,6 +5695,21 @@ button:focus-visible,input:focus-visible{outline:3px solid var(--lime);outline-o
   Sim.barsOf = function (ev) { return ev.layout.filter(function (b) { return D.BT[b.k].bar; }); };
   Sim.entriesOf = function (ev) { return ev.layout.filter(function (b) { return D.BT[b.k].entry; }); };
   Sim.exitsOf = function (ev) { return ev.layout.filter(function (b) { return D.BT[b.k].exit; }); };
+  // camping collé à un côté du site : 60 m de large sur 90 m, à 26 unités de la clôture (place pour la file de la porte campeurs),
+  // accueil camping devant (côté route), porte campeurs dans la clôture en face, douches et toilettes sur le bord extérieur
+  // point d'arrivée devant l'accueil camping (bout du serpentin, côté route), et passage local → monde
+  Sim.localToWorld = function (b, lx, lz) { var a = (b.rot || 0) * Math.PI / 2, c = Math.round(Math.cos(a)), s2 = Math.round(Math.sin(a)); return [b.x + lx * c + lz * s2, b.z - lx * s2 + lz * c]; };
+  Sim.campGatePoint = function (b) { return Sim.localToWorld(b, 6, T(b).d / 2 + 1.5); };
+  Sim.placeCamping = function (ev) {
+    var V = venue(ev), sides = [1, -1], done = false;
+    for (var si = 0; si < 2 && !done; si++) { var sd = sides[si], cx = sd * (V.W / 2 + 26 + 30), cz = V.D / 2 - 47, c = { id: Sim.newId(ev), k: "camping", x: cx, z: cz, rot: 1 };
+      if (!Sim.validate(ev, c).ok) continue; ev.layout.push(c); done = true;
+      var add = function (k, x, z, rot) { var o = { id: Sim.newId(ev), k: k, x: Math.round(x / 2) * 2, z: Math.round(z / 2) * 2, rot: rot || 0 }; if (Sim.findSpot(ev, o)) { ev.layout.push(o); return o; } return null; };
+      add("campGate", cx, V.D / 2 + 9, 0);
+      add("entryCamp", sd * (V.W / 2 - 4), cz, sd > 0 ? 1 : 3);
+      var ox = sd * (V.W / 2 + 26 + 60 + 6); add("showers", ox, cz - 30, 1); add("showers", ox, cz - 16, 1); add("wc", ox, cz, 1); add("wc", ox, cz + 12, 1); add("light", ox, cz + 24, 0); add("bin", ox, cz + 30, 0); }
+    return done;
+  };
   Sim.lotsOf = function (ev, type) { return ev.layout.filter(function (b) { return b.k === "parking" && (!type || (b.ptype || "public") === type); }); };
   Sim.find = function (ev, id) { for (var i = 0; i < ev.layout.length; i++) if (ev.layout[i].id === id) return ev.layout[i]; return null; };
   Sim.artist = function (ev, id) { for (var i = 0; i < ev.catalog.length; i++) if (ev.catalog[i].id === id) return ev.catalog[i]; return null; };
@@ -5721,6 +5753,7 @@ button:focus-visible,input:focus-visible{outline:3px solid var(--lime);outline-o
     st.traffic = clamp(lots * 3, 0, 120); st.shuttleAg = clamp(stops * 4, 0, 90); st.stewards = clamp(Math.round(cap / 1500) + 4, 2, 180);
     st.info = clamp(ev.layout.filter(function (b) { return b.k === "info"; }).length * 2 + 1, 0, 16); st.pmr = clamp(Math.round(cap / 8000) + 1, 0, 48);
     st.campSecu = ev.days > 1 ? clamp(ev.layout.filter(function (b) { return b.k === "camping"; }).length * 8, 0, 40) : 0;
+    st.campAcc = ev.days > 1 && ev.layout.some(function (b) { return b.k === "campGate"; }) ? 12 : 0;
     st.merchStaff = ev.layout.filter(function (b) { return b.k === "merch"; }).length * 3;
     st.boxOffice = ev.price ? clamp(Sim.entriesOf(ev).length * 4, 0, 90) : 0; st.bracelet = 0; ev.braceletAtGate = false; Sim.entriesOf(ev).forEach(function (b) { if (ev.cashless && ev.braceletAtGate) b.brac = clamp(Math.ceil(D.BT[b.k].lanes / 3), b.brac || 0, 6); });
     st.hawkers = clamp(Math.round(cap / 3000), 0, 90); st.savStaff = Math.ceil(cap / 5000) + 1; st.crossAg = Math.min(60, Sim.crossings(ev).length * 2);
@@ -5883,7 +5916,7 @@ button:focus-visible,input:focus-visible{outline:3px solid var(--lime);outline-o
       mix: { car: 0, other: 0, relais: 0, camp: 0, lines: { gare: 0, centre: 0, relais: 0 } },
       entries: {}, exits: {}, stages: {}, bars: {}, foods: {}, wcs: {}, vests: {}, bins: {}, gens: {}, lots: {}, stops: {}, merchs: {}, partners: {}, sets: {}, lines: {}, walk: [], walkN: 0,
       road: { inQ: 0, outQ: 0, jam: 0 }, relais: { cars: 0 }, water: { cap: 0, level: 0, mains: true }, waste: { cap: 0, vol: 0 }, fuel: 1200,
-      info: { lost: 0, returned: 0, charges: 0, claims: 0, handled: 0 }, camp: { campers: 0, report: null }, merch: { stock: ev.merch.stock, sold: 0 },
+      info: { lost: 0, returned: 0, charges: 0, claims: 0, handled: 0 }, camp: { campers: 0, report: null }, cg: { Q: 0, wait: 0, tent: [], served: 0, arrived: 0, planned: 0 }, merch: { stock: ev.merch.stock, sold: 0 },
       barriers: [], barN: 0, drone: { on: false, battery: 100 }, net: { load: 0 }, app: { installs: ev.app ? 0.3 : 0 }, thefts: { n: 0, solved: 0 },
       evac: null, promos: [], screenMsg: "", seized: {}, insp: [], press: { journalists: Math.round(2 + (profile ? profile.rep : 40) / 15), articles: [], crisis: 0 }, personas: [],
       stock: JSON.parse(JSON.stringify(ev.stock)), orders: [], veh: [], vehN: 0,
@@ -6664,7 +6697,7 @@ button:focus-visible,input:focus-visible{outline:3px solid var(--lime);outline-o
     S = s; var e = S.ev, V = Sim.venue(e);
     e.layout.forEach(function (b) {
       var t = D.BT[b.k];
-      if (t.entry) S.entries[b.id] = { lanes: 0, mode: "std", closed: false, Q: 0, fake: 0, slow: 0, boxQ: 0, bracQ: 0, vipQ: 0, pmrQ: 0, pressQ: 0, out: 0, rate: 0, wait: 0, inRate: 0, seized: 0 };
+      if (t.entry) S.entries[b.id] = { lanes: 0, mode: "std", closed: false, Q: 0, fake: 0, slow: 0, boxQ: 0, bracQ: 0, vipQ: 0, pmrQ: 0, pressQ: 0, campQ: 0, out: 0, rate: 0, wait: 0, inRate: 0, seized: 0 };
       if (t.exit) S.exits[b.id] = { open: false, q: 0, passed: 0 };
       if (b.k === "parking") S.lots[b.id] = { cars: 0, cap: D.PTYPES[b.ptype || "public"].cap, type: b.ptype || "public", outQ: 0, inRate: 0 };
       if (t.stop) S.stops[b.id] = { qS: 0 };
@@ -6683,7 +6716,7 @@ button:focus-visible,input:focus-visible{outline:3px solid var(--lime);outline-o
     restockFood(true);
     S.lockers = { used: 0, cap: e.layout.filter(function (b) { return b.k === "lockers"; }).length * 300 };
   };
-  function maxLanes(b) { var t = D.BT[b.k], sep = b.sep || {}, n = (sep.vip ? 1 : 0) + (sep.pmr ? 1 : 0) + (sep.press ? 1 : 0) + (sep.exit ? 1 : 0); return Math.max(1, t.lanes - n - (S && S.ev && S.ev.acc && S.ev.acc.fastPct > 0 ? 1 : 0)); }
+  function maxLanes(b) { var t = D.BT[b.k], sep = b.sep || {}, n = (sep.vip ? 1 : 0) + (sep.pmr ? 1 : 0) + (sep.press ? 1 : 0) + (sep.exit ? 1 : 0) + (sep.camp ? 1 : 0); return Math.max(1, t.lanes - n - (S && S.ev && S.ev.acc && S.ev.acc.fastPct > 0 ? 1 : 0)); }
   F.maxLanes = maxLanes;
   function makeBuses() {
     var e = S.ev, start = e.open * 60 - 45;
@@ -6746,7 +6779,7 @@ button:focus-visible,input:focus-visible{outline:3px solid var(--lime);outline-o
     if (e.pre > 0 && e.Q > 0) r *= 1 + 0.45 * clamp(e.pre / e.Q, 0, 1);
     return r;
   };
-  Sim.queueTotal = function () { return Object.keys(S.entries).reduce(function (a, k) { var e = S.entries[k]; return a + e.Q + e.boxQ + e.bracQ + e.vipQ + e.pmrQ + e.pressQ + (e.fastQ || 0); }, 0) + ((S.sav && S.sav.q) || 0); };
+  Sim.queueTotal = function () { return Object.keys(S.entries).reduce(function (a, k) { var e = S.entries[k]; return a + e.Q + e.boxQ + e.bracQ + e.vipQ + e.pmrQ + e.pressQ + (e.fastQ || 0) + (e.campQ || 0); }, 0) + ((S.cg && S.cg.Q) || 0) + ((S.sav && S.sav.q) || 0); };
   Sim.waitMin = function () { var q = 0, r = 0; Object.keys(S.entries).forEach(function (k) { q += S.entries[k].Q; r += Sim.laneRate(k); }); return q < 5 ? 0 : r > 0 ? q / r : 999; };
   F.entryWait = function (id) { var e = S.entries[id], r = Sim.laneRate(id); return (e.Q < 3 ? 0 : r > 0 ? e.Q / r : 999) + (e.bracQ > 3 ? e.bracQ / Math.max(1, e.bracRate || 1) : 0); };
   F.busy = function () { var lastDep = S.ev.tr.last * 60; return S.walk.length > 0 || S.road.outQ > 1 || (S.t < lastDep && D.LINEK.some(function (k) { return S.lines[k].qS > 1 || S.lines[k].buses.some(function (b) { return b.st === "stop"; }); })) || Sim.queueTotal() > 1; };
@@ -6766,14 +6799,16 @@ button:focus-visible,input:focus-visible{outline:3px solid var(--lime);outline-o
   function nearestCross(x) { if (S._csT !== S.t || !S._cs) { S._cs = Sim.crossings(S.ev); S._csT = S.t; } var cs = S._cs, best = null, bd = 1e9; cs.forEach(function (c) { var d = Math.abs(c.x - x); if (d < bd) { bd = d; best = c; } }); return best; }
   F.nearestCross = nearestCross;
   // route : fermeture, passages piétons tenus ou non, déviation
-  function roadMode() { var m = Sim.roadCfg(S.ev).mode; if (S.ev.layout.some(function (b) { return D.BT[b.k].hard; })) return "filter"; if (m === "filter" && !S.ev.layout.some(function (b) { return D.BT[b.k].road; })) return "open"; return m; }
+  // fin de journée : 15 min avant la fin, les équipes barrent la route et posent un large cheminement piéton jusqu'à la gare routière
+  Sim.endWalk = function () { var e = S && S.ev; if (!e || !Sim.venue(e).fence) return 0; var t0 = e.close * 60 - 15; if (S.t < t0) return 0; return Math.min(1, (S.t - t0) / 12); };
+  function roadMode() { var m = Sim.roadCfg(S.ev).mode; if (S.ev.layout.some(function (b) { return D.BT[b.k].hard; })) return "filter"; if (Sim.endWalk() >= 1) return "filter"; if (m === "filter" && !S.ev.layout.some(function (b) { return D.BT[b.k].road; })) return "open"; return m; }
   F.roadMode = roadMode;
   function crossStep(gm) {
     var e = S.ev, cfg = Sim.roadCfg(e), mode = roadMode(), conflict = mode === "filter" ? 0 : mode === "open" ? 1 : 0.5, cs = Sim.crossings(e), t = S.t; S.cross = S.cross || {};
     cs.forEach(function (c) { var st = S.cross[c.id] || (S.cross[c.id] = { acc: 0, flow: 0, wait: 0, carF: 1 }); st.flow += (st.acc / Math.max(0.01, gm) - st.flow) * Math.min(1, 0.25 * gm); st.acc = 0; });
     var hards = e.layout.filter(function (b) { return D.BT[b.k].hard; }), order = cs.slice().sort(function (a, c) { return S.cross[c.id].flow - S.cross[a.id].flow; }), tended = Math.floor(((S.staff.crossAg || 0) + (S.staff.polTraffic || 0)) / 2), capF = 1;
     order.forEach(function (c, i) { var st = S.cross[c.id], sh = { ped: 0.65, bal: 0.5, car: 0.3 }[cfg.crossMode[c.id] || "bal"], f = st.flow; st.tended = i < tended;
-      if (hards.some(function (h) { return Math.abs(h.x - c.x) < 14; })) { st.tended = true; st.free = true; st.wait = 0; st.carF = 1; return; } st.free = false;
+      if (hards.some(function (h) { return Math.abs(h.x - c.x) < 14; }) || Sim.endWalk() >= 1) { st.tended = true; st.free = true; st.wait = 0; st.carF = 1; return; } st.free = false;
       if (S.closing && e.tr.exitPlan) sh = Math.max(sh, 0.8);
       if (st.tended) { st.wait = (1 - sh) * 1.6 * conflict; st.carF = 1 - sh * Math.min(1, f / 25) * conflict * 0.9; }
       else { st.wait = 0.1; st.carF = 1 - Math.min(0.75, f / 35) * conflict;
@@ -6795,15 +6830,37 @@ button:focus-visible,input:focus-visible{outline:3px solid var(--lime);outline-o
   function crossesRoad(a, b) { var rz = Sim.roadZ(S.ev); return (a - rz) * (b - rz) < 0; }
   function entryFor(x, z) {
     if (S.pushEntry && S.pushEntry.until > S.t && Math.random() < 0.8 * pushEff()) { var pb = Sim.find(S.ev, S.pushEntry.id); if (pb && S.entries[pb.id] && !S.entries[pb.id].closed) return pb; }
-    var ents = Sim.entriesOf(S.ev).filter(function (b) { return !S.entries[b.id].closed; }); if (!ents.length) ents = Sim.entriesOf(S.ev); if (!ents.length) return null;
+    var ents = Sim.entriesOf(S.ev).filter(function (b) { return !S.entries[b.id].closed && !D.BT[b.k].campOnly; }); if (!ents.length) ents = Sim.entriesOf(S.ev).filter(function (b) { return !D.BT[b.k].campOnly; }); if (!ents.length) return null;
     var best = null, bd = 1e9; ents.forEach(function (b) { var p = Sim.gatePoint(S.ev, b, 1, 4), w = F.entryWait(b.id) * WALK * 0.3, d = Math.hypot(p[0] - x, p[1] - z) + w; if (d < bd) { bd = d; best = b; } }); return best;
   }
   F.entryFor = entryFor;
+  function campGateOf() { return S.ev.layout.filter(function (b) { return b.k === "campGate"; })[0] || null; }
   function goToEntry(n, x, z, kind, extra, forced) {
+    var cgB = S.day === 0 && kind !== "camp" && !forced && S.camp.campers > 0 && S.cg ? campGateOf() : null;
+    if (cgB && S.cg.arrived < (S.cg.planned || 0)) { var left = S.cg.planned - S.cg.arrived, nc = Math.min(left, n * 0.92); if (nc > 0.01) { S.cg.arrived += nc; n -= nc; var gp = Sim.campGatePoint(cgB); walk(nc, x, z, gp[0], gp[1], "in", kind, "campgate", { bags: nc }); } if (n <= 0.01) return; }
     var b = forced || entryFor(x, z);
     if (!b) { var V = Sim.venue(S.ev); walk(n, x, z, clamp(x, -V.W / 2 + 10, V.W / 2 - 10), V.D / 2 - 4, "in", kind, "site", extra); return; }
-    var G = Sim.entryGeo(S.ev, b), p = G.P((Math.random() - 0.5) * G.SW * 0.6, Sim.ENTRY.pre + 3 + Math.random() * 2.5); walk(n, x, z, p[0], p[1], "in", kind, b.id, extra);
+    var G = Sim.entryGeo(S.ev, b), p = G.P(Sim.tailA(b, G) + (Math.random() - 0.5) * 1.6, Sim.ENTRY.pre + 2.6 + Math.random() * 1.5); walk(n, x, z, p[0], p[1], "in", kind, b.id, extra);
   }
+  // campeurs avec bracelet : porte campeurs côté camping (la plupart), couloir campeurs à l'entrée principale (ceux qui reviennent du parking)
+  function campersToFestival(n) {
+    var e = S.ev, campB = e.layout.filter(function (b) { return b.k === "camping"; })[0]; if (!campB || n <= 0) return;
+    var door = e.layout.filter(function (b) { return D.BT[b.k].campOnly && S.entries[b.id] && !S.entries[b.id].closed; })[0], lane = Sim.entriesOf(e).filter(function (b) { return b.sep && b.sep.camp && !D.BT[b.k].campOnly; })[0];
+    var nd = door ? n * (lane ? 0.85 : 1) : 0, nl = n - nd;
+    if (nd > 0) { var G = Sim.entryGeo(e, door), p = G.P((Math.random() - 0.5) * G.SW * 0.6, Sim.ENTRY.pre + 3); walk(nd, campB.x, campB.z, p[0], p[1], "in", "camp", door.id, { camp: nd }); }
+    if (nl > 0) { var b2 = lane || entryFor(campB.x, campB.z); if (!b2) return; var G2 = Sim.entryGeo(e, b2), p2 = G2.P((Math.random() - 0.5) * G2.SW * 0.6, Sim.ENTRY.pre + 3); walk(nl, campB.x, campB.z, p2[0], p2[1], "in", "camp", b2.id, { camp: nl }); }
+  }
+  F.campersToFestival = campersToFestival;
+  // accueil camping : scan du pass, pose du bracelet, fouille légère ; puis montage de la tente avant d'aller au festival
+  function campStep(gm) {
+    var C = S.cg, e = S.ev; if (!C) return; var gB = campGateOf();
+    var rate = gB ? Math.max(0.3, (S.staff.campAcc || 0) * 1.5 * readiness()) : 0;
+    if (gB && C.Q > 0 && !(S.evac && S.evac.kind !== "zone")) { var sv = Math.min(C.Q, rate * gm); C.Q -= sv; C.served += sv; C.tent.push({ n: sv, t: S.t + rnd(35, 70) }); }
+    C.wait = C.Q > 1 ? C.Q / Math.max(0.3, rate) : 0;
+    if (C.wait > 30 && !S.closing) { S.sat -= (C.wait - 30) * 0.001 * gm; if (!S.warned["cgSat" + S.day]) { S.warned["cgSat" + S.day] = 1; L.log("Radio : « Accueil camping saturé, " + Math.round(C.wait) + " min de file, les campeurs attendent avec leurs sacs et leurs tentes. Il faut du monde à l'accueil. »", "r", "Accueil"); } }
+    if (C.tent.length) { var keep = []; C.tent.forEach(function (it) { if (S.t >= it.t && !S.closing) campersToFestival(it.n); else keep.push(it); }); C.tent = keep; }
+  }
+  F.campStep = campStep;
   function edgePoint(side) { var V = Sim.venue(S.ev); return [side * (V.W / 2 + 12), Sim.roadZ(S.ev) - 6]; }
 
   // ================================================================ arrivées : choix du mode de transport
@@ -6815,9 +6872,12 @@ button:focus-visible,input:focus-visible{outline:3px solid var(--lime);outline-o
     if (S.closing || (S.evac && S.evac.kind !== "zone")) return;
     var shapeSum = S.shapeSum || (S.shapeSum = (function () { var s = 0; for (var i = 0; i < span * 60; i += 5) s += arrivalShape(i / 60, span) * 5; return s; })());
     var early = (S.earlyCall && S.earlyCall > S.t ? 1.4 : 1) * (S.pushLater > S.t ? 1 - 0.5 * pushEff() : 1);
-    var plan = S.pop.plan * (S.day === 0 ? 1 : 0.88) - (S.day > 0 ? S.camp.campers * 0.6 : 0), rate = plan * arrivalShape(h, span) / shapeSum * rainSlow * early + (h > span * 0.4 && h < span * 0.72 ? Math.max(0, plan * Math.min(1, h / (span * 0.6)) - S.pop.arrived) / 90 : 0), arr = Math.min(Math.max(0, plan - S.pop.arrived), rate * gm);
+    // campeurs du premier jour : ils arrivent tôt (pic une heure et demie après l'ouverture), par les mêmes transports, et vont d'abord à l'accueil camping
+    var campDay0 = S.day === 0 && S.camp.campers > 0 && S.cg && e.layout.some(function (b) { return b.k === "campGate"; }), campArr = 0;
+    if (campDay0 && S.cg.planned < S.camp.campers) { var tri = h < 0 ? 0 : h < 1.5 ? h / 1.5 : Math.max(0, (5 - h) / 3.5); campArr = Math.min(S.camp.campers - S.cg.planned, (S.camp.campers * (tri / 2.5) / 60 + (h > 5 ? S.camp.campers * 0.02 : 0)) * gm); S.cg.planned += campArr; }
+    var plan = S.pop.plan * (S.day === 0 ? 1 : 0.88) - (S.day > 0 ? S.camp.campers * 0.6 : 0) - (campDay0 ? S.camp.campers : 0), rate = plan * arrivalShape(h, span) / shapeSum * rainSlow * early + (h > span * 0.4 && h < span * 0.72 ? Math.max(0, plan * Math.min(1, h / (span * 0.6)) - S.pop.arrived) / 90 : 0), arr = Math.min(Math.max(0, plan - S.pop.arrived), rate * gm);
     if (!e.price) { var cap = e.cap * 1.05; arr = Math.min(arr, Math.max(0, (cap - S.pop.inside - Sim.queueTotal()) * 0.08 * gm + rate * gm * 0.2)); }
-    S.pop.arrived += arr;
+    S.pop.arrived += arr; if (campArr > 0) { arr += campArr; S.pop.arrived += campArr; }
     var door = 0; if (e.price && S.pop.doorDone < S.pop.doorPlan && h > 0.5 && h < span * 0.55) { door = Math.min(S.pop.doorPlan - S.pop.doorDone, S.pop.doorPlan / (span * 0.5 * 60) * gm * rainSlow); S.pop.doorDone += door; }
     var n = arr + door; if (n <= 0) return;
     var M = S.modal || (S.modal = Sim.modal(e)), vip = arr * S.pop.vipShare, fake = e.price ? n * (S.fraudWave > S.t ? 0.1 : 0.02) * (e.rfid ? 0.1 : 1) : 0;
@@ -6983,7 +7043,9 @@ button:focus-visible,input:focus-visible{outline:3px solid var(--lime);outline-o
       if (t < it.tA) { keep.push(it); return; }
       if (it.dir === "in") {
         if (it.ref === "site") { S.pop.inside += it.n; return; }
+        if (it.ref === "campgate") { if (S.cg) S.cg.Q += it.n; return; }
         var E = S.entries[it.ref], b = Sim.find(e, it.ref); if (!E) { S.pop.inside += it.n; return; }
+        if (it.camp) { if (D.BT[b.k].campOnly) E.Q += it.n; else if (b.sep && b.sep.camp) E.campQ = (E.campQ || 0) + it.n; else E.Q += it.n; return; }
         var door = it.door || 0, vip = it.vip || 0, n = it.n, pmr = n * 0.008, press = n * 0.003, rest = n - door - vip - pmr - press;
         var brac = false, AC = Sim.accCfg(e); // pas d'échange de bracelet : on va droit dans les files d'accès
         // billets à problème : au guichet SAV s'il existe, sinon ils bloquent un couloir le temps de régler
@@ -7007,7 +7069,7 @@ button:focus-visible,input:focus-visible{outline:3px solid var(--lime);outline-o
   function entriesStep(gm) {
     var e = S.ev, passed = 0, boxR = S.staff.boxOffice / Math.max(1, Object.keys(S.entries).length), bracR = S.staff.bracelet / Math.max(1, Object.keys(S.entries).length), bracTot = Object.keys(S.entries).reduce(function (a, k) { return a + S.entries[k].bracQ; }, 0), nEnt = Math.max(1, Object.keys(S.entries).length);
     Object.keys(S.entries).forEach(function (id) {
-      var E = S.entries[id], b = Sim.find(e, id), closed = E.closed || S.evac || S.closing || !Sim.ready(b);
+      var E = S.entries[id], b = Sim.find(e, id), closed = E.closed || S.evac || S.closing || !Sim.ready(b) || (E.exitT != null && S.t - E.exitT > 5);
       if (!closed) {
         // billetterie sur place, puis échange bracelet
         var sold = Math.min(E.boxQ, Math.min((b.box || 0), boxR) * 1.5 * gm * readiness()); E.boxQ -= sold; S.money.door += sold * e.door * 0.94; S.money.copyright -= sold * e.door * 0.06;
@@ -7016,10 +7078,10 @@ button:focus-visible,input:focus-visible{outline:3px solid var(--lime);outline-o
         var bR = bracTot > 50 ? S.staff.bracelet * (0.3 / nEnt + 0.7 * E.bracQ / bracTot) : bracR; E.bracRate = Math.min((b.brac || 0) * 3, bR) * 4 * readiness(); var bx = Math.min(E.bracQ, E.bracRate * gm); E.bracQ -= bx; E.Q += bx;
         // files dédiées
         if (E.fastQ > 0) { var fm = Math.min(E.fastQ, 9 * gm * readiness()); E.fastQ -= fm; S.pop.inside += fm; passed += fm; }
-        [["vipQ", "vip"], ["pmrQ", "pmr"], ["pressQ", "press"]].forEach(function (q) { if (b.sep && b.sep[q[1]]) { var m = Math.min(E[q[0]], 6 * gm); E[q[0]] -= m; S.pop.inside += m; passed += m; } });
+        [["vipQ", "vip"], ["pmrQ", "pmr"], ["pressQ", "press"], ["campQ", "camp"]].forEach(function (q) { if (b.sep && b.sep[q[1]] && E[q[0]] > 0) { var m = Math.min(E[q[0]], (q[1] === "camp" ? 9 : 6) * gm); E[q[0]] -= m; S.pop.inside += m; passed += m; } });
       }
       // portiques : pré-filtrage, palpation puis scan
-      var r = Sim.laneRate(id) * (e.price ? 1 : 1.5), pass = closed ? 0 : Math.min(E.Q, r * gm), fs = E.Q > 0 ? E.fake / E.Q : 0, fk = pass * fs, caught = fk * (E.mode === "std" ? 0.6 : 0.95) * (e.rfid ? 1.3 : 1);
+      var r = Sim.laneRate(id) * (e.price ? 1 : 1.5); if (D.BT[b.k].campOnly) r = Math.max(r, (S.staff.campSecu > 0 ? 26 : 18) * readiness()); var pass = closed ? 0 : Math.min(E.Q, r * gm), fs = E.Q > 0 ? E.fake / E.Q : 0, fk = pass * fs, caught = fk * (E.mode === "std" ? 0.6 : 0.95) * (e.rfid ? 1.3 : 1);
       caught = Math.min(caught, fk); E.slow = Math.max(0, E.slow - pass * (E.Q > 0 ? E.slow / E.Q : 0)); E.pre = Math.max(0, (E.pre || 0) - pass * (E.Q > 0 ? (E.pre || 0) / E.Q : 0)); E.Q -= pass; E.fake = Math.max(0, E.fake - fk);
       S.pop.inside += pass - caught; S.pop.fraudIn += fk - caught; S.pop.fraudStop += caught; passed += pass - caught; E.inRate += ((pass - caught) / gm - E.inRate) * Math.min(1, 0.15 * gm);
       // objets saisis à la fouille
@@ -7040,12 +7102,26 @@ button:focus-visible,input:focus-visible{outline:3px solid var(--lime);outline-o
     if (e.lockers && e.lockers.on && S.lockers.cap) { var lk = Math.min(passed * 0.05, S.lockers.cap - S.lockers.used); if (lk > 0) { S.lockers.used += lk; S.money.lockers += lk * e.lockers.price; } }
     S.lastPassed = passed;
   }
+  // fin de journée : les stadiers démontent le serpentin et la fouille, tous les couloirs servent à sortir
+  Sim.entryToExit = function (id, auto) { var E = S.entries[id], b = Sim.find(S.ev, id); if (!E || E.exitT != null) return false; E.exitT = S.t; L.log((auto ? "" : "Sur ton ordre, ") + "les stadiers démontent le serpentin de " + Sim.bName(b, S.ev) + " : l'entrée passe en sortie.", "i", "Accueil"); return true; };
+  function exitStep(gm) { var e = S.ev, t = S.t, endT = e.close * 60;
+    if (Sim.endWalk() > 0 && !S.warned["endWalk" + S.day]) { S.warned["endWalk" + S.day] = 1; L.log("Les équipes ferment la route et posent les barrières du cheminement de sortie vers la gare routière et les parkings.", "i", "Transports"); }
+    if (S.closing && t > endT + 25 && S.ev.days === S.day + 1 && !S.warned["tear" + S.day]) { S.warned["tear" + S.day] = 1; L.log("Démontage : les food trucks repartent, les équipes descendent écrans et son, les semi-remorques arrivent.", "i", "Logistique"); }
+    if (t >= endT - 60) Object.keys(S.entries).forEach(function (id) { var E = S.entries[id]; if (E.exitT == null && E.Q < 30) Sim.entryToExit(id, true); });
+    // fin de file navettes : stewards en place quand la file déborde de la gare routière
+    var over = D.LINEK.reduce(function (a, k) { return a + Math.max(0, (S.lines[k] ? S.lines[k].qS : 0) - 450); }, 0); S.busOver = over;
+    if (over > 200 && !S.warned["busOver" + S.day]) { S.warned["busOver" + S.day] = 1; L.log("Radio : « La file des navettes sort de la gare routière : on la fait serpenter sur le parvis et remonter dans le site. Stewards en place avec les bâtons. »", "a", "Transports"); }
+  }
+  F.exitStep = exitStep;
+  // capacité de sortie : couloirs des entrées passées en sortie, sinon le seul couloir sortie, plus les issues ouvertes
+  function exitCap() { var c = 0; Object.keys(S.entries).forEach(function (id) { var E = S.entries[id], b = Sim.find(S.ev, id); if (!b) return; var T = D.BT[b.k], f = E.exitT != null ? Math.min(1, (S.t - E.exitT) / 20) : 0; c += 45 + (T.lanes * 42 - 45) * f; }); Object.keys(S.exits || {}).forEach(function (id) { if (S.exits[id].open) c += (Sim.find(S.ev, id).up || 10) * 10; }); return c || 1e6; }
   function departures(gm) {
     var e = S.ev, closeT = e.close * 60, span = (closeT - e.open * 60) / 60, h = (S.t - e.open * 60) / 60;
     if (S.evac && (S.evac.kind === "general" || S.evac.kind === "lockdown")) return;
     var stag = S.closing && S.stagger && S.t < closeT + 45, lastT = e.tr.last * 60;
     var outRate = S.closing ? (stag ? 0.7 : 1.8) : h > span - 3 ? 0.08 + 0.1 * (h - (span - 3)) : e.price ? 0.015 : 0.3; if (S.sat < 45) outRate += 0.1; if (S.lastCall && S.t < lastT && S.t > lastT - 75 && !S.closing) outRate += 0.1;
     var leave = S.pop.inside * outRate / 60 * gm; if (S.closing) leave = Math.max(leave, Math.min(S.pop.inside, (stag ? 70 : 200) * gm));
+    if (S.closing && Sim.venue(e).fence) { var cap = exitCap(); if (leave > cap * gm) { leave = cap * gm; S.exitJam = (S.exitJam || 0) + gm; S.sat -= 0.02 * gm; if (!S.warned["exitJam" + S.day] && S.exitJam > 8) { S.warned["exitJam" + S.day] = 1; L.log("Radio : « Ça bouchonne à la sortie : les serpentins sont encore montés, on ne sort qu'au compte-gouttes. Passe les entrées en sortie. »", "r", "Accueil"); } } }
     leave = Math.min(leave, S.pop.inside); if (leave <= 0) return; S.pop.inside -= leave; S.pop.fraudIn = Math.min(S.pop.fraudIn, S.pop.inside);
     S.pop.rateOut = (S.pop.rateOut || 0) + (leave / gm - (S.pop.rateOut || 0)) * Math.min(1, 0.1 * gm);
     sendOut(leave);
@@ -7515,7 +7591,7 @@ button:focus-visible,input:focus-visible{outline:3px solid var(--lime);outline-o
   // ================================================================ camping (nuits entre les jours)
   F.endDay = function (rep) {
     var e = S.ev; S.walk = []; S.road.inQ = 0; S.road.inPpl = 0; D.LINEK.forEach(function (k) { var ln = S.lines[k]; if (ln.qS > 0) { S.stats.stranded += ln.qS; ln.qS = 0; } ln.qO = 0; });
-    Object.keys(S.entries).forEach(function (k) { var x = S.entries[k]; x.Q = x.boxQ = x.bracQ = x.vipQ = x.pmrQ = x.pressQ = x.fake = x.slow = 0; x.closed = false; });
+    Object.keys(S.entries).forEach(function (k) { var x = S.entries[k]; x.Q = x.boxQ = x.bracQ = x.vipQ = x.pmrQ = x.pressQ = x.campQ = x.fake = x.slow = 0; x.closed = false; x.exitT = null; });
     Object.keys(S.lots).forEach(function (id) { var l = S.lots[id]; if (l.type !== "staff" && l.type !== "cc") { var keep = S.camp.campers > 0 && e.days > S.day + 1 ? Math.min(l.cars, S.camp.campers * 0.25 / Math.max(1, lotsOfType("public").length)) : 0; l.cars = keep; } l.outQ = 0; });
     S.mix = { car: 0, other: 0, relais: 0, camp: 0, lines: { gare: 0, centre: 0, relais: 0 } };
     if (S.camp.campers > 0 && S.day + 1 < e.days) {
@@ -7530,7 +7606,7 @@ button:focus-visible,input:focus-visible{outline:3px solid var(--lime);outline-o
   F.nextDay = function () {
     var e = S.ev; S.shapeSum = 0; makeBuses(); D.LINEK.forEach(function (k) { S.lines[k].boosted = false; S.lines[k].lastAsked = false; S.lines[k].strandLogged = false; }); restockFood(false); S.promos = []; S.surprise = null; S.walk = [];
     if (S.campBonus) S.sat = clamp(S.sat + S.campBonus, 0, 100);
-    if (S.camp.campers > 0) { var campB = e.layout.filter(function (b) { return b.k === "camping"; })[0], n = S.camp.campers * 0.6; if (campB) { var ents = Sim.entriesOf(e), wsum = ents.reduce(function (a, b) { return a + maxLanes(b); }, 0); if (ents.length) ents.forEach(function (b) { goToEntry(n * maxLanes(b) / wsum, campB.x, campB.z, "camp", null, b); }); else goToEntry(n, campB.x, campB.z, "camp", null); } S.mix.camp += n; S.pop.arrived += n; L.log("Les campeurs se réveillent : " + Math.round(n) + " sont déjà en route vers l'entrée.", "i", "Accueil"); }
+    if (S.camp.campers > 0) { var campB = e.layout.filter(function (b) { return b.k === "camping"; })[0], n = S.camp.campers * 0.6; if (campB) campersToFestival(n); S.mix.camp += n; S.pop.arrived += n; L.log("Les campeurs se réveillent : " + Math.round(n) + " sont déjà en route vers l'entrée.", "i", "Accueil"); }
     S.lockers.used = 0; Sim.entriesOf(e).forEach(function (b) { var E = S.entries[b.id]; if (E && b.auto) E.lanes = maxLanes(b); });
   };
 
@@ -7565,7 +7641,7 @@ button:focus-visible,input:focus-visible{outline:3px solid var(--lime);outline-o
   F.step = function (gm, w) {
     S = Sim.get(); var e = S.ev;
     if (e.layout.some(function (b) { return D.BT[b.k].stop; })) busStep(gm);
-    accStep(gm); crossStep(gm); F.cataStep(); F.rivStep(gm); arrivals(gm, w); roadStep(gm); walkStep(); entriesStep(gm); doubtStep(); evacStep(gm); departures(gm);
+    accStep(gm); crossStep(gm); F.cataStep(); F.rivStep(gm); arrivals(gm, w); roadStep(gm); walkStep(); campStep(gm); exitStep(gm); entriesStep(gm); doubtStep(); evacStep(gm); departures(gm);
     S.pop.maxIn = Math.max(S.pop.maxIn, S.pop.inside); if (S.pop.inside > e.cap * 1.02) S.stats.over += gm;
     stagesStep(gm, w); barsStep(gm, w); foodStep(gm); servicesStep(gm, w); autoOrders(gm); autoBar(gm);
     S.promos = S.promos.filter(function (p) { return p.until > S.t; });
@@ -8015,7 +8091,7 @@ button:focus-visible,input:focus-visible{outline:3px solid var(--lime);outline-o
     opt = opt || {}; clock += dt; I.clock = clock;
     perf.n++; perf.s += dt; if (perf.n >= 120) { if (perf.s / perf.n > 0.045 && quality > 0 && perf.c < 6) W.setQuality(quality - 1); perf.n = 0; perf.s = 0; perf.c++; }
     var t = S ? S.t : (ev ? ev.open * 60 + 300 : 20 * 60), w = S ? (S.wx_now || Sim.weatherAt(S, t)) : { t: 15, rain: 0, wind: 10 }, dl = ev ? Sim.daylight(ev, t) : 0.3;
-    if (opt.forceDay != null) dl = opt.forceDay;
+    if (opt.forceDay != null) dl = opt.forceDay; if (W.shotDay != null) dl = Math.max(dl, W.shotDay);
     W.dl = dl; var V = ev ? Sim.venue(ev) : null, indoor = false, dusk = dl > 0 && dl < 1 ? 1 - Math.abs(dl - 0.5) * 2 : 0;
     // ciel, soleil, lune, étoiles, nuages
     var h = ((t / 60) % 24), hr = (h - 6) / 12 * Math.PI, sunDir = new THREE.Vector3(-Math.cos(hr) * 0.8, Math.max(-0.2, Math.sin(hr)), 0.45).normalize();
@@ -8070,7 +8146,7 @@ button:focus-visible,input:focus-visible{outline:3px solid var(--lime);outline-o
     var p = new THREE.Group(); p.position.set(x, h || 0, z); p.rotation.y = rot || 0; var m = new THREE.Mesh(SF[key], SFM); m.castShadow = true; p.add(m);
     if (anim) { if (!LEGG) { LEGG = new THREE.BoxGeometry(0.14, 0.6, 0.16); LEGG.translate(0, -0.3, 0); LEGG._shared = true; } var lm = std(0x1d1f26), l1 = new THREE.Mesh(LEGG, lm), l2 = new THREE.Mesh(LEGG, lm); l1.position.set(-0.1, 0.6, 0); l2.position.set(0.1, 0.6, 0); p.add(l1); p.add(l2); p.userData.legs = [l1, l2]; }
     g.add(p); return p; }
-  I.staffFig = staffFig;
+  I.staffFig = staffFig; I.semiTrailer = function () { return semiTrailer.apply(null, arguments); };
   function signPanel(g, lines, w, h, x, y, z, opt, rotY) { var t = signTex(lines, Math.round(w * 64), Math.round(h * 64), opt), m = new THREE.Mesh(new THREE.PlaneGeometry(w, h), new THREE.MeshBasicMaterial({ map: t, side: THREE.DoubleSide })); m.position.set(x, y, z); if (rotY) m.rotation.y = rotY; g.add(m); return m; }
   I.signPanel = signPanel;
   function truss(g, x, y, z, h, mat) { var gg = new THREE.Group(); gg.position.set(x, y, z); [[-0.3, -0.3], [0.3, -0.3], [-0.3, 0.3], [0.3, 0.3]].forEach(function (o) { cyl(0.05, 0.05, h, mat, o[0], h / 2, o[1], gg, 5); }); for (var k = 0; k < h; k += 1.2) { box(0.62, 0.05, 0.05, mat, 0, k, -0.3, gg, false); box(0.62, 0.05, 0.05, mat, 0, k, 0.3, gg, false); } g.add(gg); return gg; }
@@ -8245,7 +8321,7 @@ button:focus-visible,input:focus-visible{outline:3px solid var(--lime);outline-o
     // barrage filtrant (type Vigipirate) : côté extérieur, deux murets de blocs béton en quinconce qui obligent à slalomer au pas ;
     // côté site, le point de contrôle : une barrière levante par voie, un îlot central avec la guérite, les agents et la police
     var out = b.x < 0 ? -1 : 1, conc = std(0xb9bcc2, 0, 0, 0.95), red = own(0xd32f2f, 0, 0, 0.7), wht = std(0xf3f1ea), face = out > 0 ? -Math.PI / 2 : Math.PI / 2;
-    function bloc(x, z, rotY) { var gb = new THREE.Group(); gb.position.set(x, 0, z); gb.rotation.y = rotY || 0; g.add(gb); box(2.0, 0.8, 0.6, conc, 0, 0.4, 0, gb); box(2.02, 0.16, 0.62, red, 0, 0.62, 0, gb, false); box(0.5, 0.17, 0.63, wht, -0.5, 0.62, 0, gb, false); box(0.5, 0.17, 0.63, wht, 0.5, 0.62, 0, gb, false); }
+    var blocs = []; function bloc(x, z, rotY) { var gb = new THREE.Group(); gb.position.set(x, 0, z); gb.rotation.y = rotY || 0; g.add(gb); blocs.push(gb); box(2.0, 0.8, 0.6, conc, 0, 0.4, 0, gb); box(2.02, 0.16, 0.62, red, 0, 0.62, 0, gb, false); box(0.5, 0.17, 0.63, wht, -0.5, 0.62, 0, gb, false); box(0.5, 0.17, 0.63, wht, 0.5, 0.62, 0, gb, false); }
     // chicane : muret côté nord puis muret côté sud, chacun ferme une voie et demie
     [[out * 5.2, -1], [out * 1.6, 1]].forEach(function (c) { for (var z = 0.9; z <= 4.4; z += 2.05) bloc(c[0], c[1] * z, Math.PI / 2); });
     var lamp1 = box(0.3, 0.3, 0.3, own(0xffb020, 0xffb020, 1.5), out * 5.2, 1.0, -0.2, g, false), lamp2 = box(0.3, 0.3, 0.3, own(0xffb020, 0xffb020, 1.5), out * 1.6, 1.0, 0.2, g, false);
@@ -8262,7 +8338,7 @@ button:focus-visible,input:focus-visible{outline:3px solid var(--lime);outline-o
     [[-1, 1], [1, 1], [-1, -1], [1, -1]].forEach(function (w) { var wh = cyl(0.38, 0.38, 0.3, std(0x111111), w[0] * 0.95, 0.38, w[1] * 1.4, pc, 10); wh.rotation.z = Math.PI / 2; });
     // agents aux barrières (contrôle des laissez-passer), policier près de la guérite
     staffFig(g, px + out * 0.9, -2.6, 0xFFB020, face, 0); staffFig(g, px + out * 0.9, 2.6, 0xFFB020, face, 0); staffFig(g, px - out * 0.8, 0.9, 0x1e3a8a, face, 0);
-    return { lamps: [lamp1, lamp2, gyro], booms: booms };
+    return { lamps: [lamp1, lamp2, gyro], booms: booms, blocs: blocs, police: pc };
   };
   BUILD.hardBlock = function (b, g, T) {
     // deux rangées de blocs béton sur toute la largeur, clôture Heras derrière, fourgon de police : aucun véhicule ne passe
@@ -8309,7 +8385,7 @@ button:focus-visible,input:focus-visible{outline:3px solid var(--lime);outline-o
   };
   // entrée « grand festival » (repère local : x le long de la clôture, z vers l'extérieur ; d = distance depuis la clôture)
   // dehors : pré-filtrage, serpentin, tentes de fouille hommes/femmes ; sous l'arche, contrôle des billets ; caisses, bracelets, panneaux, police
-  function entryKinds(b, lanes) { var sep = b.sep || {}, kinds = [], n = 0; for (var i = 0; i < lanes; i++) kinds.push("std"); if (sep.exit) kinds[n++] = "exit"; if (sep.vip) kinds[n++] = "vip"; if (sep.pmr) kinds[n++] = "pmr"; if (sep.press) kinds[n++] = "press"; return kinds; }
+  function entryKinds(b, lanes) { var sep = b.sep || {}, kinds = [], n = 0; for (var i = 0; i < lanes; i++) kinds.push("std"); if (sep.exit) kinds[n++] = "exit"; if (sep.vip) kinds[n++] = "vip"; if (sep.pmr) kinds[n++] = "pmr"; if (sep.press) kinds[n++] = "press"; if (sep.camp) kinds[n++] = "camp"; return kinds; }
   I.entryKinds = entryKinds;
   var forbidTex = null;
   function forbiddenTex() {
@@ -8344,7 +8420,7 @@ button:focus-visible,input:focus-visible{outline:3px solid var(--lime);outline-o
     for (var k = 0; k <= lanes; k++) { var xa = -SW / 2 + k * LW; box(0.05, 0.9, 2.6, alu, xa, 0.45, L(0.2), g, false); }
     var nStd = kinds.filter(function (q) { return q === "std"; }).length, stdSeen = 0;
     for (var i = 0; i < lanes; i++) {
-      var kd = kinds[i], x = ax(i), sx = { lane: i, kind: kd, x: x }, txt = kd === "exit" ? "SORTIE" : kd === "vip" ? "VIP" : kd === "pmr" ? "PMR" : kd === "press" ? "PRESSE" : null;
+      var kd = kinds[i], x = ax(i), sx = { lane: i, kind: kd, x: x }, txt = kd === "exit" ? "SORTIE" : kd === "vip" ? "VIP" : kd === "pmr" ? "PMR" : kd === "press" ? "PRESSE" : kd === "camp" ? "CAMPEURS" : null;
       if (txt) signPanel(g, [{ t: txt, c: kd === "exit" ? "#3CCB6C" : kd === "vip" ? "#C9A227" : kd === "pmr" ? "#4DC3FF" : "#B79BFF", s: 26 }], LW - 0.25, 0.42, x, AH - 1.5, L(0.7), { bg: "#0a0a0d" });
       if (kd !== "exit") {
         // borne de scan (écran vert/rouge) et tripode
@@ -8365,21 +8441,26 @@ button:focus-visible,input:focus-visible{outline:3px solid var(--lime);outline-o
     var vb = []; for (var k2 = 0; k2 <= lanes; k2++) { var xb = -SW / 2 + k2 * LW; vb.push([[xb, L(1.4)], [xb, L(6.5)]]); }
     vb.forEach(function (pts) { g.add(I.barrierLine(pts)); });
     // serpentin (ou couloirs droits) et pré-filtrage
-    var Q = Sim.queueLayout(b, G, kinds); Q.bars.forEach(function (seg) { g.add(I.barrierLine(seg.map(function (p) { return [p[0], L(p[1])]; }))); });
-    var preW = G.half - 1.2; signPanel(g, [{ t: "PRÉ-FILTRAGE", c: "#111", s: 26 }, { t: "billet prêt · sacs ouverts", c: "#333", s: 18 }], 3, 0.9, Q.tail[0], 2.2, L(E.pre + 0.6), { bg: "#FFD23A" }); cyl(0.05, 0.05, 1.8, alu, Q.tail[0], 0.9, L(E.pre + 0.6), g, 6);
-    [-1, 1].forEach(function (s) { staffFig(g, Q.tail[0] + s * 1.3, L(E.pre + 0.4), 0xE8E36A, 0, 0); });
+    var Q = Sim.queueLayout(b, G, kinds), serp = []; Q.bars.forEach(function (seg) { var bl = I.barrierLine(seg.map(function (p) { return [p[0], L(p[1])]; })); g.add(bl); serp.push(bl); });
+    var preG = new THREE.Group(); g.add(preG); serp.push(preG); signPanel(preG, [{ t: "PRÉ-FILTRAGE", c: "#111", s: 26 }, { t: "billet prêt · sacs ouverts", c: "#333", s: 18 }], 3, 0.9, Q.tail[0], 2.2, L(E.pre + 0.6), { bg: "#FFD23A" }); cyl(0.05, 0.05, 1.8, alu, Q.tail[0], 0.9, L(E.pre + 0.6), preG, 6);
+    [-1, 1].forEach(function (s) { staffFig(preG, Q.tail[0] + s * 1.3, L(E.pre + 0.4), 0xE8E36A, 0, 0); });
+    // fin de journée : barrières démontées empilées sur le côté, agents qui démontent, panneaux SORTIE lumineux
+    var outG = new THREE.Group(); outG.visible = false; g.add(outG); var pileX = -Q.side * (SW / 2 + 3.2);
+    for (var pk = 0; pk < 3; pk++) for (var ph = 0; ph < 6; ph++) box(2.2, 0.08, 0.9, std(0xb8bcc4, 0, 0, 0.35), pileX, 0.1 + ph * 0.1, L(10 + pk * 2.6), outG, false);
+    var carriers = []; for (var cr = 0; cr < 3; cr++) { var cg = new THREE.Group(); outG.add(cg); staffFig(cg, 0, 0, 0xE8E36A, Math.PI / 2, 0); box(2.2, 1.0, 0.06, std(0xb8bcc4, 0, 0, 0.35), 0.3, 1.0, 0.4, cg, false); carriers.push(cg); }
+    var outSign = []; [-1, 1].forEach(function (s) { var sp = signPanel(outG, [{ t: "SORTIE", c: "#fff", s: 34 }, { t: "navettes · parkings · ville", c: "#fff", s: 16 }], 3, 1.1, s * (SW / 2 - 1.5), 3.4, L(-1.2), { bg: "#1f9d4a" }, Math.PI); outSign.push(sp); });
     // panneaux « objets interdits », bacs de confiscation
     [-1, 1].forEach(function (s) { var bx = s * (SW / 2 + 2.6); var pnl = new THREE.Mesh(new THREE.PlaneGeometry(2.2, 1.65), new THREE.MeshBasicMaterial({ map: forbiddenTex() })); pnl.position.set(bx, 1.75, L(9.2)); g.add(pnl); box(2.3, 1.75, 0.06, dark, bx, 1.75, L(9.17), g, false); cyl(0.05, 0.05, 1.0, alu, bx - 0.9, 0.5, L(9.15), g, 4); cyl(0.05, 0.05, 1.0, alu, bx + 0.9, 0.5, L(9.15), g, 4);
       var bin = cyl(0.45, 0.4, 1.05, std(0x55595f), s * (SW / 2 + 1.2), 0.52, L(4.4), g, 12); signPanel(g, [{ t: "CONFISCATION", c: "#111", s: 20 }], 1.0, 0.25, s * (SW / 2 + 1.2), 0.75, L(4.86), { bg: "#FFD23A" }); });
     // caisses (à gauche) et échange des bracelets (à droite), au bord du parvis
     var booths = [], nb = Math.min(3, b.box || 0), nbr = 0;
-    for (var c = 0; c < nb; c++) { var bxp = Q.boothX(-1, c), bg = new THREE.Group(); bg.position.set(bxp, 0, L(E.pre + 0.6)); g.add(bg); box(2.0, 2.4, 1.6, std(0xd8d2c5, 0, 0, 0.7), 0, 1.2, 0, bg); box(1.4, 0.7, 0.04, own(0x9fd8ff, 0x335577, 0.3, 0.1), 0, 1.5, 0.82, bg, false); box(2.2, 0.12, 2.0, std(0x2b4a8a), 0, 2.46, 0.1, bg, false); signPanel(bg, [{ t: "BILLETTERIE", c: "#111", s: 22 }], 1.8, 0.38, 0, 2.75, 0.85, { bg: "#ECE8DC" }); booths.push(staffFig(bg, 0, 0.1, 0xECE8DC, 0, 0)); }
+    for (var c = 0; c < nb; c++) { var bxp = Q.boothX(Q.side, c), bg = new THREE.Group(); bg.position.set(bxp, 0, L(E.pre + 0.6)); g.add(bg); box(2.0, 2.4, 1.6, std(0xd8d2c5, 0, 0, 0.7), 0, 1.2, 0, bg); box(1.4, 0.7, 0.04, own(0x9fd8ff, 0x335577, 0.3, 0.1), 0, 1.5, 0.82, bg, false); box(2.2, 0.12, 2.0, std(0x2b4a8a), 0, 2.46, 0.1, bg, false); signPanel(bg, [{ t: "BILLETTERIE", c: "#111", s: 22 }], 1.8, 0.38, 0, 2.75, 0.85, { bg: "#ECE8DC" }); booths.push(staffFig(bg, 0, 0.1, 0xECE8DC, 0, 0)); }
     for (var c2 = 0; c2 < nbr; c2++) { var bxq = Q.boothX(1, c2), bg2 = new THREE.Group(); bg2.position.set(bxq, 0, L(E.pre + 0.6)); g.add(bg2); box(2.0, 0.95, 0.8, std(0x2b2d36), 0, 0.48, 0, bg2); box(2.4, 0.1, 2.2, own(0x4DC3FF, 0, 0, 0.7), 0, 2.5, -0.2, bg2); [-1, 1].forEach(function (s) { cyl(0.05, 0.05, 2.5, alu, s * 1.1, 1.25, -1.2, bg2, 4); cyl(0.05, 0.05, 2.5, alu, s * 1.1, 1.25, 0.8, bg2, 4); }); signPanel(bg2, [{ t: "BRACELETS", c: "#fff", s: 22 }], 1.9, 0.38, 0, 2.8, 0.9, { bg: "#2a7fb8" }); booths.push(staffFig(bg2, -0.5, -0.7, 0x4DC3FF, 0, 0)); booths.push(staffFig(bg2, 0.5, -0.7, 0x4DC3FF, 0, 0)); }
     // présence police à côté de la grande entrée
-    if (lanes >= 8) { var pv = new THREE.Group(); pv.position.set(SW / 2 + 4.6, 0, L(14.5)); g.add(pv); box(1.9, 1.9, 4.6, std(0x1e3a8a, 0, 0, 0.4), 0, 1.15, 0, pv); box(1.92, 0.35, 4.62, std(0xf3f1ea), 0, 1.0, 0, pv, false); box(1.6, 0.6, 2.2, own(0x1a2430, 0x203040, 0.3, 0.1), 0, 1.75, 0.6, pv, false); box(0.9, 0.18, 0.3, own(0x3b82ff, 0x3b82ff, 0.8), 0, 2.2, 0.8, pv, false); [[-1, 1], [1, 1], [-1, -1], [1, -1]].forEach(function (w) { var wh = cyl(0.38, 0.38, 0.3, std(0x111111), w[0] * 0.95, 0.38, w[1] * 1.5, pv, 10); wh.rotation.z = Math.PI / 2; }); staffFig(pv, -1.6, 1.4, 0x1e3a8a, Math.PI / 2, 0); staffFig(pv, -1.6, -0.2, 0x1e3a8a, Math.PI / 2, 0); }
+    if (lanes >= 8) { var pv = new THREE.Group(); pv.position.set(-Q.side * (SW / 2 + 4.6), 0, L(14.5)); g.add(pv); box(1.9, 1.9, 4.6, std(0x1e3a8a, 0, 0, 0.4), 0, 1.15, 0, pv); box(1.92, 0.35, 4.62, std(0xf3f1ea), 0, 1.0, 0, pv, false); box(1.6, 0.6, 2.2, own(0x1a2430, 0x203040, 0.3, 0.1), 0, 1.75, 0.6, pv, false); box(0.9, 0.18, 0.3, own(0x3b82ff, 0x3b82ff, 0.8), 0, 2.2, 0.8, pv, false); [[-1, 1], [1, 1], [-1, -1], [1, -1]].forEach(function (w) { var wh = cyl(0.38, 0.38, 0.3, std(0x111111), w[0] * 0.95, 0.38, w[1] * 1.5, pv, 10); wh.rotation.z = Math.PI / 2; }); staffFig(pv, -1.6, 1.4, 0x1e3a8a, Math.PI / 2, 0); staffFig(pv, -1.6, -0.2, 0x1e3a8a, Math.PI / 2, 0); }
     // éclairage de nuit : projecteur au-dessus de la fouille
     var flood = new THREE.PointLight(0xfff0d8, 0, Math.max(22, SW * 1.1), 1.6); flood.position.set(0, 6, L(4)); g.add(flood);
-    return { lanes: lights, kinds: kinds, staff: staff, booths: booths, arch: arch, flood: flood, LW: LW };
+    return { lanes: lights, kinds: kinds, staff: staff, booths: booths, arch: arch, flood: flood, LW: LW, serp: serp, outG: outG, carriers: carriers, Q: Q, L0: L(0), SW: SW };
   }
   // ================================================================ bâtiments réalistes (maquette) : scènes, chapiteau, barnums, bars, services, logistique
   var TEXC = {};
@@ -8412,9 +8493,9 @@ button:focus-visible,input:focus-visible{outline:3px solid var(--lime);outline-o
     box(w - 1, h - deckH - 1, 0.2, black, 0, deckH + (h - deckH - 1) / 2, -d / 2 + 0.3, g);
     var sc = document.createElement("canvas"); sc.width = 384; sc.height = 160; var stex = new THREE.CanvasTexture(sc), scrW = w * 0.62, scrH = Math.min((h - deckH) * 0.62, scrW * 0.42), scr = new THREE.Mesh(new THREE.PlaneGeometry(scrW, scrH), new THREE.MeshBasicMaterial({ map: stex, toneMapped: false })); scr.position.set(0, deckH + 0.6 + scrH / 2 + (h - deckH - scrH) * 0.25, -d / 2 + 0.45); g.add(scr); box(scrW + 0.3, scrH + 0.3, 0.15, black, 0, scr.position.y, -d / 2 + 0.36, g, false);
     // ailes : échafaudage, line arrays suspendus en J, écrans latéraux
-    var side = [], wingX = w / 2 + (small ? 1.2 : 2);
+    var arrays = [], side = [], wingX = w / 2 + (small ? 1.2 : 2);
     [-1, 1].forEach(function (sx) { truss(g, sx * wingX, 0, d / 2 - 1, h + 0.5, steel); box(1.8, 0.4, 0.5, steel, sx * (wingX - 0.6), h + 0.2, d / 2 - 1, g, false);
-      for (var k = 0; k < (small ? 5 : 9); k++) { var la = box(1.2, 0.36, 0.9, std(0x101115, 0, 0, 0.6), sx * (wingX - 0.6), h - 0.4 - k * 0.38, d / 2 - 0.7 + k * 0.04, g, false); la.rotation.x = 0.03 * k * k * 0.1 + 0.02 * k; }
+      for (var k = 0; k < (small ? 5 : 9); k++) { var la = box(1.2, 0.36, 0.9, std(0x101115, 0, 0, 0.6), sx * (wingX - 0.6), h - 0.4 - k * 0.38, d / 2 - 0.7 + k * 0.04, g, false); la.rotation.x = 0.03 * k * k * 0.1 + 0.02 * k; la.userData.y0 = la.position.y; arrays.push(la); }
       if (!small && !opt.noRoof) { var sg = document.createElement("canvas"); sg.width = 128; sg.height = 176; var st2 = new THREE.CanvasTexture(sg), sm = new THREE.Mesh(new THREE.PlaneGeometry(3.8, 5.2), new THREE.MeshBasicMaterial({ map: st2, toneMapped: false })); sm.position.set(sx * (wingX + 3), h * 0.62, d / 2 - 0.6); g.add(sm); box(4.1, 5.5, 0.3, black, sx * (wingX + 3), h * 0.62, d / 2 - 0.8, g); truss(g, sx * (wingX + 3), 0, d / 2 - 1.1, h * 0.62 - 2.7, steel); side.push({ c: sg, t: st2 }); }
       for (var k2 = 0; k2 < (small ? 2 : 3); k2++) box(1.1, 0.95, 1.0, std(0x121318), sx * (w / 4 + k2 * 1.2), 0.48, d / 2 + 0.7, g); });
     // projecteurs asservis sur la poutre avant et faisceaux
@@ -8444,9 +8525,18 @@ button:focus-visible,input:focus-visible{outline:3px solid var(--lime);outline-o
     if (!small && !opt.noFoh) { var zdep = b.k === "stageL" ? 26 : 18, fz = d / 2 + 3.6 + zdep * 0.6; barnum(g, 0, fz, 4, 3, 2.4, 0x1b1d24); box(3.4, 0.9, 1.0, std(0x22242b), 0, 0.45, fz - 0.3, g, false); box(3.2, 0.05, 0.8, own(0x4DC3FF, 0x4DC3FF, 0.5), 0, 0.92, fz - 0.3, g, false); staffFig(g, -0.6, fz + 0.5, 0x1b1b1e, Math.PI, 0); staffFig(g, 0.6, fz + 0.5, 0x1b1b1e, Math.PI, 0); g.add(I.barrierLine([[-2.4, fz - 1.8], [-2.4, fz + 1.8], [2.4, fz + 1.8], [2.4, fz - 1.8], [-2.4, fz - 1.8]])); }
     // câble vers le groupe électrogène le plus proche
     var ev = I.curEv; if (ev) { var gb = null, gd = 1e9; ev.layout.forEach(function (x) { if (x.k !== "generator") return; var dd = Math.hypot(x.x - b.x, x.z - b.z); if (dd < gd && dd < D.BT.generator.gen) { gd = dd; gb = x; } }); if (gb) { var r = (b.rot || 0) * Math.PI / 2, dx = gb.x - b.x, dz = gb.z - b.z, lx = dx * Math.cos(r) - dz * Math.sin(r), lz = dx * Math.sin(r) + dz * Math.cos(r), L2 = Math.hypot(lx, lz - (-d / 2)), cab = box(0.12, 0.06, L2, std(0x111111), lx / 2, 0.04, (lz - d / 2) / 2, g, false); cab.rotation.y = Math.atan2(lx, lz + d / 2); } }
-    return { screen: sc, stex: stex, side: side, beams: beams, lasers: lasers, light: pl, smoke: smoke, roof: roof, pyro: pyro, band: band, dj: dj, musicians: musicians };
+    return { screen: sc, stex: stex, side: side, beams: beams, lasers: lasers, light: pl, smoke: smoke, roof: roof, pyro: pyro, band: band, dj: dj, musicians: musicians, arrays: arrays, sw: w, sd: d, sh: h };
   }
   BUILD.stageL = BUILD.stageM = BUILD.stageS = function (b, g, T) { return stageBuilder2(b, g, T); };
+  // accueil camping : trois comptoirs sous barnums (pass camping, bracelets, fouille), serpentin devant, côté route ; sortie vers le camping derrière
+  BUILD.campGate = function (b, g, T) {
+    var w = T.w, d = T.d, zc = -d / 2 + 2.2; plane(w, d, own(0x9a8f78, 0, 0, 0.95), 0, 0.04, 0, g);
+    [["PASS CAMPING", -6], ["BRACELETS", 0], ["FOUILLE", 6]].forEach(function (sx) { barnum(g, sx[1], zc, 5, 3.6, 2.4, 0x3a8d5d, 0xe8e4da); box(4.2, 0.9, 0.7, std(0xe8e4da, 0, 0, 0.6), sx[1], 0.45, zc + 1.0, g); staffFig(g, sx[1] - 1, zc - 0.1, 0x3a8d5d, 0, 0); staffFig(g, sx[1] + 1, zc - 0.1, 0x3a8d5d, 0, 0); signPanel(g, [{ t: sx[0], c: "#fff", s: 22 }], 3.6, 0.5, sx[1], 2.1, zc + 1.82, { bg: "#3a8d5d" }); });
+    var lines = []; for (var r = 0; r <= 5; r++) { var z = -0.9 + r * 1.35; lines.push(r % 2 ? [[-8.4, z], [7.0, z]] : [[-7.0, z], [8.4, z]]); } lines.push([[-8.4, -0.9], [-8.4, 5.85]]); lines.push([[8.4, -0.9], [8.4, 5.85]]);
+    lines.forEach(function (l) { g.add(I.barrierLine(l)); });
+    [-3.2, 3.2].forEach(function (x) { cyl(0.08, 0.08, 4.2, std(0x666a72), x, 2.1, d / 2 - 0.3, g, 6); }); signPanel(g, [{ t: "ACCUEIL CAMPING", c: "#fff", s: 30 }, { t: "pass · bracelet · fouille", c: "#fff", s: 16 }], 6, 1.3, 0, 3.6, d / 2 - 0.25, { bg: "#3a8d5d" });
+    return {};
+  };
   // chapiteau : deux mâts, toile rayée tendue, murs, haubans et piquets ; scène à l'intérieur
   BUILD.stageT = function (b, g, T) {
     var w = T.w, d = T.d, H = 11, wall = 3.2;
@@ -8530,7 +8620,7 @@ button:focus-visible,input:focus-visible{outline:3px solid var(--lime);outline-o
   BUILD.stock = function (b, g, T) { container(g, -T.w / 4, 0, -T.d * 0.22, T.w / 2 - 0.3, 0x2a5a8a, 0); container(g, T.w / 4, 0, -T.d * 0.22, T.w / 2 - 0.3, 0x8a3a2a, 0); container(g, -T.w / 4, 2.36, -T.d * 0.22, T.w / 2 - 0.3, 0x3a6a3a, 0); var crates = []; for (var i = 0; i < 12; i++) crates.push(box(0.9, 0.9, 0.9, std(i % 3 === 0 ? 0xFFB020 : i % 3 === 1 ? 0x4DC3FF : 0xE8E4DA), -T.w / 2 + 0.8 + (i % 6) * 1.3, 0.55 + Math.floor(i / 6) * 0.95, T.d / 2 - 1.2, g)); for (var p = 0; p < 6; p++) box(1.1, 0.12, 1.1, std(0x9a7a4a), -T.w / 2 + 0.8 + p * 1.3, 0.06, T.d / 2 - 1.2, g, false); var fork = new THREE.Group(); fork.position.set(T.w / 2 - 1.4, 0, T.d / 2 - 0.4); g.add(fork); box(1.2, 1.1, 2, std(0xE8C62A), 0, 0.75, 0, fork); box(1.1, 1.0, 0.1, std(0x222222), 0, 1.7, -0.6, fork, false); box(0.08, 2.4, 0.08, std(0x333333), -0.4, 1.2, 1.05, fork, false); box(0.08, 2.4, 0.08, std(0x333333), 0.4, 1.2, 1.05, fork, false); staffFig(g, T.w / 2 - 3, T.d / 2 - 0.2, 0xE8E36A, 0, 0); return { crates: crates }; };
   BUILD.generator = function (b, g, T) { var gm = own(0xd9b44a, 0, 0, 0.5, { metalness: 0.2 }); box(T.w, 2.1, T.d, gm, 0, 1.25, 0, g); box(T.w + 0.1, 0.2, T.d + 0.1, std(0x2a2b30), 0, 0.1, 0, g, false); for (var i = 0; i < 6; i++) box(0.04, 1.2, T.d * 0.6, std(0x6a5a2a), -T.w / 2 + 0.4 + i * 0.22, 1.3, 0, g, false); cyl(0.12, 0.12, 1.2, std(0x333333), T.w / 2 - 0.5, 2.9, 0, g, 6); var tank = cyl(0.55, 0.55, T.w * 0.7, std(0x3a3d44, 0, 0, 0.5), 0, 0.55, T.d / 2 + 0.7, g, 12); tank.rotation.z = Math.PI / 2; var spool = cyl(0.45, 0.45, 0.4, std(0x1a1a1a), -T.w / 2 - 0.6, 0.45, 0, g, 12); spool.rotation.x = Math.PI / 2; signPanel(g, [{ t: "⚡ DANGER", c: "#111", s: 18 }], 0.9, 0.3, -T.w / 4, 1.6, T.d / 2 + 0.02, { bg: "#FFD23A" }); var lamp = box(0.3, 0.3, 0.3, own(0x3CCB6C, 0x3CCB6C, 1), -T.w / 2 + 0.5, 2.45, T.d / 2 - 0.4, g, false); var sm = new THREE.Sprite(new THREE.SpriteMaterial({ map: I.smokeTex(), transparent: true, opacity: 0.25, depthWrite: false, color: 0x666666 })); sm.position.set(T.w / 2 - 0.5, 4, 0); sm.scale.setScalar(2); g.add(sm); return { lamp: lamp, smoke: sm }; };
   BUILD.backstage = function (b, g, T) { bungalow(g, -T.w / 4, -T.d * 0.15, T.w / 2 - 0.4, T.d * 0.5, 0x3a2f45); bungalow(g, T.w / 4, -T.d * 0.15, T.w / 2 - 0.4, T.d * 0.5, 0x3a2f45); barnum(g, 0, T.d * 0.3, 4, 2.6, 2.4, 0x1b1b1e); for (var i = 0; i < 2; i++) { cyl(0.35, 0.35, 0.04, std(0xe8e4da), -1 + i * 2, 0.75, T.d * 0.3, g, 12); cyl(0.05, 0.05, 0.75, std(0x2b2d33), -1 + i * 2, 0.37, T.d * 0.3, g, 6); } signPanel(g, [{ t: "LOGES ARTISTES", c: "#B79BFF" }], T.w * 0.5, 0.5, 0, 3.3, -T.d * 0.15 + T.d * 0.25, { bg: "#0a0a0d" }); return {}; };
-  D.ENTRYK.forEach(function (k) { BUILD[k] = entryBuilder; });
+  D.ENTRYK.forEach(function (k) { BUILD[k] = entryBuilder; }); BUILD.entryCamp = entryBuilder;
 
   // ================================================================ textures partagées
   var smokeT = null; I.smokeTex = function () { if (smokeT) return smokeT; var c = document.createElement("canvas"); c.width = c.height = 64; var x = c.getContext("2d"), g = x.createRadialGradient(32, 32, 2, 32, 32, 32); g.addColorStop(0, "rgba(255,255,255,.7)"); g.addColorStop(1, "rgba(255,255,255,0)"); x.fillStyle = g; x.fillRect(0, 0, 64, 64); smokeT = new THREE.CanvasTexture(c); return smokeT; };
@@ -8649,6 +8739,9 @@ button:focus-visible,input:focus-visible{outline:3px solid var(--lime);outline-o
   }
   function drawStageScreen(P, t, hot, off, S, id, set, ev) {
     var x = P.screen.getContext("2d"), w = P.screen.width, h = P.screen.height; x.fillStyle = "#05060a"; x.fillRect(0, 0, w, h);
+    // fin de soirée : les écrans orientent le public et donnent l'attente navettes
+    if (S && S.closing && !S.evac && !set) { x.textAlign = "center"; x.fillStyle = "#ECE8DC"; x.font = "800 34px " + I.FONT; x.fillText("MERCI ET BON RETOUR !", w / 2, 44); var qs = D.LINEK.reduce(function (a, k) { return a + (S.lines[k] ? S.lines[k].qS : 0); }, 0), capH = D.LINEK.reduce(function (a, k) { return a + (S.ev.tr.lines[k].on ? Sim.lineCapH(S.ev, k) : 0); }, 0), wt = capH > 0 ? Math.round(qs / capH * 60) : 0;
+      x.font = "700 24px " + I.FONT; x.fillStyle = "#4DC3FF"; x.fillText("NAVETTES → sortie principale · attente ≈ " + wt + " min", w / 2, 92); x.fillStyle = "#FFB020"; x.fillText("PARKINGS ← → suivez les stewards", w / 2, 128); P.stex.needsUpdate = true; if (P.side) P.side.forEach(function (sd) { var c2 = sd.c.getContext("2d"); c2.drawImage(P.screen, w * 0.3, 0, w * 0.4, h, 0, 0, sd.c.width, sd.c.height); sd.t.needsUpdate = true; }); return; }
     if (off) { x.fillStyle = "#1a1b22"; x.fillRect(0, 0, w, h); x.fillStyle = "#555"; x.font = "800 30px " + I.FONT; x.textAlign = "center"; x.fillText("PAUSE TECHNIQUE", w / 2, h / 2 + 10); P.stex.needsUpdate = true; return; }
     if (S && S.surprise && S.surprise.s === id && S.surprise.until > S.t) { x.fillStyle = "#F0457A"; x.font = "800 44px " + I.FONT; x.textAlign = "center"; x.fillText("ARTISTE SURPRISE", w / 2, h / 2 + 14); P.stex.needsUpdate = true; return; }
     var col = ["#ECE8DC", "#4DC3FF", "#F0457A", "#FFB020", "#B79BFF"][Math.abs(Math.floor(t / 6)) % 5];
@@ -8732,8 +8825,10 @@ button:focus-visible,input:focus-visible{outline:3px solid var(--lime);outline-o
       if (T.bin && S && S.bins[id]) { var bn = S.bins[id]; P.fill.scale.y = Math.max(0.01, bn.level / 100); P.fill.position.y = 0.1 + bn.level / 100 * 0.6 + (bn.level >= 100 ? 0.25 : 0); P.fillMat.color.setHex(bn.level > 85 ? 0xd4a24a : 0x9aa0aa); al = bn.level >= 100 && bn.job == null ? "DÉBORDE" : null; alC = "#FF3D52"; }
       if (T.entry && P.arch) { P.arch.forEach(function (m) { m.emissiveIntensity = dl < 0.6 ? 1.6 : 0.35; }); if (P.flood) P.flood.intensity = dl < 0.6 ? 1.3 : 0; }
       if (T.entry && S && S.entries[id]) { var en = S.entries[id], ri = 0, li = 0;
-        P.staff.forEach(function (sf) { var kd = sf.kind; if (kd === "exit") return; var open = !en.closed && !S.evac && !S.closing && (kd !== "std" || ri++ < en.lanes), m = P.lanes[li++]; if (m) { var lc = S.evac ? 0x3CCB6C : open ? (kd === "std" ? 0x3CCB6C : 0xC9A227) : 0xFF3D52; m.color.setHex(lc); m.emissive.setHex(lc); } if (sf.palp) sf.palp.visible = open; if (sf.scan) sf.scan.visible = open && !!ev.price; });
-        var wq = F.entryWait(id); if (en.Q > 40 || en.closed) { al = en.closed ? "FERMÉE · " + Math.round(en.Q) + " dehors" : Math.round(en.Q) + " en file · " + (wq >= 999 ? "bloquée" : Math.round(wq) + " min"); alC = en.closed || wq > 20 ? "#FF3D52" : wq > 10 ? "#FFB020" : "#3CCB6C"; }
+        var exF = en.exitT != null ? Math.min(1, (S.t - en.exitT) / 20) : 0;
+        if (P.serp) { var ns = P.serp.length, gone = Math.floor(ns * exF); P.serp.forEach(function (o, si) { o.visible = si >= gone; }); P.outG.visible = exF > 0; if (exF > 0 && exF < 1) P.carriers.forEach(function (cg, ci) { var u = (clock * 0.12 + ci / 3) % 1, a = u < 0.5 ? u * 2 : 2 - u * 2; cg.visible = true; cg.position.set(-P.Q.side * (P.SW / 2 + 3.2) * a + (1 - a) * P.Q.side * 2, 0, P.L0 + 10 + ci * 2.6); }); else P.carriers.forEach(function (cg) { cg.visible = false; }); }
+        P.staff.forEach(function (sf) { var kd = sf.kind; if (kd === "exit") return; var open = !en.closed && !S.evac && !S.closing && exF === 0 && (kd !== "std" || ri++ < en.lanes), m = P.lanes[li++]; if (m) { var lc = S.evac || exF > 0 ? 0x3CCB6C : open ? (kd === "std" ? 0x3CCB6C : 0xC9A227) : 0xFF3D52; m.color.setHex(lc); m.emissive.setHex(lc); } if (sf.palp) sf.palp.visible = open; if (sf.scan) sf.scan.visible = open && !!ev.price; });
+        var wq = F.entryWait(id); if (exF > 0) { al = exF < 1 ? "DÉMONTAGE · SORTIE" : "SORTIE"; alC = "#3CCB6C"; } else if (en.Q > 40 || en.closed) { al = en.closed ? "FERMÉE · " + Math.round(en.Q) + " dehors" : Math.round(en.Q) + " en file · " + (wq >= 999 ? "bloquée" : Math.round(wq) + " min"); alC = en.closed || wq > 20 ? "#FF3D52" : wq > 10 ? "#FFB020" : "#3CCB6C"; }
         blockAt(e, en.closed && !S.evac, ev); }
       if (T.exit && P.leafs) { var open2 = S ? S.exits[id] && S.exits[id].open : false; P.leafs.forEach(function (lf) { var tgt = open2 ? lf.s * -1.4 : 0; lf.p.rotation.y += (tgt - lf.p.rotation.y) * Math.min(1, dt * 3); }); P.sign.material.emissiveIntensity = open2 ? 1.2 + 0.5 * Math.sin(clock * 6) : 0.6; if (S && S.evac && S.evac.doors && S.evac.doors[id] && S.evac.doors[id].q > 50) { al = Math.round(S.evac.doors[id].q) + " à la sortie"; alC = S.evac.doors[id].q / S.evac.doors[id].rate > 5 ? "#FF3D52" : "#FFB020"; } else if (open2) { al = "OUVERTE"; alC = "#3CCB6C"; } }
       if (T.gen && S && S.gens[id]) { var gg2 = S.gens[id]; P.lamp.material.color.setHex(!gg2.ok ? 0xFF3D52 : gg2.warn ? 0xFFB020 : 0x3CCB6C); P.lamp.material.emissive.setHex(!gg2.ok ? 0xFF3D52 : gg2.warn ? 0xFFB020 : 0x3CCB6C); P.smoke.material.opacity = gg2.ok ? 0.15 + gg2.load * 0.2 : 0; P.smoke.position.y = 3.6 + ((clock * 0.6) % 2); if (!gg2.ok) { al = "EN PANNE · " + (gg2.cause || ""); alC = "#FF3D52"; } else if (gg2.warn) { al = gg2.fuel < 60 ? "GASOIL " + Math.round(gg2.fuel) + " L" : "SURCHAUFFE " + Math.round(gg2.load * 100) + " %"; alC = "#FFB020"; } }
@@ -8956,7 +9051,7 @@ button:focus-visible,input:focus-visible{outline:3px solid var(--lime);outline-o
       if (seenWalk[it.id] != null) { var add = Math.floor(it.n / WPER) - seenWalk[it.id]; if (add <= 0) return; seenWalk[it.id] += add; launch(it, add); return; }
       var n = Math.floor(it.n / WPER + Math.random()); seenWalk[it.id] = n; launch(it, n);
     });
-    function launch(it, n) { for (var k = 0; k < n; k++) { var w = freeWalker(); if (w < 0) return; var p = wpeople[w]; p.vis = true; p.x = it.sx + rnd(-1.5, 1.5); p.z = it.sz + rnd(-1.2, 1.2); p.tx = it.tx + rnd(-2, 2); p.tz = it.tz + rnd(-1, 1); p.t0 = S.t + k * 0.05; p.path = crossPath(p.x, p.z, p.tx, p.tz); p.item = it.id; p.kind = it.kind; } }
+    function launch(it, n) { for (var k = 0; k < n; k++) { var w = freeWalker(); if (w < 0) return; var p = wpeople[w]; p.vis = true; p.x = it.sx + rnd(-1.5, 1.5); p.z = it.sz + rnd(-1.2, 1.2); p.tx = it.tx + rnd(-2, 2); p.tz = it.tz + rnd(-1, 1); if (it.kind === "bus" && it.dir === "out" && I.busTail) { p.tx = I.busTail[0] + rnd(-1, 1); p.tz = I.busTail[1] + rnd(-1, 1); } p.t0 = S.t + k * 0.05; p.path = crossPath(p.x, p.z, p.tx, p.tz); p.item = it.id; p.kind = it.kind; } }
   }
   function freeWalker() { for (var i = 0; i < NW; i++) if (!wpeople[i].vis) return i; return -1; }
   function spawnOutside(p, S) { var w = freeWalker(); if (w < 0) return; var q = wpeople[w], asm = S.ev.layout.filter(function (b) { return b.k === "assembly"; }); q.vis = true; q.x = p.x; q.z = p.z + 1; var tgt = asm.length ? asm[Math.floor(Math.random() * asm.length)] : null, V = Sim.venue(S.ev); q.tx = tgt ? tgt.x + rnd(-6, 6) : p.x + rnd(-10, 10); q.tz = tgt ? tgt.z + rnd(-4, 4) : V.D / 2 + 12 + rnd(0, 8); q.path = Sim.path(q.x, q.z, q.tx, q.tz); q.t0 = S.t; q.kind = "evac"; q.stay = true; }
@@ -8995,6 +9090,38 @@ button:focus-visible,input:focus-visible{outline:3px solid var(--lime);outline-o
     qVer = I.layoutVer;
   }
   function along(path, dist) { var acc = 0; for (var i = 0; i < path.length - 1; i++) { var a = path[i], b = path[i + 1], L = Math.hypot(b[0] - a[0], b[1] - a[1]); if (acc + L >= dist) { var t = (dist - acc) / L; return [a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t, Math.atan2(a[0] - b[0], a[1] - b[1])]; } acc += L; } var l = path[path.length - 1], p = path[path.length - 2] || l; var ext = dist - acc; var dx = l[0] - p[0], dz = l[1] - p[1], dl = Math.hypot(dx, dz) || 1; return [l[0] + dx / dl * ext, l[1] + dz / dl * ext, Math.atan2(-dx, -dz)]; }
+  // file des navettes qui déborde de la gare routière : elle traverse au passage, serpente sur le parvis (serpentin de l'entrée démonté)
+  // et remonte dans le site par l'entrée ; stewards aux bâtons lumineux, agent « fin de file » qui suit la queue
+  var ovG = null, ovKey = "", ovPath = null, ovTail = null;
+  function overflowPath(ev, hubB, HG) {
+    var rz = Sim.roadZ(ev), c = Sim.F.nearestCross(HG.walkX); if (!c) return null; var ent = null, bd = 1e9;
+    Sim.entriesOf(ev).forEach(function (b) { if (D.BT[b.k].campOnly) return; var G = Sim.entryGeo(ev, b); if (G.n[1] <= 0) return; var d = Math.abs(b.x - c.x); if (d < bd) { bd = d; ent = b; } }); if (!ent) return null;
+    var G = Sim.entryGeo(ev, ent), E = Sim.ENTRY, Q = Sim.queueLayout(ent, G, I.entryKinds(ent, G.lanes)), a0 = Q.genL + 0.9, a1 = Q.genR - 0.9, pts = [[c.x, rz - 5.8], G.P(Q.tail[0], E.pre + 3.5)], rows = 0;
+    for (var d = E.pre + 1.5; d >= 8; d -= 1.45) { var r = rows++ % 2; pts.push(G.P(r ? a0 : a1, d)); pts.push(G.P(r ? a1 : a0, d)); }
+    var la = -G.SW / 2 + 0.5 * G.LW; pts.push(G.P(la, 6.8)); pts.push(G.P(la, -3)); var inP = G.P(la, -3), V = Sim.venue(ev);
+    for (var k = 1; k <= 6; k++) { var p = G.P(la + (k % 2 ? 2.6 : 0), -3 - k * 12); pts.push(p); }
+    return { pts: pts, ent: ent, G: G, Q: Q, cross: c, la: la, key: ent.id + ":" + c.x + ":" + I.layoutVer };
+  }
+  function drawBusOverflow(S, ev, hubB, HG, n, put) {
+    var show = n > 4 || (S.closing && S.busOver > 0); if (!show) { if (ovG) ovG.visible = false; I.busTail = null; return; }
+    var O = overflowPath(ev, hubB, HG); if (!O) return;
+    if (O.key !== ovKey) { ovKey = O.key; if (ovG) { I.overG.remove(ovG); I.disposeTree(ovG); } ovG = new THREE.Group(); I.overG.add(ovG); ovPath = O.pts;
+      // barrières du serpentin de la file navette (parvis), puis couloir dans le site
+      var G = O.G, Q = O.Q, E = Sim.ENTRY, lines = [], rows = 0; for (var d = E.pre + 2.2; d >= 7.3; d -= 1.45) { var r = rows++ % 2; lines.push(r ? [G.P(Q.genL + 2.2, d), G.P(Q.genR, d)] : [G.P(Q.genL, d), G.P(Q.genR - 2.2, d)]); }
+      lines.push([G.P(Q.genL, E.pre + 2.2), G.P(Q.genL, 7.3)]); lines.push([G.P(Q.genR, E.pre + 2.2), G.P(Q.genR, 7.3)]);
+      [-1, 1].forEach(function (sd) { lines.push([G.P(O.la + sd * 1.1, -2), G.P(O.la + sd * 1.1, -30)]); });
+      lines.forEach(function (l) { ovG.add(I.barrierLine(l, 0xd8dde4)); });
+      // panneaux lumineux d'orientation
+      var pn = G.P(O.la + 4, -6); I.signPanel(ovG, [{ t: "FILE NAVETTES", c: "#fff", s: 28 }, { t: "gare · centre-ville · relais", c: "#fff", s: 16 }], 3.4, 1.2, pn[0], 3.2, pn[1], { bg: "#2e6fd8", glow: true }, Math.atan2(G.n[0], G.n[1]) + Math.PI);
+      // stewards aux bâtons lumineux : au passage piéton, à l'entrée du serpentin, à l'entrée dans le site
+      ovG.userData.batons = [];
+      [[O.cross.x - 3.4, Sim.roadZ(ev) - 6.4], G.P(Q.tail[0] + 2.2, E.pre + 3.5), G.P(O.la + 2.2, -1), G.P(O.la - 2.2, -14)].forEach(function (p) { var sg = new THREE.Group(); sg.position.set(p[0], 0, p[1]); ovG.add(sg); I.staffFig(sg, 0, 0, 0xE8E36A, 0, 0); var bt = new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.05, 0.6, 6), new THREE.MeshBasicMaterial({ color: 0xff5a1a })); bt.position.set(0.38, 1.55, 0); sg.add(bt); ovG.userData.batons.push(bt); });
+      // agent « fin de file »
+      var tg = new THREE.Group(); ovG.add(tg); I.staffFig(tg, 0, 0, 0xE8E36A, 0, 0); I.signPanel(tg, [{ t: "FIN DE FILE", c: "#111", s: 26 }, { t: "NAVETTES", c: "#111", s: 22 }], 1.3, 0.8, 0, 2.6, 0.1, { bg: "#FFD23A" }); ovG.userData.tail = tg; }
+    ovG.visible = true; var bat = ovG.userData.batons || []; bat.forEach(function (b2, i) { b2.rotation.z = Math.sin(I.clock * 4 + i) * 0.8; });
+    var count = Math.max(0, Math.min(NQ - qn - 50, n)), gap = 0.62; put(ovPath, count, gap);
+    var tp = along(ovPath, count * gap + 1.2); ovG.userData.tail.position.set(tp[0], 0, tp[1]); ovG.userData.tail.rotation.y = tp[2]; I.busTail = [tp[0], tp[1]];
+  }
   function drawQueues(S, clock, dt) {
     if (qVer !== I.layoutVer) buildQueueGeom(S);
     qn = 0; var ev = S.ev; procT += (dt || 0) * Math.min(3, Math.max(0, W.speedMul || 0));
@@ -9002,14 +9129,14 @@ button:focus-visible,input:focus-visible{outline:3px solid var(--lime);outline-o
     Object.keys(qLines).forEach(function (id) {
       var e = S.entries[id], Lq = qLines[id]; if (!e) return; var G = Lq.G;
       var nm = Math.round(e.Q / PER); if (Lq.main.length === 1) put(Lq.main[0], nm); else { var per = Math.ceil(nm / Lq.main.length); Lq.main.forEach(function (pth, k) { put(pth, Math.max(0, Math.min(per, nm - per * k))); }); }
-      if (Lq.spec.vip) put(Lq.spec.vip, Math.round(e.vipQ / PER)); if (Lq.spec.pmr) put(Lq.spec.pmr, Math.round(e.pmrQ / PER)); if (Lq.spec.press) put(Lq.spec.press, Math.round(e.pressQ / PER));
+      if (Lq.spec.vip) put(Lq.spec.vip, Math.round(e.vipQ / PER)); if (Lq.spec.pmr) put(Lq.spec.pmr, Math.round(e.pmrQ / PER)); if (Lq.spec.press) put(Lq.spec.press, Math.round(e.pressQ / PER)); if (Lq.spec.camp) put(Lq.spec.camp, Math.round((e.campQ || 0) / PER));
       var nb = Math.round(e.boxQ / PER); Lq.box.forEach(function (pth) { put(pth, Math.ceil(nb / Math.max(1, Lq.box.length))); });
       var nr = Math.round(e.bracQ / PER); Lq.brac.forEach(function (pth) { put(pth, Math.ceil(nr / Math.max(1, Lq.brac.length))); });
       // passage animé : fouille sous la tente (bras écartés), scan du billet sous l'arche, puis entrée sur le site
       var closed = e.closed || S.evac || S.closing, ri = 0;
       Lq.lanes.forEach(function (ln) {
         if (ln.k === "exit") return; var open = !closed && (ln.k !== "std" || ri++ < e.lanes); if (!open) return;
-        var busy = ln.k === "std" ? e.Q > 1 || e.inRate > 0.5 : ln.k === "vip" ? e.vipQ > 0.5 : ln.k === "pmr" ? e.pmrQ > 0.5 : e.pressQ > 0.5; if (!busy) return;
+        var busy = ln.k === "std" ? e.Q > 1 || e.inRate > 0.5 : ln.k === "vip" ? e.vipQ > 0.5 : ln.k === "pmr" ? e.pmrQ > 0.5 : ln.k === "camp" ? (e.campQ || 0) > 0.5 : e.pressQ > 0.5; if (!busy) return;
         for (var j = 0; j < 2 && qn < NQ; j++) {
           var u = ((procT / 7) + ln.ph + j * 0.5) % 1, a = ln.a, d, arms = 0, mv = false, w;
           if (u < 0.15) { w = u / 0.15; d = 6.6 - 2.3 * w; a = ln.a + G.LW * 0.15 * w; mv = true; }
@@ -9026,12 +9153,15 @@ button:focus-visible,input:focus-visible{outline:3px solid var(--lime);outline-o
     // évacués aux points de rassemblement (ceux qui ne marchent plus)
     // gare routière : files de reprise en serpentin, passagers qui descendent et qui montent
     var hubB = Sim.hubOf(ev); if (hubB && S.lines) { var HG = Sim.hubGeo(ev, hubB), bays = {}; Sim.dropBays(ev).forEach(function (bb) { bays[bb.id] = bb; });
-      D.LINEK.forEach(function (k) { var ln = S.lines[k]; if (!ln) return; var path = I.hubSerp(ev, hubB, k); put(path, Math.round(Math.min(ln.qS, 2000) / 2.5), 0.62);
+      var overN = 0; D.LINEK.forEach(function (k) { var ln = S.lines[k]; if (!ln) return; var path = I.hubSerp(ev, hubB, k), capF = Math.floor((pathLen(path) + 3) / 0.62); overN += Math.max(0, ln.qS / 2.5 - capF); });
+      drawBusOverflow(S, ev, hubB, HG, Math.round(overN), put);
+      D.LINEK.forEach(function (k) { var ln = S.lines[k]; if (!ln) return; var path = I.hubSerp(ev, hubB, k); put(path, Math.round(ln.qS / 2.5), 0.62);
         ln.buses.forEach(function (bus) { var B = D.BUS[bus.type], Lb = B.len * 0.55;
           if (bus.st === "drop" && bus.unl > 0.5 && S.t >= bus.tStop) { var bay = bays[bus.bay]; if (!bay) return; var door = [bay.x + Lb * 0.3, bay.z - 1.4], edge = [door[0], (bay.hub ? HG.zPlat1 : bay.z - 3) - 1.2], quay = bay.hub ? [HG.walkX, HG.zPlat0 + 1.6] : [bay.x, bay.z - 4.5], ph = (procT * 1.2) % 1, m = Math.min(24, Math.ceil(bus.unl / 2.5)), path3 = [door, edge, quay];
             for (var i = 0; i < m && qn < NQ; i++) { var fr = (i / m + ph) % 1, pp = along(path3, fr * pathLen(path3)); pose(qpool, qn, pp[0] + Math.sin(i * 7.3) * 0.4, pp[1] + Math.cos(i * 3.1) * 0.3, pp[2], Math.sin(procT * 9 + i) * 0.6, 0, Math.abs(Math.sin(procT * 9 + i)) * 0.04); qn++; } }
           if (bus.st === "board" && ln.qS > 0.5 && S.t >= bus.tStop) { var pk = HG.pick[k], sas = HG.sas(k), px2 = pk[0] - (bus.slot || 0) * (Lb + 1.2), door2 = [px2 + Lb * 0.3, HG.zBay - 1.4], path4 = [sas, [door2[0], HG.zPlat1 - 0.2], door2], ph2 = (procT * 1.1) % 1;
             for (var j = 0; j < 9 && qn < NQ; j++) { var f2 = (j / 9 + ph2) % 1, p4 = along(path4, f2 * pathLen(path4)); pose(qpool, qn, p4[0], p4[1], p4[2], Math.sin(procT * 9 + j) * 0.6, 0, 0); qn++; } } }); }); }
+    if (S.cg && S.cg.Q > 0.5) ev.layout.forEach(function (b) { if (b.k !== "campGate") return; var n = Math.min(160, Math.round(S.cg.Q / WPER)), Td = D.BT.campGate.d, rows = 5, perRow = 18; for (var i = 0; i < n && qn < NQ; i++) { var row = Math.floor(i / perRow), col = i % perRow, lx = row % 2 ? 7.2 - col * 0.8 : -7.2 + col * 0.8, lz = -0.2 + row * 1.35; if (row >= rows) { lx = 6 + (i % 3) * 0.7; lz = Td / 2 + 1 + Math.floor((i - rows * perRow) / 3) * 0.7; } var p = Sim.localToWorld(b, lx, lz); pose(qpool, qn, p[0], p[1], (b.rot || 0) * Math.PI / 2 + Math.PI + (row < rows ? (row % 2 ? -Math.PI / 2 : Math.PI / 2) : 0), 0, 0, 0); qn++; } });
     if (S.evac && S.evac.kind === "general") { var asm = ev.layout.filter(function (b) { return b.k === "assembly"; }), outN = Math.round(Math.min(S.pop.outside || 0, 6000) / PER / 2); asm.forEach(function (a, k) { var f = Sim.fp(a), n = Math.ceil(outN / Math.max(1, asm.length)); for (var i = 0; i < n && qn < NQ; i++) { pose(qpool, qn, f.x0 + 1 + (i % 20) * ((f.x1 - f.x0 - 2) / 20), f.z0 + 1 + Math.floor(i / 20) * 0.75, Math.PI, 0, 0, 0); qn++; } }); }
     for (var k = qn; k < (qpool.lastN || NQ); k++) hide(qpool, k); qpool.lastN = qn; flush(qpool);
   }
@@ -9166,6 +9296,7 @@ button:focus-visible,input:focus-visible{outline:3px solid var(--lime);outline-o
       if (cars.length >= CARMAX) lotLast[id] = n; });
     // avance : vitesse selon la voie, on garde ses distances, on s'arrête aux passages piétons occupés et au contrôle d'entrée
     for (var a = cars.length - 1; a >= 0; a--) { var c = cars[a], tg = c.pts[c.i]; if (!tg) { if (c.arr) I.lotPend[c.lot] = Math.max(0, (I.lotPend[c.lot] || 0) - 1); cars.splice(a, 1); continue; }
+      if (Math.abs(c.z - rz) < 3.5 && Sim.endWalk && Sim.endWalk() >= 0.4 && Math.abs(c.x) < Sim.roadNet(ev).DV - 8) { if (c.arr) I.lotPend[c.lot] = Math.max(0, (I.lotPend[c.lot] || 0) - 1); cars.splice(a, 1); continue; } // route fermée pour la sortie
       var dx = tg[0] - c.x, dz = tg[1] - c.z, dd = Math.hypot(dx, dz), onRoad = Math.abs(c.z - rz) < 3.5, inLot = c.i > c.gate || (!c.arr && c.i <= c.gate), v = (onRoad ? 300 : inLot ? 70 : 160) * gd, hx = dd ? dx / dd : 0, hz = dd ? dz / dd : 0, stop = false;
       for (var o = 0; o < cars.length && !stop; o++) { if (o === a) continue; var q = cars[o], rx = q.x - c.x, rzz = q.z - c.z, al = rx * hx + rzz * hz; if (al > 0.2 && al < 5.4 && Math.abs(rx * hz - rzz * hx) < 1.2) stop = true; }
       if (!stop && onRoad) for (var ci = 0; ci < crs.length; ci++) { var cc = crs[ci], ah = (cc.x - c.x) * hx; if (Math.abs(hx) > 0.7 && ah > 1 && ah < 9 && ((Sim.F.crossPed(cc.id) && S.cross && S.cross[cc.id] && S.cross[cc.id].tended) || (I.crossBusy && I.crossBusy[cc.id] > 0))) { stop = true; break; } }
@@ -9184,8 +9315,14 @@ button:focus-visible,input:focus-visible{outline:3px solid var(--lime);outline-o
     var ev = S.ev, hub = Sim.hubOf(ev), cfg = Sim.hubCfg(ev), rz = Sim.roadZ(ev), V = Sim.venue(ev), xs = [], key = "";
     if (hub && cfg.guide) { var hx = Sim.hubGeo(ev, hub).walkX, c = Sim.F.nearestCross(hx); if (c) xs.push(c.x); }
     if (S.closing && ev.tr.exitPlan) Sim.crossings(ev).forEach(function (c) { if (xs.indexOf(c.x) < 0) xs.push(c.x); });
-    key = xs.join(); if (key === guideKey) return; guideKey = key; if (guideG) { I.overG.remove(guideG); I.disposeTree(guideG); guideG = null; } if (!xs.length) return;
-    guideG = new THREE.Group(); var zc = V.D / 2 + D.PLAZA - 0.6; xs.forEach(function (x) { [-1, 1].forEach(function (sd) { guideG.add(I.barrierLine([[x + sd * 2.6, rz - 5.4], [x + sd * 2.6, rz - 9.5], [x + sd * 5.5, rz - 13]], 0xd8dde4)); }); }); I.overG.add(guideG);
+    // cheminement continu : du passage piéton jusqu'au sas de pré-filtrage de l'entrée la plus proche (couloir de barrières)
+    var cors = []; Sim.entriesOf(ev).forEach(function (b) { if (D.BT[b.k].campOnly) return; var G = Sim.entryGeo(ev, b); if (!G.n[1] || G.n[1] < 0) return; var Q = Sim.queueLayout(b, G, I.entryKinds(b, G.lanes)), m = G.P(Q.tail[0], Sim.ENTRY.pre + 2.2), c = Sim.F.nearestCross(m[0]); if (!c || Math.abs(c.x - m[0]) > 45) return; cors.push([c.x, m[0], m[1]]); if (xs.indexOf(c.x) < 0) xs.push(c.x); });
+    key = xs.join() + "|" + cors.map(function (c) { return c.join(","); }).join(";"); if (key === guideKey) return; guideKey = key; if (guideG) { I.overG.remove(guideG); I.disposeTree(guideG); guideG = null; } if (!xs.length) return;
+    guideG = new THREE.Group();
+    xs.forEach(function (x) { var cr = cors.filter(function (c) { return c[0] === x; })[0];
+      if (cr) { var dx = cr[1] - x, mz = cr[2]; [-1, 1].forEach(function (sd) { guideG.add(I.barrierLine([[x + sd * 2.6, rz - 5.4], [x + sd * 2.6, rz - 6.6], [cr[1] + sd * 1.3, Math.min(rz - 7, mz + 0.4)]], 0xd8dde4)); }); }
+      else [-1, 1].forEach(function (sd) { guideG.add(I.barrierLine([[x + sd * 2.6, rz - 5.4], [x + sd * 2.6, rz - 9.5], [x + sd * 5.5, rz - 13]], 0xd8dde4)); }); });
+    I.overG.add(guideG);
   }
   // signaleurs aux passages : deux par passage tenu, palette « STOP » face aux voitures pendant la phase piétons
   var crossMap = {};
@@ -9236,6 +9373,59 @@ button:focus-visible,input:focus-visible{outline:3px solid var(--lime);outline-o
           var key = "bus" + bus.id; seen[key] = 1; var e = vmap[key] || (vmap[key] = busMesh(bus.type)); e.g.visible = true; e.g.position.set(x, 0, dz); e.g.rotation.y = rot; e.door.visible = bus.st !== "stop"; e.hl.material.emissiveIntensity = dl < 0.5 ? 1.5 : 0; }); });
     }
     Object.keys(vmap).forEach(function (k) { if (!seen[k]) { I.vehG.remove(vmap[k].g); I.disposeTree(vmap[k].g); delete vmap[k]; } });
+  }
+
+  // ================================================================ fin de journée : cheminement sur la route, démontage pendant la sortie du public
+  var endG = null, endKey = "", fleetG = null, tearTouched = [];
+  function hashId(id) { var h = 7; String(id).split("").forEach(function (c) { h = (h * 31 + c.charCodeAt(0)) % 9973; }); return h / 9973; }
+  function workerWithBarrier(parent) { var g = new THREE.Group(); parent.add(g); I.staffFig(g, 0, 0, 0xFF8A1F, 0, 0); box(2.2, 1.0, 0.06, std(0xb8bcc4, 0, 0, 0.35), 0, 1.0, 0.45, g, false); return g; }
+  function buildEndWalk(ev, cx) {
+    var V = Sim.venue(ev), rz = Sim.roadZ(ev), RN = Sim.roadNet(ev), hw = 7, g = new THREE.Group(), segs = [], add = function (a, b) { var n = Math.max(1, Math.round(Math.hypot(b[0] - a[0], b[1] - a[1]) / 6)); for (var i = 0; i < n; i++) { var p0 = [a[0] + (b[0] - a[0]) * i / n, a[1] + (b[1] - a[1]) * i / n], p1 = [a[0] + (b[0] - a[0]) * (i + 1) / n, a[1] + (b[1] - a[1]) * (i + 1) / n], bl = I.barrierLine([p0, p1], 0xd8dde4); g.add(bl); segs.push({ g: bl, x: (p0[0] + p1[0]) / 2, z: (p0[1] + p1[1]) / 2 }); } };
+    // couloir piéton de 28 m en travers de la route, face au passage de la gare routière
+    [-1, 1].forEach(function (sd) { add([cx + sd * hw, rz - 4.6], [cx + sd * hw, rz + 4.6]); });
+    // la voie côté parkings devient un trottoir géant jusqu'aux routes d'accès des parkings (barrières sur l'axe)
+    [-1, 1].forEach(function (sd) { add([cx + sd * hw, rz], [sd * (RN.P + 6), rz]); });
+    // fermeture de la route aux deux bouts, avant les rues de déviation
+    [-1, 1].forEach(function (sd) { add([sd * (RN.DV - 6), rz - 4.4], [sd * (RN.DV - 6), rz + 4.4]); for (var c = 0; c < 4; c++) cyl(0.12, 0.26, 0.7, own(0xff6a1a, 0, 0, 0.6), sd * (RN.DV - 3 + c * 2.2), 0.35, rz + (c % 2 ? 2.2 : -2.2), g, 10); I.signPanel(g, [{ t: "ROUTE FERMÉE", c: "#fff", s: 28 }, { t: "sortie du festival · déviation", c: "#fff", s: 16 }], 3, 1.1, sd * (RN.DV - 8), 2.6, rz - 5.6, { bg: "#c62828" }, sd > 0 ? -Math.PI / 2 : Math.PI / 2); });
+    segs.sort(function (a, b) { return Math.abs(a.x - cx) - Math.abs(b.x - cx); });
+    var workers = []; for (var w = 0; w < 4; w++) workers.push(workerWithBarrier(g));
+    g.userData = { segs: segs, workers: workers }; return g;
+  }
+  function tear(e, f) { if (tearTouched.indexOf(e) < 0) tearTouched.push(e); e.tearF = f; }
+  function restoreTear() { tearTouched.forEach(function (e) { var P = e.parts || {}; if (e.g.userData.home) { e.g.position.copy(e.g.userData.home); } e.g.visible = true; if (P.arrays) P.arrays.forEach(function (a) { a.position.y = a.userData.y0; }); if (P.blocs) P.blocs.forEach(function (bl) { bl.visible = true; }); if (P.police) P.police.visible = true; if (e.crew) { e.g.remove(e.crew); I.disposeTree(e.crew); e.crew = null; } e.tearF = 0; }); tearTouched = []; }
+  function drawEndOps(S, dt, clock) {
+    var ev = S.ev, V = Sim.venue(ev), rz = Sim.roadZ(ev), ew = Sim.endWalk ? Sim.endWalk() : 0, closeT = ev.close * 60, tc = S.t - closeT, last = S.day + 1 >= ev.days, bm = W._bmap();
+    // 1. pose des barrières sur la route, au fur et à mesure (des agents les portent)
+    if (ew > 0 && V.fence && S.phase === "live") {
+      var hub = Sim.hubOf(ev), c0 = hub ? Sim.F.nearestCross(Sim.hubGeo(ev, hub).walkX) : null, cx = c0 ? c0.x : 0, key = cx + ":" + I.layoutVer;
+      if (key !== endKey) { endKey = key; if (endG) { I.overG.remove(endG); I.disposeTree(endG); } endG = buildEndWalk(ev, cx); I.overG.add(endG); }
+      endG.visible = true; var sg = endG.userData.segs, nv = Math.ceil(sg.length * ew); sg.forEach(function (o, i) { o.g.visible = i < nv; });
+      endG.userData.workers.forEach(function (wk, i) { var nx = sg[Math.min(sg.length - 1, nv + i)]; wk.visible = ew < 1 && !!nx; if (!nx) return; var bob = Math.sin(clock * 3 + i) * 0.6; wk.position.set(nx.x + bob, 0, nx.z + 1.2); wk.rotation.y = Math.PI / 2 + Math.sin(clock + i) * 0.3; });
+    } else if (endG) endG.visible = false;
+    // 2. démontage pendant la sortie du public, le dernier jour
+    if (!(S.closing && last && tc > 0 && S.phase === "live")) { if (tearTouched.length) restoreTear(); if (fleetG) fleetG.visible = false; return; }
+    Object.keys(bm).forEach(function (id) { var e = bm[id], T = e.T, P = e.parts || {}, h = hashId(id);
+      if (T.food) { var st = 4 + h * 26; if (tc < st) return; if (!e.g.userData.home) e.g.userData.home = e.g.position.clone(); tear(e, 1); var u = Math.min(1, (tc - st) / 4), rr = e.g.rotation.y; e.g.position.x = e.g.userData.home.x + Math.cos(rr) * u * u * 18; e.g.position.z = e.g.userData.home.z - Math.sin(rr) * u * u * 18; e.g.visible = u < 1; return; }
+      if (T.stage && P.arrays) { if (tc < 6) return; tear(e, 1); var fA = Math.min(1, (tc - 6) / 35); P.arrays.forEach(function (a, k) { a.position.y = a.userData.y0 + (1.1 + (k % 9) * 0.38 - a.userData.y0) * fA; });
+        if (!e.crew) { var cg = new THREE.Group(); e.g.add(cg); var d = P.sd || 8, w = P.sw || 20;
+          // chariots élévateurs et nacelle, équipes, flight-cases qui sortent
+          var lifts = []; for (var f = 0; f < 2; f++) { var fl = new THREE.Group(); cg.add(fl); box(1.3, 1.1, 2.0, std(0xFFB020, 0, 0, 0.5), 0, 0.75, 0, fl); box(1.0, 1.2, 0.08, std(0x333333), 0, 1.6, 0.6, fl, false); box(1.2, 0.08, 1.4, std(0x666a72), 0, 0.3, 1.6, fl, false); box(1.0, 0.8, 0.9, std(0x1a1b20), 0, 0.75, 1.6, fl, false); lifts.push(fl); }
+          var nac = new THREE.Group(); cg.add(nac); nac.position.set(w / 2 + 1.5, 0, d / 2 - 0.5); box(1.4, 0.5, 2.4, std(0x3a8d5d), 0, 0.3, 0, nac); var mast = box(0.5, 1, 0.5, std(0xb8bcc4), 0, 1, 0, nac, false); var plat = box(1.4, 0.15, 1.4, std(0x3a8d5d), 0, 2, 0, nac, false);
+          for (var c = 0; c < 6; c++) I.staffFig(cg, -w * 0.4 + c * w * 0.16, d / 2 + 1.6, 0x111318, 0, 0);
+          cg.userData = { lifts: lifts, mast: mast, plat: plat }; e.crew = cg; }
+        var U = e.crew.userData; U.lifts.forEach(function (fl, i) { var u = (clock * 0.08 + i * 0.5) % 1, a = u < 0.5 ? u * 2 : 2 - u * 2; fl.position.set((i ? 1 : -1) * (P.sw || 20) * 0.3, 0, -(P.sd || 8) / 2 - 1 - a * 8); fl.rotation.y = u < 0.5 ? Math.PI : 0; });
+        var hy = 2 + 6 * (1 - fA); U.mast.scale.y = hy; U.mast.position.y = hy / 2 + 0.5; U.plat.position.y = hy + 0.6; return; }
+      if (e.b.k === "roadBlock" && P.blocs) { if (tc < 25) return; tear(e, 1); var fB = Math.min(1, (tc - 25) / 30), nh = Math.floor(P.blocs.length * fB); P.blocs.forEach(function (bl, i) { bl.visible = i >= nh; }); if (P.police) P.police.visible = fB < 0.8;
+        if (!e.crew) { var kg = new THREE.Group(); e.g.add(kg); var outB = e.b.x < 0 ? -1 : 1; kg.position.set(outB * 12, 0, -6.6); box(2.4, 2.2, 3, std(0xe8e4da, 0, 0, 0.5), 0, 1.4, -8 + 8, kg); box(2.4, 1.2, 7, std(0xFFB020, 0, 0, 0.5), 0, 0.9, -3 + 8, kg); var arm = new THREE.Group(); arm.position.set(0, 2, 5); kg.add(arm); box(0.3, 0.3, 8, std(0xFFB020), 0, 0, 4, arm, false); arm.rotation.x = -0.5; kg.userData.arm = arm; I.staffFig(kg, 1.8, 7, 0xFF8A1F, 0, 0); kg.rotation.y = outB > 0 ? Math.PI / 2 : -Math.PI / 2; kg.position.set(outB * 14, 0, -6.4); e.crew = kg; }
+        e.crew.userData.arm.rotation.y = Math.sin(clock * 0.6) * 0.6; return; }
+    });
+    // 3. semi-remorques qui arrivent sur la route et repartent chargés ; équipe propreté qui ratisse le site
+    if (!fleetG) { fleetG = new THREE.Group(); I.vehG.add(fleetG); var trucks = []; for (var t = 0; t < 4; t++) { var tg = new THREE.Group(); fleetG.add(tg); I.semiTrailer(tg, 0, 0, 0, [0xe8e6df, 0x2a2b30, 0x8a1c26, 0x2e6fd8][t]); trucks.push(tg); }
+      var sweep = new THREE.Group(); fleetG.add(sweep); for (var p = 0; p < 14; p++) { I.staffFig(sweep, -V.W * 0.35 + p * V.W * 0.05, 0, 0x3CCB6C, Math.PI, 0); box(0.5, 0.6, 0.4, std(0x111111), -V.W * 0.35 + p * V.W * 0.05 + 0.35, 0.4, 0.3, sweep, false); }
+      fleetG.userData = { trucks: trucks, sweep: sweep }; }
+    fleetG.visible = true; var FU = fleetG.userData, span = V.W + 260;
+    FU.trucks.forEach(function (tg, i) { var dir = i % 2 ? -1 : 1, x = ((S.t * 180 * dir + i * span / 4) % span + span) % span - span / 2; tg.position.set(x, 0, rz + (dir > 0 ? 2.2 : -2.2)); tg.rotation.y = dir > 0 ? Math.PI / 2 : -Math.PI / 2; tg.visible = tc > 15 + i * 6; });
+    FU.sweep.visible = tc > 20 && S.pop.inside < S.pop.maxIn * 0.5; FU.sweep.position.set(0, 0, -V.D / 2 + 10 + Math.min(V.D - 20, (tc - 20) * 2.2));
   }
 
   // ================================================================ incidents
@@ -9312,6 +9502,8 @@ button:focus-visible,input:focus-visible{outline:3px solid var(--lime);outline-o
   }
   W.clearVehicles = function () { Object.keys(vmap).forEach(function (k) { I.vehG.remove(vmap[k].g); }); vmap = {}; };
   W.clearDynamic = function () {
+    if (endG) { I.overG.remove(endG); I.disposeTree(endG); endG = null; } endKey = ""; restoreTear(); if (fleetG) { I.vehG.remove(fleetG); I.disposeTree(fleetG); fleetG = null; }
+    if (ovG) { I.overG.remove(ovG); I.disposeTree(ovG); ovG = null; } ovKey = ""; I.busTail = null;
     W.clearCars();
     if (wearX) wearX.clearRect(0, 0, wearC.width, wearC.height); if (wearM) wearM.material.map.needsUpdate = true;
     // nouvelle partie : signaleurs, couloirs balisés et trajets mémorisés de l'ancienne partie
@@ -9321,7 +9513,7 @@ button:focus-visible,input:focus-visible{outline:3px solid var(--lime);outline-o
   I.drawPeople = function (dt, S, ev, opt, dl, w) {
     var clock = I.clock;
     if (S.phase === "live") { crowdT += dt; if (crowdT > 0.5) { stampWear(S, crowdT); crowdT = 0; updateCrowdTargets(S); spawnWalkers(S); } }
-    moveCrowd(dt, S, clock); moveWalkers(dt, S); drawQueues(S, clock, dt); drawUnits(S, dt, clock); drawVehicles(S, clock, dl); drawRoad(S, dt, clock); drawIncidents(S, clock, opt.selInc); drawBarriers(S); drawPersonas(S, dt, clock);
+    moveCrowd(dt, S, clock); moveWalkers(dt, S); drawQueues(S, clock, dt); drawUnits(S, dt, clock); drawVehicles(S, clock, dl); drawRoad(S, dt, clock); drawEndOps(S, dt, clock); drawIncidents(S, clock, opt.selInc); drawBarriers(S); drawPersonas(S, dt, clock);
     if (S.fireworks && S.fireworks !== W._fwSeen) { W._fwSeen = S.fireworks; W.fireworks(16, 0, -20); }
   };
   W._upd = function (S) { updateCrowdTargets(S); };
@@ -9924,7 +10116,7 @@ button:focus-visible,input:focus-visible{outline:3px solid var(--lime);outline-o
     function vset(fn) { var old = JSON.stringify(b); fn(); var v = Sim.validate(e, b, b.id); if (!v.ok) { var o = JSON.parse(old); Object.keys(b).forEach(function (k) { delete b[k]; }); Object.assign(b, o); U.toast(v.why); return; } upd(); }
     if (T2.entry) {
       sec(d2, "File d'attente"); U.seg(d2, [["serp", "Serpentin", "barrières en S, compact"], ["line", "Couloirs droits", "une file par portique"]], function () { return b.q; }, function (v) { b.q = v; upd(); }, SL);
-      sec(d2, "Files séparées (un portique chacune)"); var fs = mk(d2, "div", "btns"); [["exit", "Sortie"], ["vip", "VIP"], ["pmr", "PMR"], ["press", "Presse & invités"]].forEach(function (s) { U.toggle(fs, function (v) { return s[1] + (v ? " ✓" : ""); }, function () { return !!b.sep[s[0]]; }, function (v) { b.sep[s[0]] = v; upd(); }, SL); });
+      sec(d2, "Files séparées (un portique chacune)"); var fs = mk(d2, "div", "btns"); [["exit", "Sortie"], ["vip", "VIP"], ["pmr", "PMR"], ["press", "Presse & invités"]].concat(e.layout.some(function (x) { return x.k === "camping"; }) && !D.BT[b.k].campOnly ? [["camp", "Campeurs (bracelet)"]] : []).forEach(function (s) { U.toggle(fs, function (v) { return s[1] + (v ? " ✓" : ""); }, function () { return !!b.sep[s[0]]; }, function (v) { b.sep[s[0]] = v; upd(); }, SL); });
       if (e.price) U.line(d2, "Caisses billetterie", "devant l'entrée, pour ceux qui n'ont pas de billet", function () { return b.box; }, function (x) { b.box = clamp(b.box + x, 0, 3); upd(); }, String, 0, 3, SL);
       U.tline(d2, "Ouverture progressive", "le chef d'entrée ouvre les portiques selon la file", function (v) { return v ? "Auto" : "Manuel"; }, function () { return !!b.auto; }, function (v) { b.auto = v; upd(); }, SL);
       note(d2, T2.lanes + " couloirs · " + Sim.entryUP(b) + " UP comptées comme sortie de secours.");
@@ -10786,6 +10978,7 @@ button:focus-visible,input:focus-visible{outline:3px solid var(--lime);outline-o
     U.stepper(acts, function () { return E.lanes; }, function (d) { E.lanes = clamp(E.lanes + d, 0, Sim.F.maxLanes(b)); }, function (v) { return v + " portiques"; }, function () { return E.lanes > 0; }, function () { return E.lanes < Sim.F.maxLanes(b); }, CU);
     btn("ice", "Ouverture", function () { return [b.auto ? "Automatique" : "Manuelle", b.auto ? "le chef d'entrée gère" : "tu gères les portiques"]; }, function () { b.auto = !b.auto; });
     btn(E.closed ? "lime" : "fix", E.closed ? "Rouvrir" : "Fermer", function () { return "l'entrée"; }, function () { E.closed = !E.closed; }, function () { return !!S.evac; });
+    btn("orange", "Passer en sortie", function () { return E.exitT != null ? (S.t - E.exitT < 20 ? "démontage en cours" : "fait : tout en sortie") : "démonter le serpentin"; }, function () { Sim.entryToExit(b.id); }, function () { return E.exitT != null; });
     btn("ghost", "Détails", function () { return "onglet entrées"; }, function () { U.openSheet("entrees"); }); }
   C.entryS = C.entry = C.entryL = entryCtx;
   C.exit = function (b, head, btn) { var S = Sim.get(), X = S.exits[b.id]; head(U.bName(b), function () { return (b.up || 10) + " UP · " + nb((b.up || 10) * D.UP_RATE) + " personnes/min · " + (X.open ? "ouverte" : "fermée et gardée"); }); btn(X.open ? "ghost" : "lime", X.open ? "Refermer" : "Ouvrir", function () { return "l'issue de secours"; }, function () { Sim.setExit(b.id, !X.open); }); btn("ghost", "Évacuation", function () { return "onglet"; }, function () { U.openSheet("evac"); }); };
