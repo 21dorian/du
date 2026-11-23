@@ -54,20 +54,25 @@ final class Mailer
         $ev = one('SELECT * FROM events WHERE id = ?', [$o['event_id']]);
         $org = one('SELECT * FROM organizers WHERE id = ?', [$o['organizer_id']]);
         $tickets = all("SELECT * FROM tickets WHERE order_id = ? AND status = 'valid' ORDER BY id", [$orderId]);
+        $session = $o['session_id'] ? one('SELECT * FROM sessions WHERE id = ?', [$o['session_id']]) : null;
+        $map = Seating::map($ev);
+        $products = all("SELECT * FROM order_items WHERE order_id = ? AND kind = 'product'", [$orderId]);
         if (!$tickets) return false;
         $link = abs_url('/commande/' . $o['ref'], ['t' => $o['token']]);
         $rows = '';
         foreach ($tickets as $t) {
             $rows .= '<tr><td style="padding:6px 0;border-bottom:1px solid #eee">' . e(trim($t['first_name'] . ' ' . $t['last_name'])) . '</td>'
-                . '<td style="padding:6px 0;border-bottom:1px solid #eee">' . e($t['rate_name']) . '</td>'
+                . '<td style="padding:6px 0;border-bottom:1px solid #eee">' . e($t['rate_name']) . ($t['seat'] ? '<br><small>💺 ' . e(Seating::label($t['seat'], $map)) . '</small>' : '') . '</td>'
                 . '<td style="padding:6px 0;border-bottom:1px solid #eee;font-family:monospace">' . e($t['code']) . '</td></tr>';
         }
         $html = '<p>Salut ' . e($o['first_name']) . ' 👋</p>'
             . '<p>C\'est validé ! Commande <b>' . e($o['ref']) . '</b>' . ($o['total'] > 0 ? ' (<b>' . e(money((int)$o['total'])) . '</b>)' : '') . '. Il ne te reste plus qu\'à venir. 🎉</p>'
             . '<p style="font-size:18px;margin:18px 0 4px"><b>' . e($ev['name']) . '</b></p>'
-            . '<p style="margin:0;color:#555">' . e(fr_date($ev['starts_at'])) . ($ev['venue'] ? '<br>' . e($ev['venue']) . ($ev['city'] ? ', ' . e($ev['city']) : '') : '') . '</p>'
+            . '<p style="margin:0;color:#555">' . e(fr_date($session['starts_at'] ?? $ev['starts_at'])) . ($ev['venue'] ? '<br>' . e($ev['venue']) . ($ev['city'] ? ', ' . e($ev['city']) : '') : '') . '</p>'
             . '<p>🎟️ <b>Tes billets sont en pièce jointe (PDF).</b> Montre le QR code à l\'entrée, sur ton téléphone ou imprimé. Un QR code = une entrée : garde-le pour toi.</p>'
             . '<table style="width:100%;border-collapse:collapse;font-size:14px">' . $rows . '</table>'
+            . ($products ? '<p style="margin-top:14px">✨ Avec ta commande : ' . e(implode(', ', array_map(fn($i) => $i['qty'] . ' × ' . $i['name'], $products))) . ' (à retirer sur place).</p>' : '')
+            . (!empty($ev['email_message']) ? '<div style="margin:18px 0;padding:14px 16px;background:#f6f4ef;border-left:4px solid #ff5a4e;white-space:pre-line">' . e($ev['email_message']) . '</div>' : '')
             . '<p style="margin-top:22px"><a href="' . e($link) . '" style="background:' . e(setting('primary_color', '#ff5a4e')) . ';color:#fff;padding:12px 18px;border-radius:8px;text-decoration:none;display:inline-block">Voir mes billets</a></p>'
             . '<p style="color:#777;font-size:13px">Une question sur l\'événement ? Écris à l\'organisateur : ' . e($org['name']) . ($org['email'] ? ' — ' . e($org['email']) : '') . '</p>';
         $pdf = TicketPdf::build($o, $ev, $org, $tickets);

@@ -8,10 +8,19 @@
   if (buy) {
     var update = function () {
       var total = 0;
+      // estimation fidèle au calcul serveur : frais = % du net + fixe par billet payant (si frais à la charge de l'acheteur)
+      var pct = parseFloat(buy.dataset.feePct || '0'), fixed = parseInt(buy.dataset.feeFixed || '0', 10), net = 0, paid = 0, legacy = !buy.querySelector('.qty[data-base]');
       buy.querySelectorAll('.qty').forEach(function (q) {
-        var input = q.querySelector('input');
-        total += (parseInt(input.value, 10) || 0) * parseInt(q.dataset.price, 10);
+        var n = parseInt(q.querySelector('input').value, 10) || 0;
+        if (legacy || q.dataset.base === undefined) { total += n * parseInt(q.dataset.price, 10); return; }
+        var price = parseInt(q.dataset.base, 10);
+        if (q.dataset.freeprice) { var f = buy.querySelector('[data-free="' + q.dataset.rate + '"]'); if (f) price = Math.round((parseFloat(String(f.value).replace(',', '.')) || 0) * 100); }
+        net += n * price;
+        if (q.dataset.unit && price > 0) paid += n;
       });
+      if (!legacy) total += net + (net > 0 ? Math.round(net * pct / 100) + fixed * paid : 0);
+      var don = document.getElementById('donation');
+      if (don) total += Math.round((parseFloat(String(don.value).replace(',', '.')) || 0) * 100);
       var el = document.getElementById('buy-total');
       if (el) el.textContent = fmt(total);
     };
@@ -26,6 +35,7 @@
       });
       input.addEventListener('input', update);
     });
+    buy.addEventListener('input', update);
     update();
   }
 

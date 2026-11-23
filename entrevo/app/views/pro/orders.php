@@ -1,7 +1,7 @@
 <form class="toolbar" method="get">
   <input type="search" name="q" value="<?= e($q) ?>" placeholder="Référence, nom, e-mail…">
   <select name="ev"><option value="">Tous les événements</option><?php foreach ($events as $e2): ?><option value="<?= (int)$e2['id'] ?>" <?= $evId === (int)$e2['id'] ? 'selected' : '' ?>><?= e($e2['name']) ?></option><?php endforeach; ?></select>
-  <select name="st"><option value="">Payées, annulées, remboursées</option><?php foreach (['paid' => 'Payées', 'pending' => 'En attente de paiement', 'refunded' => 'Remboursées', 'cancelled' => 'Annulées', 'expired' => 'Expirées'] as $k => $l): ?><option value="<?= $k ?>" <?= $st === $k ? 'selected' : '' ?>><?= $l ?></option><?php endforeach; ?></select>
+  <select name="st"><option value="">Payées, annulées, remboursées</option><?php foreach (['refund_request' => '💸 Remboursement demandé', 'paid' => 'Payées', 'pending' => 'En attente de paiement', 'refunded' => 'Remboursées', 'cancelled' => 'Annulées', 'expired' => 'Expirées'] as $k => $l): ?><option value="<?= $k ?>" <?= $st === $k ? 'selected' : '' ?>><?= $l ?></option><?php endforeach; ?></select>
   <button class="btn btn-sm">Filtrer</button>
   <span class="grow"></span>
   <a class="btn btn-sm btn-ghost" href="<?= url('/pro/commandes', ['q' => $q, 'ev' => $evId ?: null, 'st' => $st ?: null, 'csv' => 1]) ?>">⬇️ Export CSV</a>

@@ -1,7 +1,8 @@
 <?php
 $types = ['text' => 'Texte court', 'textarea' => 'Texte long', 'select' => 'Liste de choix', 'checkbox' => 'Case à cocher', 'date' => 'Date', 'email' => 'E-mail', 'phone' => 'Téléphone', 'number' => 'Nombre'];
-$form = function (?array $f) use ($types) {
-    $p = $f ?? ['id' => 0, 'label' => '', 'type' => 'text', 'options' => '', 'required' => 0, 'per_ticket' => 1, 'sort' => 0];
+$form = function (?array $f) use ($types, $rates) {
+    $p = $f ?? ['id' => 0, 'label' => '', 'type' => 'text', 'options' => '', 'required' => 0, 'per_ticket' => 1, 'sort' => 0, 'rate_ids' => ''];
+    $sel = array_map('intval', array_filter(explode(',', (string)$p['rate_ids'])));
     ob_start(); ?>
     <form method="post"><?= csrf_field() ?><input type="hidden" name="field_id" value="<?= (int)$p['id'] ?>">
       <div class="grid2">
@@ -9,6 +10,7 @@ $form = function (?array $f) use ($types) {
         <div class="field"><label>Type de réponse</label><select name="type"><?php foreach ($types as $k => $l): ?><option value="<?= $k ?>" <?= $p['type'] === $k ? 'selected' : '' ?>><?= e($l) ?></option><?php endforeach; ?></select></div>
       </div>
       <div class="field"><label>Choix possibles (un par ligne, pour « Liste de choix »)</label><textarea name="options" rows="3"><?= e($p['options']) ?></textarea></div>
+      <div class="field"><label>Pour les tarifs</label><div class="row" style="gap:6px 16px"><?php foreach ($rates as $r): ?><label class="check" style="font-weight:400"><input type="checkbox" name="rate_ids[]" value="<?= (int)$r['id'] ?>" <?= in_array((int)$r['id'], $sel, true) ? 'checked' : '' ?>> <?= e($r['name']) ?></label><?php endforeach; ?></div><small>Aucun coché = tous les tarifs.</small></div>
       <div class="row" style="gap:22px;margin-bottom:14px">
         <label class="check"><input type="radio" name="per_ticket" value="1" <?= $p['per_ticket'] ? 'checked' : '' ?>> Demandée pour chaque participant</label>
         <label class="check"><input type="radio" name="per_ticket" value="0" <?= !$p['per_ticket'] ? 'checked' : '' ?>> Une fois par commande</label>

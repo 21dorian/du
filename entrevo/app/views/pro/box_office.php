@@ -2,15 +2,16 @@
 <?php if ($errors): ?><div class="flash error"><?= implode('<br>', array_map('e', $errors)) ?></div><?php endif; ?>
 <div class="split-3">
   <div class="card">
-    <h2>🎟️ Billets</h2>
+    <div class="card-head"><h2>🎟️ Billets</h2><a class="btn btn-sm btn-ghost" href="<?= url('/pro/evenements/' . $ev['id'] . '/caisse') ?>">📒 Journal & clôture de caisse</a></div>
+    <?php if ($sessions): ?><div class="field"><label>Date</label><select name="session_id" onchange="location.href='?session_id='+this.value"><?php foreach ($sessions as $x): ?><option value="<?= (int)$x['id'] ?>" <?= (int)$sel['id'] === (int)$x['id'] ? 'selected' : '' ?>><?= e(fr_date($x['starts_at'])) ?></option><?php endforeach; ?></select></div><?php endif; ?>
     <p class="muted">Vente au guichet (espèces, TPE…) ou invitations gratuites. L'argent du guichet va directement dans ta caisse : aucune commission.</p>
     <div class="table-wrap"><table class="table">
-      <thead><tr><th>Tarif</th><th class="num">Prix</th><th class="num">Restant</th><th style="width:130px">Quantité</th></tr></thead>
+      <thead><tr><th>Tarif</th><th class="num">Prix</th><th class="num">Restant</th><th style="width:<?= $seatmap ? 220 : 130 ?>px">Quantité</th></tr></thead>
       <tbody>
       <?php foreach ($rates as $r): ?>
         <tr><td><b><?= e($r['name']) ?></b><?= !$r['active'] ? ' ' . badge('draft') : '' ?></td><td class="num"><?= (int)$r['price'] ? e(money((int)$r['price'])) : 'Gratuit' ?></td>
         <td class="num"><?= $r['remaining'] === PHP_INT_MAX ? '∞' : (int)$r['remaining'] ?></td>
-        <td><input type="number" name="qty[<?= (int)$r['id'] ?>]" min="0" value="<?= (int)($_POST['qty'][$r['id']] ?? 0) ?>"></td></tr>
+        <td><input type="number" name="qty[<?= (int)$r['id'] ?>]" min="0" value="<?= (int)($_POST['qty'][$r['id']] ?? 0) ?>"><?php if ($seatmap): ?><input name="seats[<?= (int)$r['id'] ?>]" placeholder="Places : ORCH-A1, ORCH-A2" style="margin-top:6px;font-size:13px"><?php endif; ?></td></tr>
       <?php endforeach; ?>
       </tbody>
     </table></div>

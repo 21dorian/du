@@ -72,11 +72,16 @@ function api_data(string $id): never
     $ev = scan_event($id);
     $since = (string)input('since');
     $params = [$ev['id']];
-    $sql = 'SELECT code, first_name, last_name, rate_id, status, inside, entries, checked_in_at, updated_at FROM tickets WHERE event_id = ?';
+    $sql = 'SELECT code, first_name, last_name, rate_id, rate_name, status, inside, entries, checked_in_at, updated_at, session_id, max_entries, per_day, population_id, type, seat, last_scan_at FROM tickets WHERE event_id = ?';
     if ($since !== '' && strtotime($since)) { $sql .= ' AND updated_at >= ?'; $params[] = date('Y-m-d H:i:s', strtotime($since) - 5); }
     $rows = all($sql, $params);
+    // [code, nom, tarif, valide, sur place, entrées, 1re entrée, séance, entrées max, 1/jour, population, type, libellé tarif, siège, dernier passage]
     $tickets = array_map(fn($t) => [$t['code'], trim($t['first_name'] . ' ' . $t['last_name']), (int)$t['rate_id'], $t['status'] === 'valid' ? 1 : 0,
-        (int)$t['inside'], (int)$t['entries'], $t['checked_in_at']], $rows);
+        (int)$t['inside'], (int)$t['entries'], $t['checked_in_at'], $t['session_id'] ? (int)$t['session_id'] : 0, (int)$t['max_entries'], (int)$t['per_day'],
+        $t['population_id'] ? (int)$t['population_id'] : 0, $t['type'], $t['rate_name'], $t['seat'], $t['last_scan_at']], $rows);
+    $pops = [];
+    foreach (all('SELECT * FROM populations WHERE event_id = ?', [$ev['id']]) as $p) $pops[(int)$p['id']] = ['name' => $p['name'], 'zones' => array_values(array_filter(array_map('intval', explode(',', (string)$p['access_point_ids']))))];
+    $sessions = array_map(fn($x) => ['id' => (int)$x['id'], 'label' => fr_date($x['starts_at']) . ($x['label'] ? ' · ' . $x['label'] : ''), 'start' => $x['starts_at']], Tickets::sessions((int)$ev['id']));
     $aps = array_map(fn($a) => ['id' => (int)$a['id'], 'name' => $a['name'], 'active' => (int)$a['active'],
         'rates' => array_values(array_filter(array_map('intval', explode(',', (string)$a['rate_ids']))))],
         all('SELECT * FROM access_points WHERE event_id = ? ORDER BY id', [$ev['id']]));
@@ -84,14 +89,14 @@ function api_data(string $id): never
     foreach (all('SELECT id, name FROM rates WHERE event_id = ?', [$ev['id']]) as $r) $rates[(int)$r['id']] = $r['name'];
     json_out([
         'event' => ['id' => (int)$ev['id'], 'name' => $ev['name'], 'date' => fr_date($ev['starts_at']), 'reentry' => (int)$ev['allow_reentry']],
-        'access_points' => $aps, 'rates' => $rates, 'tickets' => $tickets, 'full' => $since === '',
+        'access_points' => $aps, 'rates' => $rates, 'tickets' => $tickets, 'full' => $since === '', 'sessions' => $sessions, 'populations' => $pops,
         'server_time' => date('Y-m-d H:i:s'), 'stats' => scan_stats((int)$ev['id']),
     ]);
 }
 
 function scan_stats(int $eventId): array
 {
-    $r = one("SELECT COUNT(*) sold, SUM(entries > 0) checked, SUM(inside = 1) inside FROM tickets WHERE event_id = ? AND status = 'valid'", [$eventId]);
+    $r = one("SELECT COUNT(*) sold, SUM(entries > 0) checked, SUM(inside = 1) inside FROM tickets WHERE event_id = ? AND status = 'valid' AND type <> 'accreditation'", [$eventId]);
     return ['sold' => (int)$r['sold'], 'checked' => (int)$r['checked'], 'inside' => (int)$r['inside']];
 }
 
@@ -99,7 +104,7 @@ function api_check(string $id): never
 {
     $ev = scan_event($id);
     $b = json_body();
-    $r = Tickets::scan(['event' => $ev, 'code' => (string)($b['code'] ?? ''), 'access_point_id' => $b['ap'] ?? null,
+    $r = Tickets::scan(['event' => $ev, 'code' => (string)($b['code'] ?? ''), 'access_point_id' => $b['ap'] ?? null, 'session_id' => $b['session'] ?? null,
         'direction' => $b['direction'] ?? 'in', 'user' => user(), 'uuid' => (string)($b['uuid'] ?? ''), 'device' => (string)($b['device'] ?? '')]);
     $r['stats'] = scan_stats((int)$ev['id']);
     json_out($r);
@@ -113,7 +118,7 @@ function api_sync(string $id): never
     $out = [];
     foreach (array_slice((array)($b['scans'] ?? []), 0, 500) as $s) {
         if (!is_array($s) || empty($s['uuid'])) continue;
-        $r = Tickets::scan(['event' => $ev, 'code' => (string)($s['code'] ?? ''), 'access_point_id' => $s['ap'] ?? null,
+        $r = Tickets::scan(['event' => $ev, 'code' => (string)($s['code'] ?? ''), 'access_point_id' => $s['ap'] ?? null, 'session_id' => $s['session'] ?? null,
             'direction' => $s['direction'] ?? 'in', 'user' => user(), 'uuid' => (string)$s['uuid'], 'device' => (string)($s['device'] ?? ''),
             'scanned_at' => $s['at'] ?? null, 'offline' => true]);
         $out[] = ['uuid' => $s['uuid'], 'result' => $r['result'], 'local' => $s['local'] ?? null];

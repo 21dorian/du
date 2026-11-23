@@ -22,6 +22,7 @@
     <h2>Reversements reçus</h2>
     <?php foreach ($payouts as $p): ?><div class="list-item"><span class="grow"><b><?= e(money((int)$p['amount'])) ?></b><br><small><?= e(short_date($p['created_at'])) ?><?= $p['reference'] ? ' · ' . e($p['reference']) : '' ?></small></span></div><?php endforeach; ?>
     <?php if (!$payouts): ?><p class="muted">Aucun reversement pour l'instant.</p><?php endif; ?>
-    <p class="muted mb0" style="font-size:14px">Les reversements sont faits par virement par la plateforme.</p>
+    <p class="muted" style="font-size:14px">Les reversements sont faits par virement par la plateforme.</p>
+    <form method="get" action="<?= url('/pro/finances/releve') ?>" target="_blank" class="row" style="flex-wrap:nowrap;gap:0"><input type="month" name="mois" value="<?= date('Y-m', strtotime('first day of last month')) ?>"><button class="btn btn-sm">📄 Relevé PDF</button></form>
   </div>
 </div>

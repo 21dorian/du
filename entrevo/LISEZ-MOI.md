@@ -1,6 +1,12 @@
 # Entrevo — billetterie & contrôle d'accès 🎟️
 
-Plateforme de billetterie multi-organisateurs : vente en ligne (Stripe, PayPal, SumUp, Mollie), billets PDF à QR code envoyés par e-mail, guichet et invitations, codes promo, formulaire personnalisé, commissions, reversements, et application de contrôle des entrées sur téléphone (même sans réseau).
+Plateforme de billetterie multi-organisateurs complète :
+
+- **Vente** : événements simples ou à dates multiples (séances, récurrences, jauge par date), tarifs fixes ou à prix libre, packs (ex. famille 4 places), pass multi-entrées ou « 1 entrée par jour », tarifs secrets par code d'accès, codes promo, options payantes (merch, parking…), dons, placement numéroté sur plan de salle, événements privés par mot de passe, publication programmée, file d'attente virtuelle pour les grosses ouvertures de vente, liste d'attente quand c'est complet, bourse aux billets officielle (revente au prix d'origine), demandes de remboursement.
+- **Paiement** : Stripe, PayPal, SumUp, Mollie (avec notifications automatiques), guichet (espèces, TPE…), billets gratuits.
+- **Organisateurs** : statistiques détaillées (jour, heure, canal, provenance UTM, codes promo, options, dates), participants et exports, guichet avec ticket thermique, journal et clôture de caisse, invitations en masse, liens partenaires avec lots de places, accréditations avec badges et zones, import de billets vendus ailleurs, messages aux participants, widget à intégrer à son site, suivi Google Analytics / Tag Manager / Pixel Meta, API et webhooks, billets et e-mails personnalisés, reçus PDF, relevés mensuels de commissions.
+- **Contrôle d'accès** : application sur téléphone (caméra, douchette, recherche par nom), hors ligne, plusieurs portes et zones, dates, sorties et ré-entrées, liste de contrôle papier de secours.
+- **Plateforme** : commission par défaut ou personnalisée par organisateur, reversements, mises à jour en un clic avec retour arrière.
 
 ---
 
@@ -52,6 +58,9 @@ Supprime-les (ou désactive-les dans Super-admin › Utilisateurs) avant d'ouvri
 - **Paiements** : colle les clés de Stripe / PayPal / SumUp / Mollie et coche « Activer ». **Coupe le paiement de démonstration** dès que tu vends pour de vrai. Fais toujours un achat test avec les clés de test du prestataire.
 - **E-mails** : crée une adresse dans cPanel › « Comptes de messagerie » (ex. `billets@tondomaine.fr`) et renseigne serveur, port 465 (SSL) ou 587 (STARTTLS), identifiant et mot de passe. Clique « Enregistrer et tester ».
 - **Textes légaux** : CGV (l'acheteur doit les accepter) et mentions légales.
+
+- **Notifications de paiement (webhooks)** : dans Réglages › Paiements, copie les adresses affichées dans les tableaux de bord Stripe et PayPal (SumUp et Mollie : automatique). Sans elles, une commande payée reste en attente quelques minutes si l'acheteur ferme son navigateur avant de revenir sur le site (elle est revérifiée automatiquement ensuite).
+- **Tâche planifiée** : dans cPanel › « Tâches Cron », ajoute la commande affichée dans Réglages › Général, toutes les 5 minutes. Elle fait tourner la liste d'attente, les publications programmées et la revérification des paiements même quand personne ne visite le site.
 
 **L'argent :** tous les paiements arrivent sur tes comptes. Dans Super-admin › Organisateurs › fiche, tu vois ce que tu dois reverser à chacun ; fais le virement depuis ta banque puis clique « Enregistrer le reversement ».
 

@@ -1,5 +1,5 @@
 /* Entrevo Scan — service worker : garde l'appli de contrôle disponible sans réseau. */
-var CACHE = 'entrevo-scan-v1';
+var CACHE = 'entrevo-scan-v2';
 var scope = self.registration.scope; // ex. https://site.fr/  (dossier d'Entrevo)
 var SHELL = ['scan', 'assets/js/scan.js', 'assets/js/jsQR.js', 'assets/css/app.css', 'assets/css/scan.css',
   'assets/fonts/barlow-condensed-latin-700-normal.woff2', 'assets/fonts/barlow-condensed-latin-800-normal.woff2',

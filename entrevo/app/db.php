@@ -64,7 +64,20 @@ function run_migrations(): array
     foreach ($migrations as $num => $statements) {
         if ($num <= $current) continue;
         foreach ($statements as $sql) {
-            if (is_callable($sql)) $sql(); else db()->exec($sql);
+            if (is_callable($sql)) { $sql(); continue; }
+            // un ALTER à plusieurs clauses est exécuté clause par clause : une reprise après interruption
+            // n'est pas bloquée par une colonne déjà ajoutée
+            $parts = [$sql];
+            if (preg_match('~^\s*ALTER TABLE\s+(\w+)\s+(.*)$~s', $sql, $m)) {
+                $parts = array_map(fn($c) => 'ALTER TABLE ' . $m[1] . ' ' . trim($c), preg_split('~,\s*\n~', $m[2]));
+            }
+            foreach ($parts as $part) {
+                try { db()->exec($part); }
+                catch (PDOException $e) {
+                    $code = (int)($e->errorInfo[1] ?? 0);
+                    if (!in_array($code, [1050, 1060, 1061, 1091], true)) throw $e; // déjà existant : on continue
+                }
+            }
         }
         q("REPLACE INTO settings (k, v) VALUES ('db_version', ?)", [(string)$num]);
         $done[] = $num;

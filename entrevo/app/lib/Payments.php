@@ -115,15 +115,16 @@ final class Payments
 
             case 'sumup':
                 $r = self::http('POST', 'https://api.sumup.com/v0.1/checkouts',
-                    ['Authorization: Bearer ' . setting('sumup_api_key'), 'Content-Type: application/json'], json_encode([
+                    ['Authorization: Bearer ' . setting('sumup_api_key'), 'Content-Type: application/json'], json_encode(array_filter([
                         'checkout_reference' => $o['ref'] . '-' . substr(token(6), 0, 6),
                         'amount' => round($amount / 100, 2),
                         'currency' => 'EUR',
                         'merchant_code' => setting('sumup_merchant_code'),
                         'description' => self::label($o, $ev),
                         'redirect_url' => self::returnUrl($o, 'sumup'),
+                        'return_url' => self::webhookAllowed() ? abs_url('/paiement/webhook/sumup') : null,
                         'hosted_checkout' => ['enabled' => true],
-                    ]));
+                    ], fn($v) => $v !== null)));
                 update('orders', ['provider' => 'sumup', 'provider_ref' => $r['id']], 'id = ?', [$o['id']]);
                 if (empty($r['hosted_checkout_url'])) throw new RuntimeException('SumUp n\'a pas renvoyé de page de paiement (vérifiez que le paiement hébergé est activé sur votre compte).');
                 return $r['hosted_checkout_url'];
@@ -210,6 +211,54 @@ final class Payments
                 return 'Commande de démonstration : aucun remboursement réel.';
         }
         return 'Paiement hors ligne : remboursez l\'acheteur directement.';
+    }
+
+    /**
+     * Notification envoyée par un prestataire. On n'en croit jamais le contenu :
+     * on retrouve la commande puis on interroge le prestataire (verify) avant de valider.
+     * @return string résumé pour le journal
+     */
+    public static function webhook(string $provider): string
+    {
+        $raw = (string)file_get_contents('php://input');
+        $json = json_decode($raw, true) ?: [];
+        $ref = null;
+        switch ($provider) {
+            case 'stripe':
+                if (($json['type'] ?? '') && str_starts_with((string)$json['type'], 'checkout.session.')) $ref = $json['data']['object']['id'] ?? null;
+                break;
+            case 'paypal':
+                $res = $json['resource'] ?? [];
+                $ref = ($json['event_type'] ?? '') === 'PAYMENT.CAPTURE.COMPLETED' ? ($res['supplementary_data']['related_ids']['order_id'] ?? null) : ($res['id'] ?? null);
+                break;
+            case 'sumup':
+                $ref = $json['id'] ?? ($json['payload']['checkout_id'] ?? null);
+                break;
+            case 'mollie':
+                $ref = $_POST['id'] ?? null;
+                break;
+            default:
+                return 'prestataire inconnu';
+        }
+        if (!$ref) return 'notification ignorée';
+        $o = one('SELECT * FROM orders WHERE provider = ? AND provider_ref = ?', [$provider, (string)$ref]);
+        if (!$o) return 'commande introuvable (' . $ref . ')';
+        if ($o['status'] === 'paid') return 'déjà payée ' . $o['ref'];
+        if (self::verify($o)) { Tickets::confirm((int)$o['id']); return 'payée ' . $o['ref']; }
+        return 'pas encore payée ' . $o['ref'];
+    }
+
+    /** Revérifie les paiements restés « en attente » (acheteur parti avant le retour sur le site). */
+    public static function recheckPending(int $limit = 15): int
+    {
+        $n = 0;
+        $rows = all("SELECT * FROM orders WHERE status IN ('pending','expired') AND provider IN ('stripe','paypal','sumup','mollie') AND provider_ref IS NOT NULL
+                     AND created_at > NOW() - INTERVAL 6 HOUR AND created_at < NOW() - INTERVAL 2 MINUTE ORDER BY id DESC LIMIT " . (int)$limit);
+        foreach ($rows as $o) {
+            try { if (self::verify($o)) { Tickets::confirm((int)$o['id']); $n++; } }
+            catch (Throwable $e) { log_line('paiements', 'Relance ' . $o['ref'] . ' : ' . $e->getMessage()); }
+        }
+        return $n;
     }
 
     private static function paypalBase(): string

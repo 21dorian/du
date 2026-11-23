@@ -1,12 +1,23 @@
 <?php
-$form = function (?array $r) use ($org) {
-    $p = $r ?? ['id' => 0, 'name' => '', 'description' => '', 'price' => 0, 'quota' => 0, 'max_per_order' => 0, 'sale_start' => null, 'sale_end' => null, 'hidden' => 0, 'active' => 1, 'sort' => 0];
+$form = function (?array $r) use ($org, $sessions, $seatCats) {
+    $p = $r ?? ['id' => 0, 'name' => '', 'description' => '', 'price' => 0, 'quota' => 0, 'max_per_order' => 0, 'sale_start' => null, 'sale_end' => null, 'hidden' => 0, 'active' => 1, 'sort' => 0,
+        'price_mode' => 'fixed', 'pack_size' => 1, 'max_entries' => 1, 'per_day' => 0, 'session_ids' => '', 'seat_category' => ''];
+    $selS = array_map('intval', array_filter(explode(',', (string)$p['session_ids'])));
     ob_start(); ?>
     <form method="post"><?= csrf_field() ?><input type="hidden" name="rate_id" value="<?= (int)$p['id'] ?>">
       <div class="grid3">
         <div class="field" style="grid-column:span 2"><label>Nom du tarif *</label><input name="name" value="<?= e($p['name']) ?>" required placeholder="Plein tarif, Réduit, VIP…"></div>
-        <div class="field"><label>Prix</label><div class="input-suffix"><input name="price" value="<?= e(money_input((int)$p['price'])) ?>" inputmode="decimal"><span>€</span></div></div>
+        <div class="field"><label>Prix <?= '' ?></label><div class="input-suffix"><input name="price" value="<?= e(money_input((int)$p['price'])) ?>" inputmode="decimal"><span>€</span></div><small>Prix libre : c'est le minimum.</small></div>
       </div>
+      <div class="grid4">
+        <div class="field"><label>Type de prix</label><select name="price_mode"><option value="fixed" <?= $p['price_mode'] !== 'free' ? 'selected' : '' ?>>Prix fixe</option><option value="free" <?= $p['price_mode'] === 'free' ? 'selected' : '' ?>>💝 Prix libre</option></select></div>
+        <div class="field"><label>Billets par achat (pack)</label><input type="number" name="pack_size" min="1" max="50" value="<?= (int)$p['pack_size'] ?>"><small>4 = « pack famille » à 4 billets.</small></div>
+        <div class="field"><label>Entrées autorisées</label><input type="number" name="max_entries" min="1" max="100" value="<?= (int)$p['max_entries'] ?>"><small>3 = pass 3 entrées.</small></div>
+        <div class="field"><label>&nbsp;</label><label class="check"><input type="checkbox" name="per_day" value="1" <?= $p['per_day'] ? 'checked' : '' ?>> 1 entrée par jour (pass multi-jours)</label></div>
+      </div>
+      <?php if ($sessions): ?><div class="field"><label>Valable pour les dates</label><div class="row" style="gap:6px 16px">
+        <?php foreach ($sessions as $x): ?><label class="check" style="font-weight:400"><input type="checkbox" name="session_ids[]" value="<?= (int)$x['id'] ?>" <?= in_array((int)$x['id'], $selS, true) ? 'checked' : '' ?>> <?= e(short_date($x['starts_at'])) ?></label><?php endforeach; ?></div><small>Aucune cochée = toutes les dates.</small></div><?php endif; ?>
+      <?php if ($seatCats): ?><div class="field"><label>Catégorie de place (plan de salle)</label><select name="seat_category"><option value="">Toutes les places</option><?php foreach ($seatCats as $c): ?><option value="<?= e($c['id']) ?>" <?= $p['seat_category'] === $c['id'] ? 'selected' : '' ?>><?= e($c['name']) ?></option><?php endforeach; ?></select></div><?php endif; ?>
       <div class="field"><label>Description</label><input name="description" value="<?= e($p['description']) ?>" placeholder="Ex. : sur présentation d'un justificatif"></div>
       <div class="grid4">
         <div class="field"><label>Quota</label><input type="number" name="quota" min="0" value="<?= (int)$p['quota'] ?>"><small>0 = illimité</small></div>

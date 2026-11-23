@@ -31,13 +31,13 @@ function dashboard(): string
     $org = require_org();
     Tickets::expirePending();
     $k = one("SELECT COUNT(*) n, COALESCE(SUM(total),0) total, COALESCE(SUM(CASE WHEN method='online' THEN organizer_amount ELSE total END),0) net
-              FROM orders WHERE organizer_id = ? AND status = 'paid'", [$org['id']]);
+              FROM orders WHERE organizer_id = ? AND status = 'paid' AND (channel IS NULL OR channel <> 'systeme')", [$org['id']]);
     $tickets = (int)val("SELECT COUNT(*) FROM tickets t JOIN events e ON e.id = t.event_id WHERE e.organizer_id = ? AND t.status = 'valid'", [$org['id']]);
     $today = one("SELECT COUNT(*) n, COALESCE(SUM(total),0) t FROM orders WHERE organizer_id = ? AND status = 'paid' AND DATE(paid_at) = CURDATE()", [$org['id']]);
     $upcoming = all("SELECT * FROM events WHERE organizer_id = ? AND COALESCE(ends_at, starts_at) >= NOW() - INTERVAL 6 HOUR ORDER BY starts_at LIMIT 6", [$org['id']]);
     foreach ($upcoming as &$ev) $ev['stats'] = Tickets::stats((int)$ev['id']);
     unset($ev);
-    $recent = all("SELECT o.*, e.name ev_name FROM orders o JOIN events e ON e.id = o.event_id WHERE o.organizer_id = ? AND o.status IN ('paid','refunded','cancelled')
+    $recent = all("SELECT o.*, e.name ev_name FROM orders o JOIN events e ON e.id = o.event_id WHERE o.organizer_id = ? AND o.status IN ('paid','refunded','cancelled') AND (o.channel IS NULL OR o.channel <> 'systeme')
                    ORDER BY o.created_at DESC LIMIT 8", [$org['id']]);
     $chart = sales_chart('organizer_id = ?', [$org['id']]);
     $balance = Tickets::balance((int)$org['id']);
@@ -79,7 +79,27 @@ function event_form(?string $id = null): string
             'max_per_order' => max(0, (int)input('max_per_order')),
             'allow_reentry' => checked('allow_reentry'),
             'ticket_info' => trim((string)input('ticket_info')),
+            'category' => trim((string)input('category')) ?: null,
+            'password' => trim((string)input('password')) ?: null,
+            'publish_at' => dt_from_input(input('publish_at')),
+            'resale_enabled' => checked('resale_enabled'),
+            'resale_fee_percent' => max(0, min(30, (float)str_replace(',', '.', (string)input('resale_fee_percent', '5')))),
+            'waitlist_enabled' => checked('waitlist_enabled'),
+            'refund_request_enabled' => checked('refund_request_enabled'),
+            'refund_deadline' => dt_from_input(input('refund_deadline')),
+            'donation_enabled' => checked('donation_enabled'),
+            'donation_label' => trim((string)input('donation_label')) ?: null,
+            'queue_enabled' => checked('queue_enabled'),
+            'queue_rate' => max(5, min(2000, (int)input('queue_rate', 50))),
+            'ticket_color' => preg_match('~^#[0-9a-fA-F]{6}$~', (string)input('ticket_color')) ? (string)input('ticket_color') : null,
+            'email_message' => trim((string)input('email_message')) ?: null,
         ];
+        $newSlug = slugify((string)input('slug'));
+        if ($ev && input('slug') !== null && trim((string)input('slug')) !== '' && $newSlug !== $ev['slug']) {
+            if (val('SELECT id FROM events WHERE slug = ? AND id <> ?', [$newSlug, $ev['id']])) $errors[] = 'Cette adresse est déjà prise, choisis-en une autre.';
+            else $data['slug'] = $newSlug;
+        }
+        try { $logo = upload_image('ticket_logo'); if ($logo) $data['ticket_logo'] = $logo; } catch (RuntimeException $e) { $errors[] = $e->getMessage(); }
         if ($data['name'] === '') $errors[] = 'Il manque le nom de l\'événement.';
         if (!$data['starts_at']) $errors[] = 'Il manque la date de début.';
         if ($data['ends_at'] && $data['starts_at'] && $data['ends_at'] < $data['starts_at']) $errors[] = 'La fin avant le début ? Même Doc Brown n\'oserait pas 🕰️';
@@ -112,7 +132,7 @@ function event_overview(string $id): string
     $ev = org_event((int)$id);
     $stats = Tickets::stats((int)$ev['id']);
     $chart = sales_chart('event_id = ?', [$ev['id']]);
-    $recent = all("SELECT * FROM orders WHERE event_id = ? AND status IN ('paid','refunded','cancelled') ORDER BY created_at DESC LIMIT 6", [$ev['id']]);
+    $recent = all("SELECT * FROM orders WHERE event_id = ? AND status IN ('paid','refunded','cancelled') AND (channel IS NULL OR channel <> 'systeme') ORDER BY created_at DESC LIMIT 6", [$ev['id']]);
     $rates = (int)val('SELECT COUNT(*) FROM rates WHERE event_id = ?', [$ev['id']]);
     return ev_page($ev, 'overview', $ev['name'], 'event_overview', compact('stats', 'chart', 'recent', 'rates'));
 }
@@ -181,6 +201,12 @@ function rates(string $id): string
             'hidden' => checked('hidden'),
             'active' => checked('active'),
             'sort' => (int)input('sort'),
+            'price_mode' => input('price_mode') === 'free' ? 'free' : 'fixed',
+            'pack_size' => max(1, min(50, (int)input('pack_size', 1))),
+            'max_entries' => max(1, min(100, (int)input('max_entries', 1))),
+            'per_day' => checked('per_day'),
+            'session_ids' => implode(',', array_map('intval', (array)($_POST['session_ids'] ?? []))) ?: null,
+            'seat_category' => trim((string)input('seat_category')) ?: null,
         ];
         if ($data['name'] === '') back(['error' => 'Donne un nom à ce tarif.']);
         if ($rid) update('rates', $data, 'id = ? AND event_id = ?', [$rid, $ev['id']]);
@@ -189,7 +215,9 @@ function rates(string $id): string
     }
     $org = current_org();
     $rates = all('SELECT r.*, (SELECT COUNT(*) FROM tickets t WHERE t.rate_id = r.id AND t.status = \'valid\') sold FROM rates r WHERE event_id = ? ORDER BY sort, id', [$ev['id']]);
-    return ev_page($ev, 'rates', 'Tarifs', 'rates', ['rates' => $rates, 'org' => $org]);
+    $sessions = Tickets::sessions((int)$ev['id'], false);
+    $map = Seating::map($ev);
+    return ev_page($ev, 'rates', 'Tarifs', 'rates', ['rates' => $rates, 'org' => $org, 'sessions' => $sessions, 'seatCats' => $map['categories'] ?? []]);
 }
 
 // ---------- Formulaire personnalisé ----------
@@ -208,6 +236,7 @@ function form_fields(string $id): string
             'required' => checked('required'),
             'per_ticket' => (int)input('per_ticket') ? 1 : 0,
             'sort' => (int)input('sort'),
+            'rate_ids' => implode(',', array_map('intval', (array)($_POST['rate_ids'] ?? []))) ?: null,
         ];
         if ($data['label'] === '') back(['error' => 'Une question sans question, c\'est philosophique, mais non.']);
         if ($data['type'] === 'select' && !$data['options']) back(['error' => 'Indique les choix possibles (un par ligne).']);
@@ -216,7 +245,8 @@ function form_fields(string $id): string
         back(['success' => '✅ Question enregistrée.']);
     }
     $fields = all('SELECT * FROM form_fields WHERE event_id = ? ORDER BY sort, id', [$ev['id']]);
-    return ev_page($ev, 'form', 'Formulaire d\'inscription', 'form_fields', ['fields' => $fields]);
+    $rates = all('SELECT id, name FROM rates WHERE event_id = ? ORDER BY sort, id', [$ev['id']]);
+    return ev_page($ev, 'form', 'Formulaire d\'inscription', 'form_fields', ['fields' => $fields, 'rates' => $rates]);
 }
 
 // ---------- Codes promo ----------
@@ -322,20 +352,26 @@ function box_office(string $id): string
         if ($buyer['last_name'] === '') $errors[] = 'Il faut au moins un nom.';
         if ($buyer['email'] !== '' && !is_email($buyer['email'])) $errors[] = 'Cette adresse e-mail a l\'air bizarre 🤨';
         if (!$errors) {
-            $r = Tickets::createOrder(['event' => $ev, 'org' => $org, 'quantities' => $q, 'buyer' => $buyer, 'method' => $method,
+            $session = Tickets::hasSessions((int)$ev['id']) ? one('SELECT * FROM sessions WHERE id = ? AND event_id = ?', [(int)input('session_id'), $ev['id']]) : null;
+            $seats = [];
+            foreach ((array)($_POST['seats'] ?? []) as $rid => $list) $seats[(int)$rid] = array_values(array_filter(array_map(fn($x) => strtoupper(preg_replace('~[^A-Za-z0-9-]~', '', $x)), preg_split('~[\s,;]+~', (string)$list))));
+            $r = Tickets::createOrder(['event' => $ev, 'org' => $org, 'session' => $session, 'seats' => $seats, 'quantities' => $q, 'buyer' => $buyer, 'method' => $method, 'channel' => $method,
                 'pay_method' => $method === 'guichet' ? (string)input('pay_method') : null, 'note' => (string)input('note'),
                 'user_id' => user()['id'], 'force' => checked('force')]);
             if (!empty($r['errors'])) $errors = $r['errors'];
             else {
-                $o = Tickets::markPaid((int)$r['order']['id']);
-                $sent = checked('send') && $buyer['email'] ? Mailer::sendOrderSafe((int)$o['id']) : false;
+                $send = checked('send') && $buyer['email'];
+                $o = Tickets::confirm((int)$r['order']['id'], [], $send);
+                $sent = $send && val('SELECT email_sent_at FROM orders WHERE id = ?', [$o['id']]);
                 redirect('/pro/commandes/' . $o['id'], ['success' => ($method === 'invitation' ? '🎁 Invitation créée' : '💵 Vente enregistrée') . ($sent ? ', billets envoyés par e-mail 📬' : ' !')]);
             }
         }
     }
-    foreach ($rates as &$r) $r['remaining'] = Tickets::remaining($r, $ev);
+    $sessions = Tickets::sessions((int)$ev['id']);
+    $sel = $sessions ? (one('SELECT * FROM sessions WHERE id = ?', [(int)input('session_id')]) ?: $sessions[0]) : null;
+    foreach ($rates as &$r) $r['remaining'] = Tickets::remaining($r, $ev, $sel);
     unset($r);
-    return ev_page($ev, 'box', 'Guichet & invitations', 'box_office', ['rates' => $rates, 'errors' => $errors]);
+    return ev_page($ev, 'box', 'Guichet & invitations', 'box_office', ['rates' => $rates, 'errors' => $errors, 'sessions' => $sessions, 'sel' => $sel, 'seatmap' => (bool)Seating::map($ev)]);
 }
 
 // ---------- Contrôle en direct ----------
@@ -371,7 +407,9 @@ function orders(): string
     $sql = 'SELECT o.*, e.name ev_name, (SELECT SUM(qty) FROM order_items i WHERE i.order_id = o.id) qty FROM orders o JOIN events e ON e.id = o.event_id WHERE o.organizer_id = ?';
     $p = [$org['id']];
     if ($q !== '') { $sql .= ' AND (o.ref LIKE ? OR o.email LIKE ? OR o.last_name LIKE ? OR o.first_name LIKE ?)'; array_push($p, ...array_fill(0, 4, '%' . $q . '%')); }
-    if ($st !== '' && in_array($st, ['paid', 'pending', 'cancelled', 'refunded', 'expired'], true)) { $sql .= ' AND o.status = ?'; $p[] = $st; }
+    $sql .= " AND (o.channel IS NULL OR o.channel <> 'systeme')";
+    if ($st === 'refund_request') $sql .= " AND o.status = 'paid' AND o.refund_requested_at IS NOT NULL";
+    elseif ($st !== '' && in_array($st, ['paid', 'pending', 'cancelled', 'refunded', 'expired'], true)) { $sql .= ' AND o.status = ?'; $p[] = $st; }
     else $sql .= " AND o.status IN ('paid','refunded','cancelled')";
     if ($evId) { $sql .= ' AND o.event_id = ?'; $p[] = $evId; }
     $list = all($sql . ' ORDER BY o.created_at DESC LIMIT 300', $p);
@@ -479,6 +517,12 @@ function organization(): string
         $data['iban'] = strtoupper(preg_replace('~\s+~', '', (string)input('iban'))) ?: null;
         $data['bic'] = strtoupper(trim((string)input('bic'))) ?: null;
         $data['fee_mode'] = input('fee_mode') === 'organizer' ? 'organizer' : 'buyer';
+        foreach (['ga4_id', 'gtm_id', 'fb_pixel'] as $k) $data[$k] = preg_replace('~[^A-Za-z0-9-]~', '', (string)input($k)) ?: null;
+        $hook = trim((string)input('webhook_url'));
+        $data['webhook_url'] = $hook !== '' && preg_match('~^https://~', $hook) ? mb_substr($hook, 0, 255) : null;
+        if ($data['webhook_url'] && !$org['webhook_secret']) $data['webhook_secret'] = token(24);
+        if (input('action') === 'api_key') { update('organizers', ['api_key' => 'ev_' . token(28)], 'id = ?', [$org['id']]); redirect('/pro/organisation', ['success' => '🔑 Nouvelle clé API générée (l\'ancienne ne marche plus).']); }
+        try { $logo = upload_image('logo'); if ($logo) $data['logo'] = $logo; } catch (RuntimeException $e) { back(['error' => $e->getMessage()]); }
         if (!$data['name'] || !is_email((string)$data['email'])) back(['error' => 'Nom et e-mail de contact obligatoires.']);
         update('organizers', $data, 'id = ?', [$org['id']]);
         redirect('/pro/organisation', ['success' => '✅ C\'est enregistré.']);

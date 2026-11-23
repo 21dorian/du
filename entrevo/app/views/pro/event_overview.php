@@ -29,6 +29,10 @@
       <p class="muted" style="font-size:14px">Le lien de ta billetterie, à coller partout (Insta, site, mails, frigo…) :</p>
       <input readonly value="<?= e(abs_url('/e/' . $ev['slug'])) ?>" onclick="this.select()">
       <div class="center mt"><?= Qr::svg(abs_url('/e/' . $ev['slug']), 150) ?><br><small>À imprimer sur tes affiches 👆</small></div>
+      <?php $w = '<iframe src="' . abs_url('/widget/e/' . $ev['slug']) . '" style="width:100%;max-width:480px;min-height:460px;border:0" loading="lazy" title="Billetterie ' . e($ev['name']) . '"></iframe>'; ?>
+      <h3 class="mt">🧩 Widget pour ton site</h3>
+      <textarea readonly rows="3" onclick="this.select()" class="mono" style="font-size:12px"><?= e($w) ?></textarea>
+      <button type="button" class="btn btn-sm btn-light mt" data-copy="<?= e($w) ?>">Copier le code</button>
     </div>
     <div class="card">
       <div class="card-head"><h2>Dernières ventes</h2></div>

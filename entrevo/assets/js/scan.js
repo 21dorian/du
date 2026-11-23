@@ -141,11 +141,12 @@
   function merge(j) {
     if (!data || j.full || !data.tickets) data = { event: j.event, aps: j.access_points, rates: j.rates, tickets: {}, server_time: j.server_time, stats: j.stats };
     data.event = j.event; data.aps = j.access_points; data.rates = j.rates; data.server_time = j.server_time; data.stats = j.stats;
+    data.sessions = j.sessions || []; data.pops = j.populations || {};
     j.tickets.forEach(function (t) {
       // si un passage local n'est pas encore envoyé, on garde l'état local du billet
       var pendingLocal = queue.some(function (q) { return q.code === t[0]; });
       if (pendingLocal && data.tickets[t[0]]) return;
-      data.tickets[t[0]] = { n: t[1], r: t[2], v: t[3], i: t[4], e: t[5], c: t[6] };
+      data.tickets[t[0]] = { n: t[1], r: t[2], v: t[3], i: t[4], e: t[5], c: t[6], s: t[7] || 0, m: t[8] || 1, d: t[9] || 0, p: t[10] || 0, ty: t[11] || 'ticket', rn: t[12] || '', st: t[13] || '', l: t[14] || null };
     });
     saveData();
     renderCounters();
@@ -164,6 +165,19 @@
       b.onclick = function () { cfg.apId = a.id; saveCfg(); renderAps(); };
       list.appendChild(b);
     });
+    var sl = document.getElementById('session-list');
+    if (sl) {
+      var ss = data ? (data.sessions || []) : [];
+      document.getElementById('session-box').hidden = !ss.length;
+      if (ss.length && !ss.some(function (x) { return x.id === cfg.sessionId; })) {
+        var now = Date.now(), best = ss[0];
+        ss.forEach(function (x) { if (Math.abs(new Date(x.start.replace(' ', 'T')) - now) < Math.abs(new Date(best.start.replace(' ', 'T')) - now)) best = x; });
+        cfg.sessionId = best.id;
+      }
+      if (!ss.length) cfg.sessionId = null;
+      sl.innerHTML = '';
+      ss.forEach(function (x) { var b = document.createElement('button'); b.className = 'pick' + (x.id === cfg.sessionId ? ' on' : ''); b.innerHTML = '<b>' + esc(x.label) + '</b>'; b.onclick = function () { cfg.sessionId = x.id; saveCfg(); renderAps(); }; sl.appendChild(b); });
+    }
     document.querySelectorAll('.seg button').forEach(function (b) { b.classList.toggle('on', b.dataset.dir === cfg.dir); });
     $('reentry-note').textContent = data ? (data.event.reentry ? '↩️ Sorties et ré-entrées autorisées sur cet événement.' : '1 billet = 1 entrée. Le mode Sortie ne sert que si les ré-entrées sont activées.') : '';
     saveCfg();
@@ -177,7 +191,8 @@
     cfg.running = true; saveCfg();
     var ap = currentAp();
     $('scan-ev').textContent = data.event.name;
-    $('scan-ap').textContent = (ap ? ap.name : 'Entrée générale');
+    var sess = (data.sessions || []).filter(function (x) { return x.id === cfg.sessionId; })[0];
+    $('scan-ap').textContent = (ap ? ap.name : 'Entrée générale') + (sess ? ' · ' + sess.label : '');
     $('dir-pill').textContent = cfg.dir === 'out' ? '⬆️ Sortie' : '⬇️ Entrée';
     resetResult();
     renderCounters();
@@ -252,28 +267,35 @@
   // ---------- Validation ----------
   var LABELS = {
     ok: '✅ Bienvenue !', exit: '👋 Sortie OK', already: '✋ Déjà entré', invalid: '❌ Billet inconnu', forged: '❌ Code invalide',
-    cancelled: '🚫 Billet annulé', wrong_event: '🙅 Autre événement', not_allowed: '⛔ Pas pour cette porte', not_inside: '🤔 Pas entré', closed: '🔒 Porte fermée'
+    cancelled: '🚫 Billet annulé', wrong_event: '🙅 Autre événement', not_allowed: '⛔ Pas pour cette porte', not_inside: '🤔 Pas entré', closed: '🔒 Porte fermée',
+    wrong_session: '📅 Mauvaise date', max_reached: '✋ Entrées épuisées', not_today: '✋ Déjà venu aujourd\'hui'
   };
-  function levelOf(r) { return r === 'ok' || r === 'exit' ? 'ok' : (r === 'already' || r === 'not_inside' ? 'warn' : 'error'); }
+  function levelOf(r) { return r === 'ok' || r === 'exit' ? 'ok' : (['already', 'not_inside', 'not_today', 'max_reached'].indexOf(r) >= 0 ? 'warn' : 'error'); }
   function normalize(raw) {
     var s = String(raw || '').trim(), m = s.match(/[?&]c=([A-Za-z0-9]+)/);
     if (m) s = m[1];
     return s.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 40);
   }
 
+  function today() { return nowSql().slice(0, 10); }
   function localCheck(code) {
     var t = data.tickets[code], ap = currentAp();
     if (!t) return { result: 'invalid' };
     if (!t.v) return { result: 'cancelled', t: t };
+    if (cfg.sessionId && t.s && t.s !== cfg.sessionId) return { result: 'wrong_session', t: t };
     if (ap && !ap.active) return { result: 'closed', t: t };
-    if (ap && ap.rates.length && ap.rates.indexOf(t.r) < 0) return { result: 'not_allowed', t: t };
+    var pop = t.p ? data.pops[t.p] : null;
+    if (ap && pop && pop.zones.length && pop.zones.indexOf(ap.id) < 0) return { result: 'not_allowed', t: t };
+    if (ap && !pop && ap.rates.length && ap.rates.indexOf(t.r) < 0) return { result: 'not_allowed', t: t };
     if (cfg.dir === 'out') return { result: t.i ? 'exit' : 'not_inside', t: t };
-    if (t.i || (t.e > 0 && !data.event.reentry)) return { result: 'already', t: t };
+    if (t.i) return { result: 'already', t: t };
+    if (t.d && !data.event.reentry && t.e > 0 && t.l && String(t.l).slice(0, 10) === today()) return { result: 'not_today', t: t };
+    if (!t.d && !data.event.reentry && t.e >= (t.m || 1)) return { result: (t.m || 1) > 1 ? 'max_reached' : 'already', t: t };
     return { result: 'ok', t: t };
   }
   function applyLocal(code, result) {
     var t = data.tickets[code]; if (!t) return;
-    if (result === 'ok') { t.i = 1; t.e = (t.e || 0) + 1; if (!t.c) t.c = nowSql(); }
+    if (result === 'ok') { t.i = (data.event.reentry || ((t.m || 1) === 1 && !t.d)) ? 1 : 0; t.e = (t.e || 0) + 1; if (!t.c) t.c = nowSql(); t.l = nowSql(); }
     if (result === 'exit') t.i = 0;
     saveData();
   }
@@ -286,20 +308,22 @@
     lastCode = code; lastAt = now;
     var id = uuid(), at = nowSql();
     var local = localCheck(code);
-    var payload = { uuid: id, code: code, ap: cfg.apId, direction: cfg.dir, device: DEVICE };
+    var payload = { uuid: id, code: code, ap: cfg.apId, session: cfg.sessionId || null, direction: cfg.dir, device: DEVICE };
 
     var offline = function () {
       applyLocal(code, local.result);
-      queue.push({ uuid: id, code: code, ap: cfg.apId, direction: cfg.dir, at: at, device: DEVICE, local: local.result });
+      queue.push({ uuid: id, code: code, ap: cfg.apId, session: cfg.sessionId || null, direction: cfg.dir, at: at, device: DEVICE, local: local.result });
       saveQueue();
-      finish({ result: local.result, ticket: local.t ? { name: local.t.n, rate: data.rates[local.t.r] || '', code: code } : null, info: { last_at: local.t && local.t.c } }, id, true);
+      finish({ result: local.result, ticket: local.t ? { name: local.t.n, rate: data.rates[local.t.r] || local.t.rn || '', code: code, seat: local.t.st } : null,
+        info: { last_at: local.t && (local.t.l || local.t.c), population: local.t && local.t.p && data.pops[local.t.p] ? data.pops[local.t.p].name : undefined } }, id, true);
     };
 
     if (!online && navigator.onLine === false) { offline(); return; }
     busy = true;
     api('POST', '/api/scan/event/' + data.event.id + '/check', payload, 3000).then(function (r) {
       busy = false;
-      if (r.ticket) data.tickets[r.ticket.code] = { n: r.ticket.name, r: r.ticket.rate_id, v: r.ticket.status === 'valid' ? 1 : 0, i: r.ticket.inside, e: r.ticket.entries, c: (data.tickets[r.ticket.code] || {}).c || (r.result === 'ok' ? at : null) };
+      if (r.ticket) { var old = data.tickets[r.ticket.code] || {}; data.tickets[r.ticket.code] = Object.assign(old, { n: r.ticket.name, r: r.ticket.rate_id, v: r.ticket.status === 'valid' ? 1 : 0, i: r.ticket.inside, e: r.ticket.entries,
+        c: old.c || (r.result === 'ok' ? at : null), s: r.ticket.session_id || 0, m: r.ticket.max || 1, d: r.ticket.per_day || 0, ty: r.ticket.type, st: r.ticket.seat || '', l: r.result === 'ok' ? at : old.l }); }
       if (r.stats) data.stats = r.stats;
       saveData();
       finish(r, id, false);
@@ -317,6 +341,10 @@
     var name = r.ticket ? r.ticket.name : '';
     var info = [];
     if (r.ticket && r.ticket.rate) info.push(r.ticket.rate);
+    if (r.ticket && r.ticket.seat) info.push('💺 ' + r.ticket.seat);
+    if (r.info && r.info.population) info.push('🪪 ' + r.info.population);
+    if (r.info && r.info.left !== undefined) info.push('encore ' + r.info.left + ' entrée(s)');
+    if (r.result === 'wrong_session' && r.info && r.info.session) info.push('Billet pour le ' + r.info.session);
     if (r.result === 'already' && r.info && (r.info.last_at)) info.push('entré à ' + hhmm(r.info.last_at) + (r.info.last_ap ? ' · ' + r.info.last_ap : ''));
     if (r.result === 'wrong_event' && r.info && r.info.other_event) info.push('Billet pour : ' + r.info.other_event);
     if (r.info && r.info.reentry) info.push('↩️ ré-entrée');
@@ -369,7 +397,7 @@
   function renderCounters() {
     if (!data || !$('c-sold')) return;
     var sold = 0, checked = 0, inside = 0;
-    Object.keys(data.tickets).forEach(function (k) { var t = data.tickets[k]; if (t.v) { sold++; if (t.e > 0) checked++; if (t.i) inside++; } });
+    Object.keys(data.tickets).forEach(function (k) { var t = data.tickets[k]; if (t.v && t.ty !== 'accreditation') { sold++; if (t.e > 0) checked++; if (t.i) inside++; } });
     $('c-sold').textContent = sold;
     $('c-checked').textContent = checked;
     $('c-inside').textContent = inside;
@@ -394,7 +422,7 @@
       var code = x[0], t = x[1], div = document.createElement('div');
       var st = !t.v ? '🚫 annulé' : (t.i ? '✅ sur place' : (t.e ? '↩️ sorti' : '⏳ pas encore arrivé'));
       div.className = 'search-item';
-      div.innerHTML = '<div><b>' + esc(t.n) + '</b><small>' + esc(data.rates[t.r] || '') + ' · ' + st + '</small><small class="mono">' + esc(code) + '</small></div>';
+      div.innerHTML = '<div><b>' + esc(t.n) + '</b><small>' + esc(data.rates[t.r] || t.rn || '') + (t.st ? ' · 💺 ' + esc(t.st) : '') + ' · ' + st + '</small><small class="mono">' + esc(code) + '</small></div>';
       if (t.v) { var b = document.createElement('button'); b.className = 'btn btn-sm'; b.textContent = cfg.dir === 'out' ? 'Sortie' : 'Valider'; b.onclick = function () { overlay('search', false); handle(code, 'search'); }; div.appendChild(b); }
       list.appendChild(div);
     });

@@ -34,6 +34,12 @@ header('X-Frame-Options: SAMEORIGIN');
 header('X-Content-Type-Options: nosniff');
 header('Referrer-Policy: strict-origin-when-cross-origin');
 
+// tâches de fond après l'envoi de la page (sans ralentir le visiteur)
+register_shutdown_function(function () {
+    if (function_exists('fastcgi_finish_request')) @fastcgi_finish_request();
+    try { Jobs::run(); } catch (Throwable $e) { log_line('taches', $e->getMessage()); }
+});
+
 $routes = require APP . '/routes.php';
 $path = route_path();
 $method = $_SERVER['REQUEST_METHOD'] ?? 'GET';
@@ -44,7 +50,7 @@ try {
         $regex = '~^' . preg_replace('~\{(\w+)\}~', '(?P<$1>[^/]+)', $pattern) . '$~';
         if (!preg_match($regex, $path, $m)) continue;
         $params = array_filter($m, 'is_string', ARRAY_FILTER_USE_KEY);
-        if ($method === 'POST' && !str_starts_with($path, '/paiement/webhook')) csrf_check();
+        if ($method === 'POST' && !str_starts_with($path, '/paiement/webhook') && !str_starts_with($path, '/api/v1/')) csrf_check();
         [$file, $fn] = explode('@', $handler);
         require_once APP . '/controllers/' . $file . '.php';
         $out = $fn(...array_values($params));

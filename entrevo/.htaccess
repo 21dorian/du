@@ -4,6 +4,8 @@ DirectoryIndex index.php
 
 <IfModule mod_rewrite.c>
   RewriteEngine On
+  # transmet l'en-tête Authorization à PHP (API)
+  RewriteRule .* - [E=HTTP_AUTHORIZATION:%{HTTP:Authorization}]
   # Décommentez les 2 lignes suivantes pour forcer le HTTPS (recommandé une fois le certificat SSL actif)
   # RewriteCond %{HTTPS} off
   # RewriteRule ^ https://%{HTTP_HOST}%{REQUEST_URI} [L,R=301]

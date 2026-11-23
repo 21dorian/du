@@ -23,6 +23,7 @@ foreach ($events as $ev) if ($q === '' && $ev['image'] && (int)$ev['capacity'] >
   <button class="btn">Trouver 🔍</button>
 </form>
 
+<?php if ($cats): ?><div class="chips"><a class="chip <?= $cat === '' ? 'on' : '' ?>" href="<?= url('/') ?>">Tout</a><?php foreach ($cats as $c): ?><a class="chip <?= $cat === $c ? 'on' : '' ?>" href="<?= url('/', ['cat' => $c]) ?>"><?= e($c) ?></a><?php endforeach; ?></div><?php endif; ?>
 <?php if ($q !== ''): ?><p class="muted"><?= count($events) ?> résultat<?= count($events) > 1 ? 's' : '' ?> pour « <?= e($q) ?> ». <a href="<?= url('/') ?>">Tout voir</a></p><?php endif; ?>
 <?php if (!$events): ?>
   <div class="empty"><?= $q !== '' ? 'Rien trouvé 🤷 Essaie avec un autre mot, une autre ville.' : 'Calme plat pour l\'instant 👀 Reviens vite, ça bouge souvent.' ?></div>
@@ -34,8 +35,8 @@ foreach ($events as $ev) if ($q === '' && $ev['image'] && (int)$ev['capacity'] >
   <?php endif; ?>
   <a class="agenda-row" href="<?= url('/e/' . $ev['slug']) ?>">
     <span class="agenda-thumb"><?php if ($ev['image']): ?><img src="<?= url($ev['image']) ?>" alt="" loading="lazy"><?php endif; ?></span>
-    <span class="agenda-time"><?= date('H:i', $t) ?></span>
-    <span><span class="agenda-title"><?= e($ev['name']) ?></span><span class="agenda-place"><?= e(trim($ev['venue'] . ($ev['city'] ? ' · ' . $ev['city'] : ''), ' ·')) ?> — <?= e($ev['org_name']) ?></span></span>
+    <span class="agenda-time"><?= $ev['session_count'] > 1 ? '📅' : date('H:i', $t) ?></span>
+    <span><span class="agenda-title"><?= e($ev['name']) ?></span><span class="agenda-place"><?= $ev['session_count'] > 1 ? '<b>' . (int)$ev['session_count'] . ' dates</b> · ' : '' ?><?= e(trim($ev['venue'] . ($ev['city'] ? ' · ' . $ev['city'] : ''), ' ·')) ?> — <?= e($ev['org_name']) ?></span></span>
     <span class="agenda-price"><?= e($price($ev)) ?></span>
   </a>
 <?php endforeach; ?>

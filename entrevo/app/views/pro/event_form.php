@@ -9,6 +9,10 @@
           <div class="field"><label for="starts_at">Début *</label><input type="datetime-local" id="starts_at" name="starts_at" value="<?= e(dt_input($ev['starts_at'] ?? null)) ?>" required></div>
           <div class="field"><label for="ends_at">Fin</label><input type="datetime-local" id="ends_at" name="ends_at" value="<?= e(dt_input($ev['ends_at'] ?? null)) ?>"></div>
         </div>
+        <div class="grid2">
+          <div class="field"><label>Catégorie</label><input name="category" value="<?= e($ev['category'] ?? '') ?>" list="cats" placeholder="Concert, Festival, Sport, Théâtre…"><datalist id="cats"><?php foreach (['Concert', 'Festival', 'Théâtre', 'Humour', 'Sport', 'Salon', 'Conférence', 'Soirée', 'Atelier', 'Famille', 'Exposition'] as $c): ?><option value="<?= $c ?>"><?php endforeach; ?></datalist></div>
+          <?php if (!$isNew): ?><div class="field"><label>Adresse de la billetterie</label><div class="row" style="gap:6px;flex-wrap:nowrap"><small class="muted nowrap">/e/</small><input name="slug" value="<?= e($ev['slug'] ?? '') ?>"></div></div><?php endif; ?>
+        </div>
         <div class="field"><label for="description">Description</label><textarea id="description" name="description" rows="7" placeholder="Programme, artistes, informations pratiques…"><?= e($ev['description'] ?? '') ?></textarea></div>
       </div>
       <div class="card">
@@ -43,6 +47,31 @@
         <div class="field"><label for="capacity">Capacité totale</label><input type="number" id="capacity" name="capacity" min="0" value="<?= (int)($ev['capacity'] ?? 0) ?>"><small>Tous tarifs confondus. 0 = illimitée (vraiment ?).</small></div>
         <div class="field"><label for="max_per_order">Billets max. par commande</label><input type="number" id="max_per_order" name="max_per_order" min="0" value="<?= (int)($ev['max_per_order'] ?? 10) ?>"></div>
         <label class="check"><input type="checkbox" name="allow_reentry" value="1" <?= !empty($ev['allow_reentry']) ? 'checked' : '' ?>> Autoriser les sorties / ré-entrées</label>
+      </div>
+      <div class="card">
+        <h2>🔐 Accès & publication</h2>
+        <div class="field"><label>Mot de passe (événement privé)</label><input name="password" value="<?= e($ev['password'] ?? '') ?>" autocomplete="off" placeholder="Vide = public"><small>Masqué de l'agenda, accessible avec le mot de passe uniquement.</small></div>
+        <div class="field"><label>Publication programmée</label><input type="datetime-local" name="publish_at" value="<?= e(dt_input($ev['publish_at'] ?? null)) ?>"><small>Reste en brouillon puis se publie tout seul à cette heure-là.</small></div>
+        <label class="check"><input type="checkbox" name="queue_enabled" value="1" <?= !empty($ev['queue_enabled']) ? 'checked' : '' ?>> 🚦 File d'attente virtuelle (grosse ouverture des ventes)</label>
+        <div class="field mt" data-show-if="queue_enabled=1"><label>Personnes admises par minute</label><input type="number" name="queue_rate" min="5" value="<?= (int)($ev['queue_rate'] ?? 50) ?>"></div>
+      </div>
+      <div class="card">
+        <h2>🛒 Options de vente</h2>
+        <label class="check mb"><input type="checkbox" name="waitlist_enabled" value="1" <?= ($ev['waitlist_enabled'] ?? 1) ? 'checked' : '' ?>> ⏳ Liste d'attente quand c'est complet</label>
+        <label class="check mb"><input type="checkbox" name="resale_enabled" value="1" <?= !empty($ev['resale_enabled']) ? 'checked' : '' ?>> 🔁 Bourse aux billets officielle</label>
+        <div class="field" data-show-if="resale_enabled=1"><label>Frais de revente payés par le vendeur</label><div class="input-suffix"><input name="resale_fee_percent" value="<?= e($ev['resale_fee_percent'] ?? '5') ?>" inputmode="decimal"><span>%</span></div></div>
+        <label class="check mb"><input type="checkbox" name="refund_request_enabled" value="1" <?= !empty($ev['refund_request_enabled']) ? 'checked' : '' ?>> 💸 Les acheteurs peuvent demander un remboursement</label>
+        <div class="field" data-show-if="refund_request_enabled=1"><label>Jusqu'au</label><input type="datetime-local" name="refund_deadline" value="<?= e(dt_input($ev['refund_deadline'] ?? null)) ?>"></div>
+        <label class="check mb"><input type="checkbox" name="donation_enabled" value="1" <?= !empty($ev['donation_enabled']) ? 'checked' : '' ?>> 💛 Proposer un don à la commande</label>
+        <div class="field" data-show-if="donation_enabled=1"><label>Phrase d'appel au don</label><input name="donation_label" value="<?= e($ev['donation_label'] ?? '') ?>" placeholder="Un petit don pour soutenir l'asso ?"></div>
+      </div>
+      <div class="card">
+        <h2>🎨 Billet & e-mail</h2>
+        <div class="grid2">
+          <div class="field"><label>Couleur du billet</label><input type="color" name="ticket_color" value="<?= e($ev['ticket_color'] ?? setting('primary_color', '#ff5a4e')) ?>"></div>
+          <div class="field"><label>Logo sur le billet</label><?php if (!empty($ev['ticket_logo'])): ?><img src="<?= url($ev['ticket_logo']) ?>" alt="" style="max-height:40px;margin-bottom:6px"><?php endif; ?><input type="file" name="ticket_logo" accept="image/png,image/jpeg"></div>
+        </div>
+        <div class="field mb0"><label>Message dans l'e-mail de confirmation</label><textarea name="email_message" rows="3" placeholder="Infos pratiques, accès, parking…"><?= e($ev['email_message'] ?? '') ?></textarea></div>
       </div>
       <div class="card">
         <h2>📝 Texte sur le billet</h2>

@@ -21,6 +21,9 @@ $input = function (array $f, string $name, string $val) {
 <div class="steps"><span class="done">Billets</span><span class="on">Informations</span><span>Paiement</span><span>Confirmation</span></div>
 <div class="checkout">
   <form method="post" id="checkout"><?= csrf_field() ?>
+    <div style="position:absolute;left:-9999px" aria-hidden="true"><input name="website" tabindex="-1" autocomplete="off"></div>
+    <?php if ($waitlist): ?><div class="flash info">⏳ Place réservée pour toi jusqu'au <?= e(fr_date($waitlist['expires_at'])) ?>.</div><?php endif; ?>
+    <?php if ($partner): ?><div class="flash info">🤝 Lot partenaire : <?= e($partner['name']) ?></div><?php endif; ?>
     <?php if ($errors): ?><div class="flash error"><?= implode('<br>', array_map('e', $errors)) ?></div><?php endif; ?>
     <div class="card">
       <h2>C'est toi ? 👋</h2>
@@ -37,14 +40,17 @@ $input = function (array $f, string $name, string $val) {
     <div class="card">
       <div class="card-head"><h2>Qui vient ? 👯</h2><button type="button" class="btn btn-sm btn-light" id="copy-buyer">C'est moi !</button></div>
       <p class="muted mb0">Un nom par billet. Pas de « Batman », merci. 🦇</p>
-      <?php foreach ($sum['lines'] as $l): for ($i = 0; $i < $l['qty']; $i++): $p = 'h[' . $l['rate_id'] . '][' . $i . ']'; $o = $old['h'][$l['rate_id']][$i] ?? []; ?>
+      <?php foreach ($sum['lines'] as $l): if ($l['kind'] !== 'rate') continue;
+          $tf = array_values(array_filter($ticketFields, fn($f) => !$f['only'] || in_array($l['rate_id'], $f['only'], true)));
+          $n = $l['qty'] * $l['pack'];
+          for ($i = 0; $i < $n; $i++): $p = 'h[' . $l['rate_id'] . '][' . $i . ']'; $o = $old['h'][$l['rate_id']][$i] ?? []; $seat = $l['seats'][$i] ?? null; ?>
         <div class="holder">
-          <div class="holder-title"><span>Billet « <?= e($l['name']) ?> »<?= $l['qty'] > 1 ? ' n°' . ($i + 1) : '' ?></span></div>
+          <div class="holder-title"><span>🎟️ <?= e($l['name']) ?><?= $n > 1 ? ' n°' . ($i + 1) : '' ?></span><?php if ($seat): ?><span class="ticket-seat">💺 <?= e($seatLabels[$seat] ?? $seat) ?></span><?php endif; ?></div>
           <div class="grid2">
             <div class="field"><label>Prénom *</label><input name="<?= $p ?>[first_name]" value="<?= e($o['first_name'] ?? '') ?>" required class="h-first"></div>
             <div class="field"><label>Nom *</label><input name="<?= $p ?>[last_name]" value="<?= e($o['last_name'] ?? '') ?>" required class="h-last"></div>
           </div>
-          <?php foreach ($ticketFields as $f) echo $input($f, $p . '[f][' . $f['id'] . ']', (string)($o['f'][$f['id']] ?? '')); ?>
+          <?php foreach ($tf as $f) echo $input($f, $p . '[f][' . $f['id'] . ']', (string)($o['f'][$f['id']] ?? '')); ?>
         </div>
       <?php endfor; endforeach; ?>
     </div>
@@ -62,14 +68,15 @@ $input = function (array $f, string $name, string $val) {
   <aside class="buy-box">
     <div class="card">
       <h3><?= e($ev['name']) ?></h3>
-      <p class="muted" style="font-size:14px"><?= e(fr_date($ev['starts_at'])) ?><br><?= e($ev['venue']) ?></p>
+      <p class="muted" style="font-size:14px"><?= e(fr_date($session['starts_at'] ?? $ev['starts_at'])) ?><br><?= e($ev['venue']) ?></p>
       <?php foreach ($sum['lines'] as $l): ?>
-        <div class="summary-line"><span><?= (int)$l['qty'] ?> × <?= e($l['name']) ?></span><span><?= e(money($l['qty'] * $l['unit_price'])) ?></span></div>
+        <div class="summary-line"><span><?= (int)$l['qty'] ?> × <?= $l['kind'] === 'product' ? '✨ ' : '' ?><?= e($l['name']) ?><?= $l['pack'] > 1 ? ' (pack ' . $l['pack'] . ')' : '' ?></span><span><?= e(money($l['qty'] * $l['unit_price'])) ?></span></div>
       <?php endforeach; ?>
+      <?php if ($sum['donation']): ?><div class="summary-line"><span>💛 Don</span><span><?= e(money($sum['donation'])) ?></span></div><?php endif; ?>
       <?php if ($sum['discount']): ?><div class="summary-line" style="color:var(--green)"><span>Code <?= e($sum['promo']['code']) ?></span><span>−<?= e(money($sum['discount'])) ?></span></div><?php endif; ?>
       <?php if ($sum['fees']): ?><div class="summary-line"><span>Frais de service</span><span><?= e(money($sum['fees'])) ?></span></div><?php endif; ?>
       <div class="summary-line total"><span>Total</span><span><?= e(money($sum['total'])) ?></span></div>
-      <a href="<?= url('/e/' . $ev['slug']) ?>" style="font-size:14px">← Je change d'avis</a>
+      <a href="<?= url('/e/' . $ev['slug'], $session ? ['seance' => $session['id']] : []) ?>" style="font-size:14px">← Je change d'avis</a>
     </div>
   </aside>
 </div>

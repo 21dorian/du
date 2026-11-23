@@ -1,4 +1,5 @@
 <?php $paid = $o['status'] === 'paid'; $fieldsAns = $answers['order'] ?? []; ?>
+<?php if ($o['refund_requested_at'] && $paid): ?><div class="flash warning">💸 L'acheteur a demandé un remboursement le <?= e(short_date($o['refund_requested_at'])) ?><?= $o['refund_reason'] ? ' : « ' . e($o['refund_reason']) . ' »' : '' ?>. Utilise « Rembourser et annuler » pour accepter.</div><?php endif; ?>
 <div class="split-3">
   <div>
     <div class="card">
@@ -54,6 +55,7 @@
         <div class="field mb0"><label>Renvoyer les billets à</label><input type="email" name="email" value="<?= e($o['email']) ?>"></div>
         <button class="btn btn-block" name="action" value="resend">📬 Renvoyer les billets</button>
         <a class="btn btn-block btn-light" href="<?= url('/commande/' . $o['ref'] . '/pdf', ['t' => $o['token']]) ?>" target="_blank">Voir le PDF</a>
+        <a class="btn btn-block btn-light" href="<?= url('/pro/commandes/' . $o['id'] . '/ticket-caisse') ?>" target="_blank">🖨️ Ticket de caisse (80 mm)</a>
         <?php if ($o['method'] === 'online' && $o['total'] > 0): ?>
           <button class="btn btn-block btn-danger" name="action" value="refund" data-confirm="Rembourser l'acheteur et annuler tous les billets ?">💸 Rembourser et annuler</button>
         <?php endif; ?>

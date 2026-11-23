@@ -41,6 +41,7 @@
 <section class="screen" id="s-setup" hidden>
   <header class="scan-head"><button class="icon-btn" data-go="events" aria-label="Retour">←</button><b id="setup-title" class="head-title"></b><span></span></header>
   <div class="scan-pad">
+    <div id="session-box" hidden><h2>Quelle date ? 📅</h2><div id="session-list" class="pick-list"></div><div class="mt"></div></div>
     <h2>Quelle porte ? 🚪</h2>
     <div id="ap-list" class="pick-list"></div>
     <h2 class="mt">Dans quel sens ?</h2>

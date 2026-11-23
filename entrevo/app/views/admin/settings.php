@@ -18,6 +18,11 @@ $secret = fn($k) => setting($k) ? '•••••• (enregistré, laisser vide
     </div>
     <label class="check"><input type="checkbox" name="signup_open" value="1" <?= $c('signup_open') ?>> Inscription libre des organisateurs</label>
   </div>
+  <div class="card" style="max-width:820px">
+    <h2>⏱️ Tâche planifiée (recommandé)</h2>
+    <p class="muted" style="font-size:14px">Les tâches de fond (paiements à revérifier, liste d'attente, publications programmées…) tournent toutes seules quand le site a des visites. Pour qu'elles tournent même la nuit, ajoute cette commande dans cPanel › « Tâches Cron », toutes les 5 minutes :</p>
+    <input readonly class="mono" onclick="this.select()" value="wget -q -O /dev/null &quot;<?= e(abs_url('/cron', ['cle' => Jobs::cronKey()])) ?>&quot;">
+  </div>
 <?php elseif ($tab === 'fees'): ?>
   <div class="card" style="max-width:820px">
     <p class="muted">Taux par défaut pour tous les organisateurs (tu peux faire un prix perso à chacun dans sa fiche). Seuls les billets payants vendus en ligne sont concernés.</p>
@@ -31,6 +36,10 @@ $secret = fn($k) => setting($k) ? '•••••• (enregistré, laisser vide
     <div class="notice mt">Exemple : billet à 20 € → commission de <b><?= e(money(Tickets::computeFees($ex, 2000, 1))) ?></b>.</div>
   </div>
 <?php elseif ($tab === 'payments'): ?>
+  <div class="notice mb" style="max-width:820px">🔔 Adresses de notification (webhooks) à déclarer chez chaque prestataire, pour que les commandes soient validées même si l'acheteur ferme son navigateur :<br>
+    Stripe (événement « checkout.session.completed ») : <code><?= e(abs_url('/paiement/webhook/stripe')) ?></code><br>
+    PayPal (« CHECKOUT.ORDER.APPROVED » et « PAYMENT.CAPTURE.COMPLETED ») : <code><?= e(abs_url('/paiement/webhook/paypal')) ?></code><br>
+    SumUp et Mollie : automatique.</div>
   <div class="notice warn mb" style="max-width:820px">Les paiements arrivent sur <b>tes</b> comptes. Fais toujours un achat test avec les clés de test du prestataire avant d'activer les vraies clés.</div>
   <div class="split" style="max-width:1100px">
     <div class="card"><h2>Stripe (CB, Apple Pay, Google Pay)</h2>

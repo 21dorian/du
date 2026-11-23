@@ -31,43 +31,107 @@ final class Tickets
         return strlen($code) === 14 && hash_equals(self::check(substr($code, 0, 10)), substr($code, 10));
     }
 
+    // ---------- Séances ----------
+    public static function sessions(int $eventId, bool $onlyActive = true): array
+    {
+        return all('SELECT * FROM sessions WHERE event_id = ?' . ($onlyActive ? ' AND active = 1' : '') . ' ORDER BY starts_at, id', [$eventId]);
+    }
+
+    public static function hasSessions(int $eventId): bool
+    {
+        return (bool)val('SELECT id FROM sessions WHERE event_id = ? LIMIT 1', [$eventId]);
+    }
+
+    /** Met à jour les dates de l'événement à partir de ses séances (première et dernière). */
+    public static function syncEventDates(int $eventId): void
+    {
+        $r = one('SELECT MIN(starts_at) a, MAX(COALESCE(ends_at, starts_at)) b FROM sessions WHERE event_id = ? AND active = 1', [$eventId]);
+        if ($r && $r['a']) update('events', ['starts_at' => $r['a'], 'ends_at' => $r['b']], 'id = ?', [$eventId]);
+    }
+
     // ---------- Disponibilités ----------
-    public static function rateUsed(int $rateId): int
+    // On compte en « places » (un pack de 4 = 4 places). Les accréditations et billets importés ne comptent pas.
+    private const COUNTED = "t.status = 'valid' AND t.type IN ('ticket','invitation')";
+
+    public static function rateUsed(int $rateId, ?int $sessionId = null): int
     {
-        $sold = (int)val("SELECT COUNT(*) FROM tickets WHERE rate_id = ? AND status = 'valid'", [$rateId]);
-        $held = (int)val("SELECT COALESCE(SUM(i.qty),0) FROM order_items i JOIN orders o ON o.id = i.order_id
-                          WHERE i.rate_id = ? AND o.status = 'pending' AND o.expires_at > NOW()", [$rateId]);
+        $ss = $sessionId ? ' AND t.session_id = ' . (int)$sessionId : '';
+        $sold = (int)val('SELECT COUNT(*) FROM tickets t WHERE t.rate_id = ? AND ' . self::COUNTED . $ss, [$rateId]);
+        $os = $sessionId ? ' AND o.session_id = ' . (int)$sessionId : '';
+        $held = (int)val("SELECT COALESCE(SUM(i.qty * r.pack_size),0) FROM order_items i JOIN orders o ON o.id = i.order_id JOIN rates r ON r.id = i.rate_id
+                          WHERE i.kind = 'rate' AND i.rate_id = ? AND o.status = 'pending' AND o.resale_id IS NULL AND o.expires_at > NOW()" . $os, [$rateId]);
         return $sold + $held;
     }
 
-    public static function eventUsed(int $eventId): int
+    public static function eventUsed(int $eventId, ?int $sessionId = null, int $exceptWaitlist = 0): int
     {
-        $sold = (int)val("SELECT COUNT(*) FROM tickets WHERE event_id = ? AND status = 'valid'", [$eventId]);
-        $held = (int)val("SELECT COALESCE(SUM(i.qty),0) FROM order_items i JOIN orders o ON o.id = i.order_id
-                          WHERE o.event_id = ? AND o.status = 'pending' AND o.expires_at > NOW()", [$eventId]);
-        return $sold + $held;
+        $ss = $sessionId ? ' AND t.session_id = ' . (int)$sessionId : '';
+        $sold = (int)val('SELECT COUNT(*) FROM tickets t WHERE t.event_id = ? AND ' . self::COUNTED . $ss, [$eventId]);
+        $os = $sessionId ? ' AND o.session_id = ' . (int)$sessionId : '';
+        $held = (int)val("SELECT COALESCE(SUM(i.qty * r.pack_size),0) FROM order_items i JOIN orders o ON o.id = i.order_id JOIN rates r ON r.id = i.rate_id
+                          WHERE i.kind = 'rate' AND o.event_id = ? AND o.status = 'pending' AND o.resale_id IS NULL AND o.expires_at > NOW()" . $os, [$eventId]);
+        // places proposées à la liste d'attente (réservées 24 h pour eux)
+        $ws = $sessionId ? ' AND session_id = ' . (int)$sessionId : '';
+        $offered = (int)val("SELECT COALESCE(SUM(qty),0) FROM waitlist WHERE event_id = ? AND status = 'offered' AND expires_at > NOW() AND id <> ?" . $ws, [$eventId, $exceptWaitlist]);
+        return $sold + $held + $offered;
     }
 
-    public static function remaining(array $rate, array $event): int
+    public static function capacity(array $event, ?array $session): int
     {
+        if ($session && (int)$session['capacity'] > 0) return (int)$session['capacity'];
+        return (int)$event['capacity'];
+    }
+
+    /** Places encore disponibles pour un tarif (et une séance). */
+    public static function remaining(array $rate, array $event, ?array $session = null, int $exceptWaitlist = 0): int
+    {
+        $sid = $session ? (int)$session['id'] : null;
         $rem = PHP_INT_MAX;
-        if ((int)$rate['quota'] > 0) $rem = (int)$rate['quota'] - self::rateUsed((int)$rate['id']);
-        if ((int)$event['capacity'] > 0) $rem = min($rem, (int)$event['capacity'] - self::eventUsed((int)$event['id']));
+        if ((int)$rate['quota'] > 0) $rem = (int)$rate['quota'] - self::rateUsed((int)$rate['id'], $sid);
+        $cap = self::capacity($event, $session);
+        if ($cap > 0) $rem = min($rem, $cap - self::eventUsed((int)$event['id'], $sid, $exceptWaitlist));
         return max(0, $rem);
     }
 
+    /** Nombre d'achats possibles (un pack consomme plusieurs places). */
+    public static function remainingUnits(array $rate, array $event, ?array $session = null, int $exceptWaitlist = 0): int
+    {
+        $rem = self::remaining($rate, $event, $session, $exceptWaitlist);
+        return $rem === PHP_INT_MAX ? PHP_INT_MAX : intdiv($rem, max(1, (int)$rate['pack_size']));
+    }
+
+    public static function rateSessions(array $rate): array
+    {
+        return array_values(array_filter(array_map('intval', explode(',', (string)($rate['session_ids'] ?? '')))));
+    }
+
     /** @return array{ok:bool, why?:string, remaining?:int} */
-    public static function onSale(array $rate, array $event): array
+    public static function onSale(array $rate, array $event, ?array $session = null, int $exceptWaitlist = 0): array
     {
         if (!$rate['active']) return ['ok' => false, 'why' => 'Indisponible'];
         if ($event['status'] !== 'published') return ['ok' => false, 'why' => 'Vente fermée'];
         $now = time();
         if ($rate['sale_start'] && strtotime($rate['sale_start']) > $now) return ['ok' => false, 'why' => 'En vente le ' . fr_date($rate['sale_start'])];
         if ($rate['sale_end'] && strtotime($rate['sale_end']) < $now) return ['ok' => false, 'why' => 'Vente terminée'];
-        if (strtotime($event['ends_at'] ?: $event['starts_at']) + 6 * 3600 < $now) return ['ok' => false, 'why' => 'Événement passé'];
-        $rem = self::remaining($rate, $event);
+        if ($session) {
+            if (!$session['active']) return ['ok' => false, 'why' => 'Séance indisponible'];
+            if (strtotime((string)($session['ends_at'] ?: $session['starts_at'])) < $now) return ['ok' => false, 'why' => 'Séance passée'];
+            $only = self::rateSessions($rate);
+            if ($only && !in_array((int)$session['id'], $only, true)) return ['ok' => false, 'why' => 'Pas pour cette date'];
+        } elseif (strtotime($event['ends_at'] ?: $event['starts_at']) + 6 * 3600 < $now) {
+            return ['ok' => false, 'why' => 'Événement passé'];
+        }
+        $rem = self::remainingUnits($rate, $event, $session, $exceptWaitlist);
         if ($rem <= 0) return ['ok' => false, 'why' => 'Complet 🫠'];
         return ['ok' => true, 'remaining' => $rem];
+    }
+
+    public static function productRemaining(array $p): int
+    {
+        if ((int)$p['stock'] <= 0) return PHP_INT_MAX;
+        $sold = (int)val("SELECT COALESCE(SUM(i.qty),0) FROM order_items i JOIN orders o ON o.id = i.order_id WHERE i.kind = 'product' AND i.product_id = ?
+                          AND (o.status = 'paid' OR (o.status = 'pending' AND o.expires_at > NOW()))", [$p['id']]);
+        return max(0, (int)$p['stock'] - $sold);
     }
 
     // ---------- Codes promo ----------
@@ -86,7 +150,7 @@ final class Tickets
     public static function discount(?array $promo, array $items): int
     {
         if (!$promo || $promo['kind'] === 'unlock') return 0;
-        $eligible = array_filter($items, fn($i) => !$promo['rate_list'] || in_array((int)$i['rate_id'], $promo['rate_list'], true));
+        $eligible = array_filter($items, fn($i) => ($i['kind'] ?? 'rate') === 'rate' && (!$promo['rate_list'] || in_array((int)$i['rate_id'], $promo['rate_list'], true)));
         $base = array_sum(array_map(fn($i) => $i['unit_price'] * $i['qty'], $eligible));
         if ($promo['kind'] === 'percent') return min($base, (int)round($base * (int)$promo['value'] / 100));
         $qty = array_sum(array_map(fn($i) => $i['qty'], $eligible));
@@ -117,17 +181,27 @@ final class Tickets
 
     // ---------- Commandes ----------
     /**
-     * @param array $p event, org, quantities [rateId=>qty], buyer [email, first_name, last_name, phone],
-     *                 holders [rateId=>[i=>[first_name,last_name,answers]]], order_answers, promo, method, pay_method, note, user_id, unlocked (rate ids), force
+     * Crée une commande « en attente de paiement » (ou payée ensuite par confirm()).
+     * @param array $p event, org, session (ligne ou null), quantities [rateId=>qty], prices [rateId=>centimes, prix libre],
+     *                 products [productId=>qty], donation (centimes), seats [rateId=>[sièges]], buyer [email, first_name, last_name, phone],
+     *                 holders [rateId=>[i=>[first_name,last_name,answers]]], order_answers, promo, unlocked (rate ids),
+     *                 method (online|guichet|invitation|partner|import), channel, utm [source,medium,campaign], partner (ligne), waitlist (ligne),
+     *                 resale (ligne de resales + ticket), pay_method, note, user_id, force
      * @return array{order?:array, errors?:string[]}
      */
     public static function createOrder(array $p): array
     {
         $ev = $p['event'];
         $org = $p['org'];
+        $session = $p['session'] ?? null;
         $method = $p['method'] ?? 'online';
-        $staff = $method !== 'online';
+        $staff = in_array($method, ['guichet', 'invitation', 'import'], true);
+        $partner = $p['partner'] ?? null;
+        $waitlist = $p['waitlist'] ?? null;
+        $resale = $p['resale'] ?? null;
         $errors = [];
+        if (self::hasSessions((int)$ev['id']) && !$session) return ['errors' => ['Choisis d\'abord une date 📅']];
+        if ($session && (int)$session['event_id'] !== (int)$ev['id']) return ['errors' => ['Séance inconnue.']];
 
         db()->beginTransaction();
         try {
@@ -135,64 +209,126 @@ final class Tickets
             q('SELECT id FROM events WHERE id = ? FOR UPDATE', [$ev['id']]);
 
             $promo = null;
-            if (!empty($p['promo']) && !$staff) {
+            if (!empty($p['promo']) && !$staff && !$resale) {
                 $r = self::findPromo((int)$ev['id'], (string)$p['promo']);
                 if (!empty($r['error'])) $errors[] = $r['error']; else $promo = $r['promo'] ?? null;
             }
             $unlocked = array_map('intval', $p['unlocked'] ?? []);
             if ($promo && $promo['kind'] === 'unlock') $unlocked = array_merge($unlocked, $promo['rate_list']);
+            $seatmap = Seating::map($ev);
+            $seatsWanted = $p['seats'] ?? [];
+            $allSeats = [];
 
             $items = [];
-            $count = 0;
+            $places = 0;
+            $units = 0;
             foreach (($p['quantities'] ?? []) as $rateId => $qty) {
                 $qty = (int)$qty;
                 if ($qty <= 0) continue;
                 $rate = one('SELECT * FROM rates WHERE id = ? AND event_id = ?', [(int)$rateId, $ev['id']]);
                 if (!$rate) { $errors[] = 'Tarif inconnu.'; continue; }
-                if (!$staff) {
-                    if ($rate['hidden'] && !in_array((int)$rate['id'], $unlocked, true)) { $errors[] = 'Tarif non disponible.'; continue; }
-                    $st = self::onSale($rate, $ev);
-                    if (!$st['ok']) { $errors[] = $rate['name'] . ' : ' . $st['why']; continue; }
-                    if ((int)$rate['max_per_order'] > 0 && $qty > (int)$rate['max_per_order']) { $errors[] = $rate['name'] . ' : maximum ' . $rate['max_per_order'] . ' par commande.'; continue; }
+                $pack = max(1, (int)$rate['pack_size']);
+                if ($resale) {
+                    // revente : un billet précis, au prix fixé (plafonné au prix d'origine)
+                    $price = (int)$resale['price'];
+                } else {
+                    if ($partner) {
+                        if ((int)$partner['rate_id'] !== (int)$rate['id']) { $errors[] = 'Tarif non disponible.'; continue; }
+                        $usedByPartner = (int)val("SELECT COUNT(*) FROM tickets t JOIN orders o ON o.id = t.order_id WHERE o.partner_id = ? AND t.status = 'valid'", [$partner['id']]);
+                        if ((int)$partner['quota'] > 0 && $usedByPartner + $qty * $pack > (int)$partner['quota']) { $errors[] = 'Plus que ' . max(0, (int)$partner['quota'] - $usedByPartner) . ' place(s) sur ton lot partenaire.'; continue; }
+                    } elseif (!$staff) {
+                        if ($rate['hidden'] && !in_array((int)$rate['id'], $unlocked, true)) { $errors[] = 'Tarif non disponible.'; continue; }
+                        $st = self::onSale($rate, $ev, $session, (int)($waitlist['id'] ?? 0));
+                        if (!$st['ok']) { $errors[] = $rate['name'] . ' : ' . $st['why']; continue; }
+                        if ((int)$rate['max_per_order'] > 0 && $qty > (int)$rate['max_per_order']) { $errors[] = $rate['name'] . ' : maximum ' . $rate['max_per_order'] . ' par commande.'; continue; }
+                    }
+                    $rem = self::remainingUnits($rate, $ev, $session, (int)($waitlist['id'] ?? 0));
+                    if ($qty > $rem && empty($p['force'])) { $errors[] = $rate['name'] . ' : plus que ' . $rem . ' disponible(s).'; continue; }
+                    $price = (int)$rate['price'];
+                    if ($rate['price_mode'] === 'free' && !$staff) {
+                        $wanted = (int)($p['prices'][$rate['id']] ?? $price);
+                        if ($wanted < (int)$rate['price']) { $errors[] = $rate['name'] . ' : minimum ' . money((int)$rate['price']) . '.'; continue; }
+                        $price = min($wanted, 1000000);
+                    }
+                    if (in_array($method, ['invitation', 'import'], true) || ($partner && $partner['free'])) $price = 0;
                 }
-                $rem = self::remaining($rate, $ev);
-                if ($qty > $rem && empty($p['force'])) { $errors[] = $rate['name'] . ' : plus que ' . $rem . ' place(s) disponible(s).'; continue; }
-                $items[] = ['rate_id' => (int)$rate['id'], 'name' => $rate['name'], 'qty' => $qty, 'unit_price' => $method === 'invitation' ? 0 : (int)$rate['price']];
-                $count += $qty;
+                // placement numéroté
+                $seats = [];
+                if ($seatmap && !$resale && $method !== 'import') {
+                    $seats = array_values(array_unique(array_map('strval', (array)($seatsWanted[$rate['id']] ?? []))));
+                    if (count($seats) !== $qty * $pack) { $errors[] = $rate['name'] . ' : choisis ' . ($qty * $pack) . ' place(s) sur le plan 💺'; continue; }
+                    foreach ($seats as $seat) {
+                        $chk = Seating::check($ev, $session, $seat, $rate);
+                        if ($chk !== true) { $errors[] = $chk; continue 2; }
+                    }
+                    $allSeats = array_merge($allSeats, $seats);
+                } elseif ($resale && !empty($resale['seat'])) {
+                    $seats = [$resale['seat']];
+                }
+                $items[] = ['kind' => 'rate', 'rate_id' => (int)$rate['id'], 'name' => $rate['name'] . ($pack > 1 ? ' (pack ' . $pack . ')' : ''),
+                    'qty' => $qty, 'unit_price' => $price, 'seats' => $seats ? implode(',', $seats) : null, '_pack' => $pack];
+                $places += $qty * $pack;
+                $units += $qty;
             }
-            if (!$items && !$errors) $errors[] = 'Prends au moins un billet 🎟️';
-            if (!$staff && (int)$ev['max_per_order'] > 0 && $count > (int)$ev['max_per_order']) $errors[] = 'Maximum ' . $ev['max_per_order'] . ' billets par commande.';
+            foreach (($p['products'] ?? []) as $pid => $qty) {
+                $qty = (int)$qty;
+                if ($qty <= 0 || $resale) continue;
+                $prod = one('SELECT * FROM products WHERE id = ? AND event_id = ? AND active = 1', [(int)$pid, $ev['id']]);
+                if (!$prod) { $errors[] = 'Option inconnue.'; continue; }
+                if ((int)$prod['max_per_order'] > 0 && $qty > (int)$prod['max_per_order']) { $errors[] = $prod['name'] . ' : maximum ' . $prod['max_per_order'] . '.'; continue; }
+                $rem = self::productRemaining($prod);
+                if ($qty > $rem) { $errors[] = $prod['name'] . ' : plus que ' . $rem . ' en stock.'; continue; }
+                $items[] = ['kind' => 'product', 'rate_id' => 0, 'product_id' => (int)$prod['id'], 'name' => $prod['name'], 'qty' => $qty,
+                    'unit_price' => $method === 'invitation' ? 0 : (int)$prod['price'], 'seats' => null, '_pack' => 0];
+            }
+            if (!$units && !$errors) $errors[] = 'Prends au moins un billet 🎟️';
+            if (!$staff && !$partner && !$resale && (int)$ev['max_per_order'] > 0 && $units > (int)$ev['max_per_order']) $errors[] = 'Maximum ' . $ev['max_per_order'] . ' billets par commande.';
+            if ($waitlist && $places > (int)$waitlist['qty']) $errors[] = 'Ta place réservée couvre ' . (int)$waitlist['qty'] . ' billet(s).';
             if ($errors) { db()->rollBack(); return ['errors' => array_values(array_unique($errors))]; }
 
             $subtotal = array_sum(array_map(fn($i) => $i['unit_price'] * $i['qty'], $items));
             $discount = self::discount($promo, $items);
             $net = $subtotal - $discount;
-            $paidTickets = array_sum(array_map(fn($i) => $i['unit_price'] > 0 ? $i['qty'] : 0, $items));
+            $paidUnits = array_sum(array_map(fn($i) => $i['kind'] === 'rate' && $i['unit_price'] > 0 ? $i['qty'] : 0, $items));
+            $donation = $method === 'online' && !$resale && !empty($ev['donation_enabled']) ? max(0, min(1000000, (int)($p['donation'] ?? 0))) : 0;
             $feeMode = $org['fee_mode'] === 'organizer' ? 'organizer' : 'buyer';
-            $fees = $method === 'online' ? self::computeFees($org, $net, $paidTickets) : 0;
+            $online = in_array($method, ['online', 'partner'], true);
+            $fees = $online ? self::computeFees($org, $net, $paidUnits) : 0;
             if ($feeMode === 'buyer') { $total = $net + $fees; $commission = $fees; $orgAmount = $net; }
             else { $total = $net; $commission = min($fees, $net); $orgAmount = $net - $commission; }
-            if ($method !== 'online') { $orgAmount = 0; $commission = 0; } // encaissé directement par l'organisateur
+            $total += $donation;
+            $orgAmount += $donation;
+            if (!$online) { $orgAmount = 0; $commission = 0; } // encaissé directement par l'organisateur
 
             $buyer = $p['buyer'];
+            $utm = $p['utm'] ?? [];
             $order = [
                 'ref' => self::newRef(),
                 'token' => token(24),
                 'event_id' => $ev['id'],
                 'organizer_id' => $ev['organizer_id'],
+                'session_id' => $session['id'] ?? null,
                 'email' => mb_substr((string)($buyer['email'] ?? ''), 0, 190),
                 'first_name' => mb_substr((string)($buyer['first_name'] ?? ''), 0, 120),
                 'last_name' => mb_substr((string)($buyer['last_name'] ?? ''), 0, 120),
                 'phone' => mb_substr((string)($buyer['phone'] ?? ''), 0, 40),
                 'subtotal' => $subtotal,
                 'discount' => $discount,
-                'fees' => $method === 'online' ? $fees : 0,
+                'fees' => $online ? $fees : 0,
+                'donation' => $donation,
                 'total' => $total,
                 'fee_mode' => $feeMode,
                 'commission' => $commission,
                 'organizer_amount' => $orgAmount,
                 'promo_code' => $promo['code'] ?? null,
                 'method' => $method,
+                'channel' => mb_substr((string)($p['channel'] ?? ($resale ? 'revente' : ($partner ? 'partenaire' : ($method === 'online' ? 'web' : $method)))), 0, 30),
+                'utm_source' => isset($utm['source']) ? mb_substr((string)$utm['source'], 0, 120) : null,
+                'utm_medium' => isset($utm['medium']) ? mb_substr((string)$utm['medium'], 0, 120) : null,
+                'utm_campaign' => isset($utm['campaign']) ? mb_substr((string)$utm['campaign'], 0, 120) : null,
+                'partner_id' => $partner['id'] ?? null,
+                'resale_id' => $resale['id'] ?? null,
+                'waitlist_id' => $waitlist['id'] ?? null,
                 'pay_method' => $p['pay_method'] ?? null,
                 'status' => 'pending',
                 'answers' => json_encode(['order' => $p['order_answers'] ?? [], 'holders' => $p['holders'] ?? []], JSON_UNESCAPED_UNICODE),
@@ -202,11 +338,15 @@ final class Tickets
                 'expires_at' => date('Y-m-d H:i:s', time() + 60 * max(5, (int)setting('pending_minutes'))),
             ];
             $order['id'] = insert('orders', $order);
-            foreach ($items as $it) insert('order_items', $it + ['order_id' => $order['id']]);
+            foreach ($items as $it) { unset($it['_pack']); insert('order_items', $it + ['order_id' => $order['id']]); }
+            foreach ($allSeats as $seat) {
+                insert('seat_holds', ['event_id' => $ev['id'], 'session_id' => (int)($session['id'] ?? 0), 'seat' => $seat, 'order_id' => $order['id'], 'expires_at' => $order['expires_at']]);
+            }
             db()->commit();
             return ['order' => $order];
         } catch (Throwable $e) {
             if (db()->inTransaction()) db()->rollBack();
+            if ($e instanceof PDOException && (int)($e->errorInfo[1] ?? 0) === 1062) return ['errors' => ['Une des places choisies vient d\'être prise par quelqu\'un d\'autre 😬 Choisis-en une autre.']];
             throw $e;
         }
     }
@@ -230,18 +370,28 @@ final class Tickets
             if ($o['promo_code']) q('UPDATE promos SET used = used + 1 WHERE event_id = ? AND code = ?', [$o['event_id'], $o['promo_code']]);
             $answers = json_decode((string)$o['answers'], true) ?: [];
             $holders = $answers['holders'] ?? [];
-            foreach (all('SELECT * FROM order_items WHERE order_id = ? ORDER BY id', [$orderId]) as $it) {
-                for ($i = 0; $i < (int)$it['qty']; $i++) {
+            $type = in_array($o['method'], ['invitation', 'partner'], true) && (int)$o['total'] === 0 ? 'invitation' : ($o['method'] === 'import' ? 'external' : 'ticket');
+            foreach (all("SELECT i.*, r.pack_size, r.max_entries, r.per_day FROM order_items i LEFT JOIN rates r ON r.id = i.rate_id
+                          WHERE i.order_id = ? AND i.kind = 'rate' ORDER BY i.id", [$orderId]) as $it) {
+                $pack = max(1, (int)$it['pack_size']);
+                $seats = $it['seats'] ? explode(',', $it['seats']) : [];
+                $n = (int)$it['qty'] * $pack;
+                for ($i = 0; $i < $n; $i++) {
                     $h = $holders[$it['rate_id']][$i] ?? [];
                     insert('tickets', [
                         'order_id' => $orderId,
                         'event_id' => $o['event_id'],
+                        'session_id' => $o['session_id'],
                         'rate_id' => $it['rate_id'],
-                        'rate_name' => $it['name'],
+                        'rate_name' => preg_replace('~ \(pack \d+\)$~', '', $it['name']),
                         'code' => self::newCode(),
+                        'seat' => $seats[$i] ?? null,
+                        'type' => $type,
+                        'max_entries' => max(1, (int)($it['max_entries'] ?? 1)),
+                        'per_day' => (int)($it['per_day'] ?? 0),
                         'first_name' => mb_substr(trim((string)($h['first_name'] ?? '')) ?: (string)$o['first_name'], 0, 120),
                         'last_name' => mb_substr(trim((string)($h['last_name'] ?? '')) ?: (string)$o['last_name'], 0, 120),
-                        'price' => $it['unit_price'],
+                        'price' => $pack > 1 ? intdiv((int)$it['unit_price'], $pack) : (int)$it['unit_price'],
                         'answers' => !empty($h['answers']) ? json_encode($h['answers'], JSON_UNESCAPED_UNICODE) : null,
                         'status' => 'valid',
                         'updated_at' => now(),
@@ -257,10 +407,28 @@ final class Tickets
         }
     }
 
+    /**
+     * Valide une commande payée et déclenche tout ce qui suit : billets, e-mail, revente, liste d'attente, webhooks.
+     * À utiliser partout à la place de markPaid().
+     */
+    public static function confirm(int $orderId, array $extra = [], bool $sendEmail = true): ?array
+    {
+        $before = one('SELECT status FROM orders WHERE id = ?', [$orderId]);
+        $o = self::markPaid($orderId, $extra);
+        if (!$o || $o['status'] !== 'paid' || ($before['status'] ?? '') === 'paid') return $o;
+        try { if (class_exists('Resale') && $o['resale_id']) Resale::settle($o); } catch (Throwable $e) { log_line('revente', $o['ref'] . ' : ' . $e->getMessage()); }
+        if ($o['waitlist_id']) q("UPDATE waitlist SET status = 'converted', order_id = ? WHERE id = ?", [$o['id'], $o['waitlist_id']]);
+        q('DELETE FROM seat_holds WHERE order_id = ?', [$o['id']]);
+        if ($sendEmail) Mailer::sendOrderSafe((int)$o['id']);
+        try { if (class_exists('Hooks')) Hooks::fire((int)$o['organizer_id'], 'order.paid', Hooks::orderPayload($o)); } catch (Throwable $e) { log_line('webhooks', $e->getMessage()); }
+        return $o;
+    }
+
     public static function cancelOrder(array $o, string $status = 'cancelled'): void
     {
         update('orders', ['status' => $status, 'cancelled_at' => now()], 'id = ?', [$o['id']]);
-        q("UPDATE tickets SET status = 'cancelled', updated_at = NOW() WHERE order_id = ?", [$o['id']]);
+        q("UPDATE tickets SET status = 'cancelled', updated_at = NOW() WHERE order_id = ? AND status = 'valid'", [$o['id']]);
+        q('DELETE FROM seat_holds WHERE order_id = ?', [$o['id']]);
         if ($o['promo_code'] && $o['status'] === 'paid') q('UPDATE promos SET used = GREATEST(used - 1, 0) WHERE event_id = ? AND code = ?', [$o['event_id'], $o['promo_code']]);
     }
 
@@ -281,6 +449,9 @@ final class Tickets
         'not_allowed' => 'Accès non autorisé ici',
         'not_inside' => 'Pas entré',
         'closed' => 'Point d\'accès fermé',
+        'wrong_session' => 'Autre date',
+        'max_reached' => 'Entrées épuisées',
+        'not_today' => 'Déjà entré aujourd\'hui',
     ];
 
     /**
@@ -301,8 +472,18 @@ final class Tickets
         db()->beginTransaction();
         try {
             $ap = !empty($p['access_point_id']) ? one('SELECT * FROM access_points WHERE id = ? AND event_id = ?', [(int)$p['access_point_id'], $ev['id']]) : null;
-            $t = $code !== '' ? one('SELECT * FROM tickets WHERE code = ? FOR UPDATE', [$code]) : null;
+            $sessionId = !empty($p['session_id']) ? (int)$p['session_id'] : null;
+            $t = $code !== '' ? one('SELECT * FROM tickets WHERE code = ? AND event_id = ? FOR UPDATE', [$code, $ev['id']]) : null;
+            if (!$t && $code !== '') $t = one('SELECT * FROM tickets WHERE code = ? FOR UPDATE', [$code]);
             $info = [];
+            $zones = null;
+            if ($t && $t['population_id']) {
+                $pop = one('SELECT * FROM populations WHERE id = ?', [$t['population_id']]);
+                $zones = $pop ? array_values(array_filter(array_map('intval', explode(',', (string)$pop['access_point_ids'])))) : [];
+                if ($pop) $info['population'] = $pop['name'];
+            }
+            $maxEntries = $t ? max(1, (int)$t['max_entries']) : 1;
+            $enteredToday = $t && $t['per_day'] && $t['last_scan_at'] && date('Y-m-d', strtotime($t['last_scan_at'])) === date('Y-m-d', strtotime($at)) && (int)$t['entries'] > 0;
             if (!$t) {
                 $result = self::looksGenuine($code) ? 'invalid' : 'forged';
             } elseif ((int)$t['event_id'] !== (int)$ev['id']) {
@@ -310,24 +491,41 @@ final class Tickets
                 $info['other_event'] = (string)val('SELECT name FROM events WHERE id = ?', [$t['event_id']]);
             } elseif ($t['status'] !== 'valid') {
                 $result = 'cancelled';
+                if ($t['replaced_by']) $info['resold'] = true;
+            } elseif ($sessionId && $t['session_id'] && (int)$t['session_id'] !== $sessionId) {
+                $result = 'wrong_session';
+                $info['session'] = fr_date((string)val('SELECT starts_at FROM sessions WHERE id = ?', [$t['session_id']]));
             } elseif ($ap && !$ap['active']) {
                 $result = 'closed';
-            } elseif ($ap && $ap['rate_ids'] && !in_array((int)$t['rate_id'], array_map('intval', explode(',', $ap['rate_ids'])), true)) {
+            } elseif ($ap && $zones !== null && !in_array((int)$ap['id'], $zones, true)) {
+                $result = 'not_allowed';
+            } elseif ($ap && $zones === null && $ap['rate_ids'] && !in_array((int)$t['rate_id'], array_map('intval', explode(',', $ap['rate_ids'])), true)) {
                 $result = 'not_allowed';
             } elseif ($direction === 'out') {
                 if (!$t['inside']) $result = 'not_inside';
                 else { $result = 'exit'; update('tickets', ['inside' => 0, 'last_scan_at' => $at, 'updated_at' => now()], 'id = ?', [$t['id']]); }
-            } elseif ($t['inside'] || ((int)$t['entries'] > 0 && !$ev['allow_reentry'])) {
+            } elseif ($t['inside']) {
                 $result = 'already';
+            } elseif ($t['per_day'] && $enteredToday && !$ev['allow_reentry']) {
+                $result = 'not_today';
+            } elseif (!$t['per_day'] && !$ev['allow_reentry'] && (int)$t['entries'] >= $maxEntries) {
+                $result = $maxEntries > 1 ? 'max_reached' : 'already';
             } else {
                 $result = 'ok';
                 update('tickets', [
-                    'inside' => 1, 'entries' => (int)$t['entries'] + 1, 'checked_in_at' => $t['checked_in_at'] ?: $at,
+                    // « sur place » sert aux sorties/ré-entrées et au billet à entrée unique ; un pass multi-entrées ou « 1 par jour » ne bloque pas
+                    'inside' => $ev['allow_reentry'] || ($maxEntries === 1 && !$t['per_day']) ? 1 : 0,
+                    'entries' => (int)$t['entries'] + 1, 'checked_in_at' => $t['checked_in_at'] ?: $at,
                     'last_scan_at' => $at, 'updated_at' => now(),
                 ], 'id = ?', [$t['id']]);
                 if ((int)$t['entries'] > 0) $info['reentry'] = true;
+                if ($maxEntries > 1 && !$t['per_day']) $info['left'] = $maxEntries - (int)$t['entries'] - 1;
+                if ($t['resale_status'] === 'listed') { // le propriétaire est venu : on retire le billet de la bourse
+                    q("UPDATE resales SET status = 'cancelled' WHERE ticket_id = ? AND status = 'listed'", [$t['id']]);
+                    update('tickets', ['resale_status' => null], 'id = ?', [$t['id']]);
+                }
             }
-            if ($result === 'already') {
+            if (in_array($result, ['already', 'not_today', 'max_reached'], true)) {
                 $last = one("SELECT s.scanned_at, a.name AS ap FROM scans s LEFT JOIN access_points a ON a.id = s.access_point_id
                              WHERE s.ticket_id = ? AND s.result = 'ok' AND s.undone = 0 ORDER BY s.scanned_at DESC LIMIT 1", [$t['id']]);
                 $info['last_at'] = $last['scanned_at'] ?? $t['checked_in_at'];
@@ -335,7 +533,7 @@ final class Tickets
             }
             $scan = [
                 'uuid' => $uuid, 'event_id' => $ev['id'], 'ticket_id' => $t['id'] ?? null, 'code' => $code ?: '-',
-                'access_point_id' => $ap['id'] ?? null, 'direction' => $direction, 'result' => $result,
+                'access_point_id' => $ap['id'] ?? null, 'session_id' => $sessionId, 'direction' => $direction, 'result' => $result,
                 'user_id' => $p['user']['id'] ?? null, 'device' => mb_substr((string)($p['device'] ?? ''), 0, 64),
                 'offline' => !empty($p['offline']) ? 1 : 0, 'scanned_at' => $at, 'received_at' => now(),
             ];
@@ -356,13 +554,15 @@ final class Tickets
             'id' => (int)$scan['id'],
             'uuid' => $scan['uuid'],
             'result' => $r,
-            'level' => in_array($r, ['ok', 'exit'], true) ? 'ok' : (in_array($r, ['already', 'not_inside'], true) ? 'warn' : 'error'),
+            'level' => in_array($r, ['ok', 'exit'], true) ? 'ok' : (in_array($r, ['already', 'not_inside', 'not_today', 'max_reached'], true) ? 'warn' : 'error'),
             'label' => self::LABELS[$r] ?? $r,
             'code' => $scan['code'],
             'info' => $info,
             'ticket' => $t ? [
                 'code' => $t['code'], 'name' => trim($t['first_name'] . ' ' . $t['last_name']), 'rate' => $t['rate_name'],
                 'rate_id' => (int)$t['rate_id'], 'status' => $t['status'], 'inside' => (int)$t['inside'], 'entries' => (int)$t['entries'],
+                'session_id' => $t['session_id'] ? (int)$t['session_id'] : null, 'seat' => $t['seat'], 'max' => (int)$t['max_entries'], 'per_day' => (int)$t['per_day'],
+                'type' => $t['type'], 'company' => $t['company'],
             ] : null,
             'at' => $scan['scanned_at'],
         ];
@@ -385,17 +585,19 @@ final class Tickets
         return true;
     }
 
-    public static function stats(int $eventId): array
+    public static function stats(int $eventId, ?int $sessionId = null): array
     {
+        $ss = $sessionId ? ' AND t.session_id = ' . (int)$sessionId : '';
+        $os = $sessionId ? ' AND session_id = ' . (int)$sessionId : '';
         $byRate = all("SELECT r.id, r.name, r.quota, r.price,
                 SUM(t.status = 'valid') AS sold,
                 COALESCE(SUM(CASE WHEN t.status = 'valid' THEN t.price END),0) AS revenue,
                 SUM(t.status = 'valid' AND t.entries > 0) AS checked,
                 SUM(t.status = 'valid' AND t.inside = 1) AS inside
-            FROM rates r LEFT JOIN tickets t ON t.rate_id = r.id
+            FROM rates r LEFT JOIN tickets t ON t.rate_id = r.id AND t.type IN ('ticket','invitation')$ss
             WHERE r.event_id = ? GROUP BY r.id ORDER BY r.sort, r.id", [$eventId]);
         $o = one("SELECT COUNT(*) n, COALESCE(SUM(total),0) total, COALESCE(SUM(organizer_amount),0) org, COALESCE(SUM(commission),0) com
-                  FROM orders WHERE event_id = ? AND status = 'paid'", [$eventId]);
+                  FROM orders WHERE event_id = ? AND status = 'paid' AND (channel IS NULL OR channel <> 'systeme')$os", [$eventId]);
         $sold = array_sum(array_map(fn($r) => (int)$r['sold'], $byRate));
         return [
             'by_rate' => $byRate,

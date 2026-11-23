@@ -4,12 +4,7 @@ declare(strict_types=1);
 /** Billets PDF (un billet par page A4, format à imprimer ou à présenter sur téléphone). */
 final class TicketPdf
 {
-    private static function t(?string $s): string
-    {
-        $s = (string)$s;
-        $s = str_replace(["\u{202F}", "\u{00A0}", '’', '«', '»', '–', '—'], [' ', ' ', "'", '"', '"', '-', '-'], $s);
-        return (string)iconv('UTF-8', 'windows-1252//TRANSLIT//IGNORE', $s);
-    }
+    private static function t(?string $s): string { return PdfDoc::t($s); }
 
     /** @param array $tickets lignes de la table tickets */
     public static function build(array $order, array $event, array $org, array $tickets): string
@@ -18,7 +13,11 @@ final class TicketPdf
         $pdf->SetAutoPageBreak(false);
         $pdf->SetTitle(self::t('Billets ' . $event['name']));
         $pdf->SetAuthor(self::t((string)setting('platform_name')));
-        [$r, $g, $b] = self::hex((string)setting('primary_color', '#ff5a4e'));
+        [$r, $g, $b] = self::hex((string)($event['ticket_color'] ?: setting('primary_color', '#ff5a4e')));
+        $map = Seating::map($event);
+        $sessions = [];
+        foreach ($tickets as $tk) if ($tk['session_id'] && !isset($sessions[$tk['session_id']])) $sessions[$tk['session_id']] = one('SELECT * FROM sessions WHERE id = ?', [$tk['session_id']]);
+        $logo = !empty($event['ticket_logo']) && preg_match('~\.(jpe?g|png)$~i', $event['ticket_logo']) && is_file(ROOT . '/' . $event['ticket_logo']) ? ROOT . '/' . $event['ticket_logo'] : null;
         $poster = null;
         if (!empty($event['image']) && preg_match('~\.(jpe?g|png)$~i', $event['image']) && is_file(ROOT . '/' . $event['image'])) $poster = ROOT . '/' . $event['image'];
         $n = count($tickets);
@@ -33,9 +32,11 @@ final class TicketPdf
             $pdf->SetFont('Helvetica', 'B', 15);
             $pdf->SetXY(26, 7);
             $pdf->Cell(100, 8, self::t(mb_strtoupper((string)setting('platform_name'))));
+            if ($logo) $pdf->Image($logo, 150, 3, 0, 16);
             $pdf->SetFont('Helvetica', 'B', 10);
             $pdf->SetXY(120, 7);
-            $pdf->Cell(75, 8, self::t('BILLET ' . ($i + 1) . ' / ' . $n), 0, 0, 'R');
+            $kind = ['invitation' => 'INVITATION', 'accreditation' => 'ACCREDITATION', 'external' => 'BILLET'][$t['type'] ?? 'ticket'] ?? 'BILLET';
+            if (!$logo) $pdf->Cell(75, 8, self::t($kind . ' ' . ($i + 1) . ' / ' . $n), 0, 0, 'R');
 
             // ticket papier : partie principale + souche
             $y0 = 34; $h = 110; $x0 = 15; $w = 180; $stub = 62; $cut = $x0 + $w - $stub;
@@ -57,7 +58,7 @@ final class TicketPdf
             $pdf->SetTextColor(109, 103, 92);
             $pdf->SetFont('Helvetica', 'B', 8);
             $pdf->SetXY($tx2, $y0 + 10);
-            $pdf->Cell($cut - $tx2 - 6, 4, self::t(mb_strtoupper($org['name']) . ' PRÉSENTE'));
+            $pdf->Cell($cut - $tx2 - 6, 4, self::t(mb_strtoupper($org['name']) . ' PRÉSENTE' . (($t['type'] ?? '') === 'invitation' ? ' - INVITATION' : '')));
             $pdf->SetTextColor(17, 17, 17);
             $pdf->SetFont('Helvetica', 'B', 19);
             $pdf->SetXY($tx2, $y0 + 15);
@@ -66,10 +67,12 @@ final class TicketPdf
             $gy = $y0 + 50;
             $full = $cut - $tx - 6;
             $cw = $full / 3;
-            self::field($pdf, $tx, $gy, $cw - 3, 'DATE', date('d.m.Y', strtotime($event['starts_at'])));
-            self::field($pdf, $tx + $cw, $gy, $cw - 3, 'HEURE', date('H:i', strtotime($event['starts_at'])));
+            $start = !empty($t['session_id']) && !empty($sessions[$t['session_id']]) ? $sessions[$t['session_id']]['starts_at'] : $event['starts_at'];
+            self::field($pdf, $tx, $gy, $cw - 3, 'DATE', date('d.m.Y', strtotime($start)));
+            self::field($pdf, $tx + $cw, $gy, $cw - 3, 'HEURE', date('H:i', strtotime($start)));
             self::field($pdf, $tx + $cw * 2, $gy, $cw - 3, 'PRIX', (int)$t['price'] > 0 ? money((int)$t['price']) : 'Gratuit');
-            self::field($pdf, $tx, $gy + 13, $full, 'TARIF', $t['rate_name']);
+            $extra = (int)($t['max_entries'] ?? 1) > 1 ? ' - ' . (int)$t['max_entries'] . ' entrées' : (!empty($t['per_day']) ? ' - 1 entrée/jour' : '');
+            self::field($pdf, $tx, $gy + 13, $full, !empty($t['seat']) ? 'TARIF / PLACE' : 'TARIF', $t['rate_name'] . $extra . (!empty($t['seat']) ? ' - ' . Seating::label($t['seat'], $map) : ''));
             self::field($pdf, $tx, $gy + 26, $full, 'LIEU', trim($event['venue'] . ($event['city'] ? ', ' . $event['city'] : ''), ', ') ?: '-');
             self::field($pdf, $tx, $gy + 39, $full, 'PARTICIPANT', trim($t['first_name'] . ' ' . $t['last_name']) ?: '-');
 
@@ -133,51 +136,3 @@ final class TicketPdf
     }
 }
 
-/** FPDF + rectangle à coins arrondis. */
-class PdfDoc extends FPDF
-{
-    public function RoundedRect(float $x, float $y, float $w, float $h, float $r, string $style = ''): void
-    {
-        $k = $this->k;
-        $hp = $this->h;
-        $op = $style === 'F' ? 'f' : (($style === 'FD' || $style === 'DF') ? 'B' : 'S');
-        $arc = 4 / 3 * (M_SQRT2 - 1);
-        $this->_out(sprintf('%.2F %.2F m', ($x + $r) * $k, ($hp - $y) * $k));
-        $xc = $x + $w - $r; $yc = $y + $r;
-        $this->_out(sprintf('%.2F %.2F l', $xc * $k, ($hp - $y) * $k));
-        $this->arc($xc + $r * $arc, $yc - $r, $xc + $r, $yc - $r * $arc, $xc + $r, $yc);
-        $xc = $x + $w - $r; $yc = $y + $h - $r;
-        $this->_out(sprintf('%.2F %.2F l', ($x + $w) * $k, ($hp - $yc) * $k));
-        $this->arc($xc + $r, $yc + $r * $arc, $xc + $r * $arc, $yc + $r, $xc, $yc + $r);
-        $xc = $x + $r; $yc = $y + $h - $r;
-        $this->_out(sprintf('%.2F %.2F l', $xc * $k, ($hp - ($y + $h)) * $k));
-        $this->arc($xc - $r * $arc, $yc + $r, $xc - $r, $yc + $r * $arc, $xc - $r, $yc);
-        $xc = $x + $r; $yc = $y + $r;
-        $this->_out(sprintf('%.2F %.2F l', $x * $k, ($hp - $yc) * $k));
-        $this->arc($xc - $r, $yc - $r * $arc, $xc - $r * $arc, $yc - $r, $xc, $yc - $r);
-        $this->_out($op);
-    }
-
-    public function Circle(float $x, float $y, float $r, string $style = ''): void
-    {
-        $this->Ellipse($x, $y, $r, $r, $style);
-    }
-
-    public function Ellipse(float $x, float $y, float $rx, float $ry, string $style = ''): void
-    {
-        $op = $style === 'F' ? 'f' : (($style === 'FD' || $style === 'DF') ? 'B' : 'S');
-        $lx = 4 / 3 * (M_SQRT2 - 1) * $rx;
-        $ly = 4 / 3 * (M_SQRT2 - 1) * $ry;
-        $k = $this->k; $h = $this->h;
-        $this->_out(sprintf('%.2F %.2F m %.2F %.2F %.2F %.2F %.2F %.2F c', ($x + $rx) * $k, ($h - $y) * $k, ($x + $rx) * $k, ($h - ($y - $ly)) * $k, ($x + $lx) * $k, ($h - ($y - $ry)) * $k, $x * $k, ($h - ($y - $ry)) * $k));
-        $this->_out(sprintf('%.2F %.2F %.2F %.2F %.2F %.2F c', ($x - $lx) * $k, ($h - ($y - $ry)) * $k, ($x - $rx) * $k, ($h - ($y - $ly)) * $k, ($x - $rx) * $k, ($h - $y) * $k));
-        $this->_out(sprintf('%.2F %.2F %.2F %.2F %.2F %.2F c', ($x - $rx) * $k, ($h - ($y + $ly)) * $k, ($x - $lx) * $k, ($h - ($y + $ry)) * $k, $x * $k, ($h - ($y + $ry)) * $k));
-        $this->_out(sprintf('%.2F %.2F %.2F %.2F %.2F %.2F c %s', ($x + $lx) * $k, ($h - ($y + $ry)) * $k, ($x + $rx) * $k, ($h - ($y + $ly)) * $k, ($x + $rx) * $k, ($h - $y) * $k, $op));
-    }
-
-    private function arc(float $x1, float $y1, float $x2, float $y2, float $x3, float $y3): void
-    {
-        $h = $this->h;
-        $this->_out(sprintf('%.2F %.2F %.2F %.2F %.2F %.2F c', $x1 * $this->k, ($h - $y1) * $this->k, $x2 * $this->k, ($h - $y2) * $this->k, $x3 * $this->k, ($h - $y3) * $this->k));
-    }
-}

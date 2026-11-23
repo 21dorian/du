@@ -381,3 +381,50 @@ details.box.add summary{color:var(--ink);font:700 16px var(--display);text-trans
 .split>.card+.card,.split-3>.card+.card,.split>div>.card:first-child,.split-3>div>.card:first-child{margin-top:0}
 .card-head>a,.card-head>small{white-space:nowrap}
 .kpi b small{font-size:18px!important;white-space:nowrap}
+
+/* ---------- 1.1.0 : séances, options, plan de salle, revente, liste d'attente ---------- */
+.sessions{border-top:1px solid var(--line);margin-bottom:26px}
+.sessions-month{font:800 18px var(--display);text-transform:uppercase;letter-spacing:.06em;color:var(--muted);padding:16px 0 6px}
+.session{display:grid;grid-template-columns:64px 1fr auto;gap:16px;align-items:center;padding:12px 10px;border-bottom:1px solid var(--line);text-decoration:none;color:var(--ink)}
+.session:hover{background:var(--hover);color:var(--ink)}
+.session.on{background:var(--soft);box-shadow:inset 4px 0 0 var(--primary)}
+.session.full{opacity:.5}
+.session-day{text-align:center;font:700 13px var(--display);text-transform:uppercase;color:var(--primary);line-height:1}
+.session-day b{display:block;font:800 30px var(--display);color:var(--ink)}
+.session-info b{display:block;font:700 20px var(--display);text-transform:uppercase}
+.session-info small{display:block}
+.session-left{font:700 15px var(--display);text-transform:uppercase;white-space:nowrap}
+.free-price{display:flex;align-items:center;gap:8px;margin-top:8px;font-weight:500;font-size:13.5px;color:var(--muted)}
+.free-price .input-suffix{width:110px}
+.free-price input{padding:7px 26px 7px 9px}
+.extras-head{padding:12px 20px 0;font:800 18px var(--display);text-transform:uppercase;border-top:1px solid var(--line)}
+.seat-zone{padding:14px 20px;border-bottom:1px solid var(--line);display:grid;gap:8px}
+.seat-picked{font-size:14px}
+.seat-modal{position:fixed;inset:0;background:rgba(0,0,0,.78);z-index:60;display:flex;align-items:center;justify-content:center;padding:16px}
+.seat-modal[hidden]{display:none}
+.seat-modal-in{background:var(--surface);border:1px solid var(--line);width:min(1100px,100%);max-height:94vh;overflow:auto;padding:18px}
+.seat-modal-head{margin-bottom:10px}
+.seat-legend{display:flex;flex-wrap:wrap;gap:14px;font-size:13.5px;margin-bottom:10px}
+.seat-legend span{display:flex;align-items:center;gap:6px}
+.seat-legend i{width:14px;height:14px;display:inline-block;border-radius:3px}
+.seat-canvas{overflow:auto;background:#0c0c0c;border:1px solid var(--line);padding:8px;text-align:center}
+.seat-canvas .seat{cursor:pointer}
+.seat-canvas .seat.taken{cursor:not-allowed}
+.resale-list{border-top:1px solid var(--line)}
+.resale-item{display:grid;grid-template-columns:1fr auto auto;gap:14px;align-items:center;padding:12px 0;border-bottom:1px solid var(--line)}
+.resale-item small{display:block;color:var(--muted)}
+.waitlist-box{margin-top:16px}
+.waitlist-box h3{margin-bottom:6px}
+.chips{display:flex;gap:8px;flex-wrap:wrap;margin:-16px 0 26px}
+.chip{border:1px solid var(--line);padding:6px 12px;font:700 15px var(--display);text-transform:uppercase;letter-spacing:.05em;text-decoration:none;color:var(--ink-2)}
+.chip.on,.chip:hover{border-color:var(--primary);color:var(--primary)}
+.ticket-seat{display:inline-block;margin-top:8px;padding:3px 8px;background:#141414;color:#f3ede1;font:700 14px var(--display);text-transform:uppercase;letter-spacing:.05em}
+.queue-box{max-width:520px;margin:30px auto;text-align:center}
+.queue-pos{font:800 96px/1 var(--display);color:var(--primary)}
+@media (max-width:680px){.session{grid-template-columns:52px 1fr;}.session-left{grid-column:2}.resale-item{grid-template-columns:1fr auto}.resale-item .btn{grid-column:1/-1}}
+.hbar{display:grid;grid-template-columns:minmax(90px,30%) 1fr auto;gap:10px;align-items:center;padding:5px 0;font-size:14px}
+.hbar-l{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.hbar-b{height:10px;background:var(--line-2)}
+.hbar-b i{display:block;height:100%;background:var(--ink)}
+.hbar-v{white-space:nowrap;font-variant-numeric:tabular-nums;color:var(--ink-2)}
+code{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:.9em;background:var(--line-2);padding:1px 5px}
