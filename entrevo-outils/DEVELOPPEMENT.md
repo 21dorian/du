@@ -35,5 +35,9 @@ Puis ouvrir http://127.0.0.1:8080/install.php.
 | 1.0.0 | `2558ac0` | `livraisons/entrevo-v1.0.0.zip` |
 | 1.1.0 | `bbba103` | `livraisons/entrevo-v1.1.0.zip`, `livraisons/maj-1.1.0.zip` |
 | 1.2.0 | `3a66c6b` | `livraisons/entrevo-v1.2.0.zip`, `livraisons/maj-1.2.0.zip` |
+| 1.3.0 | `200667c` | `livraisons/entrevo-v1.3.0.zip`, `livraisons/maj-1.3.0.zip` |
 
 Pour un paquet de mise à jour, passer ce commit comme référence de départ à `creer-maj.php` (les étiquettes git ne sont pas poussées).
+
+## Préparé mais désactivé
+- Staff & bénévoles (`app/lib/Staff.php`, `app/controllers/staff.php`, `app/views/pro/staff/`) : tables créées par la migration 5, routes retirées. Il reste la vue planning d'événement, le pointage et le portail public (`staff_public`). Réactiver les routes dans `app/routes.php` une fois terminé.
