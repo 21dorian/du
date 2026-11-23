@@ -255,7 +255,7 @@ function badge(string $status): string
     return '<span class="badge ' . $c . '">' . e($l) . '</span>';
 }
 
-function method_label(string $m): string { return ['online' => 'En ligne', 'guichet' => 'Guichet', 'invitation' => 'Invitation'][$m] ?? $m; }
+function method_label(string $m): string { return ['online' => 'En ligne', 'guichet' => 'Guichet', 'invitation' => 'Invitation', 'partner' => 'Partenaire', 'gratuit' => 'Gratuit', 'free' => 'Gratuit', 'import' => 'Import', 'accred' => 'Accréditation', 'resale' => 'Revente'][$m] ?? $m; }
 function role_label(string $r): string { return ['superadmin' => 'Super-admin', 'owner' => 'Responsable', 'manager' => 'Gestionnaire', 'scanner' => 'Contrôleur'][$r] ?? $r; }
 function provider_label(?string $p): string { return ['stripe' => 'Stripe', 'paypal' => 'PayPal', 'sumup' => 'SumUp', 'mollie' => 'Mollie', 'demo' => 'Démo', 'free' => 'Gratuit'][$p ?? ''] ?? (string)$p; }
 

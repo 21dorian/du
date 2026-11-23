@@ -113,6 +113,7 @@ function seating_tab(string $id): string
         $clean['disabled'] = array_values(array_slice(array_filter(array_map(fn($k) => preg_replace('~[^A-Za-z0-9-]~', '', (string)$k), (array)($raw['disabled'] ?? []))), 0, 5000));
         update('events', ['seatmap' => json_encode($clean, JSON_UNESCAPED_UNICODE)], 'id = ?', [$ev['id']]);
         $count = count(array_filter(Seating::seats($clean), fn($x) => !$x['off']));
+        Audit::log('seatmap.saved', $count . ' places', (int)$ev['id']);
         back(['success' => '💺 Plan enregistré : ' . $count . ' places. Pense à mettre la capacité de l\'événement à jour.']);
     }
     $sold = (int)val("SELECT COUNT(*) FROM tickets WHERE event_id = ? AND seat IS NOT NULL AND status = 'valid'", [$ev['id']]);
@@ -161,6 +162,7 @@ function invites_tab(string $id): string
                 $ok++;
                 if ($ok >= 1000) break;
             }
+            if ($ok) Audit::log('invites.sent', $ok . ' invitation(s)', (int)$ev['id']);
             back([$ok ? 'success' : 'error' => '🎁 ' . $ok . ' invitation(s) créée(s)' . ($bad ? '. Ignorées : ' . implode(', ', array_slice($bad, 0, 10)) . (count($bad) > 10 ? '…' : '') : '.')]);
         }
         back();
@@ -203,6 +205,7 @@ function accred_tab(string $id): string
                     'updated_at' => now(), 'created_at' => now()]);
                 $n++;
             }
+            Audit::log('accred.created', $n . ' accréditation(s)', (int)$ev['id']);
             back(['success' => '🪪 ' . $n . ' accréditation(s) créée(s). Imprime les badges !']);
         }
         if ($a === 'revoke') { q("UPDATE tickets SET status = IF(status = 'valid', 'cancelled', 'valid'), updated_at = NOW() WHERE id = ? AND event_id = ? AND type = 'accreditation'", [(int)input('ticket_id'), $ev['id']]); back(); }
@@ -304,6 +307,7 @@ function messages_tab(string $id): string
         }
         insert('messages', ['event_id' => $ev['id'], 'subject' => mb_substr($subject, 0, 190), 'body' => $body, 'filters' => json_encode($f), 'recipients' => count($emails),
             'sent' => $sent, 'failed' => $failed, 'user_id' => user()['id'], 'created_at' => now()]);
+        Audit::log('message.sent', $sent . ' destinataire(s) · ' . mb_substr((string)$subject, 0, 120), (int)$ev['id']);
         back([$failed ? 'warning' : 'success' => '📣 Message envoyé à ' . $sent . ' personne(s)' . ($failed ? ', ' . $failed . ' échec(s)' : '') . '.']);
     }
     $history = all('SELECT m.*, u.name user_name FROM messages m LEFT JOIN users u ON u.id = m.user_id WHERE event_id = ? ORDER BY id DESC', [$ev['id']]);
@@ -403,6 +407,7 @@ function cash_tab(string $id): string
         insert('cash_closures', ['event_id' => $ev['id'], 'user_id' => user()['id'], 'period_start' => $from, 'period_end' => $to, 'totals' => json_encode($totals, JSON_UNESCAPED_UNICODE),
             'counted_cash' => $counted, 'note' => mb_substr(trim((string)input('note')), 0, 500), 'created_at' => now()]);
         $diff = $counted !== null ? $counted - (int)($totals['by_method']['especes'] ?? 0) : null;
+        Audit::log('cash.closed', money($totals['total']), (int)$ev['id']);
         back(['success' => '🧾 Caisse clôturée : ' . money($totals['total']) . ($diff !== null ? ' · écart espèces ' . ($diff >= 0 ? '+' : '') . money($diff) : '') . '.']);
     }
     if (input('csv')) {

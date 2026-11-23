@@ -77,4 +77,44 @@
   if (feed) setInterval(function () {
     fetch(feed.dataset.feed, { credentials: 'same-origin' }).then(function (r) { return r.text(); }).then(function (h) { if (h.trim()) feed.innerHTML = h; });
   }, 30000);
+
+  // ---------- Tableaux : sélection groupée, lignes cliquables, filtres repliables ----------
+  document.querySelectorAll('[data-bulk]').forEach(function (form) {
+    var bar = form.querySelector('[data-bulk-bar]'), count = form.querySelector('[data-bulk-count]'), allIn = form.querySelector('[data-bulk-all]');
+    var toggle = form.querySelector('[data-bulk-toggle]'), boxes = form.querySelectorAll('input[name="ids[]"]');
+    function refresh() {
+      var n = 0; boxes.forEach(function (b) { if (b.checked) n++; b.closest('tr').classList.toggle('selected', b.checked); });
+      bar.hidden = n === 0 && allIn.value !== '1';
+      if (allIn.value !== '1') count.textContent = n + (n > 1 ? ' sélectionnées' : ' sélectionnée');
+      if (toggle) { toggle.checked = n > 0 && n === boxes.length; toggle.indeterminate = n > 0 && n < boxes.length; }
+    }
+    boxes.forEach(function (b) { b.addEventListener('change', function () { allIn.value = '0'; refresh(); }); });
+    if (toggle) toggle.addEventListener('change', function () { allIn.value = '0'; boxes.forEach(function (b) { b.checked = toggle.checked; }); refresh(); });
+    var all = form.querySelector('[data-bulk-select-all]');
+    if (all) all.addEventListener('click', function () { allIn.value = '1'; boxes.forEach(function (b) { b.checked = true; }); refresh(); count.textContent = all.textContent.replace('Sélectionner les', 'Les') + ' sont sélectionnées'; all.hidden = true; });
+    form.addEventListener('submit', function (e) {
+      var btn = e.submitter;
+      if (btn && (btn.value === 'tag' || btn.value === 'untag') && !form.querySelector('[name="new_tag"]').value.trim()) { e.preventDefault(); form.querySelector('[name="new_tag"]').focus(); }
+    });
+    form.querySelectorAll('tr[data-href]').forEach(function (tr) {
+      tr.addEventListener('click', function (e) { if (e.target.closest('a,button,input,label,select')) return; window.location.href = tr.dataset.href; });
+    });
+    refresh();
+  });
+  document.querySelectorAll('[data-toggle-more]').forEach(function (b) {
+    b.addEventListener('click', function () { var m = b.closest('form').querySelector('.filters-more'); m.hidden = !m.hidden; b.setAttribute('aria-expanded', String(!m.hidden)); });
+  });
+  document.querySelectorAll('[data-toggle]').forEach(function (b) {
+    b.addEventListener('click', function () { var t = document.querySelector(b.dataset.toggle); if (t) { t.hidden = !t.hidden; if (!t.hidden) { var i = t.querySelector('input'); if (i) i.focus(); } } });
+  });
+  // remboursement partiel : cocher des billets pré-remplit le montant
+  document.querySelectorAll('[data-partial-refund]').forEach(function (f) {
+    var amount = f.querySelector('[name="amount"]'), max = parseInt(amount.dataset.max, 10) || 0;
+    f.querySelectorAll('input[name="tickets[]"]').forEach(function (c) {
+      c.addEventListener('change', function () {
+        var s = 0; f.querySelectorAll('input[name="tickets[]"]:checked').forEach(function (x) { s += parseInt(x.dataset.price, 10) || 0; });
+        amount.value = s ? (Math.min(s, max) / 100).toFixed(2).replace('.', ',') : '';
+      });
+    });
+  });
 })();

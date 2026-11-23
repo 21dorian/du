@@ -108,6 +108,7 @@ function event_form(?string $id = null): string
         if (!$errors) {
             if ($ev) {
                 update('events', $data, 'id = ?', [$ev['id']]);
+                Audit::log('event.updated', $ev['name'], (int)$ev['id']);
                 redirect('/pro/evenements/' . $ev['id'], ['success' => '✅ C\'est enregistré.']);
             }
             $data += ['organizer_id' => $org['id'], 'slug' => unique_slug('events', $data['name'] . ' ' . date('Y', strtotime($data['starts_at']))), 'status' => 'draft', 'created_at' => now()];
@@ -115,6 +116,7 @@ function event_form(?string $id = null): string
             $price = parse_money(input('first_price'));
             insert('rates', ['event_id' => $newId, 'name' => trim((string)input('first_rate')) ?: 'Entrée', 'price' => $price, 'quota' => 0, 'active' => 1, 'sort' => 0]);
             insert('access_points', ['event_id' => $newId, 'name' => 'Entrée principale', 'active' => 1]);
+            Audit::log('event.created', (string)input('name'), (int)$newId);
             redirect('/pro/evenements/' . $newId . '/tarifs', ['success' => '🎉 Événement créé (en brouillon). Vérifie tes tarifs, puis publie-le !']);
         }
         $ev = array_merge($ev ?? [], $data);
@@ -145,6 +147,7 @@ function event_status(string $id): never
     if (!in_array($st, ['draft', 'published', 'closed'], true)) back();
     if ($st === 'published' && !val('SELECT id FROM rates WHERE event_id = ? AND active = 1', [$ev['id']])) back(['error' => 'Ajoute au moins un tarif actif avant de publier. Sans billets, ça marche moins bien 😅']);
     update('events', ['status' => $st], 'id = ?', [$ev['id']]);
+    Audit::log('event.status', $ev['name'] . ' → ' . $st, (int)$ev['id']);
     back(['success' => ['draft' => 'Retour en brouillon 🙈 Plus personne ne le voit.', 'published' => '🚀 C\'est en ligne ! La billetterie est ouverte.', 'closed' => '🔒 Ventes clôturées. Les billets vendus restent valables.'][$st]]);
 }
 
@@ -164,6 +167,7 @@ function event_duplicate(string $id): never
     foreach (all('SELECT * FROM form_fields WHERE event_id = ?', [$ev['id']]) as $f) { unset($f['id']); $f['event_id'] = $newId; insert('form_fields', $f); }
     $remap = fn($ids) => $ids ? implode(',', array_filter(array_map(fn($i) => $map[(int)$i] ?? null, explode(',', $ids)))) : null;
     foreach (all('SELECT * FROM access_points WHERE event_id = ?', [$ev['id']]) as $a) { unset($a['id']); $a['event_id'] = $newId; $a['rate_ids'] = $remap($a['rate_ids']); insert('access_points', $a); }
+    Audit::log('event.created', 'Duplication de « ' . $ev['name'] . ' »', (int)$newId);
     redirect('/pro/evenements/' . $newId . '/modifier', ['success' => '📑 Dupliqué ! Tarifs, formulaire et accès copiés. Pense à changer les dates.']);
 }
 
@@ -174,6 +178,7 @@ function event_delete(string $id): never
     if (val('SELECT id FROM orders WHERE event_id = ? LIMIT 1', [$ev['id']])) back(['error' => 'Cet événement a des commandes : impossible de le supprimer. Clôture-le plutôt.']);
     foreach (['rates', 'promos', 'form_fields', 'access_points', 'scans'] as $t) q("DELETE FROM $t WHERE event_id = ?", [$ev['id']]);
     q('DELETE FROM events WHERE id = ?', [$ev['id']]);
+    Audit::log('event.deleted', $ev['name']);
     redirect('/pro/evenements', ['success' => '🗑️ Événement supprimé.']);
 }
 
@@ -188,6 +193,7 @@ function rates(string $id): string
         if ($action === 'delete') {
             if (val('SELECT id FROM order_items WHERE rate_id = ? LIMIT 1', [$rid])) back(['error' => 'Ce tarif a déjà été vendu : désactive-le plutôt que de le supprimer.']);
             q('DELETE FROM rates WHERE id = ? AND event_id = ?', [$rid, $ev['id']]);
+            Audit::log('rate.deleted', 'Tarif #' . (int)input('rate_id'), (int)$ev['id']);
             back(['success' => '🗑️ Tarif supprimé.']);
         }
         $data = [
@@ -211,6 +217,7 @@ function rates(string $id): string
         if ($data['name'] === '') back(['error' => 'Donne un nom à ce tarif.']);
         if ($rid) update('rates', $data, 'id = ? AND event_id = ?', [$rid, $ev['id']]);
         else insert('rates', $data + ['event_id' => $ev['id']]);
+        Audit::log('rate.saved', (string)input('name'), (int)$ev['id']);
         back(['success' => '✅ Tarif enregistré.']);
     }
     $org = current_org();
@@ -363,6 +370,7 @@ function box_office(string $id): string
                 $send = checked('send') && $buyer['email'];
                 $o = Tickets::confirm((int)$r['order']['id'], [], $send);
                 $sent = $send && val('SELECT email_sent_at FROM orders WHERE id = ?', [$o['id']]);
+                Audit::log('box.sale', $o['ref'] . ' · ' . money((int)$o['total']), (int)$ev['id'], (int)$o['id']);
                 redirect('/pro/commandes/' . $o['id'], ['success' => ($method === 'invitation' ? '🎁 Invitation créée' : '💵 Vente enregistrée') . ($sent ? ', billets envoyés par e-mail 📬' : ' !')]);
             }
         }
@@ -397,75 +405,7 @@ function live_control(string $id): string
     return ev_page($ev, 'live', 'Contrôle en direct', 'live_control', compact('stats', 'aps', 'scans', 'perHour'));
 }
 
-// ---------- Commandes ----------
-function orders(): string
-{
-    $org = require_org();
-    $q = trim((string)input('q'));
-    $st = (string)input('st');
-    $evId = (int)input('ev');
-    $sql = 'SELECT o.*, e.name ev_name, (SELECT SUM(qty) FROM order_items i WHERE i.order_id = o.id) qty FROM orders o JOIN events e ON e.id = o.event_id WHERE o.organizer_id = ?';
-    $p = [$org['id']];
-    if ($q !== '') { $sql .= ' AND (o.ref LIKE ? OR o.email LIKE ? OR o.last_name LIKE ? OR o.first_name LIKE ?)'; array_push($p, ...array_fill(0, 4, '%' . $q . '%')); }
-    $sql .= " AND (o.channel IS NULL OR o.channel <> 'systeme')";
-    if ($st === 'refund_request') $sql .= " AND o.status = 'paid' AND o.refund_requested_at IS NOT NULL";
-    elseif ($st !== '' && in_array($st, ['paid', 'pending', 'cancelled', 'refunded', 'expired'], true)) { $sql .= ' AND o.status = ?'; $p[] = $st; }
-    else $sql .= " AND o.status IN ('paid','refunded','cancelled')";
-    if ($evId) { $sql .= ' AND o.event_id = ?'; $p[] = $evId; }
-    $list = all($sql . ' ORDER BY o.created_at DESC LIMIT 300', $p);
-    if (input('csv')) {
-        $rows = [['Référence', 'Date', 'Événement', 'Prénom', 'Nom', 'E-mail', 'Billets', 'Sous-total', 'Réduction', 'Frais', 'Total payé', 'Part organisateur', 'Vente', 'Paiement', 'Statut']];
-        foreach ($list as $o) $rows[] = [$o['ref'], $o['created_at'], $o['ev_name'], $o['first_name'], $o['last_name'], $o['email'], $o['qty'],
-            money_input((int)$o['subtotal']), money_input((int)$o['discount']), money_input((int)$o['fees']), money_input((int)$o['total']),
-            money_input($o['method'] === 'online' ? (int)$o['organizer_amount'] : (int)$o['total']), method_label($o['method']), provider_label($o['provider'] ?: $o['pay_method']), strip_tags(badge($o['status']))];
-        csv_download('commandes-' . date('Ymd') . '.csv', $rows);
-    }
-    $events = all('SELECT id, name FROM events WHERE organizer_id = ? ORDER BY starts_at DESC', [$org['id']]);
-    return pro_page('Commandes', 'orders', compact('list', 'q', 'st', 'evId', 'events'), 'orders');
-}
-
-function order_detail(string $id): string
-{
-    $org = require_org();
-    $o = one('SELECT * FROM orders WHERE id = ? AND organizer_id = ?', [(int)$id, $org['id']]);
-    if (!$o) abort(404);
-    if (is_post()) {
-        $a = (string)input('action');
-        if ($a === 'resend') {
-            if (input('email') && is_email((string)input('email'))) { update('orders', ['email' => trim((string)input('email'))], 'id = ?', [$o['id']]); }
-            try { Mailer::sendOrder((int)$o['id']) ? back(['success' => '📬 Billets renvoyés !']) : back(['error' => 'Pas d\'e-mail valide ou pas de billet à envoyer.']); }
-            catch (Throwable $e) { back(['error' => 'Envoi impossible : ' . $e->getMessage()]); }
-        }
-        if ($a === 'holder') {
-            $t = one('SELECT * FROM tickets WHERE id = ? AND order_id = ?', [(int)input('ticket_id'), $o['id']]);
-            if ($t) update('tickets', ['first_name' => trim((string)input('first_name')), 'last_name' => trim((string)input('last_name')), 'updated_at' => now()], 'id = ?', [$t['id']]);
-            back(['success' => '✅ Nom modifié.']);
-        }
-        if ($a === 'cancel_ticket') {
-            q("UPDATE tickets SET status = 'cancelled', updated_at = NOW() WHERE id = ? AND order_id = ?", [(int)input('ticket_id'), $o['id']]);
-            back(['success' => 'Billet annulé (pas de remboursement automatique).']);
-        }
-        if (in_array($a, ['cancel', 'refund'], true) && $o['status'] === 'paid') {
-            $msg = 'Commande annulée, billets désactivés.';
-            if ($a === 'refund' && $o['method'] === 'online') {
-                $amount = setting('refund_fees') === '1' || $o['fee_mode'] !== 'buyer' ? (int)$o['total'] : (int)$o['total'] - (int)$o['fees'];
-                try { $msg = Payments::refund($o, $amount) . ' (' . money($amount) . '). Billets invalidés.'; }
-                catch (Throwable $e) { back(['error' => 'Le remboursement a échoué : ' . $e->getMessage() . ' — la commande n\'a pas été annulée.']); }
-            }
-            Tickets::cancelOrder($o, $a === 'refund' ? 'refunded' : 'cancelled');
-            back(['success' => $msg]);
-        }
-        back();
-    }
-    $ev = one('SELECT * FROM events WHERE id = ?', [$o['event_id']]);
-    $items = all('SELECT * FROM order_items WHERE order_id = ?', [$o['id']]);
-    $tickets = all('SELECT * FROM tickets WHERE order_id = ? ORDER BY id', [$o['id']]);
-    $answers = json_decode((string)$o['answers'], true) ?: [];
-    $creator = $o['created_by'] ? val('SELECT name FROM users WHERE id = ?', [$o['created_by']]) : null;
-    return view('layout_back', ['title' => 'Commande ' . $o['ref'], 'area' => 'pro', 'active' => 'orders',
-        'crumbs' => [['Commandes', '/pro/commandes'], [$ev['name'], '/pro/evenements/' . $ev['id']]],
-        'content' => view('pro/order_detail', compact('o', 'ev', 'items', 'tickets', 'answers', 'creator'))]);
-}
+// Commandes : voir app/controllers/orders.php
 
 // ---------- Équipe ----------
 function team(): string
@@ -497,6 +437,7 @@ function team(): string
                 $_SESSION['team_created'] = ['email' => $target['email'], 'password' => $pass, 'role' => $target['role']];
                 redirect('/pro/equipe');
             }
+            Audit::log('team.changed', (string)input('action'));
             back(['success' => '✅ C\'est fait.']);
         }
         back();
@@ -525,6 +466,7 @@ function organization(): string
         try { $logo = upload_image('logo'); if ($logo) $data['logo'] = $logo; } catch (RuntimeException $e) { back(['error' => $e->getMessage()]); }
         if (!$data['name'] || !is_email((string)$data['email'])) back(['error' => 'Nom et e-mail de contact obligatoires.']);
         update('organizers', $data, 'id = ?', [$org['id']]);
+        Audit::log('org.updated', 'Profil de l\'organisation');
         redirect('/pro/organisation', ['success' => '✅ C\'est enregistré.']);
     }
     [$pct, $fixed] = Tickets::feeRates($org);

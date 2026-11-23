@@ -101,7 +101,16 @@ function event_readiness(array $ev): array
 function audit_page(): string
 {
     $org = require_org(['owner']);
-    $rows = all('SELECT a.*, u.name user_name, e.name ev_name, o.ref FROM audit_log a LEFT JOIN users u ON u.id = a.user_id LEFT JOIN events e ON e.id = a.event_id LEFT JOIN orders o ON o.id = a.order_id
-                 WHERE a.organizer_id = ? ORDER BY a.id DESC LIMIT 300', [$org['id']]);
-    return pro_page('Journal d\'activité', 'audit', ['rows' => $rows], 'org');
+    $who = (int)input('who'); $type = (string)input('type'); $per = 50;
+    $w = 'a.organizer_id = ?'; $p = [$org['id']];
+    if ($who) { $w .= ' AND a.user_id = ?'; $p[] = $who; }
+    if ($type !== '' && preg_match('~^[a-z]+$~', $type)) { $w .= ' AND a.action LIKE ?'; $p[] = $type . '%'; }
+    $total = (int)val("SELECT COUNT(*) FROM audit_log a WHERE $w", $p);
+    $pages = max(1, (int)ceil($total / $per)); $page = max(1, min($pages, (int)input('page', 1)));
+    $rows = all("SELECT a.*, u.name user_name, e.name ev_name, o.ref FROM audit_log a LEFT JOIN users u ON u.id = a.user_id LEFT JOIN events e ON e.id = a.event_id LEFT JOIN orders o ON o.id = a.order_id
+                 WHERE $w ORDER BY a.id DESC LIMIT $per OFFSET " . (($page - 1) * $per), $p);
+    $users = all('SELECT DISTINCT u.id, u.name FROM audit_log a JOIN users u ON u.id = a.user_id WHERE a.organizer_id = ? ORDER BY u.name', [$org['id']]);
+    $types = ['event' => '📅 Événements', 'rate' => '🎟️ Tarifs', 'order' => '🧾 Commandes', 'ticket' => '🎫 Billets', 'box' => '💵 Guichet', 'invites' => '🎁 Invitations',
+        'accred' => '🪪 Accréditations', 'message' => '📣 Messages', 'cash' => '🧾 Caisse', 'team' => '👥 Équipe', 'org' => '🏢 Organisation', 'bulk' => '⚡ Actions groupées', 'seatmap' => '💺 Plans'];
+    return pro_page('Journal d\'activité', 'audit', compact('rows', 'users', 'types', 'who', 'type', 'page', 'pages', 'total'), 'audit');
 }

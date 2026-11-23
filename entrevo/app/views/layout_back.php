@@ -21,9 +21,10 @@ if ($area === 'admin') {
         ['scan', '/scan', 'Contrôle d\'accès', 'M3 7V3h4M17 3h4v4M21 17v4h-4M7 21H3v-4M7 12h10'],
         ['finances', '/pro/finances', 'Finances', 'M3 6h18v12H3zM3 10h18M7 15h3'],
         ['team', '/pro/equipe', 'Équipe', 'M12 12a5 5 0 1 0-5-5 5 5 0 0 0 5 5zm0 2c-3.3 0-10 1.7-10 5v3h20v-3c0-3.3-6.7-5-10-5z'],
+        ['audit', '/pro/journal', 'Journal d\'activité', 'M12 8v4l3 2M12 3a9 9 0 1 0 9 9M21 3v5h-5'],
         ['org', '/pro/organisation', 'Mon organisation', 'M4 21V5l8-3 8 3v16M9 21v-5h6v5M8 9h2M14 9h2M8 13h2M14 13h2'],
     ];
-    if ($u['role'] === 'manager') $nav = array_values(array_filter($nav, fn($n) => !in_array($n[0], ['team', 'org', 'finances'], true)));
+    if ($u['role'] === 'manager') $nav = array_values(array_filter($nav, fn($n) => !in_array($n[0], ['team', 'org', 'finances', 'audit'], true)));
 }
 $pname = (string)setting('platform_name');
 ?><!doctype html>
