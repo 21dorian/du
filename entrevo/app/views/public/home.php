@@ -6,14 +6,30 @@ $featured = $q === '' && $events ? $events[0] : null;
 foreach ($events as $ev) if ($q === '' && $ev['image'] && (int)$ev['capacity'] > (int)($featured['capacity'] ?? 0)) $featured = $ev;
 ?>
 <?php if ($featured): $ft = strtotime($featured['starts_at']); ?>
-<section class="featured">
+<section class="featured reveal">
   <a class="featured-img" href="<?= url('/e/' . $featured['slug']) ?>"><?php if ($featured['image']): ?><img src="<?= url($featured['image']) ?>" alt="<?= e($featured['name']) ?>"><?php endif; ?></a>
   <div class="featured-body">
-    <span class="eyebrow">🔥 À la une</span>
+    <span class="eyebrow">🔥 À la une</span><?php if ($ft > time() && $ft - time() < 90 * 86400): ?> <span class="pill pill-dark" data-countdown="<?= e(date('c', $ft)) ?>">⏳ <span data-cd-text><?= e(ago_until($ft)) ?></span></span><?php endif; ?>
     <h1><?= e($featured['name']) ?></h1>
     <div class="featured-meta"><?= e(fr_date($featured['starts_at'])) ?></div>
     <div class="featured-meta" style="color:var(--muted)"><?= e(trim($featured['venue'] . ($featured['city'] ? ' · ' . $featured['city'] : ''), ' ·')) ?></div>
     <a class="btn btn-lg" href="<?= url('/e/' . $featured['slug']) ?>">Je prends ma place<?= $price($featured) ? ' — ' . e(mb_strtolower($price($featured))) : '' ?></a>
+  </div>
+</section>
+<?php endif; ?>
+
+<?php $railEvents = $q === '' && $cat === '' ? array_values(array_filter($events, fn($x) => $x['image'] && (!$featured || $x['id'] !== $featured['id']))) : []; ?>
+<?php if (count($railEvents) >= 2): ?>
+<section class="rail-wrap reveal" aria-label="Bientôt">
+  <div class="rail-head"><h2>Ça arrive bientôt 👀</h2><div class="rail-nav"><button type="button" class="icon-btn" data-rail="-1" aria-label="Précédent">←</button><button type="button" class="icon-btn" data-rail="1" aria-label="Suivant">→</button></div></div>
+  <div class="rail" data-rail-track>
+    <?php foreach (array_slice($railEvents, 0, 10) as $re): $rt = strtotime($re['starts_at']); ?>
+      <a class="rail-card" href="<?= url('/e/' . $re['slug']) ?>">
+        <span class="rail-img"><img src="<?= url($re['image']) ?>" alt="" loading="lazy"><span class="rail-date"><b><?= date('j', $rt) ?></b><?= e(['', 'janv.', 'févr.', 'mars', 'avr.', 'mai', 'juin', 'juil.', 'août', 'sept.', 'oct.', 'nov.', 'déc.'][(int)date('n', $rt)]) ?></span></span>
+        <span class="rail-title"><?= e($re['name']) ?></span>
+        <span class="rail-meta"><?= e($re['city'] ?: $re['venue']) ?><?= $price($re) ? ' · <b>' . e($price($re)) . '</b>' : '' ?></span>
+      </a>
+    <?php endforeach; ?>
   </div>
 </section>
 <?php endif; ?>
@@ -33,7 +49,7 @@ foreach ($events as $ev) if ($q === '' && $ev['image'] && (int)$ev['capacity'] >
   <?php if ($d !== $day): $day = $d; ?>
     <div class="agenda-day"><h2><?= $jours[(int)date('w', $t)] ?> <?= date('j', $t) ?> <?= $mois[(int)date('n', $t)] ?></h2><span><?= $d === date('Y-m-d') ? '🔥 Ce soir' : ($d === date('Y-m-d', strtotime('+1 day')) ? 'Demain' : date('Y', $t)) ?></span></div>
   <?php endif; ?>
-  <a class="agenda-row" href="<?= url('/e/' . $ev['slug']) ?>">
+  <a class="agenda-row reveal" href="<?= url('/e/' . $ev['slug']) ?>">
     <span class="agenda-thumb"><?php if ($ev['image']): ?><img src="<?= url($ev['image']) ?>" alt="" loading="lazy"><?php endif; ?></span>
     <span class="agenda-time"><?= $ev['session_count'] > 1 ? '📅' : date('H:i', $t) ?></span>
     <span><span class="agenda-title"><?= e($ev['name']) ?></span><span class="agenda-place"><?= $ev['session_count'] > 1 ? '<b>' . (int)$ev['session_count'] . ' dates</b> · ' : '' ?><?= e(trim($ev['venue'] . ($ev['city'] ? ' · ' . $ev['city'] : ''), ' ·')) ?> — <?= e($ev['org_name']) ?></span></span>

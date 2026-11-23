@@ -6,13 +6,27 @@ $base = '/e/' . $ev['slug'];
 $jours = ['dim.', 'lun.', 'mar.', 'mer.', 'jeu.', 'ven.', 'sam.'];
 $moisC = ['', 'janv.', 'févr.', 'mars', 'avr.', 'mai', 'juin', 'juil.', 'août', 'sept.', 'oct.', 'nov.', 'déc.'];
 $mois = ['', 'Janvier', 'Février', 'Mars', 'Avril', 'Mai', 'Juin', 'Juillet', 'Août', 'Septembre', 'Octobre', 'Novembre', 'Décembre'];
+// relief : compte à rebours, places restantes, prix d'appel pour la barre mobile
+$startAt = $session['starts_at'] ?? ($sessions ? $sessions[0]['starts_at'] : $ev['starts_at']);
+$startTs = strtotime((string)$startAt);
+$showCountdown = $startTs > time() && $startTs - time() < 90 * 86400;
+$capTotal = Tickets::capacity($ev, $session ?? null);
+$capLeft = $capTotal > 0 ? max(0, $capTotal - Tickets::eventUsed((int)$ev['id'], isset($session) && $session ? (int)$session['id'] : null)) : null;
+$scarce = $capLeft !== null && $capLeft > 0 && $capLeft <= max(10, (int)ceil($capTotal * 0.15));
+$onSalePrices = array_map(fn($r) => (int)$r['price'], array_filter($rates, fn($r) => $r['sale']['ok']));
+$fromPrice = $onSalePrices ? min($onSalePrices) : null;
 ?>
 <?php if ($ev['status'] === 'draft'): ?><div class="flash warning">👀 Aperçu : cet événement est en brouillon. Toi seul le vois.</div><?php endif; ?>
-<div class="event-top">
+<div class="event-top reveal">
   <div class="event-poster"><?php if ($ev['image']): ?><img src="<?= url($ev['image']) ?>" alt="<?= e($ev['name']) ?>"><?php endif; ?></div>
   <div>
     <span class="eyebrow"><?= e($org['name']) ?><?= $ev['category'] ? ' · ' . e($ev['category']) : '' ?></span>
     <h1 class="event-title"><?= e($ev['name']) ?></h1>
+    <div class="event-pills">
+      <?php if ($showCountdown): ?><span class="pill pill-dark" data-countdown="<?= e(date('c', $startTs)) ?>">⏳ <span data-cd-text><?= e(ago_until($startTs)) ?></span></span><?php endif; ?>
+      <?php if ($scarce): ?><span class="pill pill-hot">🔥 Plus que <?= (int)$capLeft ?> place<?= $capLeft > 1 ? 's' : '' ?></span><?php elseif ($capLeft === 0 && $capTotal > 0): ?><span class="pill">😢 Complet</span><?php endif; ?>
+      <?php if ($fromPrice !== null): ?><span class="pill pill-soft"><?= $fromPrice === 0 ? '🎁 Gratuit' : '🎟️ Dès ' . e(money($fromPrice)) ?></span><?php endif; ?>
+    </div>
     <dl class="event-facts">
       <div class="fact"><dt>Quand</dt><dd>
         <?php if ($sessions): ?><b><?= count($sessions) ?> date<?= count($sessions) > 1 ? 's' : '' ?></b><span class="muted">du <?= e(fr_date($sessions[0]['starts_at'], false)) ?> au <?= e(fr_date(end($sessions)['starts_at'], false)) ?></span>
@@ -155,4 +169,11 @@ $mois = ['', 'Janvier', 'Février', 'Mars', 'Avril', 'Mai', 'Juin', 'Juillet', '
   </div>
 </div>
 <script src="<?= asset('js/seats.js') ?>"></script>
+<?php endif; ?>
+
+<?php if ($anyOnSale || ($sessions && !$session)): ?>
+<div class="buy-sticky" data-buy-sticky hidden>
+  <div><b><?= e($ev['name']) ?></b><span><?= $fromPrice === null ? 'Choisis ta date' : ($fromPrice === 0 ? 'Gratuit' : 'Dès ' . e(money($fromPrice))) ?></span></div>
+  <a class="btn" href="#billets"><?= $sessions && !$session ? 'Choisir 📅' : 'Je réserve 🎟️' ?></a>
+</div>
 <?php endif; ?>

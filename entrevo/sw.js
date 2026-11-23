@@ -1,9 +1,9 @@
 /* Entrevo Scan — service worker : garde l'appli de contrôle disponible sans réseau. */
-var CACHE = 'entrevo-scan-v2';
+var CACHE = 'entrevo-scan-v3';
 var scope = self.registration.scope; // ex. https://site.fr/  (dossier d'Entrevo)
 var SHELL = ['scan', 'assets/js/scan.js', 'assets/js/jsQR.js', 'assets/css/app.css', 'assets/css/scan.css',
   'assets/fonts/barlow-condensed-latin-700-normal.woff2', 'assets/fonts/barlow-condensed-latin-800-normal.woff2',
-  'assets/fonts/barlow-latin-400-normal.woff2', 'assets/fonts/barlow-latin-600-normal.woff2', 'assets/img/icon.svg', 'assets/img/icon-192.png'];
+  'assets/fonts/barlow-latin-400-normal.woff2', 'assets/fonts/barlow-latin-600-normal.woff2', 'assets/img/icon.svg', 'assets/img/icon-192.png', 'assets/fonts/host-grotesk-latin-400-normal.woff2', 'assets/fonts/host-grotesk-latin-500-normal.woff2', 'assets/fonts/host-grotesk-latin-600-normal.woff2', 'assets/fonts/host-grotesk-latin-700-normal.woff2', 'assets/fonts/host-grotesk-latin-800-normal.woff2', 'assets/fonts/space-mono-latin-400-normal.woff2', 'assets/fonts/space-mono-latin-700-normal.woff2'];
 
 self.addEventListener('install', function (e) {
   e.waitUntil(caches.open(CACHE).then(function (c) {

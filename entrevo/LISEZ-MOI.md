@@ -79,6 +79,19 @@ Couleurs : **vert** = entre, **orange** = déjà entré / pas entré (sortie), *
 
 ---
 
+## Nouveautés 1.2 ✨
+
+- **Nouveau look** clair et coloré (bleu électrique, cartes arrondies, polices Host Grotesk et Space Mono).
+- **Tableau de bord** : recettes, billets, conversion avec tendances, graphiques interactifs, activité en direct, check-list « Bien démarrer ».
+- **Vue événement** : compte à rebours, remplissage, ventes par tarif et par canal, entonnoir visiteurs → paniers → paiements, préparation de l'événement, QR code de partage.
+- **Recherche partout** (Ctrl+K) et **cloche de notifications**.
+- **Commandes** : filtres (statut, vente, étiquette, dates), tri par colonne, pagination, sélection multiple avec actions groupées (étiqueter, renvoyer les billets, exporter, annuler).
+- **Fiche commande** : remboursement partiel (montant libre et/ou billets choisis), acheteur modifiable, étiquettes, note interne, historique complet.
+- **Journal d'activité** : qui a fait quoi et quand (menu « Journal d'activité », réservé au responsable).
+- **Côté acheteur** : rail « Ça arrive bientôt » sur l'accueil, compte à rebours, alerte « plus que N places », barre d'achat collante sur mobile, apparitions en douceur, confettis à la confirmation 🎉 (désactivés si l'appareil demande moins d'animations).
+
+---
+
 ## 4. Mises à jour ⬆️
 
 Quand je t'envoie un fichier `maj-X.Y.Z.zip` :

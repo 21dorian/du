@@ -6,13 +6,14 @@ Application PHP 8.1+ / MySQL sans framework ni Composer (bibliothèques copiées
 - `entrevo/index.php` : contrôleur frontal ; routes dans `app/routes.php` (`fichier@fonction` → `app/controllers/fichier.php`).
 - `app/lib/` : `Tickets` (métier : quotas, commandes, commissions, scans), `Payments` (Stripe/PayPal/SumUp/Mollie/démo), `Mailer`, `TicketPdf`, `Qr`, `Updater`, `Demo`.
 - `app/migrations.php` : évolutions de la base, appliquées automatiquement au premier chargement après une mise à jour. **Toujours ajouter une nouvelle entrée numérotée, ne jamais modifier une ancienne.**
-- `app/views/` : gabarits PHP (`layout_public` sombre, `layout_back` clair, `scan/app` appli mobile).
+- `app/views/` : gabarits PHP (`layout_public`, `layout_back`, `scan/app` appli mobile).
 - `assets/` : CSS, JS (`scan.js` = appli de contrôle hors ligne), polices, images. `sw.js` à la racine = service worker du scanner.
 - `maj-secours.php` : retour arrière autonome (protégé : jamais modifié par une mise à jour).
 
 ## Ton & design
-- Public : fond noir, accent corail `#ff5a4e`, titres Barlow Condensed en majuscules, boutons rectangulaires (angles droits), pas d'ombres ni de dégradés.
-- Back-office : clair, même typographie, tableaux denses.
+- Depuis 1.2 : thème clair inspiré de Weezevent + Shotgun. Bleu `#0032fa` (principal), lavande `#b388ff` et turquoise `#2dd2be` en accents, fond `#f0f5fa`, encre `#0f0f14`. Polices : Host Grotesk (texte, boutons), Barlow Condensed (grands titres), Space Mono (étiquettes). Cartes et boutons arrondis (10–24 px), quelques blocs sombres pour le relief. La couche « THÈME 1.2 » est à la fin de `assets/css/app.css`.
+- Appli de scan : reste sombre (`body.scan-app`).
+- Graphiques : `assets/js/charts.js` (bleu `#0032fa` / gris `#7d8699`), règles dataviz en tête du fichier.
 - Textes : tutoiement, ton décalé et drôle (« façon Burger King »), émojis bienvenus, mais toujours clairs sur prix, paiements, erreurs.
 
 ## Tester en local

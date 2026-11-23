@@ -303,3 +303,14 @@ function ago(?string $dt): string
     if ($s < 7 * 86400) return 'il y a ' . intdiv($s, 86400) . ' j';
     return date('d/m/y', strtotime($dt));
 }
+
+/** « Dans 3 j 4 h », « Dans 2 h 15 min », « C'est parti ! » (rendu serveur du compte à rebours). */
+function ago_until(int $ts): string
+{
+    $s = $ts - time();
+    if ($s <= 0) return 'C\'est parti !';
+    $d = intdiv($s, 86400); $h = intdiv($s % 86400, 3600); $m = intdiv($s % 3600, 60);
+    if ($d > 0) return 'Dans ' . $d . ' j ' . $h . ' h';
+    if ($h > 0) return 'Dans ' . $h . ' h ' . str_pad((string)$m, 2, '0', STR_PAD_LEFT) . ' min';
+    return 'Dans ' . max(1, $m) . ' min';
+}

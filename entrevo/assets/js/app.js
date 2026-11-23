@@ -87,4 +87,67 @@
   // Rafraîchissement automatique (contrôle en direct)
   var auto = document.querySelector('[data-autorefresh]');
   if (auto) setTimeout(function () { location.reload(); }, parseInt(auto.dataset.autorefresh, 10) * 1000);
+
+  // ---------- Relief côté acheteur (1.2) ----------
+  var calm = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  // apparitions au scroll
+  var rev = document.querySelectorAll('.reveal');
+  if (rev.length) {
+    if (calm || !('IntersectionObserver' in window)) rev.forEach(function (r) { r.classList.add('in'); });
+    else {
+      var io = new IntersectionObserver(function (es) { es.forEach(function (en) { if (en.isIntersecting) { en.target.classList.add('in'); io.unobserve(en.target); } }); }, { rootMargin: '0px 0px -6% 0px' });
+      rev.forEach(function (r, i) { r.style.transitionDelay = Math.min(i, 6) * 40 + 'ms'; io.observe(r); });
+    }
+  }
+  // comptes à rebours
+  var cds = document.querySelectorAll('[data-countdown]');
+  if (cds.length) {
+    var tick = function () {
+      cds.forEach(function (c) {
+        var s = Math.round((new Date(c.dataset.countdown).getTime() - Date.now()) / 1000), t = c.querySelector('[data-cd-text]');
+        if (!t) return;
+        if (s <= 0) { t.textContent = 'C’est parti !'; return; }
+        var d = Math.floor(s / 86400), h = Math.floor(s % 86400 / 3600), m = Math.floor(s % 3600 / 60), sec = s % 60;
+        t.textContent = d > 0 ? 'Dans ' + d + ' j ' + h + ' h ' + String(m).padStart(2, '0') + ' min'
+          : 'Dans ' + h + ' h ' + String(m).padStart(2, '0') + ' min ' + String(sec).padStart(2, '0') + ' s';
+      });
+    };
+    tick(); setInterval(tick, 1000);
+  }
+  // barre d'achat collante (mobile) : visible tant que le bloc billets n'est pas à l'écran
+  var sticky = document.querySelector('[data-buy-sticky]'), box = document.getElementById('billets'), top = document.querySelector('.event-top .btn-lg');
+  if (sticky && box && 'IntersectionObserver' in window) {
+    var seen = { box: false, top: true };
+    var upd = function () { sticky.hidden = seen.box || seen.top; };
+    new IntersectionObserver(function (es) { es.forEach(function (en) { seen[en.target === box ? 'box' : 'top'] = en.isIntersecting; }); upd(); }).observe(box);
+    if (top) new IntersectionObserver(function (es) { seen.top = es[0].isIntersecting; upd(); }).observe(top); else seen.top = false;
+  }
+  // rail d'affiches
+  document.querySelectorAll('[data-rail]').forEach(function (b) {
+    b.addEventListener('click', function () {
+      var tr = b.closest('.rail-wrap').querySelector('[data-rail-track]');
+      tr.scrollBy({ left: parseInt(b.dataset.rail, 10) * tr.clientWidth * 0.8, behavior: calm ? 'auto' : 'smooth' });
+    });
+  });
+  // confettis à la confirmation (une seule fois par commande)
+  var cf = document.querySelector('[data-confetti]');
+  if (cf && !calm) {
+    var key = 'confetti-' + cf.dataset.confetti, done = false;
+    try { done = sessionStorage.getItem(key) === '1'; sessionStorage.setItem(key, '1'); } catch (e) {}
+    if (!done) {
+      var cv = document.createElement('canvas'); cv.className = 'confetti'; cv.setAttribute('aria-hidden', 'true'); document.body.appendChild(cv);
+      var ctx = cv.getContext('2d'), W = cv.width = window.innerWidth, H = cv.height = window.innerHeight;
+      var cols = ['#0032fa', '#b388ff', '#2dd2be', '#ffd23f', '#fa3e4e'], parts = [];
+      for (var i = 0; i < 160; i++) parts.push({ x: W / 2 + (Math.random() - .5) * 120, y: H * .35, vx: (Math.random() - .5) * 14, vy: -Math.random() * 13 - 4,
+        r: Math.random() * Math.PI, vr: (Math.random() - .5) * .3, w: 6 + Math.random() * 6, h: 8 + Math.random() * 8, c: cols[i % cols.length] });
+      var t0 = performance.now();
+      var frame = function (now) {
+        var el = now - t0; ctx.clearRect(0, 0, W, H);
+        parts.forEach(function (p) { p.vy += .32; p.vx *= .99; p.x += p.vx; p.y += p.vy; p.r += p.vr;
+          ctx.save(); ctx.translate(p.x, p.y); ctx.rotate(p.r); ctx.globalAlpha = Math.max(0, 1 - el / 3200); ctx.fillStyle = p.c; ctx.fillRect(-p.w / 2, -p.h / 2, p.w, p.h); ctx.restore(); });
+        if (el < 3200) requestAnimationFrame(frame); else cv.remove();
+      };
+      requestAnimationFrame(frame);
+    }
+  }
 })();

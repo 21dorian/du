@@ -1,8 +1,8 @@
-<?php $paid = $o['status'] === 'paid'; ?>
+<?php $paid = $o['status'] === 'paid'; $fresh = $o['paid_at'] && time() - strtotime($o['paid_at']) < 1800; ?>
 <?php if ($paid): ?>
   <div class="steps no-print"><span class="done">Billets</span><span class="done">Informations</span><span class="done">Paiement</span><span class="on">Confirmation</span></div>
   <div class="state-head">
-    <div class="state-mark">🎉</div>
+    <div class="state-mark"<?= $fresh ? ' data-confetti="' . e($o['ref']) . '"' : '' ?>>🎉</div>
     <h1>C'est dans la poche, <?= e($o['first_name']) ?> !</h1>
     <p class="muted">Commande <b><?= e($o['ref']) ?></b> · <?= $o['email_sent_at'] ? 'tes billets sont aussi partis vers <b>' . e($o['email']) . '</b> 📬' : 'tes billets sont juste en dessous 👇' ?></p>
     <div class="row no-print" style="justify-content:center">

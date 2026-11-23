@@ -6,6 +6,7 @@
 <title><?= e(($title ?? '') ? $title . ' · ' . $pname : $pname) ?></title>
 <?php if (!empty($description)): ?><meta name="description" content="<?= e($description) ?>"><?php endif; ?>
 <?php if (!empty($og_image)): ?><meta property="og:image" content="<?= e($og_image) ?>"><?php endif; ?>
+<script>document.documentElement.classList.add('js')</script>
 <link rel="stylesheet" href="<?= asset('css/app.css') ?>">
 <link rel="icon" href="<?= asset('img/icon.svg') ?>" type="image/svg+xml">
 <style>:root{--primary:<?= e(setting('primary_color', '#0032fa')) ?>}</style>
