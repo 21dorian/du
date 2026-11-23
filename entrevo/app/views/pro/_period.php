@@ -1,0 +1,1 @@
+<nav class="pills" aria-label="Période"><?php foreach (Insights::PERIODS as $d => $l): ?><a class="<?= $per['days'] === $d ? 'on' : '' ?>" href="?p=<?= $d ?>"><?= e($l) ?></a><?php endforeach; ?></nav>

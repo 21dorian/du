@@ -67,14 +67,35 @@ $pname = (string)setting('platform_name');
 <label for="menu" class="menu-btn" aria-label="Menu"><span></span><span></span><span></span></label>
 <label for="menu" class="menu-overlay"></label>
 <main class="back-main">
+  <div class="probar">
+    <button type="button" class="probar-search" id="cmdk-open"><svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><circle cx="11" cy="11" r="7" fill="none" stroke="currentColor" stroke-width="2"/><path d="M20 20l-4-4" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg><span>Rechercher un événement, une commande, un participant…</span><kbd>Ctrl K</kbd></button>
+    <div class="probar-actions">
+      <?php if ($area === 'pro'): ?>
+      <details class="menu"><summary class="btn btn-sm">+ Créer</summary><div class="menu-list">
+        <a href="<?= url('/pro/evenements/nouveau') ?>">📅 Un événement</a>
+        <a href="<?= url('/pro/evenements') ?>">💵 Une vente au guichet</a>
+        <a href="<?= url('/pro/evenements') ?>">🎁 Des invitations</a>
+        <a href="<?= url('/pro/equipe') ?>">👥 Un compte d'équipe</a>
+      </div></details>
+      <?php endif; ?>
+      <details class="menu notif" id="notif"><summary class="probar-icon" aria-label="Notifications"><svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><path d="M6 16V11a6 6 0 1 1 12 0v5l2 2H4zM10 20a2 2 0 0 0 4 0" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/></svg><b class="notif-count" hidden></b></summary>
+        <div class="menu-list notif-list"><p class="muted">Chargement…</p></div></details>
+    </div>
+  </div>
   <?php if (!empty($crumbs)): ?><div class="crumbs"><?php foreach ($crumbs as $i => [$l, $h]): ?><?= $i ? ' <span>/</span> ' : '' ?><?= $h ? '<a href="' . url($h) . '">' . e($l) . '</a>' : e($l) ?><?php endforeach; ?></div><?php endif; ?>
   <div class="page-head">
     <h1><?= e($title) ?></h1>
     <?php if (!empty($actions)): ?><div class="page-actions"><?= $actions ?></div><?php endif; ?>
   </div>
-  <?= render_flash() ?>
+  <div class="toasts" aria-live="polite"><?= render_flash() ?></div>
   <?= $content ?>
 </main>
+<div class="cmdk" id="cmdk" hidden><div class="cmdk-box" role="dialog" aria-label="Recherche">
+  <input id="cmdk-input" placeholder="Rechercher… (événement, n° de commande, nom, e-mail, code billet)" autocomplete="off">
+  <div id="cmdk-results" class="cmdk-results"><p class="muted">Tape au moins 2 caractères. <kbd>Échap</kbd> pour fermer.</p></div>
+</div></div>
 <script src="<?= asset('js/app.js') ?>"></script>
+<script src="<?= asset('js/charts.js') ?>"></script>
+<script src="<?= asset('js/pro.js') ?>" data-base="<?= e(base_path()) ?>" data-area="<?= e($area) ?>" id="pro-js"></script>
 </body>
 </html>

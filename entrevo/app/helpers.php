@@ -290,3 +290,16 @@ function log_line(string $file, string $line): void
 {
     @file_put_contents(STORAGE . '/logs/' . $file . '.log', '[' . now() . '] ' . $line . "\n", FILE_APPEND);
 }
+
+/** « il y a 5 min », « hier », … */
+function ago(?string $dt): string
+{
+    if (!$dt) return '';
+    $s = time() - strtotime($dt);
+    if ($s < 60) return 'à l\'instant';
+    if ($s < 3600) return 'il y a ' . intdiv($s, 60) . ' min';
+    if ($s < 86400) return 'il y a ' . intdiv($s, 3600) . ' h';
+    if ($s < 172800) return 'hier';
+    if ($s < 7 * 86400) return 'il y a ' . intdiv($s, 86400) . ' j';
+    return date('d/m/y', strtotime($dt));
+}

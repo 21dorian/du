@@ -117,6 +117,7 @@ function event_page(string $slug): string
         WHERE x.event_id = ? AND x.status = 'listed'" . ($session ? ' AND t.session_id = ' . (int)$session['id'] : '') . ' ORDER BY x.price, x.id LIMIT 30', [$ev['id']]) : [];
     $seatmap = Seating::map($ev) ? true : false;
     $img = $ev['image'] ? abs_url($ev['image']) : null;
+    Traffic::hit($ev, 'views');
     return pub('event', compact('ev', 'org', 'rates', 'cart', 'promo', 'sessions', 'session', 'products', 'soldOut', 'resales', 'seatmap'), $ev['name'], [
         'description' => mb_substr(strip_tags((string)$ev['description']), 0, 160), 'og_image' => $img, 'widget_ok' => true, 'org_tracking' => $org,
     ]);
@@ -152,6 +153,7 @@ function event_select(string $slug): never
     if (input('action') === 'remove_code') { $cart['promo'] = ''; cart_set((int)$ev['id'], $cart); redirect($back); }
     fill_cart_from_input($ev, $cart, $_POST);
     if (!$cart['q']) redirect($back, ['error' => 'Prends au moins un billet, sinon ça va être compliqué d\'entrer 😅']);
+    Traffic::hit($ev, 'carts');
     cart_set((int)$ev['id'], $cart);
     redirect('/e/' . $slug . '/infos');
 }
@@ -278,6 +280,7 @@ function checkout(string $slug): string
                 $o = $r['order'];
                 $_SESSION['orders'][] = $o['ref'];
                 unset($_SESSION['cart'][$ev['id']]);
+                Traffic::hit($ev, 'checkouts');
                 if ((int)$o['total'] === 0) {
                     update('orders', ['provider' => 'free'], 'id = ?', [$o['id']]);
                     Tickets::confirm((int)$o['id']);

@@ -79,6 +79,14 @@ final class Demo
                 update('orders', ['paid_at' => $when], 'id = ?', [$o['id']]);
             }
         }
+        // audience de démonstration (pour que l'entonnoir et la conversion aient des données)
+        foreach ([$fest => 140, $jazz => 60, $trail => 25, $conf => 15] as $evId => $base) {
+            for ($i = 29; $i >= 0; $i--) {
+                $v = (int)round($base * (0.5 + mt_rand(0, 100) / 100) * (1 + (29 - $i) / 30));
+                q('INSERT INTO event_traffic (event_id, day, views, visitors, carts, checkouts) VALUES (?, ?, ?, ?, ?, ?) ON DUPLICATE KEY UPDATE views = VALUES(views)',
+                    [$evId, date('Y-m-d', strtotime("-$i days")), (int)($v * 1.6), $v, (int)($v * 0.22), (int)($v * 0.12)]);
+            }
+        }
         unset($scanner);
     }
 

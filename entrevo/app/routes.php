@@ -40,10 +40,16 @@ return [
     ['GET|POST', '/mon-compte', 'account@profile'],
 
     // ----- Espace organisateur -----
-    ['GET', '/pro', 'pro@dashboard'],
+    ['GET', '/pro', 'insights@home_dashboard'],
+    ['GET', '/pro/recherche', 'insights@search_pro'],
+    ['GET', '/pro/notifications', 'insights@notifications_pro'],
+    ['GET', '/pro/activite', 'insights@activity_feed'],
+    ['GET', '/pro/journal', 'insights@audit_page'],
+    ['GET', '/admin/recherche', 'insights@search_admin'],
+    ['GET', '/admin/notifications', 'insights@notifications_admin'],
     ['GET', '/pro/evenements', 'pro@events'],
     ['GET|POST', '/pro/evenements/nouveau', 'pro@event_form'],
-    ['GET', '/pro/evenements/{id}', 'pro@event_overview'],
+    ['GET', '/pro/evenements/{id}', 'insights@event_overview2'],
     ['GET|POST', '/pro/evenements/{id}/modifier', 'pro@event_form'],
     ['POST', '/pro/evenements/{id}/statut', 'pro@event_status'],
     ['POST', '/pro/evenements/{id}/dupliquer', 'pro@event_duplicate'],
