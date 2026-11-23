@@ -20,7 +20,9 @@ $app = $repo . '/entrevo';
 $out = $out ? rtrim($out, '/') : $repo . '/livraisons';
 if (!is_dir($out)) mkdir($out, 0755, true);
 
-$current = trim((string)file_get_contents($app . '/VERSION'));
+// version minimale = celle du commit de départ (et non le VERSION actuel, qui peut déjà avoir été monté)
+$current = trim((string)shell_exec('cd ' . escapeshellarg($repo) . ' && git show ' . escapeshellarg($from . ':entrevo/VERSION') . ' 2>/dev/null'))
+    ?: trim((string)file_get_contents($app . '/VERSION'));
 file_put_contents($app . '/VERSION', $version . "\n");
 
 $diff = shell_exec('cd ' . escapeshellarg($repo) . ' && git diff --name-status ' . escapeshellarg($from) . ' -- entrevo/ && git ls-files --others --exclude-standard -- entrevo/');
