@@ -56,7 +56,7 @@
   // Zone de dépôt de fichier
   document.querySelectorAll('.dropzone').forEach(function (z) {
     var input = z.querySelector('input[type=file]'), label = z.querySelector('.dz-name');
-    z.addEventListener('click', function (e) { if (e.target !== input) input.click(); });
+    if (z.tagName !== 'LABEL') z.addEventListener('click', function (e) { if (e.target !== input) input.click(); });
     ['dragenter', 'dragover'].forEach(function (ev) { z.addEventListener(ev, function (e) { e.preventDefault(); z.classList.add('over'); }); });
     ['dragleave', 'drop'].forEach(function (ev) { z.addEventListener(ev, function (e) { e.preventDefault(); z.classList.remove('over'); }); });
     z.addEventListener('drop', function (e) { if (e.dataTransfer.files.length) { input.files = e.dataTransfer.files; input.dispatchEvent(new Event('change')); } });

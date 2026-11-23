@@ -17,12 +17,12 @@ $link = abs_url('/e/' . $ev['slug']);
     </div>
     <div class="row">
       <a class="btn btn-sm btn-ghost" href="<?= e($link) ?>" target="_blank">Voir la page ↗</a>
-      <button type="button" class="btn btn-sm btn-ghost" data-copy="<?= e($link) ?>">Copier le lien</button>
+      <button type="button" class="btn btn-sm btn-ghost" data-copy="<?= e($link) ?>">🔗 Copier le lien</button>
       <form method="post" action="<?= url('/pro/evenements/' . $ev['id'] . '/statut') ?>" class="inline-form"><?= csrf_field() ?>
         <?php if ($ev['status'] === 'published'): ?>
           <button class="btn btn-sm btn-ghost" name="status" value="closed" data-confirm="Clôturer les ventes ? Les billets déjà vendus restent valables.">Clôturer les ventes</button>
         <?php else: ?>
-          <button class="btn btn-sm btn-success" name="status" value="published"><?= $ev['status'] === 'closed' ? 'Rouvrir les ventes' : 'Publier' ?></button>
+          <button class="btn btn-sm btn-success" name="status" value="published"><?= $ev['status'] === 'closed' ? 'Rouvrir les ventes' : 'Publier 🚀' ?></button>
         <?php endif; ?>
       </form>
     </div>

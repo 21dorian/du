@@ -1,0 +1,102 @@
+# Entrevo — billetterie & contrôle d'accès 🎟️
+
+Plateforme de billetterie multi-organisateurs : vente en ligne (Stripe, PayPal, SumUp, Mollie), billets PDF à QR code envoyés par e-mail, guichet et invitations, codes promo, formulaire personnalisé, commissions, reversements, et application de contrôle des entrées sur téléphone (même sans réseau).
+
+---
+
+## 1. Installer chez Dyjix (cPanel) — 10 minutes
+
+**Ce qu'il faut :** un hébergement Dyjix avec cPanel, PHP 8.1 ou plus, une base MySQL, et un nom de domaine (ou sous-domaine) avec un certificat SSL (gratuit, « Let's Encrypt » / « AutoSSL » dans cPanel).
+
+1. **Choisis la version de PHP**
+   cPanel › « Sélectionner une version de PHP » › **8.2** (ou plus). Vérifie que les extensions `pdo_mysql`, `curl`, `zip`, `mbstring`, `iconv` et `gd` sont cochées.
+
+2. **Crée la base de données**
+   cPanel › « Bases de données MySQL » :
+   - crée une base (ex. `moncompte_entrevo`) ;
+   - crée un utilisateur avec un mot de passe solide ;
+   - ajoute l'utilisateur à la base avec **tous les privilèges**.
+   Note les trois informations (base, utilisateur, mot de passe).
+
+3. **Envoie les fichiers**
+   cPanel › « Gestionnaire de fichiers » › va dans `public_html` (ou le dossier de ton sous-domaine) › **Charger** le fichier `entrevo-v1.0.0.zip` › clic droit › **Extraire**.
+   Tu obtiens un dossier `entrevo/`. Deux possibilités :
+   - billetterie à la racine du site : déplace **le contenu** de `entrevo/` dans `public_html/` (fichiers cachés compris, notamment `.htaccess` : active « Afficher les fichiers cachés » dans les paramètres du gestionnaire) ;
+   - billetterie dans un sous-dossier : laisse `entrevo/`, l'adresse sera `https://tondomaine.fr/entrevo`.
+
+4. **Lance l'installation**
+   Ouvre `https://tondomaine.fr/install.php` (ou `/entrevo/install.php`).
+   L'assistant vérifie l'hébergement, puis demande : la base de données (serveur : `localhost`), le nom de la plateforme, et ton compte super-administrateur.
+   Coche « données de démonstration » si tu veux tester avec de faux événements.
+
+5. **C'est en ligne 🎉**
+   Connecte-toi sur `/connexion`. Le fichier d'installation se désactive tout seul.
+
+6. **Force le HTTPS** (indispensable pour la caméra du scanner et les paiements)
+   Une fois le certificat SSL actif, ouvre le fichier `.htaccess` et retire le `#` devant les deux lignes `RewriteCond %{HTTPS} off` et `RewriteRule ^ https://...`.
+
+### Comptes de démonstration (si tu as coché la démo)
+| Rôle | E-mail | Mot de passe |
+|---|---|---|
+| Organisateur | `orga@demo.entrevo` | `demo1234` |
+| Contrôleur (scan) | `controle@demo.entrevo` | `demo1234` |
+
+Supprime-les (ou désactive-les dans Super-admin › Utilisateurs) avant d'ouvrir au public.
+
+---
+
+## 2. Réglages à faire avant de vendre (Super-admin › Réglages)
+
+- **Général** : nom, adresse du site (`https://…`), e-mail de contact, couleur.
+- **Commission** : pourcentage + montant fixe par billet (par défaut 3 % + 0,50 €). Chaque organisateur choisit qui paie les frais ; tu peux faire un tarif perso par organisateur.
+- **Paiements** : colle les clés de Stripe / PayPal / SumUp / Mollie et coche « Activer ». **Coupe le paiement de démonstration** dès que tu vends pour de vrai. Fais toujours un achat test avec les clés de test du prestataire.
+- **E-mails** : crée une adresse dans cPanel › « Comptes de messagerie » (ex. `billets@tondomaine.fr`) et renseigne serveur, port 465 (SSL) ou 587 (STARTTLS), identifiant et mot de passe. Clique « Enregistrer et tester ».
+- **Textes légaux** : CGV (l'acheteur doit les accepter) et mentions légales.
+
+**L'argent :** tous les paiements arrivent sur tes comptes. Dans Super-admin › Organisateurs › fiche, tu vois ce que tu dois reverser à chacun ; fais le virement depuis ta banque puis clique « Enregistrer le reversement ».
+
+---
+
+## 3. Le jour J : contrôle des entrées 📷
+
+1. L'organisateur crée des comptes **Contrôleur** (Espace organisateur › Équipe).
+2. Sur chaque téléphone : ouvrir `https://tondomaine.fr/scan`, se connecter, choisir l'événement, la porte et le sens (Entrée / Sortie).
+3. Astuce : « Ajouter à l'écran d'accueil » → l'appli s'ouvre comme une vraie application.
+4. **Hors ligne** : la liste des billets est téléchargée sur le téléphone. Sans réseau, le scan continue ; les passages sont envoyés automatiquement au retour du réseau (le petit compteur ⏳ en haut à droite).
+5. Douchette USB / Bluetooth : branche-la, scanne, ça marche (pas besoin de cliquer dans un champ).
+6. Suivi en direct pour l'organisateur : Événement › « En direct ».
+
+Couleurs : **vert** = entre, **orange** = déjà entré / pas entré (sortie), **rouge** = refusé (inconnu, annulé, mauvais événement, mauvaise porte).
+
+---
+
+## 4. Mises à jour ⬆️
+
+Quand je t'envoie un fichier `maj-X.Y.Z.zip` :
+1. Super-admin › **Mises à jour** ;
+2. dépose le fichier dans la zone, clique **Installer** ;
+3. le site vérifie tout seul qu'il fonctionne. En cas de souci, un lien « Revenir à la version précédente » apparaît (et la liste « Revenir en arrière » reste disponible).
+
+Tes données (base, billets, images, `config.php`) ne sont jamais modifiées par une mise à jour. Installe les mises à jour **dans l'ordre** (1.1.0 avant 1.2.0…). Pense à télécharger une sauvegarde des données avant (bouton sur la même page).
+
+---
+
+## 5. Sauvegardes
+
+- Super-admin › Mises à jour › « Télécharger la sauvegarde » : toute la base en un fichier `.sql`.
+- cPanel propose aussi des sauvegardes complètes (« Sauvegarde » / JetBackup chez Dyjix).
+- Les fichiers importants : `config.php` (connexion à la base, clé secrète des QR codes — **ne le perds pas**, sinon les billets déjà émis ne seraient plus reconnus comme authentiques) et le dossier `uploads/` (affiches).
+
+---
+
+## 6. En cas de souci
+
+- **Page blanche / erreur** : regarde `storage/logs/erreurs.log` (gestionnaire de fichiers).
+- **Les e-mails n'arrivent pas** : configure le SMTP (section 2) et teste ; regarde les spams ; journal : `storage/logs/emails.log`.
+- **La caméra ne s'ouvre pas sur le téléphone** : le site doit être en `https://` ; autorise la caméra dans le navigateur.
+- **« Fichier trop lourd » en mise à jour** : augmente `upload_max_filesize` dans cPanel › « Sélectionner une version de PHP » › Options.
+- **Mot de passe super-admin perdu** : « Mot de passe oublié » sur la page de connexion (nécessite des e-mails fonctionnels).
+
+---
+
+Bibliothèques incluses (licences libres) : FPDF, PHPMailer (LGPL 2.1), chillerlan/php-qrcode (MIT/Apache 2.0), jsQR (Apache 2.0), police Barlow (SIL OFL).

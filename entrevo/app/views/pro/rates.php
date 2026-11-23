@@ -16,26 +16,26 @@ $form = function (?array $r) use ($org) {
       </div>
       <div class="row" style="gap:22px;margin-bottom:14px">
         <label class="check"><input type="checkbox" name="active" value="1" <?= $p['active'] ? 'checked' : '' ?>> Actif (en vente)</label>
-        <label class="check"><input type="checkbox" name="hidden" value="1" <?= $p['hidden'] ? 'checked' : '' ?>> Tarif réservé (visible uniquement avec un code d'accès)</label>
+        <label class="check"><input type="checkbox" name="hidden" value="1" <?= $p['hidden'] ? 'checked' : '' ?>> 🤫 Tarif secret (visible seulement avec un code d'accès)</label>
         <label style="display:flex;gap:8px;align-items:center;font-weight:500">Ordre <input type="number" name="sort" value="<?= (int)$p['sort'] ?>" style="width:80px"></label>
       </div>
       <div class="form-actions">
         <button class="btn"><?= $p['id'] ? 'Enregistrer' : 'Ajouter le tarif' ?></button>
-        <?php if ($p['id']): ?><button class="btn btn-ghost" style="color:var(--red)" name="action" value="delete" formnovalidate data-confirm="Supprimer ce tarif ?">Supprimer</button><?php endif; ?>
+        <?php if ($p['id']): ?><button class="btn btn-ghost" style="color:var(--red)" name="action" value="delete" formnovalidate data-confirm="Supprimer ce tarif ? 🗑️">Supprimer</button><?php endif; ?>
       </div>
     </form>
 <?php return ob_get_clean(); };
 [$pct, $fixed] = Tickets::feeRates($org);
 ?>
-<div class="notice mb">Frais de service de la plateforme : <b><?= e(rtrim(rtrim(number_format($pct, 2, ',', ''), '0'), ',')) ?> % + <?= e(money($fixed)) ?></b> par billet payant,
-  <?= $org['fee_mode'] === 'buyer' ? '<b>ajoutés au prix payé par l\'acheteur</b>' : '<b>déduits de votre reversement</b>' ?> (<a href="<?= url('/pro/organisation') ?>">modifier</a>). Les billets gratuits sont sans frais.</div>
+<div class="notice mb">💸 Frais de service : <b><?= e(rtrim(rtrim(number_format($pct, 2, ',', ''), '0'), ',')) ?> % + <?= e(money($fixed)) ?></b> par billet payant,
+  <?= $org['fee_mode'] === 'buyer' ? '<b>payés par l\'acheteur</b>' : '<b>déduits de ton reversement</b>' ?> (<a href="<?= url('/pro/organisation') ?>">changer</a>). Billets gratuits : 0 €, évidemment.</div>
 <?php foreach ($rates as $r): $fee = Tickets::computeFees($org, (int)$r['price'], (int)$r['price'] > 0 ? 1 : 0); ?>
   <details class="box">
     <summary>
-      <span><?= e($r['name']) ?> <?= !$r['active'] ? badge('draft') : '' ?> <?= $r['hidden'] ? '<span class="badge violet">Réservé</span>' : '' ?></span>
+      <span><?= e($r['name']) ?> <?= !$r['active'] ? badge('draft') : '' ?> <?= $r['hidden'] ? '<span class="badge violet">🤫 Secret</span>' : '' ?></span>
       <span class="row" style="gap:16px;font-weight:500">
         <span class="muted"><?= (int)$r['sold'] ?><?= $r['quota'] ? ' / ' . (int)$r['quota'] : '' ?> vendus</span>
-        <span><?= (int)$r['price'] ? e(money((int)$r['price'])) : 'Gratuit' ?><?php if ($fee): ?> <small>(<?= $org['fee_mode'] === 'buyer' ? 'acheteur paie ' . e(money((int)$r['price'] + $fee)) : 'vous recevez ' . e(money((int)$r['price'] - $fee)) ?>)</small><?php endif; ?></span>
+        <span><?= (int)$r['price'] ? e(money((int)$r['price'])) : 'Gratuit' ?><?php if ($fee): ?> <small>(<?= $org['fee_mode'] === 'buyer' ? 'acheteur paie ' . e(money((int)$r['price'] + $fee)) : 'tu reçois ' . e(money((int)$r['price'] - $fee)) ?>)</small><?php endif; ?></span>
       </span>
     </summary>
     <?= $form($r) ?>

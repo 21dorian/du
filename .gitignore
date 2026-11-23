@@ -50,3 +50,5 @@ entrevo/storage/sessions/sess_*
 entrevo/storage/maj/*.zip
 entrevo/storage/maj/secours.json
 entrevo/uploads/*/
+
+entrevo-captures/

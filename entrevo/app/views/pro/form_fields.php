@@ -20,7 +20,7 @@ $form = function (?array $f) use ($types) {
     </form>
 <?php return ob_get_clean(); };
 ?>
-<p class="muted">Nom, prénom et e-mail sont toujours demandés. Ajoutez ici vos propres questions : elles apparaissent à l'achat et dans l'export des participants.</p>
+<p class="muted">Nom, prénom et e-mail sont toujours demandés. Ajoute tes propres questions (taille de t-shirt, régime alimentaire, club…) : elles apparaissent à l'achat et dans l'export. 📋</p>
 <?php foreach ($fields as $f): ?>
   <details class="box"><summary><span><?= e($f['label']) ?><?= $f['required'] ? ' *' : '' ?></span><span class="muted" style="font-weight:500"><?= e($types[$f['type']]) ?> · <?= $f['per_ticket'] ? 'par participant' : 'par commande' ?></span></summary><?= $form($f) ?></details>
 <?php endforeach; ?>

@@ -14,7 +14,7 @@ declare(strict_types=1);
 final class Updater
 {
     public const APP_ID = 'entrevo';
-    private const PROTECTED = ['config.php', 'storage/', 'uploads/', '.git/'];
+    private const PROTECTED = ['config.php', 'storage/', 'uploads/', '.git/', 'maj-secours.php'];
 
     public static function dir(): string
     {
@@ -123,7 +123,7 @@ final class Updater
 
         // 3. jeton de secours valable 1 heure (retour arrière si le site ne répond plus)
         $rescue = token(24);
-        file_put_contents(self::dir() . '/secours.json', json_encode(['token' => $rescue, 'backup' => $backupName, 'expires' => time() + 3600]));
+        file_put_contents(self::dir() . '/secours.json', json_encode(['token' => $rescue, 'backup' => $backupName, 'version' => (string)$man['version'], 'expires' => time() + 3600]));
 
         insert('update_log', ['version' => (string)$man['version'], 'previous' => $info['current'], 'action' => 'install',
             'notes' => (string)($man['notes'] ?? ''), 'backup' => $backupName, 'user_id' => $userId, 'created_at' => now()]);

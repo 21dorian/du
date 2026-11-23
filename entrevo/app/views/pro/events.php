@@ -15,7 +15,7 @@
         <td class="right nowrap"><a class="btn btn-sm btn-ghost" href="<?= url('/pro/evenements/' . $ev['id']) ?>">Gérer</a></td>
       </tr>
     <?php endforeach; ?>
-    <?php if (!$list): ?><tr><td colspan="7" class="empty">Aucun événement <?= $filter === 'passes' ? 'passé' : 'à venir' ?>. <a href="<?= url('/pro/evenements/nouveau') ?>">Créer un événement</a></td></tr><?php endif; ?>
+    <?php if (!$list): ?><tr><td colspan="7" class="empty"><?= $filter === 'passes' ? 'Pas encore d\'historique.' : 'Le calendrier est vide 🦗' ?> <a href="<?= url('/pro/evenements/nouveau') ?>">Créer un événement</a></td></tr><?php endif; ?>
     </tbody>
   </table></div>
 </div>

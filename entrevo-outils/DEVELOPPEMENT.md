@@ -1,0 +1,29 @@
+# Entrevo — notes de développement
+
+Application PHP 8.1+ / MySQL sans framework ni Composer (bibliothèques copiées dans `entrevo/vendor/`), pensée pour un hébergement mutualisé (Dyjix, cPanel). L'utilisateur reçoit un ZIP complet, puis des paquets de mise à jour qu'il dépose dans Super-admin › Mises à jour.
+
+## Arborescence
+- `entrevo/index.php` : contrôleur frontal ; routes dans `app/routes.php` (`fichier@fonction` → `app/controllers/fichier.php`).
+- `app/lib/` : `Tickets` (métier : quotas, commandes, commissions, scans), `Payments` (Stripe/PayPal/SumUp/Mollie/démo), `Mailer`, `TicketPdf`, `Qr`, `Updater`, `Demo`.
+- `app/migrations.php` : évolutions de la base, appliquées automatiquement au premier chargement après une mise à jour. **Toujours ajouter une nouvelle entrée numérotée, ne jamais modifier une ancienne.**
+- `app/views/` : gabarits PHP (`layout_public` sombre, `layout_back` clair, `scan/app` appli mobile).
+- `assets/` : CSS, JS (`scan.js` = appli de contrôle hors ligne), polices, images. `sw.js` à la racine = service worker du scanner.
+- `maj-secours.php` : retour arrière autonome (protégé : jamais modifié par une mise à jour).
+
+## Ton & design
+- Public : fond noir, accent corail `#ff5a4e`, titres Barlow Condensed en majuscules, boutons rectangulaires (angles droits), pas d'ombres ni de dégradés.
+- Back-office : clair, même typographie, tableaux denses.
+- Textes : tutoiement, ton décalé et drôle (« façon Burger King »), émojis bienvenus, mais toujours clairs sur prix, paiements, erreurs.
+
+## Tester en local
+```
+mysql -e "CREATE DATABASE entrevo CHARACTER SET utf8mb4; CREATE USER 'entrevo'@'localhost' IDENTIFIED BY 'entrevo'; GRANT ALL ON entrevo.* TO 'entrevo'@'localhost';"
+php -S 127.0.0.1:8080 entrevo-outils/routeur-dev.php
+```
+Puis ouvrir http://127.0.0.1:8080/install.php.
+
+## Livrer
+1. Mise à jour : `php entrevo-outils/creer-maj.php X.Y.Z <tag-précédent> "Notes lisibles par l'utilisateur"` → `livraisons/maj-X.Y.Z.zip` (met aussi à jour `entrevo/VERSION`). Commiter, taguer `vX.Y.Z`.
+2. ZIP complet (nouvelle installation) : `sh entrevo-outils/creer-livraison.sh` → `livraisons/entrevo-vX.Y.Z.zip`.
+3. Une modification de base de données = nouvelle entrée dans `app/migrations.php`.
+4. Fichiers jamais inclus dans un paquet : `config.php`, `storage/`, `uploads/`, `maj-secours.php`.

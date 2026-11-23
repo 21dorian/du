@@ -376,3 +376,8 @@ details.box.add summary{color:var(--ink);font:700 16px var(--display);text-trans
   body,body.pub{background:#fff;color:#000}
   .ticket{break-inside:avoid;--cut:#fff;border:1px solid #999}
 }
+
+/* corrections de mise en page */
+.split>.card+.card,.split-3>.card+.card,.split>div>.card:first-child,.split-3>div>.card:first-child{margin-top:0}
+.card-head>a,.card-head>small{white-space:nowrap}
+.kpi b small{font-size:18px!important;white-space:nowrap}
