@@ -13,6 +13,8 @@ function db(): PDO
             PDO::ATTR_EMULATE_PREPARES => false,
         ]);
         $pdo->exec("SET time_zone = '" . date('P') . "'");
+        // certains hébergeurs (MySQL 8) imposent ONLY_FULL_GROUP_BY : on le retire pour notre connexion uniquement
+        try { $pdo->exec("SET SESSION sql_mode = TRIM(BOTH ',' FROM REPLACE(@@SESSION.sql_mode, 'ONLY_FULL_GROUP_BY', ''))"); } catch (Throwable $e) { /* sans gravité */ }
     }
     return $pdo;
 }
