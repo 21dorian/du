@@ -4,7 +4,7 @@
 (function () {
   'use strict';
   var NS = 'http://www.w3.org/2000/svg';
-  var COLORS = ['#e0453a', '#9a968c'];
+  var COLORS = ['#0032fa', '#7d8699'];
   function el(tag, attrs, parent) { var n = document.createElementNS(NS, tag); for (var k in attrs) n.setAttribute(k, attrs[k]); if (parent) parent.appendChild(n); return n; }
   function fmt(v, f) {
     if (f === 'money') return (v / 100).toLocaleString('fr-FR', { style: 'currency', currency: 'EUR', maximumFractionDigits: v % 100 ? 2 : 0 });
@@ -60,7 +60,7 @@
     var y = function (v) { return padT + ih - (v / max) * ih; };
     for (var g = 0; g <= 4; g++) {
       var gv = max / 4 * g, gy = y(gv);
-      el('line', { x1: padL, x2: W - padR, y1: gy, y2: gy, stroke: g ? '#ebe9e4' : '#c9c7c0', 'stroke-width': 1 }, svg);
+      el('line', { x1: padL, x2: W - padR, y1: gy, y2: gy, stroke: g ? '#edf1f6' : '#d5dce7', 'stroke-width': 1 }, svg);
       var tx = el('text', { x: padL - 8, y: gy + 4, 'text-anchor': 'end', class: 'viz-axis' }, svg); tx.textContent = axisFmt(gv, f);
     }
     var step = Math.max(1, Math.ceil(n / Math.max(2, Math.floor(iw / 70))));

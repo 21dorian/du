@@ -8,7 +8,7 @@
 <?php if (!empty($og_image)): ?><meta property="og:image" content="<?= e($og_image) ?>"><?php endif; ?>
 <link rel="stylesheet" href="<?= asset('css/app.css') ?>">
 <link rel="icon" href="<?= asset('img/icon.svg') ?>" type="image/svg+xml">
-<style>:root{--primary:<?= e(setting('primary_color', '#ff5a4e')) ?>}</style>
+<style>:root{--primary:<?= e(setting('primary_color', '#0032fa')) ?>}</style>
 <?php if (!empty($org_tracking)) echo view('partials/tracking', ['o' => $org_tracking]); ?>
 </head>
 <body class="pub">

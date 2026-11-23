@@ -34,7 +34,7 @@ $pname = (string)setting('platform_name');
 <title><?= e($title) ?> · <?= e($pname) ?></title>
 <link rel="stylesheet" href="<?= asset('css/app.css') ?>">
 <link rel="icon" href="<?= asset('img/icon.svg') ?>" type="image/svg+xml">
-<style>:root{--primary:<?= e(setting('primary_color', '#ff5a4e')) ?>}</style>
+<style>:root{--primary:<?= e(setting('primary_color', '#0032fa')) ?>}</style>
 </head>
 <body class="back">
 <input type="checkbox" id="menu" class="menu-toggle" hidden>

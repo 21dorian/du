@@ -13,7 +13,7 @@ final class TicketPdf
         $pdf->SetAutoPageBreak(false);
         $pdf->SetTitle(self::t('Billets ' . $event['name']));
         $pdf->SetAuthor(self::t((string)setting('platform_name')));
-        [$r, $g, $b] = self::hex((string)($event['ticket_color'] ?: setting('primary_color', '#ff5a4e')));
+        [$r, $g, $b] = self::hex((string)($event['ticket_color'] ?: setting('primary_color', '#0032fa')));
         $map = Seating::map($event);
         $sessions = [];
         foreach ($tickets as $tk) if ($tk['session_id'] && !isset($sessions[$tk['session_id']])) $sessions[$tk['session_id']] = one('SELECT * FROM sessions WHERE id = ?', [$tk['session_id']]);
@@ -131,7 +131,7 @@ final class TicketPdf
     private static function hex(string $hex): array
     {
         $hex = ltrim($hex, '#');
-        if (strlen($hex) !== 6) return [255, 90, 78];
+        if (strlen($hex) !== 6) return [0, 50, 250];
         return [hexdec(substr($hex, 0, 2)), hexdec(substr($hex, 2, 2)), hexdec(substr($hex, 4, 2))];
     }
 }

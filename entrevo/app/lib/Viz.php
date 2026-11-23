@@ -3,12 +3,12 @@ declare(strict_types=1);
 
 /**
  * Petits éléments de visualisation rendus côté serveur (sans JS) : mini-courbe, anneau de remplissage, variation.
- * Couleurs : série = corail assombri #e0453a (contraste ≥ 3:1 sur fond clair), atténué = gris neutre.
+ * Couleurs : série = bleu #0032fa (contraste ≥ 3:1 sur fond clair), atténué = gris neutre.
  */
 final class Viz
 {
-    public const SERIES = '#e0453a';
-    public const MUTED = '#b9b6ae';
+    public const SERIES = '#0032fa';
+    public const MUTED = '#7d8699';
 
     /** Mini-courbe (12+ points) : la courbe en gris, le dernier point en accent. */
     public static function sparkline(array $values, int $w = 120, int $h = 32): string
@@ -29,11 +29,11 @@ final class Viz
     public static function ring(?float $pct, string $center = '', int $size = 84): string
     {
         $r = ($size - 12) / 2; $c = 2 * M_PI * $r; $p = $pct === null ? 0 : max(0, min(100, $pct));
-        $color = $p >= 95 ? '#c2410c' : self::SERIES;
+        $color = $p >= 95 ? '#d92d3a' : self::SERIES;
         return '<svg class="ring" viewBox="0 0 ' . $size . ' ' . $size . '" width="' . $size . '" height="' . $size . '" role="img" aria-label="' . e($center ?: round($p) . ' %') . '">'
-            . '<circle cx="' . $size / 2 . '" cy="' . $size / 2 . '" r="' . $r . '" fill="none" stroke="#f4d6d2" stroke-width="8"/>'
+            . '<circle cx="' . $size / 2 . '" cy="' . $size / 2 . '" r="' . $r . '" fill="none" stroke="#e1e8ff" stroke-width="8"/>'
             . '<circle cx="' . $size / 2 . '" cy="' . $size / 2 . '" r="' . $r . '" fill="none" stroke="' . $color . '" stroke-width="8" stroke-linecap="round" stroke-dasharray="' . round($c * $p / 100, 2) . ' ' . round($c, 2) . '" transform="rotate(-90 ' . $size / 2 . ' ' . $size / 2 . ')"/>'
-            . '<text x="50%" y="50%" text-anchor="middle" dominant-baseline="central" font-family="Barlow Condensed,sans-serif" font-weight="800" font-size="' . round($size / 4.2) . '" fill="#141414">' . e($center ?: ($pct === null ? '∞' : round($p) . '%')) . '</text></svg>';
+            . '<text x="50%" y="50%" text-anchor="middle" dominant-baseline="central" font-family="Barlow Condensed,sans-serif" font-weight="800" font-size="' . round($size / 4.2) . '" fill="#0f0f14">' . e($center ?: ($pct === null ? '∞' : round($p) . '%')) . '</text></svg>';
     }
 
     /** Variation signée vs la période précédente (vert si c'est mieux, rouge si c'est moins bien), avec flèche (pas la couleur seule). */

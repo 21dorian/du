@@ -9,7 +9,7 @@ final class Docs
     private static function rgb(string $hex): array
     {
         $h = ltrim($hex, '#');
-        return strlen($h) === 6 ? [hexdec(substr($h, 0, 2)), hexdec(substr($h, 2, 2)), hexdec(substr($h, 4, 2))] : [255, 90, 78];
+        return strlen($h) === 6 ? [hexdec(substr($h, 0, 2)), hexdec(substr($h, 2, 2)), hexdec(substr($h, 4, 2))] : [0, 50, 250];
     }
 
     /** Badges A6 (4 par page A4), avec QR code, population et zones autorisées. */

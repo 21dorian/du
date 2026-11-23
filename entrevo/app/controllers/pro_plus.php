@@ -181,7 +181,7 @@ function accred_tab(string $id): string
         $a = (string)input('action');
         if ($a === 'population') {
             $pid = (int)input('population_id');
-            $data = ['name' => trim((string)input('name')) ?: 'Staff', 'color' => preg_match('~^#[0-9a-fA-F]{6}$~', (string)input('color')) ? (string)input('color') : '#ff5a4e',
+            $data = ['name' => trim((string)input('name')) ?: 'Staff', 'color' => preg_match('~^#[0-9a-fA-F]{6}$~', (string)input('color')) ? (string)input('color') : '#0032fa',
                 'access_point_ids' => implode(',', array_map('intval', (array)($_POST['zones'] ?? []))) ?: null];
             if ($pid) update('populations', $data, 'id = ? AND event_id = ?', [$pid, $ev['id']]); else insert('populations', $data + ['event_id' => $ev['id']]);
             back(['success' => '✅ Population enregistrée.']);
