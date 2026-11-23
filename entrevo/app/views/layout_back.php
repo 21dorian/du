@@ -11,20 +11,57 @@ if ($area === 'admin') {
         ['orders', '/admin/commandes', 'Commandes', 'M7 4h10l3 4v12H4V8zm0 0v4h13M8 12h8M8 16h5'],
         ['users', '/admin/utilisateurs', 'Utilisateurs', 'M12 12a5 5 0 1 0-5-5 5 5 0 0 0 5 5zm0 2c-3.3 0-10 1.7-10 5v3h20v-3c0-3.3-6.7-5-10-5z'],
         ['settings', '/admin/reglages', 'Réglages', 'M12 15.5A3.5 3.5 0 1 1 15.5 12 3.5 3.5 0 0 1 12 15.5zm7.4-2.5a7.6 7.6 0 0 0 0-2l2.1-1.6-2-3.5-2.5 1a7.4 7.4 0 0 0-1.7-1L15 3h-4l-.4 2.7a7.4 7.4 0 0 0-1.7 1l-2.5-1-2 3.5L6.5 11a7.6 7.6 0 0 0 0 2l-2.1 1.6 2 3.5 2.5-1a7.4 7.4 0 0 0 1.7 1L11 21h4l.4-2.7a7.4 7.4 0 0 0 1.7-1l2.5 1 2-3.5z'],
+        ['modules', '/admin/modules', 'Modules & votes', 'M4 4h6v6H4zM14 4h6v6h-6zM4 14h6v6H4zM14 14h6v6h-6z'],
         ['updates', '/admin/mises-a-jour', 'Mises à jour', 'M12 3v12m0 0l-5-5m5 5l5-5M4 17v3h16v-3'],
     ];
 } else {
-    $nav = [
-        ['dash', '/pro', 'Tableau de bord', 'M3 13h8V3H3zm10 8h8V11h-8zM3 21h8v-6H3zm10-18v6h8V3z'],
-        ['events', '/pro/evenements', 'Événements', 'M7 2v3M17 2v3M3 8h18M5 5h14a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2z'],
-        ['orders', '/pro/commandes', 'Commandes', 'M7 4h10l3 4v12H4V8zm0 0v4h13M8 12h8M8 16h5'],
-        ['scan', '/scan', 'Contrôle d\'accès', 'M3 7V3h4M17 3h4v4M21 17v4h-4M7 21H3v-4M7 12h10'],
-        ['finances', '/pro/finances', 'Finances', 'M3 6h18v12H3zM3 10h18M7 15h3'],
-        ['team', '/pro/equipe', 'Équipe', 'M12 12a5 5 0 1 0-5-5 5 5 0 0 0 5 5zm0 2c-3.3 0-10 1.7-10 5v3h20v-3c0-3.3-6.7-5-10-5z'],
-        ['audit', '/pro/journal', 'Journal d\'activité', 'M12 8v4l3 2M12 3a9 9 0 1 0 9 9M21 3v5h-5'],
-        ['org', '/pro/organisation', 'Mon organisation', 'M4 21V5l8-3 8 3v16M9 21v-5h6v5M8 9h2M14 9h2M8 13h2M14 13h2'],
+    // menu groupé ; 5e élément = module à venir (lien vers sa page « Bientôt »)
+    $I = [
+        'dash' => 'M3 13h8V3H3zm10 8h8V11h-8zM3 21h8v-6H3zm10-18v6h8V3z',
+        'events' => 'M7 2v3M17 2v3M3 8h18M5 5h14a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2z',
+        'orders' => 'M7 4h10l3 4v12H4V8zm0 0v4h13M8 12h8M8 16h5',
+        'people' => 'M16 11a4 4 0 1 0-4-4M8 11a3 3 0 1 0-3-3M2 21v-1a5 5 0 0 1 5-5h2M10 21v-1a6 6 0 0 1 12 0v1',
+        'scan' => 'M3 7V3h4M17 3h4v4M21 17v4h-4M7 21H3v-4M7 12h10',
+        'radar' => 'M12 12l6-6M12 3a9 9 0 1 0 9 9M12 7a5 5 0 1 0 5 5',
+        'hand' => 'M8 13V5a2 2 0 0 1 4 0v6m0-1V4a2 2 0 0 1 4 0v7m0-3a2 2 0 0 1 4 0v5a8 8 0 0 1-8 8h-1a7 7 0 0 1-6-3l-3-5a2 2 0 0 1 3-2l2 2',
+        'mail' => 'M3 6h18v12H3zM3 7l9 6 9-6',
+        'globe' => 'M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18zM3 12h18M12 3c3 3 3 15 0 18M12 3c-3 3-3 15 0 18',
+        'bag' => 'M5 8h14l-1 13H6zM9 8V6a3 3 0 0 1 6 0v2',
+        'money' => 'M3 6h18v12H3zM3 10h18M7 15h3',
+        'invoice' => 'M6 3h12v18l-3-2-3 2-3-2-3 2zM9 8h6M9 12h6M9 16h3',
+        'team' => 'M12 12a5 5 0 1 0-5-5 5 5 0 0 0 5 5zm0 2c-3.3 0-10 1.7-10 5v3h20v-3c0-3.3-6.7-5-10-5z',
+        'audit' => 'M12 8v4l3 2M12 3a9 9 0 1 0 9 9M21 3v5h-5',
+        'org' => 'M4 21V5l8-3 8 3v16M9 21v-5h6v5M8 9h2M14 9h2M8 13h2M14 13h2',
+        'apps' => 'M4 4h6v6H4zM14 4h6v6h-6zM4 14h6v6H4zM14 14h6v6h-6z',
     ];
-    if ($u['role'] === 'manager') $nav = array_values(array_filter($nav, fn($n) => !in_array($n[0], ['team', 'org', 'finances', 'audit'], true)));
+    $navGroups = [
+        ['', [
+            ['dash', '/pro', 'Tableau de bord', $I['dash']],
+            ['events', '/pro/evenements', 'Événements', $I['events']],
+            ['orders', '/pro/commandes', 'Commandes', $I['orders']],
+            ['participants', '/pro/participants', 'Participants', $I['people']],
+        ]],
+        ['Faire venir du monde', [
+            ['campagnes', '/pro/bientot/campagnes', 'Campagnes', $I['mail'], true],
+            ['mini-site', '/pro/bientot/mini-site', 'Mini-site', $I['globe'], true],
+            ['boutique', '/pro/bientot/boutique', 'Boutique', $I['bag'], true],
+        ]],
+        ['Le jour J', [
+            ['scan', '/scan', 'Contrôle d\'accès', $I['scan']],
+            ['controle-pro', '/pro/bientot/controle-pro', 'PC sécurité', $I['radar'], true],
+            ['benevoles', '/pro/bientot/benevoles', 'Bénévoles', $I['hand'], true],
+        ]],
+        ['Gestion', [
+            ['finances', '/pro/finances', 'Finances', $I['money']],
+            ['factures', '/pro/bientot/factures', 'Factures', $I['invoice'], true],
+            ['team', '/pro/equipe', 'Équipe', $I['team']],
+            ['audit', '/pro/journal', 'Journal', $I['audit']],
+            ['org', '/pro/organisation', 'Organisation', $I['org']],
+        ]],
+    ];
+    if ($u['role'] === 'manager') foreach ($navGroups as &$g) $g[1] = array_values(array_filter($g[1], fn($n) => !in_array($n[0], ['team', 'org', 'finances', 'audit', 'factures'], true)));
+    unset($g);
+    $nav = [];
 }
 $pname = (string)setting('platform_name');
 ?><!doctype html>
@@ -47,9 +84,17 @@ $pname = (string)setting('platform_name');
     <div class="side-org"><small>Espace</small><b>Super-admin</b></div>
   <?php endif; ?>
   <nav class="side-nav">
-    <?php foreach ($nav as [$key, $href, $label, $icon]): ?>
-      <a href="<?= url($href) ?>" class="<?= $key === $active ? 'on' : '' ?>"><svg viewBox="0 0 24 24" width="20" height="20"><path d="<?= $icon ?>" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" stroke-linecap="round"/></svg><?= e($label) ?></a>
+    <?php $icon = fn($d) => '<svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><path d="' . $d . '" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" stroke-linecap="round"/></svg>'; ?>
+    <?php foreach ($nav as [$key, $href, $label, $ic]): ?>
+      <a href="<?= url($href) ?>" class="<?= $key === $active ? 'on' : '' ?>"><?= $icon($ic) ?><?= e($label) ?></a>
     <?php endforeach; ?>
+    <?php foreach ($navGroups ?? [] as [$gt, $items]): if (!$items) continue; ?>
+      <?php if ($gt !== ''): ?><div class="side-group"><?= e($gt) ?></div><?php endif; ?>
+      <?php foreach ($items as $it): [$key, $href, $label, $ic] = $it; $soon = !empty($it[4]); ?>
+        <a href="<?= url($href) ?>" class="<?= $key === $active ? 'on' : '' ?><?= $soon ? ' soon' : '' ?>"><?= $icon($ic) ?><span class="grow"><?= e($label) ?></span><?= $soon ? '<span class="soon-pill">Bientôt</span>' : '' ?></a>
+      <?php endforeach; ?>
+    <?php endforeach; ?>
+    <?php if ($area === 'pro'): ?><a href="<?= url('/pro/modules') ?>" class="side-apps<?= $active === 'modules' ? ' on' : '' ?>"><?= $icon($I['apps']) ?><span class="grow">Tous les modules</span><span class="soon-pill new">Nouveau</span></a><?php endif; ?>
   </nav>
   <div class="side-foot">
     <?php if (is_super() && $area === 'pro'): ?>
@@ -77,6 +122,11 @@ $pname = (string)setting('platform_name');
         <a href="<?= url('/pro/evenements') ?>">💵 Une vente au guichet</a>
         <a href="<?= url('/pro/evenements') ?>">🎁 Des invitations</a>
         <a href="<?= url('/pro/equipe') ?>">👥 Un compte d'équipe</a>
+        <div class="menu-sep">Bientôt</div>
+        <a class="menu-soon" href="<?= url('/pro/bientot/campagnes') ?>">✉️ Une campagne e-mail</a>
+        <a class="menu-soon" href="<?= url('/pro/bientot/boutique') ?>">🛍️ Un produit boutique</a>
+        <a class="menu-soon" href="<?= url('/pro/bientot/cartes-cadeaux') ?>">🎁 Une carte cadeau</a>
+        <a class="menu-soon" href="<?= url('/pro/bientot/abonnements') ?>">🎫 Un abonnement</a>
       </div></details>
       <?php endif; ?>
       <details class="menu notif" id="notif"><summary class="probar-icon" aria-label="Notifications"><svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><path d="M6 16V11a6 6 0 1 1 12 0v5l2 2H4zM10 20a2 2 0 0 0 4 0" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/></svg><b class="notif-count" hidden></b></summary>

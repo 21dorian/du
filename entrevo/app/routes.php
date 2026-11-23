@@ -78,6 +78,9 @@ return [
     ['GET', '/api/v1/{resource}', 'api@index'],
     ['GET', '/api/v1/{resource}/{id}', 'api@show'],
     ['POST', '/api/v1/{resource}', 'api@create'],
+    ['GET', '/pro/modules', 'modules@modules_page'],
+    ['GET|POST', '/pro/bientot/{key}', 'modules@coming_soon'],
+    ['GET', '/pro/participants', 'modules@participants_all'],
     ['GET', '/pro/commandes', 'orders@orders_index'],
     ['POST', '/pro/commandes/lot', 'orders@orders_bulk'],
     ['GET|POST', '/pro/commandes/{id}', 'orders@order_view'],
@@ -87,6 +90,7 @@ return [
 
     // ----- Super-admin -----
     ['GET', '/admin', 'admin@dashboard'],
+    ['GET', '/admin/modules', 'modules@admin_modules'],
     ['GET', '/admin/organisateurs', 'admin@organizers'],
     ['GET|POST', '/admin/organisateurs/{id}', 'admin@organizer_detail'],
     ['POST', '/admin/organisateurs/{id}/consulter', 'admin@organizer_impersonate'],

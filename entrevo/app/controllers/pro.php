@@ -76,6 +76,7 @@ function event_form(?string $id = null): string
             'starts_at' => dt_from_input(input('starts_at')),
             'ends_at' => dt_from_input(input('ends_at')),
             'capacity' => max(0, (int)input('capacity')),
+            'revenue_goal' => input('revenue_goal') !== '' ? max(0, parse_money((string)input('revenue_goal'))) ?: null : null,
             'max_per_order' => max(0, (int)input('max_per_order')),
             'allow_reentry' => checked('allow_reentry'),
             'ticket_info' => trim((string)input('ticket_info')),

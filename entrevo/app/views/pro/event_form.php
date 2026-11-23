@@ -45,6 +45,7 @@
       <div class="card">
         <h2>📏 Jauge & règles</h2>
         <div class="field"><label for="capacity">Capacité totale</label><input type="number" id="capacity" name="capacity" min="0" value="<?= (int)($ev['capacity'] ?? 0) ?>"><small>Tous tarifs confondus. 0 = illimitée (vraiment ?).</small></div>
+        <div class="field"><label for="revenue_goal">🎯 Objectif de recettes <small class="muted">(optionnel)</small></label><div class="input-suffix" style="max-width:220px"><input id="revenue_goal" name="revenue_goal" inputmode="decimal" value="<?= !empty($ev['revenue_goal']) ? e(money_input((int)$ev['revenue_goal'])) : '' ?>" placeholder="Ex. 15 000"><span>€</span></div><small>Ton seuil de rentabilité ou ton rêve : on affiche la progression sur le tableau de bord.</small></div>
         <div class="field"><label for="max_per_order">Billets max. par commande</label><input type="number" id="max_per_order" name="max_per_order" min="0" value="<?= (int)($ev['max_per_order'] ?? 10) ?>"></div>
         <label class="check"><input type="checkbox" name="allow_reentry" value="1" <?= !empty($ev['allow_reentry']) ? 'checked' : '' ?>> Autoriser les sorties / ré-entrées</label>
       </div>

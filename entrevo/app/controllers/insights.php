@@ -51,7 +51,46 @@ function home_dashboard(): string
     ];
     $activity = Insights::activity((int)$org['id']);
     $balance = Tickets::balance((int)$org['id']);
-    return pro_page('Tableau de bord', 'dashboard2', compact('org', 'per', 'cur', 'prev', 'sCur', 'sPrev', 'fun', 'funPrev', 'upcoming', 'top', 'checklist', 'activity', 'balance'), 'dash',
+    $oid = (int)$org['id'];
+    $real = "o.organizer_id = ? AND o.status = 'paid' AND (o.channel IS NULL OR o.channel <> 'systeme')";
+    // aujourd'hui vs hier
+    $day = fn(string $d) => one("SELECT COUNT(*) orders, COALESCE(SUM(o.total),0) revenue, COALESCE(SUM((SELECT SUM(qty) FROM order_items i WHERE i.order_id = o.id)),0) tickets FROM orders o WHERE $real AND DATE(o.paid_at) = ?", [$oid, $d]);
+    $today = $day(date('Y-m-d')); $yday = $day(date('Y-m-d', strtotime('-1 day')));
+    $vis = fn(string $d) => (int)($evIds ? val('SELECT COALESCE(SUM(visitors),0) FROM event_traffic WHERE ' . $fw . ' AND day = ?', [$d]) : 0);
+    $today['visitors'] = $vis(date('Y-m-d')); $yday['visitors'] = $vis(date('Y-m-d', strtotime('-1 day')));
+    $scn = fn(string $d) => (int)($evIds ? val("SELECT COUNT(*) FROM scans WHERE $fw AND result = 'ok' AND undone = 0 AND DATE(scanned_at) = ?", [$d]) : 0);
+    $today['scans'] = $scn(date('Y-m-d')); $yday['scans'] = $scn(date('Y-m-d', strtotime('-1 day')));
+    // à traiter
+    $todo = [];
+    $n = (int)val("SELECT COUNT(*) FROM orders WHERE organizer_id = ? AND status = 'paid' AND refund_requested_at IS NOT NULL", [$oid]);
+    if ($n) $todo[] = ['💸', $n . ' demande' . ($n > 1 ? 's' : '') . ' de remboursement', 'L\'acheteur attend ta réponse', '/pro/commandes?st=refund_request', 'hot'];
+    foreach (all("SELECT id, name FROM events WHERE organizer_id = ? AND status = 'draft' AND starts_at >= NOW() ORDER BY starts_at LIMIT 3", [$oid]) as $d)
+        $todo[] = ['📝', '« ' . $d['name'] . ' » est en brouillon', 'Personne ne peut acheter tant qu\'il n\'est pas publié', '/pro/evenements/' . $d['id'], ''];
+    foreach (all("SELECT id, name, starts_at FROM events WHERE organizer_id = ? AND status = 'published' AND starts_at BETWEEN NOW() AND NOW() + INTERVAL 7 DAY ORDER BY starts_at", [$oid]) as $d) {
+        if (!val("SELECT id FROM users WHERE organizer_id = ? AND role = 'scanner' AND active = 1 LIMIT 1", [$oid])) { $todo[] = ['📷', 'Pas de contrôleur pour « ' . $d['name'] . ' »', 'Début ' . lcfirst(ago_until(strtotime($d['starts_at']))) . ' : crée un compte pour scanner', '/pro/equipe', 'hot']; break; }
+    }
+    foreach (all("SELECT e.id, e.name FROM events e WHERE e.organizer_id = ? AND e.status = 'published' AND e.starts_at >= NOW() AND (e.image IS NULL OR e.image = '')", [$oid]) as $d)
+        $todo[] = ['🖼️', '« ' . $d['name'] . ' » n\'a pas d\'affiche', 'Les pages avec visuel vendent nettement mieux', '/pro/evenements/' . $d['id'] . '/modifier', ''];
+    $n = (int)val("SELECT COUNT(*) FROM waitlist w JOIN events e ON e.id = w.event_id WHERE e.organizer_id = ? AND w.status = 'waiting'", [$oid]);
+    if ($n) $todo[] = ['⏳', $n . ' personne' . ($n > 1 ? 's' : '') . ' en liste d\'attente', 'Libère des places ou augmente la jauge', '/pro/evenements', ''];
+    $n = (int)val("SELECT COUNT(*) FROM orders WHERE organizer_id = ? AND status = 'pending' AND created_at < NOW() - INTERVAL 20 MINUTE AND created_at > NOW() - INTERVAL 2 DAY", [$oid]);
+    if ($n) $todo[] = ['🕓', $n . ' paiement' . ($n > 1 ? 's' : '') . ' en attente', 'Paniers non finalisés : on revérifie automatiquement', '/pro/commandes?st=pending', ''];
+    if (!$org['iban'] && $balance['balance'] > 0) $todo[] = ['🏦', 'Renseigne ton IBAN', money($balance['balance']) . ' t\'attendent', '/pro/organisation', 'hot'];
+    // carte de chaleur : ventes par jour de semaine × heure
+    $heat = array_fill(0, 7, array_fill(0, 24, 0));
+    foreach (all("SELECT WEEKDAY(o.paid_at) d, HOUR(o.paid_at) h, COUNT(*) n FROM orders o WHERE $real AND o.paid_at BETWEEN ? AND ? GROUP BY d, h", [$oid, $per['from'], $per['to']]) as $r) $heat[(int)$r['d']][(int)$r['h']] = (int)$r['n'];
+    // d'où viennent les ventes
+    $sources = all("SELECT COALESCE(NULLIF(o.utm_source, ''), CASE o.method WHEN 'online' THEN 'Direct / site' WHEN 'guichet' THEN 'Guichet' WHEN 'invitation' THEN 'Invitations' WHEN 'partner' THEN 'Partenaires' ELSE o.method END) src,
+        COUNT(*) n, COALESCE(SUM(o.total),0) t FROM orders o WHERE $real AND o.paid_at BETWEEN ? AND ? GROUP BY src ORDER BY t DESC, n DESC LIMIT 6", [$oid, $per['from'], $per['to']]);
+    // objectifs
+    $goals = all("SELECT e.id, e.name, e.revenue_goal, COALESCE((SELECT SUM(o.total) FROM orders o WHERE o.event_id = e.id AND o.status = 'paid'),0) done FROM events e
+        WHERE e.organizer_id = ? AND e.revenue_goal > 0 AND COALESCE(e.ends_at, e.starts_at) >= NOW() - INTERVAL 7 DAY ORDER BY e.starts_at LIMIT 4", [$oid]);
+    // modules à venir mis en avant
+    $counts = Features::counts(); $mine = Features::votes($oid);
+    $soon = array_filter(Features::all(), fn($f, $k) => $f['status'] === 'soon' && !isset($mine[$k]), ARRAY_FILTER_USE_BOTH);
+    uksort($soon, fn($a, $b) => ($counts[$b] ?? 0) <=> ($counts[$a] ?? 0));
+    $soon = array_slice($soon, 0, 3, true);
+    return pro_page('Tableau de bord', 'dashboard2', compact('org', 'per', 'cur', 'prev', 'sCur', 'sPrev', 'fun', 'funPrev', 'upcoming', 'top', 'checklist', 'activity', 'balance', 'today', 'yday', 'todo', 'heat', 'sources', 'goals', 'soon'), 'dash',
         ['actions' => view('pro/_period', ['per' => $per])]);
 }
 
@@ -111,6 +150,6 @@ function audit_page(): string
                  WHERE $w ORDER BY a.id DESC LIMIT $per OFFSET " . (($page - 1) * $per), $p);
     $users = all('SELECT DISTINCT u.id, u.name FROM audit_log a JOIN users u ON u.id = a.user_id WHERE a.organizer_id = ? ORDER BY u.name', [$org['id']]);
     $types = ['event' => '📅 Événements', 'rate' => '🎟️ Tarifs', 'order' => '🧾 Commandes', 'ticket' => '🎫 Billets', 'box' => '💵 Guichet', 'invites' => '🎁 Invitations',
-        'accred' => '🪪 Accréditations', 'message' => '📣 Messages', 'cash' => '🧾 Caisse', 'team' => '👥 Équipe', 'org' => '🏢 Organisation', 'bulk' => '⚡ Actions groupées', 'seatmap' => '💺 Plans'];
+        'accred' => '🪪 Accréditations', 'message' => '📣 Messages', 'cash' => '🧾 Caisse', 'team' => '👥 Équipe', 'org' => '🏢 Organisation', 'bulk' => '⚡ Actions groupées', 'seatmap' => '💺 Plans', 'staff' => '🙋 Bénévoles'];
     return pro_page('Journal d\'activité', 'audit', compact('rows', 'users', 'types', 'who', 'type', 'page', 'pages', 'total'), 'audit');
 }

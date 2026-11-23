@@ -26,6 +26,7 @@ final class Jobs
             'published' => fn() => q("UPDATE events SET status = 'published' WHERE status = 'draft' AND publish_at IS NOT NULL AND publish_at <= NOW()")->rowCount(),
             'payments' => fn() => (time() - (int)setting('jobs_pay', 0) >= 180 || $force) ? (set_setting('jobs_pay', (string)time()) ?? Payments::recheckPending()) : 0,
             'waitlist' => fn() => class_exists('Waitlist') ? Waitlist::process() : 0,
+            'staff' => fn() => class_exists('Staff') ? Staff::reminders() : 0,
             'queue' => fn() => q('DELETE FROM queue_entries WHERE last_seen < NOW() - INTERVAL 2 HOUR')->rowCount(),
         ];
         foreach ($steps as $name => $fn) {

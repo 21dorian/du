@@ -11,6 +11,7 @@ final class Audit
         'order.resent' => '📬 Billets renvoyés', 'order.updated' => '✏️ Commande modifiée', 'ticket.cancelled' => '🚫 Billet annulé', 'ticket.renamed' => '✏️ Billet renommé',
         'box.sale' => '💵 Vente guichet', 'invites.sent' => '🎁 Invitations', 'accred.created' => '🪪 Accréditations', 'message.sent' => '📣 Message envoyé',
         'cash.closed' => '🧾 Caisse clôturée', 'team.changed' => '👥 Équipe modifiée', 'org.updated' => '🏢 Organisation modifiée', 'bulk' => '⚡ Action groupée',
+        'staff.added' => '🙋 Bénévole ajouté', 'staff.removed' => '🗑️ Bénévole supprimé', 'staff.shift' => '🗓️ Créneau bénévole',
     ];
 
     public static function log(string $action, string $details = '', ?int $eventId = null, ?int $orderId = null, ?int $orgId = null): void

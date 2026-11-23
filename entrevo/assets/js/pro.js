@@ -96,10 +96,10 @@
       var btn = e.submitter;
       if (btn && (btn.value === 'tag' || btn.value === 'untag') && !form.querySelector('[name="new_tag"]').value.trim()) { e.preventDefault(); form.querySelector('[name="new_tag"]').focus(); }
     });
-    form.querySelectorAll('tr[data-href]').forEach(function (tr) {
-      tr.addEventListener('click', function (e) { if (e.target.closest('a,button,input,label,select')) return; window.location.href = tr.dataset.href; });
-    });
     refresh();
+  });
+  document.querySelectorAll('tr[data-href]').forEach(function (tr) {
+    tr.addEventListener('click', function (e) { if (e.target.closest('a,button,input,label,select')) return; window.location.href = tr.dataset.href; });
   });
   document.querySelectorAll('[data-toggle-more]').forEach(function (b) {
     b.addEventListener('click', function () { var m = b.closest('form').querySelector('.filters-more'); m.hidden = !m.hidden; b.setAttribute('aria-expanded', String(!m.hidden)); });

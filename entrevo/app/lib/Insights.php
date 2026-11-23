@@ -145,11 +145,18 @@ final class Insights
             if ($or) $groups[] = ['label' => 'Commandes (toutes)', 'items' => array_map(fn($o) => ['title' => $o['ref'] . ' · ' . trim($o['first_name'] . ' ' . $o['last_name']), 'sub' => money((int)$o['total']), 'url' => url('/admin/commandes', ['q' => $o['ref']])], $or)];
         }
         // raccourcis de navigation
-        $nav = $org ? ['Tableau de bord' => '/pro', 'Événements' => '/pro/evenements', 'Commandes' => '/pro/commandes', 'Finances' => '/pro/finances', 'Équipe' => '/pro/equipe', 'Mon organisation' => '/pro/organisation', 'Journal d\'activité' => '/pro/journal', 'Nouvel événement' => '/pro/evenements/nouveau']
+        $nav = $org ? ['Tableau de bord' => '/pro', 'Événements' => '/pro/evenements', 'Commandes' => '/pro/commandes', 'Finances' => '/pro/finances', 'Équipe' => '/pro/equipe', 'Mon organisation' => '/pro/organisation', 'Journal d\'activité' => '/pro/journal', 'Nouvel événement' => '/pro/evenements/nouveau', 'Participants' => '/pro/participants', 'Tous les modules' => '/pro/modules']
             : ['Réglages' => '/admin/reglages', 'Mises à jour' => '/admin/mises-a-jour', 'Organisateurs' => '/admin/organisateurs'];
         $go = [];
         foreach ($nav as $l => $u) if (stripos(iconv('UTF-8', 'ASCII//TRANSLIT', $l) ?: $l, iconv('UTF-8', 'ASCII//TRANSLIT', $q) ?: $q) !== false) $go[] = ['title' => '→ ' . $l, 'sub' => '', 'url' => url($u)];
         if ($go) array_unshift($groups, ['label' => 'Aller à', 'items' => $go]);
+        if ($org) {
+            $norm = fn($x) => mb_strtolower(iconv('UTF-8', 'ASCII//TRANSLIT', $x) ?: $x);
+            $mods = [];
+            foreach (Features::all() as $k => $f) if (str_contains($norm($f['name'] . ' ' . $f['pitch']), $norm($q)))
+                $mods[] = ['title' => $f['emoji'] . ' ' . $f['name'], 'sub' => $f['status'] === 'soon' ? 'Bientôt' : 'Module actif', 'url' => url($f['status'] === 'soon' ? '/pro/bientot/' . $k : $f['url'])];
+            if ($mods) $groups[] = ['label' => 'Modules', 'items' => array_slice($mods, 0, 5)];
+        }
         return $groups;
     }
 }

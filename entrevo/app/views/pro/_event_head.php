@@ -30,4 +30,5 @@ $link = abs_url('/e/' . $ev['slug']);
     </div>
   </div>
 </div>
-<nav class="tabs"><?php foreach ($tabs as $k => [$l, $p]): ?><a class="<?= $k === $tab ? 'on' : '' ?>" href="<?= url('/pro/evenements/' . $ev['id'] . $p) ?>"><?= e($l) ?></a><?php endforeach; ?></nav>
+<nav class="tabs"><?php foreach ($tabs as $k => [$l, $p]): ?><a class="<?= $k === $tab ? 'on' : '' ?>" href="<?= url('/pro/evenements/' . $ev['id'] . $p) ?>"><?= e($l) ?></a><?php endforeach; ?>
+  <?php foreach (['mini-site' => 'Mini-site', 'benevoles' => 'Bénévoles', 'avis' => 'Avis'] as $k => $l): ?><a class="tab-soon" href="<?= url('/pro/bientot/' . $k) ?>"><?= e($l) ?> <span class="soon-pill">Bientôt</span></a><?php endforeach; ?></nav>

@@ -79,6 +79,15 @@ Couleurs : **vert** = entre, **orange** = déjà entré / pas entré (sortie), *
 
 ---
 
+## Nouveautés 1.3 ✨
+
+- **Menu de gestion réorganisé** par grandes rubriques (Faire venir du monde, Le jour J, Gestion) avec les modules à venir signalés « Bientôt ».
+- **Tous les modules** : le catalogue de ce qui est inclus et de ce qui arrive (34 modules). Chaque module « Bientôt » a sa page de présentation et un bouton « Ça m'intéresse » : les votes remontent au super-admin (menu **Modules & votes**) pour choisir quoi développer en premier.
+- **Participants** : la base de tous tes acheteurs, un contact par e-mail avec son historique (événements, commandes, billets, présence, montant dépensé), segments (fidèles, 100 € et plus, récents, dormants) et export CSV.
+- **Tableau de bord** : actions rapides, bandeau « Aujourd'hui » comparé à hier, liste « À traiter », carte « Quand ça achète » (jour × heure), sources des ventes, objectifs de recettes, aperçu des modules à venir et « Quoi de neuf ».
+- **Objectif de recettes** par événement (Infos & réglages › Jauge & règles).
+- La recherche Ctrl+K trouve aussi les modules.
+
 ## Nouveautés 1.2 ✨
 
 - **Nouveau look** clair et coloré (bleu électrique, cartes arrondies, polices Host Grotesk et Space Mono).
