@@ -27,3 +27,10 @@ Puis ouvrir http://127.0.0.1:8080/install.php.
 2. ZIP complet (nouvelle installation) : `sh entrevo-outils/creer-livraison.sh` → `livraisons/entrevo-vX.Y.Z.zip`.
 3. Une modification de base de données = nouvelle entrée dans `app/migrations.php`.
 4. Fichiers jamais inclus dans un paquet : `config.php`, `storage/`, `uploads/`, `maj-secours.php`.
+
+## Versions livrées
+| Version | Commit de référence | Fichier |
+|---|---|---|
+| 1.0.0 | `2558ac0` | `livraisons/entrevo-v1.0.0.zip` |
+
+Pour un paquet de mise à jour, passer ce commit comme référence de départ à `creer-maj.php` (les étiquettes git ne sont pas poussées).
