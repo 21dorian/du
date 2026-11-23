@@ -32,5 +32,6 @@ Puis ouvrir http://127.0.0.1:8080/install.php.
 | Version | Commit de référence | Fichier |
 |---|---|---|
 | 1.0.0 | `2558ac0` | `livraisons/entrevo-v1.0.0.zip` |
+| 1.1.0 | `bbba103` | `livraisons/entrevo-v1.1.0.zip`, `livraisons/maj-1.1.0.zip` |
 
 Pour un paquet de mise à jour, passer ce commit comme référence de départ à `creer-maj.php` (les étiquettes git ne sont pas poussées).
