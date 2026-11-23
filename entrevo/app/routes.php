@@ -1,0 +1,73 @@
+<?php
+// [méthodes, chemin, "fichier@fonction"]
+return [
+    // ----- Billetterie publique -----
+    ['GET', '/', 'public@home'],
+    ['GET', '/o/{slug}', 'public@organizer_page'],
+    ['GET', '/e/{slug}', 'public@event_page'],
+    ['POST', '/e/{slug}', 'public@event_select'],
+    ['GET|POST', '/e/{slug}/infos', 'public@checkout'],
+    ['GET|POST', '/paiement/{ref}', 'public@payment_choice'],
+    ['GET|POST', '/paiement/demo/{ref}', 'public@payment_demo'],
+    ['GET', '/paiement/retour/{ref}', 'public@payment_return'],
+    ['GET', '/paiement/annule/{ref}', 'public@payment_cancel'],
+    ['POST', '/paiement/webhook/mollie', 'public@webhook_mollie'],
+    ['GET', '/commande/{ref}', 'public@order_page'],
+    ['GET', '/commande/{ref}/pdf', 'public@order_pdf'],
+    ['GET|POST', '/mes-billets', 'public@find_tickets'],
+    ['GET', '/cgv', 'public@cgv'],
+    ['GET', '/mentions-legales', 'public@legal'],
+
+    // ----- Comptes -----
+    ['GET|POST', '/connexion', 'account@login'],
+    ['POST', '/deconnexion', 'account@logout'],
+    ['GET|POST', '/inscription', 'account@signup'],
+    ['GET|POST', '/mot-de-passe-oublie', 'account@forgot'],
+    ['GET|POST', '/mot-de-passe/{token}', 'account@reset_password'],
+    ['GET|POST', '/mon-compte', 'account@profile'],
+
+    // ----- Espace organisateur -----
+    ['GET', '/pro', 'pro@dashboard'],
+    ['GET', '/pro/evenements', 'pro@events'],
+    ['GET|POST', '/pro/evenements/nouveau', 'pro@event_form'],
+    ['GET', '/pro/evenements/{id}', 'pro@event_overview'],
+    ['GET|POST', '/pro/evenements/{id}/modifier', 'pro@event_form'],
+    ['POST', '/pro/evenements/{id}/statut', 'pro@event_status'],
+    ['POST', '/pro/evenements/{id}/dupliquer', 'pro@event_duplicate'],
+    ['POST', '/pro/evenements/{id}/supprimer', 'pro@event_delete'],
+    ['GET|POST', '/pro/evenements/{id}/tarifs', 'pro@rates'],
+    ['GET|POST', '/pro/evenements/{id}/formulaire', 'pro@form_fields'],
+    ['GET|POST', '/pro/evenements/{id}/promos', 'pro@promos'],
+    ['GET|POST', '/pro/evenements/{id}/acces', 'pro@access_points'],
+    ['GET', '/pro/evenements/{id}/participants', 'pro@attendees'],
+    ['GET|POST', '/pro/evenements/{id}/guichet', 'pro@box_office'],
+    ['GET|POST', '/pro/evenements/{id}/controle', 'pro@live_control'],
+    ['GET', '/pro/commandes', 'pro@orders'],
+    ['GET|POST', '/pro/commandes/{id}', 'pro@order_detail'],
+    ['GET|POST', '/pro/equipe', 'pro@team'],
+    ['GET|POST', '/pro/organisation', 'pro@organization'],
+    ['GET', '/pro/finances', 'pro@finances'],
+
+    // ----- Super-admin -----
+    ['GET', '/admin', 'admin@dashboard'],
+    ['GET', '/admin/organisateurs', 'admin@organizers'],
+    ['GET|POST', '/admin/organisateurs/{id}', 'admin@organizer_detail'],
+    ['POST', '/admin/organisateurs/{id}/consulter', 'admin@organizer_impersonate'],
+    ['POST', '/admin/quitter', 'admin@stop_impersonate'],
+    ['GET', '/admin/commandes', 'admin@orders'],
+    ['GET|POST', '/admin/utilisateurs', 'admin@users'],
+    ['GET|POST', '/admin/reglages', 'admin@settings'],
+    ['GET|POST', '/admin/mises-a-jour', 'admin@updates'],
+    ['GET', '/admin/sauvegarde', 'admin@db_backup'],
+
+    // ----- Contrôle d'accès (appli mobile) -----
+    ['GET', '/scan', 'scan@app'],
+    ['GET', '/scan/manifest.webmanifest', 'scan@manifest'],
+    ['GET', '/api/scan/me', 'scan@api_me'],
+    ['GET', '/api/scan/event/{id}/data', 'scan@api_data'],
+    ['POST', '/api/scan/event/{id}/check', 'scan@api_check'],
+    ['POST', '/api/scan/event/{id}/sync', 'scan@api_sync'],
+    ['GET', '/api/scan/event/{id}/stats', 'scan@api_stats'],
+    ['POST', '/api/scan/event/{id}/undo', 'scan@api_undo'],
+    ['GET', '/sante', 'scan@health'],
+];

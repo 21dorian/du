@@ -23,7 +23,7 @@ final class Mailer
         } else {
             $m->isMail();
         }
-        $from = (string)(setting('mail_from') ?: setting('smtp_user') ?: ('no-reply@' . preg_replace('~^www\.~', '', $_SERVER['HTTP_HOST'] ?? 'localhost')));
+        $from = (string)(setting('mail_from') ?: setting('smtp_user') ?: ('no-reply@' . preg_replace(['~^www\.~', '~:\d+$~'], '', $_SERVER['HTTP_HOST'] ?? 'localhost')));
         $m->setFrom($from, (string)(setting('mail_from_name') ?: setting('platform_name')));
         $m->addAddress($to);
         if ($replyTo && is_email($replyTo)) $m->addReplyTo($replyTo);
@@ -37,7 +37,7 @@ final class Mailer
 
     private static function wrap(string $title, string $body): string
     {
-        $c = e(setting('primary_color', '#5b3df5'));
+        $c = e(setting('primary_color', '#ff5a4e'));
         return '<!doctype html><html><body style="margin:0;background:#f4f4f8;font-family:Arial,Helvetica,sans-serif;color:#1c1c28">'
             . '<div style="max-width:600px;margin:0 auto;padding:24px 12px">'
             . '<div style="background:' . $c . ';color:#fff;border-radius:12px 12px 0 0;padding:18px 24px;font-size:20px;font-weight:bold">' . e(setting('platform_name')) . '</div>'
@@ -62,16 +62,16 @@ final class Mailer
                 . '<td style="padding:6px 0;border-bottom:1px solid #eee">' . e($t['rate_name']) . '</td>'
                 . '<td style="padding:6px 0;border-bottom:1px solid #eee;font-family:monospace">' . e($t['code']) . '</td></tr>';
         }
-        $html = '<p>Bonjour ' . e($o['first_name']) . ',</p>'
-            . '<p>Merci pour votre commande <b>' . e($o['ref']) . '</b>' . ($o['total'] > 0 ? ' d\'un montant de <b>' . e(money((int)$o['total'])) . '</b>' : '') . '.</p>'
+        $html = '<p>Salut ' . e($o['first_name']) . ' 👋</p>'
+            . '<p>C\'est validé ! Commande <b>' . e($o['ref']) . '</b>' . ($o['total'] > 0 ? ' (<b>' . e(money((int)$o['total'])) . '</b>)' : '') . '. Il ne te reste plus qu\'à venir. 🎉</p>'
             . '<p style="font-size:18px;margin:18px 0 4px"><b>' . e($ev['name']) . '</b></p>'
             . '<p style="margin:0;color:#555">' . e(fr_date($ev['starts_at'])) . ($ev['venue'] ? '<br>' . e($ev['venue']) . ($ev['city'] ? ', ' . e($ev['city']) : '') : '') . '</p>'
-            . '<p><b>Vos billets sont en pièce jointe (PDF).</b> Présentez le QR code à l\'entrée, imprimé ou sur votre téléphone.</p>'
+            . '<p>🎟️ <b>Tes billets sont en pièce jointe (PDF).</b> Montre le QR code à l\'entrée, sur ton téléphone ou imprimé. Un QR code = une entrée : garde-le pour toi.</p>'
             . '<table style="width:100%;border-collapse:collapse;font-size:14px">' . $rows . '</table>'
-            . '<p style="margin-top:22px"><a href="' . e($link) . '" style="background:' . e(setting('primary_color', '#5b3df5')) . ';color:#fff;padding:12px 18px;border-radius:8px;text-decoration:none;display:inline-block">Voir mes billets</a></p>'
-            . '<p style="color:#777;font-size:13px">Une question sur l\'événement ? Contactez l\'organisateur : ' . e($org['name']) . ($org['email'] ? ' — ' . e($org['email']) : '') . '</p>';
+            . '<p style="margin-top:22px"><a href="' . e($link) . '" style="background:' . e(setting('primary_color', '#ff5a4e')) . ';color:#fff;padding:12px 18px;border-radius:8px;text-decoration:none;display:inline-block">Voir mes billets</a></p>'
+            . '<p style="color:#777;font-size:13px">Une question sur l\'événement ? Écris à l\'organisateur : ' . e($org['name']) . ($org['email'] ? ' — ' . e($org['email']) : '') . '</p>';
         $pdf = TicketPdf::build($o, $ev, $org, $tickets);
-        self::send((string)$o['email'], 'Vos billets — ' . $ev['name'], $html, [['data' => $pdf, 'name' => 'billets-' . $o['ref'] . '.pdf']], $org['email'] ?? null);
+        self::send((string)$o['email'], '🎟️ Tes billets pour ' . $ev['name'], $html, [['data' => $pdf, 'name' => 'billets-' . $o['ref'] . '.pdf']], $org['email'] ?? null);
         update('orders', ['email_sent_at' => now()], 'id = ?', [$orderId]);
         return true;
     }

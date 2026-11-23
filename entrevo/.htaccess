@@ -1,0 +1,36 @@
+# Entrevo — configuration Apache / LiteSpeed
+Options -Indexes
+DirectoryIndex index.php
+
+<IfModule mod_rewrite.c>
+  RewriteEngine On
+  # Décommentez les 2 lignes suivantes pour forcer le HTTPS (recommandé une fois le certificat SSL actif)
+  # RewriteCond %{HTTPS} off
+  # RewriteRule ^ https://%{HTTP_HOST}%{REQUEST_URI} [L,R=301]
+
+  # Fichiers et dossiers internes interdits
+  RewriteRule ^(app|vendor|storage)(/|$) - [F,L]
+  RewriteRule ^(config\.php|VERSION|README.*|LISEZ-MOI.*)$ - [F,L]
+
+  # Tout le reste passe par index.php (sauf fichiers existants)
+  RewriteCond %{REQUEST_FILENAME} !-f
+  RewriteCond %{REQUEST_FILENAME} !-d
+  RewriteRule ^ index.php [QSA,L]
+</IfModule>
+
+<Files "config.php">
+  <IfModule mod_authz_core.c>
+    Require all denied
+  </IfModule>
+  <IfModule !mod_authz_core.c>
+    Deny from all
+  </IfModule>
+</Files>
+
+<IfModule mod_headers.c>
+  <FilesMatch "\.(css|js|svg|jpg|jpeg|png|webp|woff2)$">
+    Header set Cache-Control "public, max-age=604800"
+  </FilesMatch>
+</IfModule>
+
+AddType application/manifest+json .webmanifest

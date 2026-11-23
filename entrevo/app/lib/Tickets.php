@@ -66,7 +66,7 @@ final class Tickets
         if ($rate['sale_end'] && strtotime($rate['sale_end']) < $now) return ['ok' => false, 'why' => 'Vente terminée'];
         if (strtotime($event['ends_at'] ?: $event['starts_at']) + 6 * 3600 < $now) return ['ok' => false, 'why' => 'Événement passé'];
         $rem = self::remaining($rate, $event);
-        if ($rem <= 0) return ['ok' => false, 'why' => 'Complet'];
+        if ($rem <= 0) return ['ok' => false, 'why' => 'Complet 🫠'];
         return ['ok' => true, 'remaining' => $rem];
     }
 
@@ -77,8 +77,8 @@ final class Tickets
         if ($code === '') return ['error' => null];
         $p = one('SELECT * FROM promos WHERE event_id = ? AND code = ? AND active = 1', [$eventId, $code]);
         if (!$p) return ['error' => 'Code inconnu.'];
-        if ((int)$p['max_uses'] > 0 && (int)$p['used'] >= (int)$p['max_uses']) return ['error' => 'Ce code a atteint sa limite d\'utilisation.'];
-        if ($p['valid_until'] && strtotime($p['valid_until']) < time()) return ['error' => 'Ce code a expiré.'];
+        if ((int)$p['max_uses'] > 0 && (int)$p['used'] >= (int)$p['max_uses']) return ['error' => 'Ce code a déjà été utilisé à fond.'];
+        if ($p['valid_until'] && strtotime($p['valid_until']) < time()) return ['error' => 'Ce code a expiré. Trop tard, désolé.'];
         $p['rate_list'] = array_filter(array_map('intval', explode(',', (string)$p['rate_ids'])));
         return ['promo' => $p];
     }
@@ -160,7 +160,7 @@ final class Tickets
                 $items[] = ['rate_id' => (int)$rate['id'], 'name' => $rate['name'], 'qty' => $qty, 'unit_price' => $method === 'invitation' ? 0 : (int)$rate['price']];
                 $count += $qty;
             }
-            if (!$items && !$errors) $errors[] = 'Choisissez au moins un billet.';
+            if (!$items && !$errors) $errors[] = 'Prends au moins un billet 🎟️';
             if (!$staff && (int)$ev['max_per_order'] > 0 && $count > (int)$ev['max_per_order']) $errors[] = 'Maximum ' . $ev['max_per_order'] . ' billets par commande.';
             if ($errors) { db()->rollBack(); return ['errors' => array_values(array_unique($errors))]; }
 

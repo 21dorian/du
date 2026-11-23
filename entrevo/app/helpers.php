@@ -101,9 +101,10 @@ function json_out($data, int $code = 200): never
 function abort(int $code, string $msg = ''): never
 {
     http_response_code($code);
-    $titles = [403 => 'Accès refusé', 404 => 'Page introuvable', 500 => 'Erreur'];
-    echo view('layout_public', ['title' => $titles[$code] ?? 'Erreur', 'content' =>
-        '<div class="card center"><h1>' . e($titles[$code] ?? 'Erreur') . '</h1><p>' . e($msg ?: 'Cette page n\'existe pas ou plus.') . '</p><p><a class="btn" href="' . url('/') . '">Retour à l\'accueil</a></p></div>']);
+    $titles = [403 => '🚫 Pas par ici', 404 => '🤷 Page introuvable', 500 => '😵 Oups'];
+    $default = [403 => 'Cette porte est réservée au staff.', 404 => 'Cette page a quitté la soirée sans prévenir.'][$code] ?? 'Un truc a coincé.';
+    echo view('layout_public', ['title' => strip_tags($titles[$code] ?? 'Erreur'), 'content' =>
+        '<div class="card center auth-box"><h1>' . e($titles[$code] ?? 'Erreur') . '</h1><p class="muted">' . e($msg ?: $default) . '</p><p><a class="btn" href="' . url('/') . '">Retour à l\'accueil</a></p></div>']);
     exit;
 }
 
@@ -128,7 +129,7 @@ function csrf_check(): void
     $t = $_POST['_csrf'] ?? $_SERVER['HTTP_X_CSRF'] ?? '';
     if (!is_string($t) || !hash_equals(csrf_token(), $t)) {
         http_response_code(419);
-        exit('Session expirée : rechargez la page et recommencez.');
+        exit('Ta session a expiré ⏳ Recharge la page et recommence.');
     }
 }
 
@@ -137,7 +138,7 @@ function setting_defaults(): array
 {
     return [
         'platform_name' => APP_NAME,
-        'tagline' => 'Billetterie & contrôle d\'accès',
+        'tagline' => 'Des billets, des QR codes, et des soirées réussies 🎟️',
         'contact_email' => '',
         'base_url' => '',
         'company_info' => '',
@@ -156,7 +157,7 @@ function setting_defaults(): array
         'cgv' => '',
         'legal' => '',
         'signup_open' => '1',
-        'primary_color' => '#5b3df5',
+        'primary_color' => '#ff5a4e',
     ];
 }
 

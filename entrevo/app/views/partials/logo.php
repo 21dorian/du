@@ -1,0 +1,1 @@
+<svg class="logo-mark" viewBox="0 0 28 28" width="26" height="26" aria-hidden="true"><path d="M0 0h28v9a5 5 0 0 0 0 10v9H0v-9a5 5 0 0 0 0-10z" fill="var(--primary)"/><path d="M9 8v12" stroke="#111" stroke-width="2.4" stroke-dasharray="2.4 2.2"/></svg>

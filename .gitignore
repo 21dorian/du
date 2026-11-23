@@ -41,3 +41,12 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 wordpress-theme/dukanette.zip
+
+# Entrevo : données locales
+entrevo/config.php
+entrevo/storage/logs/*.log
+entrevo/storage/logs/.throttle-*
+entrevo/storage/sessions/sess_*
+entrevo/storage/maj/*.zip
+entrevo/storage/maj/secours.json
+entrevo/uploads/*/

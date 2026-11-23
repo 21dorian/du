@@ -37,7 +37,8 @@ function app_installed(): bool { return is_file(ROOT . '/config.php'); }
 function config(?string $key = null, $default = null)
 {
     static $cfg = null;
-    if ($cfg === null) $cfg = app_installed() ? (require ROOT . '/config.php') : [];
+    if (!$cfg && app_installed()) $cfg = require ROOT . "/config.php";
+    $cfg ??= [];
     if ($key === null) return $cfg;
     return $cfg[$key] ?? $default;
 }
