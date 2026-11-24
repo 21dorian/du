@@ -23,7 +23,7 @@ final class Jobs
         $steps = [
             'expired' => fn() => Tickets::expirePending(),
             'holds' => fn() => q('DELETE h FROM seat_holds h LEFT JOIN orders o ON o.id = h.order_id WHERE h.expires_at < NOW() OR o.id IS NULL OR o.status IN (\'cancelled\',\'refunded\')')->rowCount(),
-            'published' => fn() => q("UPDATE events SET status = 'published' WHERE status = 'draft' AND publish_at IS NOT NULL AND publish_at <= NOW()")->rowCount(),
+            'published' => fn() => q("UPDATE events e JOIN organizers o ON o.id = e.organizer_id SET e.status = 'published' WHERE e.status = 'draft' AND e.publish_at IS NOT NULL AND e.publish_at <= NOW() AND o.status = 'active'")->rowCount(),
             'payments' => fn() => (time() - (int)setting('jobs_pay', 0) >= 180 || $force) ? (set_setting('jobs_pay', (string)time()) ?? Payments::recheckPending()) : 0,
             'waitlist' => fn() => class_exists('Waitlist') ? Waitlist::process() : 0,
             'campaigns' => fn() => class_exists('Campaigns') ? Campaigns::process() : 0,
@@ -35,6 +35,7 @@ final class Jobs
         foreach ($steps as $name => $fn) {
             try { $r[$name] = $fn(); } catch (Throwable $e) { $r[$name] = 'erreur'; log_line('taches', $name . ' : ' . $e->getMessage()); }
         }
+        try { set_setting('jobs_report', json_encode(['at' => date('Y-m-d H:i:s'), 'cron' => (bool)$force, 'r' => $r])); if ($force) set_setting('cron_last', (string)time()); } catch (Throwable $e) { /* sans gravité */ }
         return $r;
     }
 }

@@ -1,3 +1,8 @@
+<?php if ($org['status'] === 'pending'): ?>
+<div class="flash warning approve-box">⏳ <b>En attente de validation</b> — inscrit le <?= e(fr_date($org['created_at'])) ?>. Vérifie ses infos (SIRET, site, description) avant de l'autoriser à publier.
+  <form method="post" class="inline-form" style="margin-left:auto"><?= csrf_field() ?><button class="btn btn-sm btn-success" name="action" value="approve">✅ Valider</button> <button class="btn btn-sm btn-light" name="action" value="status" data-confirm="Refuser et suspendre ce compte ?">Refuser</button></form>
+</div>
+<?php endif; ?>
 <div class="kpis">
   <div class="kpi"><small class="muted">Encaissé en ligne</small><b><?= e(money($balance['collected'])) ?></b></div>
   <div class="kpi"><small class="muted">Ta commission</small><b style="color:var(--green)"><?= e(money($balance['commission'])) ?></b></div>
@@ -54,4 +59,8 @@
   <div class="card"><h2>Comptes</h2>
     <?php foreach ($users as $m): ?><div class="list-item"><span class="grow"><b><?= e($m['name']) ?></b><br><small><?= e($m['email']) ?></small></span><span class="badge grey"><?= e(role_label($m['role'])) ?></span></div><?php endforeach; ?>
   </div>
+</div>
+<div class="card mt">
+  <h2>📝 Note interne <small class="muted">(visible seulement par le super-admin)</small></h2>
+  <form method="post" class="stack"><?= csrf_field() ?><input type="hidden" name="action" value="note"><textarea name="admin_note" rows="3" placeholder="Ex. : appelé le 12/11, pièces OK, gros festival en juillet…"><?= e((string)($org['admin_note'] ?? '')) ?></textarea><button class="btn btn-sm btn-light">Enregistrer</button></form>
 </div>

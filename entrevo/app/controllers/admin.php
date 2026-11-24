@@ -13,35 +13,23 @@ function require_super(): array
     return $u;
 }
 
-function dashboard(): string
-{
-    require_super();
-    $real = "status = 'paid' AND method = 'online' AND provider IN ('stripe','paypal','sumup','mollie')";
-    $k = one("SELECT COALESCE(SUM(total),0) collected, COALESCE(SUM(commission),0) commission, COALESCE(SUM(organizer_amount),0) due, COUNT(*) n FROM orders WHERE $real");
-    $month = one("SELECT COALESCE(SUM(commission),0) c, COUNT(*) n FROM orders WHERE $real AND paid_at >= DATE_FORMAT(NOW(), '%Y-%m-01')");
-    $paidOut = (int)val('SELECT COALESCE(SUM(amount),0) FROM payouts');
-    $tickets = (int)val("SELECT COUNT(*) FROM tickets WHERE status = 'valid'");
-    $orgs = (int)val('SELECT COUNT(*) FROM organizers');
-    $newOrgs = all('SELECT * FROM organizers ORDER BY created_at DESC LIMIT 6');
-    $topOrgs = all("SELECT o.id, o.name, COUNT(r.id) n, COALESCE(SUM(r.total),0) total, COALESCE(SUM(r.commission),0) com FROM organizers o
-                    LEFT JOIN orders r ON r.organizer_id = o.id AND r.status = 'paid' GROUP BY o.id ORDER BY total DESC LIMIT 8");
-    $demo = (int)val("SELECT COUNT(*) FROM orders WHERE status = 'paid' AND provider = 'demo'");
-    $providers = Payments::available();
-    return admin_page('Vue d\'ensemble', 'dashboard', compact('k', 'month', 'paidOut', 'tickets', 'orgs', 'newOrgs', 'topOrgs', 'demo', 'providers'), 'dash');
-}
+// Vue d'ensemble : voir app/controllers/platform.php (admin_home)
 
 function organizers(): string
 {
     require_super();
     $q = trim((string)input('q'));
+    $st = (string)input('st');
     $sql = "SELECT o.*, (SELECT COUNT(*) FROM events e WHERE e.organizer_id = o.id) events,
-            (SELECT COALESCE(SUM(total),0) FROM orders r WHERE r.organizer_id = o.id AND r.status = 'paid') sales FROM organizers o";
+            (SELECT COALESCE(SUM(total),0) FROM orders r WHERE r.organizer_id = o.id AND r.status = 'paid') sales FROM organizers o WHERE 1";
     $p = [];
-    if ($q !== '') { $sql .= ' WHERE o.name LIKE ? OR o.email LIKE ?'; $p = ['%' . $q . '%', '%' . $q . '%']; }
+    if ($q !== '') { $sql .= ' AND (o.name LIKE ? OR o.email LIKE ? OR o.siret LIKE ?)'; $p = ['%' . $q . '%', '%' . $q . '%', '%' . $q . '%']; }
+    if (in_array($st, ['active', 'pending', 'suspended'], true)) { $sql .= ' AND o.status = ?'; $p[] = $st; }
     $list = all($sql . ' ORDER BY o.created_at DESC', $p);
     foreach ($list as &$o) $o['balance'] = Tickets::balance((int)$o['id'])['balance'];
     unset($o);
-    return admin_page('Organisateurs', 'organizers', compact('list', 'q'), 'orgs');
+    $pending = (int)val("SELECT COUNT(*) FROM organizers WHERE status = 'pending'");
+    return admin_page('Organisateurs', 'organizers', compact('list', 'q', 'st', 'pending'), 'orgs');
 }
 
 function organizer_detail(string $id): string
@@ -61,6 +49,12 @@ function organizer_detail(string $id): string
             ], 'id = ?', [$org['id']]);
             back(['success' => '✅ Commission mise à jour (s\'applique aux prochaines commandes).']);
         }
+        if ($a === 'approve') {
+            update('organizers', ['status' => 'active', 'approved_at' => now()], 'id = ?', [$org['id']]);
+            try { Mailer::send((string)$org['email'], '✅ Ton compte ' . setting('platform_name') . ' est validé !', '<p>Bonne nouvelle : ton compte organisateur « ' . e($org['name']) . ' » est validé 🎉</p><p>Tu peux maintenant publier tes événements et vendre tes billets.</p><p><a href="' . e(abs_url('/pro')) . '">Ouvrir mon espace</a></p>'); } catch (Throwable $e) { log_line('emails', $e->getMessage()); }
+            back(['success' => '✅ Organisateur validé, il a été prévenu par e-mail.']);
+        }
+        if ($a === 'note') { update('organizers', ['admin_note' => trim((string)input('admin_note')) ?: null], 'id = ?', [$org['id']]); back(['success' => '📝 Note enregistrée.']); }
         if ($a === 'status') {
             update('organizers', ['status' => $org['status'] === 'active' ? 'suspended' : 'active'], 'id = ?', [$org['id']]);
             back(['success' => $org['status'] === 'active' ? '⛔ Organisateur suspendu : ses pages sont hors ligne.' : '✅ Organisateur réactivé.']);
@@ -156,7 +150,7 @@ function settings(): string
             'emails' => ['smtp_host', 'smtp_port', 'smtp_secure', 'smtp_user', 'smtp_pass', 'mail_from', 'mail_from_name'],
             'legal' => ['cgv', 'legal', 'company_info'],
         ][$tab] ?? [];
-        $checks = ['general' => ['signup_open'], 'fees' => ['refund_fees'], 'payments' => ['demo_enabled', 'stripe_enabled', 'paypal_enabled', 'paypal_sandbox', 'sumup_enabled', 'mollie_enabled']][$tab] ?? [];
+        $checks = ['general' => ['signup_open', 'org_approval'], 'fees' => ['refund_fees'], 'payments' => ['demo_enabled', 'stripe_enabled', 'paypal_enabled', 'paypal_sandbox', 'sumup_enabled', 'mollie_enabled']][$tab] ?? [];
         foreach ($fields as $f) {
             if (!array_key_exists($f, $_POST)) continue;
             $v = trim((string)$_POST[$f]);

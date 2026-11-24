@@ -70,7 +70,7 @@ function signup(): string
         if (!$errors) {
             $orgId = insert('organizers', ['name' => $org, 'slug' => unique_slug('organizers', $org), 'email' => $email,
                 'phone' => trim((string)input('phone')), 'fee_mode' => setting('fee_mode_default') === 'organizer' ? 'organizer' : 'buyer',
-                'status' => 'active', 'created_at' => now()]);
+                'status' => setting('org_approval') === '1' ? 'pending' : 'active', 'created_at' => now()]);
             $uid = insert('users', ['organizer_id' => $orgId, 'email' => $email, 'name' => $name,
                 'password_hash' => password_hash($pass, PASSWORD_DEFAULT), 'role' => 'owner', 'active' => 1, 'created_at' => now()]);
             login_user(one('SELECT * FROM users WHERE id = ?', [$uid]));

@@ -96,7 +96,9 @@ return [
     ['GET', '/pro/finances', 'pro@finances'],
 
     // ----- Super-admin -----
-    ['GET', '/admin', 'admin@dashboard'],
+    ['GET|POST', '/admin', 'platform@admin_home'],
+    ['GET|POST', '/admin/reversements', 'platform@payouts_page'],
+    ['GET|POST', '/admin/sante', 'platform@health_page'],
     ['GET', '/admin/modules', 'modules@admin_modules'],
     ['GET', '/admin/organisateurs', 'admin@organizers'],
     ['GET|POST', '/admin/organisateurs/{id}', 'admin@organizer_detail'],

@@ -117,4 +117,10 @@
       });
     });
   });
+  // annonce de la plateforme : masquable (souvenir local, par annonce)
+  document.querySelectorAll('[data-announce]').forEach(function (a) {
+    var k = 'entrevo:ann:' + a.dataset.announce;
+    try { if (localStorage.getItem(k)) { a.remove(); return; } } catch (e) { /* rien */ }
+    a.querySelector('.announce-x').onclick = function () { try { localStorage.setItem(k, '1'); } catch (e) { /* rien */ } a.remove(); };
+  });
 })();

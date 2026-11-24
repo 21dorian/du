@@ -79,6 +79,34 @@ Couleurs : **vert** = entre, **orange** = déjà entré / pas entré (sortie), *
 
 ---
 
+## Nouveautés 1.4 ✨
+
+**Organisateurs**
+- **Campagnes e-mail** (menu « Campagnes ») : modèles prêts à l'emploi, éditeur à blocs (titre, texte, événement avec affiche et bouton, bouton, image, séparateur) avec aperçu ordinateur/mobile, audience (inscrits aux actus ou tous les clients, segments, « venus à », « exclure ceux qui ont déjà un billet »), e-mail de test, envoi immédiat ou programmé. Statistiques : ouvertures, clics, désinscriptions et **ventes générées**.
+- Au paiement, l'acheteur peut cocher « recevoir les prochains événements ». Chaque e-mail a un lien de désinscription en un clic.
+- **Liste des événements** en cartes (ou en liste) : onglets À venir / En vente / Brouillons / Passés, recherche, tri, remplissage, ventes des 7 derniers jours, actions rapides (lien, guichet, stats, dupliquer).
+- **Récap par e-mail** chaque matin ou chaque lundi (Mon organisation › Notifications) et **alertes de remplissage** à 50 %, 80 % et complet.
+- **Consigne de contrôle et couleur de bracelet par tarif** (onglet Tarifs) : s'affichent en grand sur l'appli de scan.
+- Objectif de recettes visible sur la vue de l'événement.
+
+**Contrôleurs (appli de scan)**
+- Historique des derniers passages du téléphone, avec annulation.
+- Entrée / sortie en touchant la pastille sur la caméra.
+- Écran qui reste allumé pendant le scan.
+- Bandeau « consigne » et couleur de bracelet selon le tarif.
+- **Messages du PC** : l'organisateur écrit depuis « En direct », tous les téléphones sonnent et affichent le message.
+- Stats en direct par porte et par heure. Côté organisateur, liste des téléphones connectés (porte, scans, batterie, passages en attente).
+
+**Super-admin**
+- Nouvelle **vue d'ensemble** par période : commissions, volume, billets, organisateurs actifs, graphique, liste « À faire ».
+- **Reversements** : tous les soldes dus, contrôle des IBAN, montant ajustable, **fichier de virements groupés SEPA** à importer dans ta banque, lots annulables.
+- **Validation des nouveaux organisateurs** (option dans Réglages › Général) : ils préparent leurs événements mais ne publient qu'après ton feu vert.
+- **Santé** : PHP, extensions, base, disque, HTTPS, cron, e-mails envoyés, dernières erreurs, notifications de paiement.
+- **Annonce** affichée en haut de l'espace de tous les organisateurs.
+- Note interne sur chaque fiche organisateur.
+
+⚠️ **La tâche planifiée (cron) devient indispensable** : elle envoie les campagnes par lots, les récaps et les alertes. Vérifie-la dans Super-admin › Santé.
+
 ## Nouveautés 1.3 ✨
 
 - **Menu de gestion réorganisé** par grandes rubriques (Faire venir du monde, Le jour J, Gestion) avec les modules à venir signalés « Bientôt ».

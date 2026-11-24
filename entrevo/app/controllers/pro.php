@@ -167,6 +167,7 @@ function event_status(string $id): never
     $ev = org_event((int)$id);
     $st = (string)input('status');
     if (!in_array($st, ['draft', 'published', 'closed'], true)) back();
+    if ($st === 'published' && (current_org()['status'] ?? '') === 'pending') back(['warning' => '⏳ Ton compte est en cours de validation par l\'équipe ' . setting('platform_name') . '. Tu pourras publier dès qu\'il est validé (on te prévient par e-mail).']);
     if ($st === 'published' && !val('SELECT id FROM rates WHERE event_id = ? AND active = 1', [$ev['id']])) back(['error' => 'Ajoute au moins un tarif actif avant de publier. Sans billets, ça marche moins bien 😅']);
     update('events', ['status' => $st], 'id = ?', [$ev['id']]);
     Audit::log('event.status', $ev['name'] . ' → ' . $st, (int)$ev['id']);

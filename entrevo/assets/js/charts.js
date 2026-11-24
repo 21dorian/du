@@ -98,7 +98,7 @@
       el('circle', { cx: x(last), cy: y(+series[0].values[last] || 0), r: 4, fill: COLORS[0], stroke: '#fff', 'stroke-width': 2 }, svg);
       var lv = el('text', { x: x(last) - 8, y: y(+series[0].values[last] || 0) - 10, 'text-anchor': 'end', class: 'viz-val' }, svg); lv.textContent = fmt(+series[0].values[last] || 0, f);
     }
-    labels.forEach(function (l, i) { if (i % step === 0 || i === last) { var t = el('text', { x: x(i), y: H - 8, 'text-anchor': i === 0 ? 'start' : (i === last ? 'end' : 'middle'), class: 'viz-axis' }, svg); t.textContent = l; } });
+    labels.forEach(function (l, i) { if ((i % step === 0 && (i === last || last - i >= Math.ceil(step * 0.75))) || i === last) { var t = el('text', { x: x(i), y: H - 8, 'text-anchor': i === 0 ? 'start' : (i === last ? 'end' : 'middle'), class: 'viz-axis' }, svg); t.textContent = l; } });
     var cross = el('line', { y1: padT, y2: padT + ih, stroke: '#141414', 'stroke-width': 1, opacity: 0 }, svg);
     var dots = series.map(function (s, i) { return el('circle', { r: 5, fill: COLORS[i] || '#999', stroke: '#fff', 'stroke-width': 2, opacity: 0 }, svg); });
     var hit = el('rect', { x: padL, y: padT, width: iw, height: ih, fill: 'transparent', tabindex: 0 }, svg);

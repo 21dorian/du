@@ -17,6 +17,7 @@ $secret = fn($k) => setting($k) ? '•••••• (enregistré, laisser vide
       <div class="field"><label>Places bloquées pendant le paiement (minutes)</label><input type="number" name="pending_minutes" min="5" max="60" value="<?= $s('pending_minutes') ?>"></div>
     </div>
     <label class="check"><input type="checkbox" name="signup_open" value="1" <?= $c('signup_open') ?>> Inscription libre des organisateurs</label>
+    <label class="check"><input type="checkbox" name="org_approval" value="1" <?= $c('org_approval') ?>> <span>Valider moi-même chaque nouvel organisateur<br><small class="muted">Il peut préparer ses événements, mais pas les publier tant que tu ne l'as pas validé (Organisateurs › À valider).</small></span></label>
   </div>
   <div class="card" style="max-width:820px">
     <h2>⏱️ Tâche planifiée (recommandé)</h2>

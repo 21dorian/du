@@ -9,9 +9,11 @@ if ($area === 'admin') {
         ['dash', '/admin', 'Vue d\'ensemble', 'M3 13h8V3H3zm10 8h8V11h-8zM3 21h8v-6H3zm10-18v6h8V3z'],
         ['orgs', '/admin/organisateurs', 'Organisateurs', 'M16 11a4 4 0 1 0-4-4 4 4 0 0 0 4 4zm-8 0a3 3 0 1 0-3-3 3 3 0 0 0 3 3zm0 2c-2.7 0-8 1.3-8 4v3h8v-3c0-1 .4-2.1 1.3-3A11 11 0 0 0 8 13zm8 0c-2.7 0-8 1.3-8 4v3h16v-3c0-2.7-5.3-4-8-4z'],
         ['orders', '/admin/commandes', 'Commandes', 'M7 4h10l3 4v12H4V8zm0 0v4h13M8 12h8M8 16h5'],
+        ['payouts', '/admin/reversements', 'Reversements', 'M3 6h18v12H3zM3 10h18M7 15h3M15 15h2'],
         ['users', '/admin/utilisateurs', 'Utilisateurs', 'M12 12a5 5 0 1 0-5-5 5 5 0 0 0 5 5zm0 2c-3.3 0-10 1.7-10 5v3h20v-3c0-3.3-6.7-5-10-5z'],
         ['settings', '/admin/reglages', 'Réglages', 'M12 15.5A3.5 3.5 0 1 1 15.5 12 3.5 3.5 0 0 1 12 15.5zm7.4-2.5a7.6 7.6 0 0 0 0-2l2.1-1.6-2-3.5-2.5 1a7.4 7.4 0 0 0-1.7-1L15 3h-4l-.4 2.7a7.4 7.4 0 0 0-1.7 1l-2.5-1-2 3.5L6.5 11a7.6 7.6 0 0 0 0 2l-2.1 1.6 2 3.5 2.5-1a7.4 7.4 0 0 0 1.7 1L11 21h4l.4-2.7a7.4 7.4 0 0 0 1.7-1l2.5 1 2-3.5z'],
         ['modules', '/admin/modules', 'Modules & votes', 'M4 4h6v6H4zM14 4h6v6h-6zM4 14h6v6H4zM14 14h6v6h-6z'],
+        ['health', '/admin/sante', 'Santé', 'M3 12h4l3-8 4 16 3-8h4'],
         ['updates', '/admin/mises-a-jour', 'Mises à jour', 'M12 3v12m0 0l-5-5m5 5l5-5M4 17v3h16v-3'],
     ];
 } else {
@@ -133,6 +135,10 @@ $pname = (string)setting('platform_name');
         <div class="menu-list notif-list"><p class="muted">Chargement…</p></div></details>
     </div>
   </div>
+  <?php if ($area === 'pro' && $org && $org['status'] === 'pending'): ?><div class="flash warning">⏳ Ton compte est en cours de validation par l'équipe <?= e($pname) ?>. Tu peux tout préparer ; la publication sera possible dès la validation (on te prévient par e-mail).</div><?php endif; ?>
+  <?php if ($area === 'pro' && ($ann = trim((string)setting('announce_text'))) !== '' && (!setting('announce_until') || strtotime((string)setting('announce_until')) >= time())): $annId = substr(md5($ann), 0, 8); ?>
+    <div class="announce <?= e((string)setting('announce_level', 'info')) ?>" data-announce="<?= $annId ?>"><span>📣</span><div class="grow"><?= nl2br(e($ann)) ?></div><button type="button" class="announce-x" aria-label="Masquer l'annonce">✕</button></div>
+  <?php endif; ?>
   <?php if (!empty($crumbs)): ?><div class="crumbs"><?php foreach ($crumbs as $i => [$l, $h]): ?><?= $i ? ' <span>/</span> ' : '' ?><?= $h ? '<a href="' . url($h) . '">' . e($l) . '</a>' : e($l) ?><?php endforeach; ?></div><?php endif; ?>
   <div class="page-head">
     <h1><?= e($title) ?></h1>
