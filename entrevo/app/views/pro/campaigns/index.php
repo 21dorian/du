@@ -37,11 +37,24 @@
   </table></div>
 </div>
 <p class="muted" style="font-size:13px">💡 Les acheteurs peuvent cocher « recevoir les prochains événements » au moment de payer : ta liste grossit toute seule. Les e-mails partent par lots de <?= Campaigns::BATCH ?> toutes les minutes environ, pour rester dans les limites de ton hébergement.</p>
-<?= soon_card('🤖 Bientôt : les envois automatiques', [
-  'relance-panier' => ['Relance des paniers abandonnés', '1 h puis 24 h après, avec le panier prêt'],
+<?php $ao = $auto['org']; $rc = $auto['recovery']; ?>
+<div class="card auto-card">
+  <div class="card-head"><h2>🤖 Envois automatiques</h2><small class="muted">Ils partent tout seuls · chiffres des 90 derniers jours</small></div>
+  <form method="post" action="<?= url('/pro/campagnes/automatiques') ?>" class="auto-grid"><?= csrf_field() ?>
+    <label class="auto-item"><input type="checkbox" name="auto_recovery" value="1" <?= $ao['auto_recovery'] ? 'checked' : '' ?> onchange="this.form.requestSubmit()">
+      <span class="auto-body"><b>🛒 Relance des paniers abandonnés</b><small>1 h après un paiement pas terminé, avec le panier prêt à reprendre.</small>
+      <span class="auto-stats"><span><b><?= (int)$rc['sent'] ?></b> relancé<?= (int)$rc['sent'] === 1 ? '' : 's' ?></span><span><b><?= (int)$rc['recovered'] ?></b> récupéré<?= (int)$rc['recovered'] === 1 ? '' : 's' ?> (<?= e(number_format($rc['rate'], 1, ',', ' ')) ?> %)</span><span><b><?= e(money($rc['revenue'])) ?></b> de ventes</span></span></span></label>
+    <label class="auto-item"><input type="checkbox" name="auto_reminder" value="1" <?= $ao['auto_reminder'] ? 'checked' : '' ?> onchange="this.form.requestSubmit()">
+      <span class="auto-body"><b>⏰ Rappel la veille</b><small>Heure, adresse, itinéraire et lien vers les billets, envoyé la veille de l'événement.</small>
+      <span class="auto-stats"><span><b><?= (int)$auto['reminders'] ?></b> rappel<?= (int)$auto['reminders'] === 1 ? '' : 's' ?> envoyé<?= (int)$auto['reminders'] === 1 ? '' : 's' ?></span></span></span></label>
+    <label class="auto-item"><input type="checkbox" name="auto_review" value="1" <?= $ao['auto_review'] ? 'checked' : '' ?> onchange="this.form.requestSubmit()">
+      <span class="auto-body"><b>⭐ Demande d'avis</b><small>Le lendemain, aux participants venus (note en un clic + commentaire).</small>
+      <span class="auto-stats"><span><b><?= (int)$auto['reviews_sent'] ?></b> demande<?= (int)$auto['reviews_sent'] === 1 ? '' : 's' ?></span><span><b><?= (int)$auto['reviews'] ?></b> avis reçu<?= (int)$auto['reviews'] === 1 ? '' : 's' ?></span><a href="<?= url('/pro/avis') ?>">Voir les avis →</a></span></span></label>
+    <noscript><button class="btn btn-sm">Enregistrer</button></noscript>
+  </form>
+</div>
+<?= soon_card('🤖 Bientôt : encore plus d\'automatique', [
   'codes-auto' => ['Codes promo automatiques', 'Anniversaire, fidélité, retour après longtemps'],
-  'calendrier' => ['Rappel la veille', 'Adresse, horaires et infos pratiques'],
-  'avis' => ['Questionnaire de satisfaction', 'Le lendemain de l\'événement'],
   'sms' => ['Campagnes SMS', 'Le canal le plus lu, en complément des e-mails'],
   'parrainage' => ['Parrainage acheteurs', 'Chaque acheteur fait venir ses amis'],
 ]) ?>

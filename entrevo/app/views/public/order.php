@@ -10,7 +10,10 @@
       <button class="btn btn-ghost" onclick="window.print()">Imprimer</button>
       <?php if ((int)$o['total'] > 0): ?><a class="btn btn-ghost" href="<?= url('/commande/' . $o['ref'] . '/recu', ['t' => $o['token']]) ?>" target="_blank">Reçu</a><?php endif; ?>
     </div>
-    <div class="soon-row center-row no-print"><?= pub_soon('wallet', '📲 Ajouter au Wallet') ?><?= pub_soon('agenda', '📅 Ajouter à mon agenda') ?><?= pub_soon('transfert', '🔁 Donner à un ami') ?><?= pub_soon('echange', '📅 Changer de date') ?><?= pub_soon('covoiturage', '🚗 Covoiturage') ?></div>
+    <div class="row no-print" style="justify-content:center;margin-top:10px">
+      <details class="cal-menu"><summary class="btn btn-sm btn-light">📅 Ajouter à mon agenda</summary><div class="cal-pop"><a href="<?= e(Buyers::googleUrl($ev, $session)) ?>" target="_blank" rel="noopener">Google Agenda</a><a href="<?= e(Buyers::icsUrl($ev, $session)) ?>">Apple / Outlook (.ics)</a></div></details>
+    </div>
+    <div class="soon-row center-row no-print"><?= pub_soon('wallet', '📲 Ajouter au Wallet') ?><?= pub_soon('echange', '📅 Changer de date') ?><?= pub_soon('covoiturage', '🚗 Covoiturage') ?></div>
   </div>
 <?php elseif ($o['status'] === 'pending'): ?>
   <div class="card center auth-box">
@@ -26,7 +29,7 @@
 
 <?php if ($tickets): $n = count($tickets); $start = $session['starts_at'] ?? $ev['starts_at']; ?>
 <div style="max-width:860px;margin:0 auto">
-  <?php $valid = array_values(array_filter($tickets, fn($t) => $t['status'] === 'valid' && (int)$t['entries'] === 0));
+  <?php $valid = array_values(array_filter($tickets, fn($t) => $t['status'] === 'valid' && (int)$t['entries'] === 0 && !$t['holder_email']));
   $canName = $o['status'] === 'paid' && $valid && strtotime((string)($ev['ends_at'] ?: $ev['starts_at'])) > time();
   $allBuyer = $canName && count($valid) > 1 && !array_filter($valid, fn($t) => $t['first_name'] !== $o['first_name'] || $t['last_name'] !== $o['last_name']); ?>
   <?php if ($canName && count($valid) > 1): ?>
@@ -44,6 +47,16 @@
   <?php endif; ?>
   <div class="tickets-list">
   <?php foreach ($tickets as $i => $t): ?>
+    <?php if ($t['holder_email']): ?>
+    <div class="ticket given">
+      <div class="ticket-main">
+        <div class="ticket-org"><?= e($org['name']) ?> présente</div>
+        <div class="ticket-event"><?= e($ev['name']) ?></div>
+        <p class="given-note">🎁 <b><?= e($t['rate_name']) ?></b> donné à <b><?= e(trim($t['first_name'] . ' ' . $t['last_name'])) ?></b> le <?= e(short_date((string)$t['transferred_at'])) ?>. Il ou elle a reçu son propre billet par e-mail.</p>
+      </div>
+      <div class="ticket-stub"><span class="ticket-num">Billet <?= $i + 1 ?>/<?= $n ?></span><div class="given-stub">🎁</div><span class="ticket-num">Transféré</span></div>
+    </div>
+    <?php continue; endif; ?>
     <div class="ticket <?= $t['status'] !== 'valid' ? 'cancelled' : '' ?>">
       <div class="ticket-main">
         <div class="ticket-org"><?= e($org['name']) ?> présente<?= $t['type'] === 'invitation' ? ' · 🎁 INVITATION' : '' ?></div>
@@ -62,6 +75,14 @@
           <?= $t['status'] === 'valid' ? '' : '<b style="color:var(--red)">BILLET ANNULÉ</b>' ?>
           <?php if ($t['status'] === 'valid'): ?><a href="<?= url('/commande/' . $o['ref'] . '/pdf', ['t' => $o['token'], 'billet' => $t['code']]) ?>" target="_blank">PDF de ce billet</a><?php endif; ?>
           <?php if ($t['replaced_by']): ?><b>🔁 Revendu</b><?php endif; ?>
+          <?php if (!Buyers::cannotTransfer($t, $o, $ev)): ?>
+            <details class="give-inline"><summary class="linklike">🎁 Donner à un ami</summary>
+              <form method="post" action="<?= url('/commande/' . $o['ref'] . '/donner', ['t' => $o['token']]) ?>" class="give-form"><?= csrf_field() ?><input type="hidden" name="ticket_id" value="<?= (int)$t['id'] ?>">
+                <input name="to_first_name" placeholder="Prénom" required aria-label="Prénom"><input name="to_last_name" placeholder="Nom" required aria-label="Nom"><input type="email" name="to_email" placeholder="son@email.fr" required aria-label="Son e-mail">
+                <button class="btn btn-sm" data-confirm="Donner ce billet ? Il sera mis à son nom avec un nouveau QR code, et celui-ci ne fonctionnera plus.">Envoyer 🎁</button>
+              </form>
+            </details>
+          <?php endif; ?>
           <?php if ($ev['resale_enabled'] && $t['status'] === 'valid' && $t['type'] === 'ticket' && (int)$t['entries'] === 0 && (int)$t['price'] > 0): ?>
             <form method="post" action="<?= url('/commande/' . $o['ref'] . '/revendre', ['t' => $o['token']]) ?>" class="inline-form"><?= csrf_field() ?><input type="hidden" name="ticket_id" value="<?= (int)$t['id'] ?>">
             <?php if ($t['resale_status'] === 'listed'): ?><span>🔁 En vente sur la bourse ·</span> <button class="linklike" name="action" value="cancel">annuler la revente</button>

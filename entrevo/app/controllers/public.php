@@ -46,9 +46,32 @@ function home(): string
     $params = [];
     if ($q !== '') { $sql .= ' AND (e.name LIKE ? OR e.city LIKE ? OR e.venue LIKE ? OR o.name LIKE ?)'; $params = array_fill(0, 4, '%' . $q . '%'); }
     if ($cat !== '') { $sql .= ' AND e.category = ?'; $params[] = $cat; }
+    $when = (string)input('quand');
+    $filters = home_filters();
+    $counts = [];
+    foreach ($filters as $k => $f) $counts[$k] = (int)val("SELECT COUNT(*) FROM ($sql AND {$f['sql']}) x", array_merge($params, $f['p']));
+    if (isset($filters[$when])) { $sql .= ' AND ' . $filters[$when]['sql']; $params = array_merge($params, $filters[$when]['p']); } else $when = '';
     $events = array_map('event_card_data', all($sql . ' ORDER BY e.starts_at LIMIT 80', $params));
     $cats = q("SELECT DISTINCT category FROM events WHERE status = 'published' AND category IS NOT NULL AND category <> '' AND COALESCE(ends_at, starts_at) >= NOW() ORDER BY category")->fetchAll(PDO::FETCH_COLUMN);
-    return pub('home', ['events' => $events, 'q' => $q, 'cat' => $cat, 'cats' => $cats], '');
+    return pub('home', ['events' => $events, 'q' => $q, 'cat' => $cat, 'cats' => $cats, 'when' => $when, 'filters' => $filters, 'fcounts' => $counts], '');
+}
+
+/** Filtres rapides de l'accueil : ce soir, ce week-end, cette semaine, gratuit. */
+function home_filters(): array
+{
+    $overlap = fn(string $a, string $b) => ['sql' => "((e.starts_at <= ? AND COALESCE(e.ends_at, e.starts_at) >= ?) OR EXISTS (SELECT 1 FROM sessions s WHERE s.event_id = e.id AND s.active = 1 AND s.starts_at BETWEEN ? AND ?))", 'p' => [$b, $a, $a, $b]];
+    $now = date('Y-m-d H:i:s');
+    $tonightEnd = date('Y-m-d 05:00:00', strtotime('+1 day'));
+    $w = (int)date('N'); // 1 = lundi … 7 = dimanche
+    $wkStart = $w >= 5 ? $now : date('Y-m-d 18:00:00', strtotime('friday this week'));
+    $wkEnd = date('Y-m-d 23:59:59', strtotime($w === 7 ? 'today' : 'sunday this week'));
+    $weekEnd = date('Y-m-d 23:59:59', strtotime('+7 days'));
+    return [
+        'ce-soir' => ['label' => '🌙 Ce soir'] + $overlap($now, $tonightEnd),
+        'week-end' => ['label' => '🎉 Ce week-end'] + $overlap($wkStart, $wkEnd),
+        'semaine' => ['label' => '📆 Cette semaine'] + $overlap($now, $weekEnd),
+        'gratuit' => ['label' => '🆓 Gratuit', 'sql' => "EXISTS (SELECT 1 FROM rates r WHERE r.event_id = e.id AND r.active = 1 AND r.hidden = 0) AND NOT EXISTS (SELECT 1 FROM rates r WHERE r.event_id = e.id AND r.active = 1 AND r.hidden = 0 AND r.price > 0)", 'p' => []],
+    ];
 }
 
 function organizer_page(string $slug): string
@@ -57,7 +80,9 @@ function organizer_page(string $slug): string
     if (!$org) abort(404);
     $events = array_map('event_card_data', all("SELECT e.*, ? AS org_name FROM events e WHERE organizer_id = ? AND status = 'published' AND password IS NULL
         AND COALESCE(ends_at, starts_at) >= NOW() - INTERVAL 6 HOUR ORDER BY starts_at", [$org['name'], $org['id']]));
-    return pub('organizer', ['org' => $org, 'events' => $events], $org['name'], ['widget_ok' => true, 'org_tracking' => $org]);
+    $rating = Buyers::orgRating((int)$org['id']);
+    $reviews = all("SELECT r.*, e.name ev_name FROM reviews r JOIN events e ON e.id = r.event_id WHERE r.organizer_id = ? AND r.visible = 1 AND r.comment IS NOT NULL ORDER BY r.rating >= 4 DESC, r.created_at DESC LIMIT 6", [$org['id']]);
+    return pub('organizer', ['org' => $org, 'events' => $events, 'rating' => $rating, 'reviews' => $reviews], $org['name'], ['widget_ok' => true, 'org_tracking' => $org]);
 }
 
 function cart_get(int $eventId): array
@@ -292,6 +317,7 @@ function place_order(array $ev, array $org, array $cart, ?array $session, array 
     if (!empty($r['errors'])) return ['errors' => $r['errors']];
     $o = $r['order'];
     if (!empty($_POST['optin'])) { update('orders', ['marketing_optin' => 1], 'id = ?', [$o['id']]); q('DELETE FROM email_unsubscribes WHERE organizer_id = ? AND email = ?', [$org['id'], strtolower((string)$o['email'])]); }
+    if (!empty($_SESSION['recover'][$ev['id']])) { update('orders', ['recovered_from' => (int)$_SESSION['recover'][$ev['id']]], 'id = ?', [$o['id']]); unset($_SESSION['recover'][$ev['id']]); }
     $_SESSION['orders'][] = $o['ref'];
     $_SESSION['buyer'] = $buyer;
     unset($_SESSION['cart'][$ev['id']]);
@@ -436,7 +462,7 @@ function order_pdf(string $ref): never
     if ($o['status'] !== 'paid') abort(404, 'Tes billets arrivent dès que le paiement est confirmé. Encore un peu de patience ⏳');
     $ev = one('SELECT * FROM events WHERE id = ?', [$o['event_id']]);
     $org = one('SELECT * FROM organizers WHERE id = ?', [$o['organizer_id']]);
-    $sql = "SELECT * FROM tickets WHERE order_id = ? AND status = 'valid'";
+    $sql = "SELECT * FROM tickets WHERE order_id = ? AND status = 'valid' AND holder_email IS NULL";
     $params = [$o['id']];
     if (input('billet')) { $sql .= ' AND code = ?'; $params[] = (string)input('billet'); }
     $tickets = all($sql . ' ORDER BY id', $params);

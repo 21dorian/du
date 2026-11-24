@@ -105,6 +105,7 @@ function event_form(?string $id = null): string
             'password' => trim((string)input('password')) ?: null,
             'publish_at' => dt_from_input(input('publish_at')),
             'resale_enabled' => checked('resale_enabled'),
+            'transfer_enabled' => checked('transfer_enabled'),
             'resale_fee_percent' => max(0, min(30, (float)str_replace(',', '.', (string)input('resale_fee_percent', '5')))),
             'waitlist_enabled' => checked('waitlist_enabled'),
             'refund_request_enabled' => checked('refund_request_enabled'),
@@ -239,8 +240,10 @@ function rates(string $id): string
             'per_day' => checked('per_day'),
             'session_ids' => implode(',', array_map('intval', (array)($_POST['session_ids'] ?? []))) ?: null,
             'seat_category' => trim((string)input('seat_category')) ?: null,
+            'after_rate_id' => ((int)input('after_rate_id') && (int)input('after_rate_id') !== $rid && val('SELECT id FROM rates WHERE id = ? AND event_id = ?', [(int)input('after_rate_id'), $ev['id']])) ? (int)input('after_rate_id') : null,
         ];
         if ($data['name'] === '') back(['error' => 'Donne un nom à ce tarif.']);
+        if ($data['after_rate_id'] && $rid && (int)val('SELECT after_rate_id FROM rates WHERE id = ?', [$data['after_rate_id']]) === $rid) back(['error' => 'Ces deux tarifs s\'attendent l\'un l\'autre 🔁 : choisis un seul sens.']);
         if ($rid) update('rates', $data, 'id = ? AND event_id = ?', [$rid, $ev['id']]);
         else insert('rates', $data + ['event_id' => $ev['id']]);
         Audit::log('rate.saved', (string)input('name'), (int)$ev['id']);

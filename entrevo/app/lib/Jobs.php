@@ -33,6 +33,9 @@ final class Jobs
             'recap' => fn() => class_exists('Recap') ? Recap::run() : 0,
             'alerts' => fn() => class_exists('Recap') ? Recap::thresholds() : 0,
             'staff' => fn() => class_exists('Staff') ? Staff::reminders() : 0,
+            'rappels' => fn() => class_exists('Buyers') ? Buyers::reminders() : 0,
+            'paniers' => fn() => class_exists('Buyers') ? Buyers::recovery() : 0,
+            'avis' => fn() => class_exists('Buyers') ? Buyers::reviewRequests() : 0,
             'queue' => fn() => q('DELETE FROM queue_entries WHERE last_seen < NOW() - INTERVAL 2 HOUR')->rowCount(),
         ];
         foreach ($steps as $name => $fn) {

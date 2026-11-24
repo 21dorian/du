@@ -79,6 +79,25 @@ Couleurs : **vert** = entre, **orange** = déjà entré / pas entré (sortie), *
 
 ---
 
+## Nouveautés 1.8 ✨
+
+**Pour les acheteurs**
+- **🎁 Donner son billet à un ami** : depuis la page de commande, en indiquant nom et e-mail. Le billet passe au nom de l'ami avec un **nouveau QR code** (l'ancien est refusé au scan). L'ami reçoit son billet par e-mail et sa propre page (`/billet/…`). Jusqu'à 3 transferts par billet. L'organisateur peut couper les transferts dans la fiche de l'événement et voit l'historique dans le détail de commande.
+- **📅 Ajouter à mon agenda** : Google Agenda ou fichier .ics (Apple, Outlook), depuis la page de l'événement, la commande et l'e-mail de confirmation.
+- **Filtres rapides sur l'accueil** : Ce soir, Ce week-end, Cette semaine, Gratuit (avec le nombre d'événements).
+- **⭐ Avis** : note en un clic depuis l'e-mail, commentaire facultatif ; les avis s'affichent sur la page de l'organisateur.
+
+**Envois automatiques** (organisateurs › Campagnes › « Envois automatiques », chacun désactivable)
+- **🛒 Relance des paniers abandonnés** : 1 h après un paiement pas terminé, un e-mail avec un lien qui remet le panier et les infos en place. Les ventes récupérées sont comptées.
+- **⏰ Rappel la veille** : heure, adresse avec itinéraire, lien vers les billets.
+- **⭐ Demande d'avis** le lendemain (seulement aux personnes venues si l'événement a été scanné). Nouvelle page **Avis des participants** (note moyenne, répartition, avis par événement, masquer/afficher).
+- Ces e-mails partent avec les tâches de fond : pour qu'ils partent à l'heure, vérifie la tâche planifiée (cron) dans Super-admin › Santé.
+
+**Billetterie**
+- **🐦 Early bird / paliers** : dans un tarif, « S'ouvre quand … est épuisé ou terminé ». Le palier suivant s'affiche grisé en attendant, le tarif en cours affiche « Prix early bird · plus que N à ce prix » et un compte à rebours la dernière semaine s'il a une date de fin.
+- **🎟️ Nouveaux billets PDF** : billet aux couleurs de l'événement (affiche, titre, date et lieu en gros), ligne de découpe, **QR code deux fois plus grand**, nom du participant bien visible, conseils pratiques et mot de l'organisateur.
+- Page organisateur : les cartes d'événements s'affichent enfin en grille.
+
 ## Nouveautés 1.7 ✨ — nouveau parcours d'achat
 
 - **Achat dans un tiroir, sans quitter la page de l'événement** : panneau à droite sur ordinateur, feuille qui monte du bas sur téléphone. 4 étapes claires : **Billets → Toi → Récap → Paiement**, avec le total toujours visible en bas.

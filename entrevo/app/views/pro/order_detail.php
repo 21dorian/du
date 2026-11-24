@@ -30,6 +30,7 @@ $valid = array_filter($tickets, fn($t) => $t['status'] === 'valid');
               <input name="first_name" value="<?= e($t['first_name']) ?>" style="width:78px;padding:6px 7px" aria-label="Prénom"><input name="last_name" value="<?= e($t['last_name']) ?>" style="width:86px;padding:6px 7px" aria-label="Nom">
               <button class="btn btn-sm btn-light" title="Enregistrer le nom">OK</button></form>
               <?php foreach ($ta as $a): ?><small style="display:block"><?= e($a['label']) ?> : <b><?= e($a['value']) ?></b></small><?php endforeach; ?>
+              <?php if ($t['holder_email']): ?><small style="display:block" class="muted">🎁 Donné à <?= e($t['holder_email']) ?> le <?= e(short_date((string)$t['transferred_at'])) ?><?= (int)$t['transfers'] > 1 ? ' (' . (int)$t['transfers'] . ' transferts)' : '' ?></small><?php endif; ?>
             </td>
             <td style="min-width:110px"><?= e($t['rate_name']) ?><br><small><?= (int)$t['price'] ? e(money((int)$t['price'])) : 'Gratuit' ?><?= $t['seat'] ? ' · 💺 ' . e($t['seat']) : '' ?></small></td>
             <td class="mono" style="font-size:13px"><?= e($t['code']) ?></td>
@@ -131,7 +132,7 @@ $valid = array_filter($tickets, fn($t) => $t['status'] === 'valid');
         <?php endif; ?>
         <button class="btn btn-block btn-light" name="action" value="cancel" data-confirm="Annuler la commande SANS remboursement ? Les billets seront refusés à l'entrée.">Annuler sans rembourser</button>
       </form>
-      <div class="soon-row"><?= soon_btn('transfert-billet', '🔁 Transférer') ?><?= soon_btn('echange-date', '📅 Changer de date') ?><?= soon_btn('factures', '🧾 Facture pro') ?><?= soon_btn('sms', '💬 Envoyer par SMS') ?></div>
+      <div class="soon-row"><?= soon_btn('echange-date', '📅 Changer de date') ?><?= soon_btn('factures', '🧾 Facture pro') ?><?= soon_btn('sms', '💬 Envoyer par SMS') ?></div>
     </div>
     <?php endif; ?>
   </div>

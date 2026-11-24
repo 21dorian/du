@@ -18,7 +18,11 @@ function campaigns_index(): string
         'clicked' => array_sum(array_map(fn($c) => $c['stats']['clicked'], $sentList)), 'revenue' => array_sum(array_map(fn($c) => $c['stats']['revenue'], $sentList))];
     $upcoming = all("SELECT id, name FROM events WHERE organizer_id = ? AND starts_at >= NOW() ORDER BY starts_at LIMIT 10", [$oid]);
     $templates = Campaigns::templates($upcoming);
-    return pro_page('Campagnes e-mail', 'campaigns/index', compact('list', 'counts', 'tot', 'templates'), 'campagnes');
+    $auto = ['org' => current_org(), 'recovery' => Buyers::recoveryStats($oid),
+        'reminders' => (int)val('SELECT COUNT(*) FROM orders WHERE organizer_id = ? AND reminder_sent_at >= NOW() - INTERVAL 90 DAY', [$oid]),
+        'reviews_sent' => (int)val('SELECT COUNT(*) FROM orders WHERE organizer_id = ? AND review_sent_at >= NOW() - INTERVAL 90 DAY', [$oid]),
+        'reviews' => (int)val('SELECT COUNT(*) FROM reviews WHERE organizer_id = ? AND created_at >= NOW() - INTERVAL 90 DAY', [$oid])];
+    return pro_page('Campagnes e-mail', 'campaigns/index', compact('list', 'counts', 'tot', 'templates', 'auto'), 'campagnes');
 }
 
 function campaign_new(): never

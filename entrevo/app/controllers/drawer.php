@@ -141,7 +141,7 @@ function order_names(string $ref): never
     if ($o['status'] !== 'paid' || strtotime((string)($ev['ends_at'] ?: $ev['starts_at'])) < time()) redirect($back, ['error' => 'Les noms ne peuvent plus être modifiés.']);
     $n = 0;
     foreach ((array)($_POST['t'] ?? []) as $tid => $h) {
-        $t = one("SELECT * FROM tickets WHERE id = ? AND order_id = ? AND status = 'valid' AND entries = 0", [(int)$tid, $o['id']]);
+        $t = one("SELECT * FROM tickets WHERE id = ? AND order_id = ? AND status = 'valid' AND entries = 0 AND holder_email IS NULL", [(int)$tid, $o['id']]);
         if (!$t) continue;
         $fn = mb_substr(trim((string)($h['first_name'] ?? '')), 0, 120); $ln = mb_substr(trim((string)($h['last_name'] ?? '')), 0, 120);
         if ($fn === '' || $ln === '' || ($fn === $t['first_name'] && $ln === $t['last_name'])) continue;

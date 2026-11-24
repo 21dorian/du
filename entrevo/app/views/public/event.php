@@ -40,7 +40,7 @@ $fromPrice = $onSalePrices ? min($onSalePrices) : null;
     </dl>
     <?php if (!empty($ev['volunteer_recruit'])): ?><a class="vol-cta" href="<?= url('/e/' . $ev['slug'] . '/benevoles') ?>">🙋 On cherche des bénévoles : rejoins l'équipe →</a><?php endif; ?>
     <a class="btn btn-lg" href="#billets" <?= $useDrawer ? 'data-dw-open' : '' ?>><?= $sessions && !$session ? 'Choisir ma date 📅' : 'Je réserve 🎟️' ?></a>
-    <div class="ev-actions"><?= pub_soon('favoris', '❤️ Favori') ?><?= pub_soon('agenda', '📅 Agenda') ?><?= pub_soon('inviter-amis', '👥 Inviter des amis') ?><?= pub_soon('covoiturage', '🚗 Covoiturage') ?></div>
+    <div class="ev-actions"><?= pub_soon('favoris', '❤️ Favori') ?><details class="cal-menu"><summary class="soon-chip">📅 Agenda</summary><div class="cal-pop"><a href="<?= e(Buyers::googleUrl($ev, $session ?? null)) ?>" target="_blank" rel="noopener">Google Agenda</a><a href="<?= e(Buyers::icsUrl($ev, $session ?? null)) ?>">Apple / Outlook (.ics)</a></div></details><?= pub_soon('inviter-amis', '👥 Inviter des amis') ?><?= pub_soon('covoiturage', '🚗 Covoiturage') ?></div>
   </div>
 </div>
 
@@ -99,7 +99,13 @@ $fromPrice = $onSalePrices ? min($onSalePrices) : null;
             <?php if ($r['description']): ?><small><?= e($r['description']) ?></small><?php endif; ?>
             <?php if ($pack > 1): ?><small>👥 Pack de <?= $pack ?> billets</small><?php endif; ?>
             <?php if ((int)$r['max_entries'] > 1 || $r['per_day']): ?><small>🔁 <?= $r['per_day'] ? '1 entrée par jour' : (int)$r['max_entries'] . ' entrées' ?></small><?php endif; ?>
-            <?php if (!$r['sale']['ok']): ?><span class="rate-tag" style="color:var(--muted)"><?= e($r['sale']['why']) ?></span>
+            <?php $isEarly = $r['sale']['ok'] && (bool)array_filter($rates, fn($x) => (int)($x['after_rate_id'] ?? 0) === (int)$r['id']);
+                  $endSoon = $r['sale']['ok'] && $r['sale_end'] && strtotime($r['sale_end']) - time() < 7 * 86400; ?>
+            <?php if (!empty($r['sale']['next'])): ?><span class="rate-tag tier-next">🔜 <?= e($r['sale']['why']) ?></span>
+            <?php elseif (!$r['sale']['ok']): ?><span class="rate-tag" style="color:var(--muted)"><?= e($r['sale']['why']) ?></span>
+            <?php elseif ($isEarly || $endSoon): ?>
+              <?php if ($isEarly): ?><span class="rate-tag tier-early">🐦 Prix early bird<?= (int)$r['quota'] && $r['sale']['remaining'] <= max(10, (int)ceil((int)$r['quota'] * 0.25)) ? ' · plus que ' . (int)$r['sale']['remaining'] . ' à ce prix' : '' ?></span><?php endif; ?>
+              <?php if ($endSoon): ?><span class="rate-tag tier-end" data-countdown="<?= e(date('c', strtotime($r['sale_end']))) ?>" data-cd-end="Prix terminé">⏳ Ce prix s'arrête · <span data-cd-text><?= e(ago_until(strtotime($r['sale_end']))) ?></span></span><?php endif; ?>
             <?php elseif ($r['sale']['remaining'] <= 10): ?><span class="rate-tag">😬 Plus que <?= (int)$r['sale']['remaining'] ?></span>
             <?php elseif ($r['hidden']): ?><span class="rate-tag" style="color:var(--primary)">🤫 Tarif secret débloqué</span><?php endif; ?>
             <?php if ($free && $max > 0): ?><label class="free-price">Ton prix (min. <?= e(money((int)$r['price'])) ?>) <span class="input-suffix"><input name="price[<?= (int)$r['id'] ?>]" value="<?= e(money_input(max((int)$r['price'], (int)($cart['prices'][$r['id']] ?? $r['price'])))) ?>" inputmode="decimal" data-free="<?= (int)$r['id'] ?>"><span>€</span></span></label><?php endif; ?>

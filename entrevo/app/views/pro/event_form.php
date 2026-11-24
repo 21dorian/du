@@ -59,6 +59,7 @@
       <div class="card">
         <h2>🛒 Options de vente</h2>
         <label class="check mb"><input type="checkbox" name="waitlist_enabled" value="1" <?= ($ev['waitlist_enabled'] ?? 1) ? 'checked' : '' ?>> ⏳ Liste d'attente quand c'est complet</label>
+        <label class="check mb"><input type="checkbox" name="transfer_enabled" value="1" <?= ($ev['transfer_enabled'] ?? 1) ? 'checked' : '' ?>> 🎁 Les acheteurs peuvent donner leur billet à un ami</label>
         <label class="check mb"><input type="checkbox" name="resale_enabled" value="1" <?= !empty($ev['resale_enabled']) ? 'checked' : '' ?>> 🔁 Bourse aux billets officielle</label>
         <div class="field" data-show-if="resale_enabled=1"><label>Frais de revente payés par le vendeur</label><div class="input-suffix"><input name="resale_fee_percent" value="<?= e($ev['resale_fee_percent'] ?? '5') ?>" inputmode="decimal"><span>%</span></div></div>
         <label class="check mb"><input type="checkbox" name="refund_request_enabled" value="1" <?= !empty($ev['refund_request_enabled']) ? 'checked' : '' ?>> 💸 Les acheteurs peuvent demander un remboursement</label>
@@ -83,10 +84,8 @@
         'billet-nominatif-id' => ['Contrôle d\'identité', 'Billet strictement nominatif, vérifié avec la pièce d\'identité'],
         'restriction-age' => ['Âge minimum', 'Rappelé à l\'achat et signalé au scan'],
         'places-pmr' => ['Places PMR & accompagnateurs', 'Quota dédié et billet accompagnateur offert'],
-        'transfert-billet' => ['Transfert de billet autorisé', 'L\'acheteur peut donner son billet à un ami'],
         'echange-date' => ['Échange de date par l\'acheteur', 'Pour les événements à plusieurs dates'],
         'assurance-annulation' => ['Assurance annulation', 'Proposée à l\'acheteur au moment du paiement'],
-        'calendrier' => ['Rappel J-1 et ajout au calendrier', 'Envoyé automatiquement aux participants'],
         'multilingue' => ['Page en plusieurs langues', 'Anglais, espagnol, allemand…'],
       ]) ?>
     </div>

@@ -24,6 +24,8 @@ final class Features
         $a = self::base() + self::extras();
         // modules sortis du développement (1.5) : on garde leur fiche, avec un lien direct
         foreach (['jauge-zone' => '/pro/pc', 'tva' => '/pro/finances', 'export-compta' => '/pro/finances'] as $k => $url) if (isset($a[$k])) $a[$k] = ['status' => 'beta', 'url' => $url] + $a[$k];
+        // 1.8 : sortis du développement
+        foreach (['avis' => '/pro/avis', 'relance-panier' => '/pro/campagnes', 'calendrier' => '/pro/campagnes', 'transfert-billet' => '/pro/evenements', 'early-bird' => '/pro/evenements'] as $k => $url) if (isset($a[$k])) $a[$k] = ['status' => 'on', 'url' => $url] + $a[$k];
         return $a;
     }
 
@@ -184,7 +186,15 @@ final class Features
 
 
     /** Fonctions à venir côté public (acheteurs et visiteurs du site). */
+    /** Fonctions acheteurs déjà en ligne (1.8) : retirées des listes « bientôt ». */
+    public const PUBLIC_LIVE = ['agenda', 'transfert', 'filtres-date', 'avis-public'];
+
     public static function public(): array
+    {
+        return array_diff_key(self::publicAll(), array_flip(self::PUBLIC_LIVE));
+    }
+
+    private static function publicAll(): array
     {
         $x = fn(string $emoji, string $name, string $pitch, array $points = []) => ['emoji' => $emoji, 'name' => $name, 'pitch' => $pitch, 'points' => $points, 'status' => 'soon'];
         return [

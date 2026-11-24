@@ -34,16 +34,16 @@ foreach ($events as $ev) if ($q === '' && $ev['image'] && (int)$ev['capacity'] >
 </section>
 <?php endif; ?>
 
-<div class="quick-filters"><?= pub_soon('filtres-date', '🌙 Ce soir') ?><?= pub_soon('filtres-date', '🎉 Ce week-end') ?><?= pub_soon('filtres-date', '🆓 Gratuit') ?><?= pub_soon('carte', '🗺️ Autour de moi') ?><?= pub_soon('recommandations', '✨ Pour moi') ?></div>
+<div class="quick-filters" id="quand"><?php foreach ($filters as $k => $f): $on = $when === $k; ?><a class="qf <?= $on ? 'on' : '' ?> <?= !$fcounts[$k] && !$on ? 'empty' : '' ?>" href="<?= url('/', array_filter(['q' => $q ?: null, 'cat' => $cat ?: null, 'quand' => $on ? null : $k])) ?>#quand"<?= $on ? ' aria-current="true"' : '' ?>><?= e($f['label']) ?> <span class="qf-n"><?= $on ? '✕' : (int)$fcounts[$k] ?></span></a><?php endforeach; ?><?= pub_soon('carte', '🗺️ Autour de moi') ?><?= pub_soon('recommandations', '✨ Pour moi') ?></div>
 <form class="searchbar" method="get" action="<?= url('/') ?>">
   <input type="search" name="q" value="<?= e($q) ?>" placeholder="Un concert, une ville, un plan pour samedi…" aria-label="Rechercher">
   <button class="btn">Trouver 🔍</button>
 </form>
 
-<?php if ($cats): ?><div class="chips"><a class="chip <?= $cat === '' ? 'on' : '' ?>" href="<?= url('/') ?>">Tout</a><?php foreach ($cats as $c): ?><a class="chip <?= $cat === $c ? 'on' : '' ?>" href="<?= url('/', ['cat' => $c]) ?>"><?= e($c) ?></a><?php endforeach; ?></div><?php endif; ?>
+<?php if ($cats): ?><div class="chips"><a class="chip <?= $cat === '' ? 'on' : '' ?>" href="<?= url('/') ?>">Tout</a><?php foreach ($cats as $c): ?><a class="chip <?= $cat === $c ? 'on' : '' ?>" href="<?= url('/', array_filter(['cat' => $c, 'quand' => $when ?: null])) ?>"><?= e($c) ?></a><?php endforeach; ?></div><?php endif; ?>
 <?php if ($q !== ''): ?><p class="muted"><?= count($events) ?> résultat<?= count($events) > 1 ? 's' : '' ?> pour « <?= e($q) ?> ». <a href="<?= url('/') ?>">Tout voir</a></p><?php endif; ?>
 <?php if (!$events): ?>
-  <div class="empty"><?= $q !== '' ? 'Rien trouvé 🤷 Essaie avec un autre mot, une autre ville.' : 'Calme plat pour l\'instant 👀 Reviens vite, ça bouge souvent.' ?></div>
+  <div class="empty"><?= $when !== '' ? 'Rien de prévu pour ce créneau 😴 <a href="' . url('/') . '">Voir tous les événements</a>' : ($q !== '' ? 'Rien trouvé 🤷 Essaie avec un autre mot, une autre ville.' : 'Calme plat pour l\'instant 👀 Reviens vite, ça bouge souvent.') ?></div>
 <?php endif; ?>
 
 <?php $day = null; foreach ($events as $ev): $t = strtotime($ev['starts_at']); $d = date('Y-m-d', $t); ?>

@@ -82,7 +82,7 @@ final class Mailer
         if (!$o || $o['status'] !== 'paid' || !is_email((string)$o['email'])) return false;
         $ev = one('SELECT * FROM events WHERE id = ?', [$o['event_id']]);
         $org = one('SELECT * FROM organizers WHERE id = ?', [$o['organizer_id']]);
-        $tickets = all("SELECT * FROM tickets WHERE order_id = ? AND status = 'valid' ORDER BY id", [$orderId]);
+        $tickets = all("SELECT * FROM tickets WHERE order_id = ? AND status = 'valid' AND holder_email IS NULL ORDER BY id", [$orderId]);
         $session = $o['session_id'] ? one('SELECT * FROM sessions WHERE id = ?', [$o['session_id']]) : null;
         $map = Seating::map($ev);
         $products = all("SELECT * FROM order_items WHERE order_id = ? AND kind = 'product'", [$orderId]);
@@ -102,6 +102,7 @@ final class Mailer
             . '<table style="width:100%;border-collapse:collapse;font-size:14px">' . $rows . '</table>'
             . ($products ? '<p style="margin-top:14px">✨ Avec ta commande : ' . e(implode(', ', array_map(fn($i) => $i['qty'] . ' × ' . $i['name'], $products))) . ' (à retirer sur place).</p>' : '')
             . (!empty($ev['email_message']) ? '<div style="margin:18px 0;padding:14px 16px;background:#f6f4ef;border-left:4px solid #0032fa;white-space:pre-line">' . e($ev['email_message']) . '</div>' : '')
+            . (class_exists('Buyers') ? Buyers::calendarLinks($ev, $session) : '')
             . '<p style="margin-top:22px"><a href="' . e($link) . '" style="background:' . e(setting('primary_color', '#0032fa')) . ';color:#fff;padding:12px 18px;border-radius:8px;text-decoration:none;display:inline-block">Voir mes billets</a></p>'
             . '<p style="color:#777;font-size:13px">Une question sur l\'événement ? Écris à l\'organisateur : ' . e($org['name']) . ($org['email'] ? ' — ' . e($org['email']) : '') . '</p>';
         $pdf = TicketPdf::build($o, $ev, $org, $tickets);

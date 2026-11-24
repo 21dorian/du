@@ -110,11 +110,11 @@ if ($area === 'admin') {
         ]],
         ['Faire venir du monde', [
             ['campagnes', '/pro/campagnes', 'Campagnes e-mail', $I['mail']],
+            ['avis', '/pro/avis', 'Avis des participants', $I['star']],
             $soonP('sms', 'Campagnes SMS', 'sms'),
             $soonP('mini-site', 'Mini-site', 'globe'),
             $soonP('reseaux', 'Réseaux sociaux', 'share'),
             $soonP('affiliation', 'Ambassadeurs', 'star'),
-            $soonP('avis', 'Avis & satisfaction', 'star'),
         ]],
         ['Le jour J', [
             ['scan', '/scan', 'Contrôle d\'accès', $I['scan']],

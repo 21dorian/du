@@ -111,7 +111,7 @@
       cds.forEach(function (c) {
         var s = Math.round((new Date(c.dataset.countdown).getTime() - Date.now()) / 1000), t = c.querySelector('[data-cd-text]');
         if (!t) return;
-        if (s <= 0) { t.textContent = 'C’est parti !'; return; }
+        if (s <= 0) { t.textContent = c.dataset.cdEnd || 'C’est parti !'; return; }
         var d = Math.floor(s / 86400), h = Math.floor(s % 86400 / 3600), m = Math.floor(s % 3600 / 60), sec = s % 60;
         t.textContent = d > 0 ? 'Dans ' + d + ' j ' + h + ' h ' + String(m).padStart(2, '0') + ' min'
           : 'Dans ' + h + ' h ' + String(m).padStart(2, '0') + ' min ' + String(sec).padStart(2, '0') + ' s';

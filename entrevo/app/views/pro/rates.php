@@ -1,7 +1,7 @@
 <?php
-$form = function (?array $r) use ($org, $sessions, $seatCats) {
+$form = function (?array $r) use ($org, $sessions, $seatCats, $rates) {
     $p = $r ?? ['id' => 0, 'name' => '', 'description' => '', 'price' => 0, 'quota' => 0, 'max_per_order' => 0, 'sale_start' => null, 'sale_end' => null, 'hidden' => 0, 'active' => 1, 'sort' => 0,
-        'price_mode' => 'fixed', 'pack_size' => 1, 'max_entries' => 1, 'per_day' => 0, 'session_ids' => '', 'seat_category' => '', 'scan_note' => '', 'scan_color' => '', 'vat_rate' => null];
+        'price_mode' => 'fixed', 'pack_size' => 1, 'max_entries' => 1, 'per_day' => 0, 'session_ids' => '', 'seat_category' => '', 'scan_note' => '', 'scan_color' => '', 'vat_rate' => null, 'after_rate_id' => null];
     $selS = array_map('intval', array_filter(explode(',', (string)$p['session_ids'])));
     ob_start(); ?>
     <form method="post"><?= csrf_field() ?><input type="hidden" name="rate_id" value="<?= (int)$p['id'] ?>">
@@ -31,6 +31,11 @@ $form = function (?array $r) use ($org, $sessions, $seatCats) {
         <div class="field"><label>Début des ventes</label><input type="datetime-local" name="sale_start" value="<?= e(dt_input($p['sale_start'])) ?>"></div>
         <div class="field"><label>Fin des ventes</label><input type="datetime-local" name="sale_end" value="<?= e(dt_input($p['sale_end'])) ?>"></div>
       </div>
+      <?php $others = array_filter($rates, fn($x) => (int)$x['id'] !== (int)$p['id']); if ($others): ?>
+      <div class="field tier-field"><label>🐦 Paliers (early bird)</label>
+        <select name="after_rate_id"><option value="">Ouvert selon ses dates de vente</option><?php foreach ($others as $x): ?><option value="<?= (int)$x['id'] ?>" <?= (int)($p['after_rate_id'] ?? 0) === (int)$x['id'] ? 'selected' : '' ?>>S'ouvre quand « <?= e($x['name']) ?> » (<?= e(money((int)$x['price'])) ?>) est épuisé ou terminé</option><?php endforeach; ?></select>
+        <small>Ex. : « Early bird » 100 places à 15 €, puis « Normal » à 20 € qui s'ouvre tout seul. Le palier suivant s'affiche grisé en attendant, et un compte à rebours apparaît la dernière semaine si le tarif a une date de fin.</small></div>
+      <?php endif; ?>
       <div class="row" style="gap:22px;margin-bottom:14px">
         <label class="check"><input type="checkbox" name="active" value="1" <?= $p['active'] ? 'checked' : '' ?>> Actif (en vente)</label>
         <label class="check"><input type="checkbox" name="hidden" value="1" <?= $p['hidden'] ? 'checked' : '' ?>> 🤫 Tarif secret (visible seulement avec un code d'accès)</label>
@@ -49,7 +54,7 @@ $form = function (?array $r) use ($org, $sessions, $seatCats) {
 <?php foreach ($rates as $r): $fee = Tickets::computeFees($org, (int)$r['price'], (int)$r['price'] > 0 ? 1 : 0); ?>
   <details class="box">
     <summary>
-      <span><?= e($r['name']) ?> <?= !$r['active'] ? badge('draft') : '' ?> <?= $r['hidden'] ? '<span class="badge violet">🤫 Secret</span>' : '' ?></span>
+      <span><?= e($r['name']) ?> <?= !$r['active'] ? badge('draft') : '' ?> <?= $r['hidden'] ? '<span class="badge violet">🤫 Secret</span>' : '' ?><?php if ($r['after_rate_id']): $pv = array_values(array_filter($rates, fn($x) => (int)$x['id'] === (int)$r['after_rate_id'])); ?> <span class="badge blue">🐦 après « <?= e($pv[0]['name'] ?? '?') ?> »</span><?php endif; ?></span>
       <span class="row" style="gap:16px;font-weight:500">
         <span class="muted"><?= (int)$r['sold'] ?><?= $r['quota'] ? ' / ' . (int)$r['quota'] : '' ?> vendus</span>
         <span><?= (int)$r['price'] ? e(money((int)$r['price'])) : 'Gratuit' ?><?php if ($fee): ?> <small>(<?= $org['fee_mode'] === 'buyer' ? 'acheteur paie ' . e(money((int)$r['price'] + $fee)) : 'tu reçois ' . e(money((int)$r['price'] - $fee)) ?>)</small><?php endif; ?></span>

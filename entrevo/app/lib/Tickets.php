@@ -121,6 +121,16 @@ final class Tickets
         } elseif (strtotime($event['ends_at'] ?: $event['starts_at']) + 6 * 3600 < $now) {
             return ['ok' => false, 'why' => 'Événement passé'];
         }
+        // early bird : ce palier ouvre quand le précédent est épuisé ou terminé
+        if (!empty($rate['after_rate_id'])) {
+            static $depth = 0;
+            $prev = one('SELECT * FROM rates WHERE id = ? AND event_id = ?', [$rate['after_rate_id'], $event['id']]);
+            if ($prev && $prev['active'] && $depth < 5) {
+                $depth++; $p = self::onSale($prev, $event, $session, $exceptWaitlist); $depth--;
+                $notYet = $p['ok'] || (!empty($p['next']) || ($prev['sale_start'] && strtotime($prev['sale_start']) > $now));
+                if ($notYet) return ['ok' => false, 'next' => true, 'why' => 'Prochain palier : dès que « ' . $prev['name'] . ' » est épuisé'];
+            }
+        }
         $rem = self::remainingUnits($rate, $event, $session, $exceptWaitlist);
         if ($rem <= 0) return ['ok' => false, 'why' => 'Complet 🫠'];
         return ['ok' => true, 'remaining' => $rem];
