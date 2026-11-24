@@ -124,7 +124,7 @@ final class Staff
         }
         $html = '<p>Salut ' . e($m['first_name']) . ' 👋</p>' . ($intro !== '' ? '<div style="white-space:pre-line">' . e($intro) . '</div>' : '<p>Voici ton planning avec <b>' . e($org['name'] ?? '') . '</b>.</p>')
             . ($list ? '<ul style="padding-left:18px">' . $list . '</ul>' : '<p>Pas encore de créneau pour toi : jette un œil aux créneaux ouverts 👀</p>')
-            . '<p><a href="' . e(self::portalUrl($m)) . '" style="display:inline-block;background:#0032fa;color:#fff;padding:12px 18px;border-radius:12px;text-decoration:none;font-weight:700">Ouvrir mon espace bénévole</a></p>'
+            . '<p><a href="' . e(self::portalUrl($m)) . '" style="display:inline-block;background:#0071e3;color:#fff;padding:12px 18px;border-radius:12px;text-decoration:none;font-weight:700">Ouvrir mon espace bénévole</a></p>'
             . '<p style="color:#777;font-size:13px">Confirme tes créneaux, inscris-toi sur d\'autres et retrouve ton badge QR. Ce lien est personnel, ne le partage pas.</p>';
         Mailer::send((string)$m['email'], '🙌 Ton planning bénévole — ' . ($org['name'] ?? ''), $html);
         return true;

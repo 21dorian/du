@@ -12,7 +12,7 @@
 <link rel="icon" href="<?= url('assets/img/icon.svg') ?>" type="image/svg+xml">
 <link rel="stylesheet" href="<?= asset('css/app.css') ?>">
 <link rel="stylesheet" href="<?= asset('css/scan.css') ?>">
-<style>:root{--primary:<?= e(setting('primary_color', '#0032fa')) ?>}</style>
+<style>:root{--primary:<?= e(setting('primary_color', '#0071e3')) ?>}</style>
 </head>
 <body class="pub scan-app" data-base="<?= e(base_path()) ?>" data-logged="<?= $u ? '1' : '0' ?>" data-csrf="<?= e($u ? csrf_token() : '') ?>">
 

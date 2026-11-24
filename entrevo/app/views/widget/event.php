@@ -1,6 +1,6 @@
 <!doctype html><html lang="fr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
 <title><?= e($ev['name']) ?></title><link rel="stylesheet" href="<?= asset('css/app.css') ?>">
-<style>:root{--primary:<?= e(setting('primary_color', '#0032fa')) ?>}body{background:transparent}.w{padding:12px}.tickets-box{max-width:none}</style></head>
+<style>:root{--primary:<?= e(setting('primary_color', '#0071e3')) ?>}body{background:transparent}.w{padding:12px}.tickets-box{max-width:none}</style></head>
 <body class="pub"><div class="w">
 <?php $target = url('/e/' . $ev['slug'] . '/panier'); ?>
 <form class="tickets-box" method="get" action="<?= e($target) ?>" target="_blank" id="buy">

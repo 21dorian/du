@@ -159,7 +159,7 @@
     if (!done) {
       var cv = document.createElement('canvas'); cv.className = 'confetti'; cv.setAttribute('aria-hidden', 'true'); document.body.appendChild(cv);
       var ctx = cv.getContext('2d'), W = cv.width = window.innerWidth, H = cv.height = window.innerHeight;
-      var cols = ['#0032fa', '#b388ff', '#2dd2be', '#ffd23f', '#fa3e4e'], parts = [];
+      var cols = ['#0071e3', '#b388ff', '#2dd2be', '#ffd23f', '#fa3e4e'], parts = [];
       for (var i = 0; i < 160; i++) parts.push({ x: W / 2 + (Math.random() - .5) * 120, y: H * .35, vx: (Math.random() - .5) * 14, vy: -Math.random() * 13 - 4,
         r: Math.random() * Math.PI, vr: (Math.random() - .5) * .3, w: 6 + Math.random() * 6, h: 8 + Math.random() * 8, c: cols[i % cols.length] });
       var t0 = performance.now();

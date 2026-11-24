@@ -90,7 +90,7 @@
       <div class="card">
         <h2>🎨 Billet & e-mail</h2>
         <div class="grid2">
-          <div class="field"><label>Couleur du billet</label><input type="color" name="ticket_color" value="<?= e($ev['ticket_color'] ?? setting('primary_color', '#0032fa')) ?>"></div>
+          <div class="field"><label>Couleur du billet</label><input type="color" name="ticket_color" value="<?= e($ev['ticket_color'] ?? setting('primary_color', '#0071e3')) ?>"></div>
           <div class="field"><label>Logo sur le billet</label><?php if (!empty($ev['ticket_logo'])): ?><img src="<?= url($ev['ticket_logo']) ?>" alt="" style="max-height:40px;margin-bottom:6px"><?php endif; ?><input type="file" name="ticket_logo" accept="image/png,image/jpeg"></div>
         </div>
         <div class="field mb0"><label>Message dans l'e-mail de confirmation</label><textarea name="email_message" rows="3" placeholder="Infos pratiques, accès, parking…"><?= e($ev['email_message'] ?? '') ?></textarea></div>

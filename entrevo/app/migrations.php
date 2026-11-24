@@ -821,4 +821,8 @@ return [
         "ALTER TABLE events ADD COLUMN program MEDIUMTEXT NULL, ADD COLUMN faq MEDIUMTEXT NULL, ADD COLUMN practical MEDIUMTEXT NULL",
         "ALTER TABLE organizers ADD COLUMN cover VARCHAR(255) NULL, ADD COLUMN accent VARCHAR(7) NULL, ADD COLUMN socials TEXT NULL, ADD COLUMN tagline VARCHAR(190) NULL, ADD COLUMN show_past TINYINT(1) NOT NULL DEFAULT 1",
     ],
+    // ---------- 2.0.0 : thème Apple (bleu par défaut) ----------
+    13 => [
+        "UPDATE settings SET v = '#0071e3' WHERE k = 'primary_color' AND LOWER(v) IN ('#0032fa', '')",
+    ],
 ];

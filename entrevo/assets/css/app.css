@@ -573,22 +573,19 @@ details.menu>summary::-webkit-details-marker{display:none}
 @font-face{font-family:"Host Grotesk";font-weight:600;font-display:swap;src:url(../fonts/host-grotesk-latin-600-normal.woff2) format("woff2")}
 @font-face{font-family:"Host Grotesk";font-weight:700;font-display:swap;src:url(../fonts/host-grotesk-latin-700-normal.woff2) format("woff2")}
 @font-face{font-family:"Host Grotesk";font-weight:800;font-display:swap;src:url(../fonts/host-grotesk-latin-800-normal.woff2) format("woff2")}
-@font-face{font-family:"Nunito Sans";font-weight:400;font-display:swap;src:url(../fonts/nunito-sans-latin-400-normal.woff2) format("woff2")}
-@font-face{font-family:"Nunito Sans";font-weight:500;font-display:swap;src:url(../fonts/nunito-sans-latin-500-normal.woff2) format("woff2")}
-@font-face{font-family:"Nunito Sans";font-weight:600;font-display:swap;src:url(../fonts/nunito-sans-latin-600-normal.woff2) format("woff2")}
-@font-face{font-family:"Nunito Sans";font-weight:700;font-display:swap;src:url(../fonts/nunito-sans-latin-700-normal.woff2) format("woff2")}
-@font-face{font-family:"Nunito Sans";font-weight:800;font-display:swap;src:url(../fonts/nunito-sans-latin-800-normal.woff2) format("woff2")}
-@font-face{font-family:"Nunito Sans";font-weight:900;font-display:swap;src:url(../fonts/nunito-sans-latin-900-normal.woff2) format("woff2")}
-@font-face{font-family:"Nunito Sans";font-weight:400;font-style:italic;font-display:swap;src:url(../fonts/nunito-sans-latin-400-italic.woff2) format("woff2")}
+@font-face{font-family:"Inter";font-weight:400;font-display:swap;src:url(../fonts/inter-latin-400-normal.woff2) format("woff2")}
+@font-face{font-family:"Inter";font-weight:500;font-display:swap;src:url(../fonts/inter-latin-500-normal.woff2) format("woff2")}
+@font-face{font-family:"Inter";font-weight:600;font-display:swap;src:url(../fonts/inter-latin-600-normal.woff2) format("woff2")}
+@font-face{font-family:"Inter";font-weight:700;font-display:swap;src:url(../fonts/inter-latin-700-normal.woff2) format("woff2")}
 @font-face{font-family:"Space Mono";font-weight:400;font-display:swap;src:url(../fonts/space-mono-latin-400-normal.woff2) format("woff2")}
 @font-face{font-family:"Space Mono";font-weight:700;font-display:swap;src:url(../fonts/space-mono-latin-700-normal.woff2) format("woff2")}
 
 :root,body.pub,body.back{
   --primary:#0032fa; --primary-dark:#0026c2; --primary-soft:#e6ecff;
   --lavender:#b388ff; --lavender-soft:#f1e9ff; --teal:#2dd2be; --teal-soft:#dcf8f4;
-  --font:"Nunito Sans","Avenir Next","Avenir",system-ui,-apple-system,"Segoe UI",Roboto,Arial,sans-serif;
+  --font:-apple-system,BlinkMacSystemFont,"SF Pro Text","SF Pro Display","Inter","Helvetica Neue",Arial,sans-serif;
   --mono:"Space Mono",ui-monospace,Menlo,Consolas,monospace;
-  --display:"Nunito Sans","Avenir Next","Avenir",system-ui,sans-serif;
+  --display:-apple-system,BlinkMacSystemFont,"SF Pro Display","Inter","Helvetica Neue",Arial,sans-serif;
   --bg:#f0f5fa; --surface:#fff; --surface-2:#f6f8fc; --ink:#0f0f14; --ink-2:#3a4150; --muted:#667085;
   --line:#e1e7ef; --line-2:#edf1f6; --field:#fff; --field-line:#d5dce7; --hover:#f6f8fc;
   --btn:#0032fa; --btn-ink:#fff;
@@ -1673,9 +1670,178 @@ body.dw-lock{overflow:hidden}
 .pc-btn.sm{padding:4px 10px;font-size:12.5px}
 @media (max-width:900px){.pc-log{grid-column:auto}}
 @media (max-width:680px){.my-card{grid-template-columns:56px 1fr}.my-img{width:56px;height:56px}.my-arrow{display:none}}
-/* Nunito Sans (proche d'Avenir) : titres un peu plus compacts que l'ancienne police condensée */
+/* Titres compacts */
 h1,h2,h3{letter-spacing:-.01em}
 .event-title{font-size:56px;line-height:1.02}
 .featured-body h1{font-size:54px;line-height:1.02}
 @media (max-width:900px){.event-title,.featured-body h1{font-size:40px}}
 @media (max-width:680px){.featured-body h1,.event-title{font-size:32px;line-height:1.05}h1{font-size:30px}}
+
+/* =====================================================================
+   2.0 — Thème « Apple » : police système, verre dépoli, éléments flottants
+   ===================================================================== */
+:root{--primary:#0071e3}
+body.pub,body.back,body.pc-body{--primary:inherit}
+:root,body.pub,body.back,body.pc-body{
+  --primary-dark:#0062c4; --primary-soft:color-mix(in srgb,var(--primary) 10%,#fff); --btn:var(--primary); --btn-ink:#fff;
+  --bg:#f5f5f7; --surface:#fff; --surface-2:#f5f5f7; --ink:#1d1d1f; --ink-2:#424245; --muted:#6e6e73;
+  --line:rgba(0,0,0,.08); --line-2:rgba(0,0,0,.05); --field:#fff; --field-line:rgba(0,0,0,.14); --hover:rgba(0,0,0,.035);
+  --green:#1d8348; --green-bg:#e9f7ef; --orange:#b25e09; --orange-bg:#fff4e5; --red:#d70015; --red-bg:#fdecee; --grey-bg:#f0f0f2;
+  --lavender:#a970ff; --lavender-soft:#f3edff;
+  --mono:var(--font);
+  --r-sm:12px; --r:20px; --r-lg:28px;
+  --glass:rgba(255,255,255,.72); --glass-strong:rgba(255,255,255,.86); --glass-line:rgba(255,255,255,.65);
+  --float:0 1px 1px rgba(0,0,0,.03),0 8px 24px rgba(0,0,0,.06),0 24px 48px -12px rgba(0,0,0,.08);
+  --float-lg:0 2px 4px rgba(0,0,0,.04),0 18px 50px rgba(0,0,0,.12);
+  --shadow:var(--float);
+}
+html{-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale;text-rendering:optimizeLegibility}
+body{font-family:var(--font);color:var(--ink);background:var(--bg);letter-spacing:-.011em;font-size:16px;line-height:1.47}
+/* fond légèrement vivant pour que le verre ait quelque chose à flouter */
+body.pub,body.back{background:radial-gradient(1200px 600px at 85% -10%,rgba(0,113,227,.07),transparent 60%),radial-gradient(900px 500px at -10% 30%,rgba(169,112,255,.06),transparent 60%),var(--bg);background-attachment:fixed}
+
+/* typographie : plus de majuscules ni d'espacements « affiche » */
+:where(body *){text-transform:none!important;letter-spacing:inherit!important}
+h1,h2,h3,.event-title,.featured-body h1{font-family:var(--display);text-wrap:balance}
+h1{font-weight:700;letter-spacing:-.028em!important;line-height:1.08}
+h2{font-weight:650;font-weight:600;letter-spacing:-.021em!important;line-height:1.15}
+h3{font-weight:600;letter-spacing:-.016em!important}
+.event-title{font-size:52px;font-weight:700;line-height:1.05}
+.featured-body h1{font-size:50px;font-weight:700;line-height:1.05}
+.eyebrow,.bl-eyebrow,.dw-ticket-head,.kpi small,.kpi-mini span,.table th,.fact dt,.ticket-org,.ticket-num,.ticket-grid div small,.side-org small,.side-sec,.menu-sep{font-family:var(--font)!important;font-weight:600!important;font-size:12.5px!important;color:var(--muted)}
+.eyebrow{color:var(--primary)!important;font-size:14px!important}
+.bl-eyebrow,.dw-ticket-head{color:#a1a1a6!important}
+.mono,.ticket-code,code,kbd{font-family:ui-monospace,"SF Mono",Menlo,Consolas,monospace!important}
+.logo{font-family:var(--display);font-weight:700;letter-spacing:-.02em!important}
+a{color:var(--primary)}
+
+/* boutons en pilule */
+.btn{border-radius:980px!important;border:0!important;font:500 15px/1 var(--font)!important;padding:11px 20px;background:var(--btn);color:#fff;box-shadow:none;transition:background .2s,transform .15s,box-shadow .2s}
+.btn:hover{background:color-mix(in srgb,var(--btn) 88%,#fff);transform:none;box-shadow:0 6px 18px color-mix(in srgb,var(--btn) 30%,transparent)}
+.btn:active{transform:scale(.98)}
+.btn-lg{padding:14px 24px;font-size:17px!important}
+.btn-sm{padding:8px 14px;font-size:13.5px!important}
+.btn-ghost,.btn-light{background:rgba(0,0,0,.05);color:var(--ink)!important}
+.btn-ghost:hover,.btn-light:hover{background:rgba(0,0,0,.09);color:var(--ink);box-shadow:none}
+.btn-ghost-light{background:rgba(255,255,255,.14);color:#fff!important}
+.btn-ghost-light:hover{background:rgba(255,255,255,.24)}
+.btn-block{width:100%}
+.linklike,.link-btn{color:var(--primary)}
+
+/* champs */
+input:not([type=checkbox]):not([type=radio]):not([type=range]),select,textarea{border-radius:12px!important;border:1px solid var(--field-line)!important;background:#fff;font-family:var(--font);font-size:16px;transition:border-color .15s,box-shadow .15s}
+input:focus,select:focus,textarea:focus{outline:none;border-color:var(--primary)!important;box-shadow:0 0 0 4px rgba(0,113,227,.18)!important}
+label,.field label{font-weight:500}
+
+/* cartes flottantes */
+.card,.box,details.box,.tickets-box,.rate,.kpi,.kpi-mini,.my-card,.ev-card,.rv-quote,.auto-item,.exchange-opt,.agenda-row,.session{border:0!important;border-radius:var(--r)!important;box-shadow:var(--float)}
+.card{padding:24px}
+.ev-card:hover,.my-card:hover,.agenda-row:hover,.session:hover{transform:translateY(-3px);box-shadow:var(--float-lg)}
+.ev-card,.my-card,.agenda-row,.session{transition:transform .25s cubic-bezier(.2,.8,.2,1),box-shadow .25s}
+.table-card{overflow:hidden}
+.table th{border-bottom:1px solid var(--line)!important;background:transparent}
+.table td{border-bottom:1px solid var(--line-2)}
+.badge{border-radius:980px!important;border:0!important;font:600 12px/1.2 var(--font)!important;padding:4px 9px;background:var(--grey-bg);color:var(--ink-2)}
+.badge.green{background:var(--green-bg);color:var(--green)}.badge.orange{background:var(--orange-bg);color:var(--orange)}.badge.red{background:var(--red-bg);color:var(--red)}
+.badge.blue{background:var(--primary-soft);color:var(--primary)}.badge.violet{background:var(--lavender-soft);color:#7a3fe4}.badge.grey{background:var(--grey-bg);color:var(--muted)}
+.chip,.pill,.soon-chip,.qf{border-radius:980px!important}
+.pill{font-weight:500}
+.pill-soft{background:rgba(0,113,227,.08);color:var(--primary)}
+.pill-dark{background:rgba(29,29,31,.88);color:#fff;backdrop-filter:blur(10px)}
+.soon-chip{border:1px solid var(--line)!important;background:var(--glass);backdrop-filter:saturate(180%) blur(16px)}
+.soon-tag,.soon-pill{border-radius:980px;font-family:var(--font)!important;font-weight:600}
+.flash{border-radius:16px;border:0;box-shadow:var(--float)}
+
+/* ---------- en-tête public : barre de verre flottante ---------- */
+.topbar{position:sticky;top:12px;z-index:30;background:transparent!important;border:0!important;backdrop-filter:none!important;margin:12px auto 0;max-width:1240px;padding:0 16px}
+.topbar-in{height:60px;padding:0 10px 0 22px;border-radius:980px;background:var(--glass);backdrop-filter:saturate(180%) blur(24px);-webkit-backdrop-filter:saturate(180%) blur(24px);border:1px solid var(--glass-line);box-shadow:var(--float)}
+.topnav a:not(.btn){font:500 14.5px var(--font)!important;color:var(--ink-2)}
+.topnav a:not(.btn):hover{color:var(--ink)}
+.logo{font-size:22px}
+.main{padding-top:28px}
+
+/* pied de page clair */
+.footer{background:transparent!important;color:var(--muted)!important;border-top:1px solid var(--line)!important;margin-top:40px}
+.footer a{color:var(--ink-2)!important}
+.footer b{color:var(--ink)}
+
+/* ---------- espace pro : menu en panneau de verre flottant ---------- */
+.side{inset:12px auto 12px 12px!important;height:auto;border-radius:24px;background:var(--glass-strong)!important;backdrop-filter:saturate(180%) blur(24px);-webkit-backdrop-filter:saturate(180%) blur(24px);border:1px solid var(--glass-line)!important;box-shadow:var(--float-lg);overflow:hidden}
+.back-main{margin-left:274px;padding:24px 32px 60px}
+.side-nav a{font:500 14px var(--font)!important;border-radius:12px;margin:1px 10px;padding:8px 12px;color:var(--ink-2)}
+.side-nav a:hover{background:rgba(0,0,0,.05)}
+.side-nav a.on{background:var(--primary)!important;color:#fff!important;box-shadow:0 6px 16px rgba(0,113,227,.28)}
+.side-org{border-radius:16px!important;border:0!important;background:rgba(0,0,0,.04)!important}
+.side-org b{font:600 15px var(--font)!important;color:var(--ink)!important}
+.probar{position:sticky;top:12px;z-index:25;padding:8px;margin:0 0 22px;border-radius:22px;background:var(--glass);backdrop-filter:saturate(180%) blur(24px);-webkit-backdrop-filter:saturate(180%) blur(24px);border:1px solid var(--glass-line);box-shadow:var(--float)}
+.probar-search{border:0!important;box-shadow:none!important;background:rgba(0,0,0,.05)!important;border-radius:14px!important}
+.probar-icon{border:0!important;background:rgba(0,0,0,.05)!important;border-radius:12px}
+.tabs{border-bottom:0!important;gap:4px;padding:5px;background:rgba(0,0,0,.05);border-radius:14px;display:inline-flex;flex-wrap:wrap;max-width:100%}
+.tabs a{font:500 14px var(--font)!important;border:0!important;border-radius:10px;padding:7px 12px;margin:0!important;color:var(--ink-2)}
+.tabs a.on{background:#fff;color:var(--ink);box-shadow:0 1px 3px rgba(0,0,0,.1)}
+.kpi b,.kpi-mini b{font-family:var(--display)!important;font-weight:700;letter-spacing:-.02em!important}
+.page-head h1{font-size:34px}
+
+/* ---------- achat : tiroir de verre flottant ---------- */
+.drawer{top:12px!important;right:12px!important;bottom:12px!important;width:min(460px,calc(100vw - 24px))!important;border-radius:28px;background:rgba(245,245,247,.86)!important;backdrop-filter:saturate(180%) blur(30px);-webkit-backdrop-filter:saturate(180%) blur(30px);border:1px solid var(--glass-line);box-shadow:0 30px 80px rgba(0,0,0,.22);overflow:hidden;transform:translateX(calc(100% + 24px))}
+.drawer.open{transform:none}
+.dw-backdrop{background:rgba(0,0,0,.18)!important;backdrop-filter:blur(6px)}
+.dw-head,.dw-foot{background:transparent!important;border-color:var(--line)!important}
+.dw-steps li{font:500 13px var(--font)!important}
+.dw-steps li.on{color:var(--primary);border-bottom-color:var(--primary)}
+.drawer .rate::before,.drawer .rate::after{display:none}
+.drawer .rate:has(.qty input:not([value="0"])){box-shadow:0 0 0 2px var(--primary),var(--float)}
+.dw-ticket{border-radius:20px;background:#1d1d1f}
+.qty{border-radius:980px!important;overflow:hidden;border:1px solid var(--field-line)!important}
+.qty button{border-radius:0}
+.buy-launch{border-radius:28px;background:#1d1d1f;box-shadow:var(--float-lg)}
+.buy-launch::before{opacity:.35}
+.buy-launch .btn{background:#fff;color:#1d1d1f!important}
+.buy-launch .btn:hover{background:#f5f5f7;color:#1d1d1f;box-shadow:none}
+.buy-sticky{border-radius:22px;background:rgba(29,29,31,.78)!important;backdrop-filter:saturate(180%) blur(24px);-webkit-backdrop-filter:saturate(180%) blur(24px);border:1px solid rgba(255,255,255,.12);box-shadow:0 20px 50px rgba(0,0,0,.28)}
+.presale-box{border-radius:28px;background:#1d1d1f}
+.tier-box,.age-box,.dw-quick{border-radius:16px}
+
+/* affiches et vignettes flottantes */
+.event-poster img,.featured-img img,.featured img,.ev-img,.my-img,.agenda-thumb{border-radius:22px}
+.event-poster{border-radius:28px;overflow:hidden;box-shadow:0 30px 60px -20px rgba(0,0,0,.35)}
+.featured{border-radius:32px!important;overflow:hidden;box-shadow:0 30px 70px -25px rgba(0,0,0,.35)}
+
+/* billets à l'écran */
+.ticket{border-radius:24px!important;box-shadow:var(--float-lg)!important}
+.ticket-event{font-family:var(--display)!important;font-weight:700;letter-spacing:-.02em!important}
+.ticket-grid div b{font-family:var(--font)!important;font-weight:600}
+.ticket-stub{border-radius:0 24px 24px 0}
+
+/* étapes, filtres, menus */
+.steps{border:0!important;gap:6px;background:rgba(0,0,0,.05);padding:5px;border-radius:16px}
+.steps span{border:0!important;border-radius:12px;font:500 14px var(--font)!important}
+.steps span.on{background:#fff!important;color:var(--ink)!important;box-shadow:0 1px 3px rgba(0,0,0,.1)}
+.steps span.done{background:transparent!important;color:var(--green)!important}
+.menu-list,.cal-pop,.cmdk-box{border:1px solid var(--glass-line)!important;border-radius:18px!important;background:var(--glass-strong)!important;backdrop-filter:saturate(180%) blur(24px);box-shadow:var(--float-lg)!important}
+.toasts > *{border-radius:16px!important;background:rgba(29,29,31,.82)!important;backdrop-filter:blur(20px);color:#fff}
+.searchbar{border-radius:980px!important;border:0!important;box-shadow:var(--float);background:var(--glass);backdrop-filter:saturate(180%) blur(20px)}
+.searchbar input{border:0!important;box-shadow:none!important;background:transparent}
+.quick-filters .qf{border:0!important;background:var(--glass);backdrop-filter:saturate(180%) blur(20px);box-shadow:0 1px 2px rgba(0,0,0,.06)}
+.quick-filters .qf.on{background:var(--ink);color:#fff}
+.agenda-title{font-family:var(--display)!important;font-weight:600;letter-spacing:-.015em!important}
+.state-mark{border-radius:50%!important;border:0!important;background:var(--green-bg)}
+
+/* mouvements doux (désactivés si l'utilisateur préfère) */
+@media (prefers-reduced-motion:no-preference){
+  .card,.kpi,.rate{transition:box-shadow .25s,transform .25s}
+}
+@media (max-width:900px){
+  .side{inset:8px auto 8px 8px!important}
+  .back-main{margin-left:0;padding:16px 16px 60px}
+  .event-title,.featured-body h1{font-size:38px}
+}
+@media (max-width:680px){
+  .topbar{top:8px;margin-top:8px;padding:0 10px}
+  .topbar-in{height:54px;padding:0 6px 0 16px}
+  .event-title,.featured-body h1{font-size:30px}
+  .drawer{top:auto!important;left:8px!important;right:8px!important;bottom:8px!important;width:auto!important;height:calc(92dvh - 8px);border-radius:28px;transform:translateY(calc(100% + 16px))}
+  .page-head h1{font-size:28px}
+}
+.today-title{border-radius:16px!important}
+.today{overflow:hidden}

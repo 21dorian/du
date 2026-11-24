@@ -109,7 +109,7 @@ function buyer_link_request(): never
     if (is_email($email) && (val("SELECT id FROM orders WHERE LOWER(email) = ? AND status IN ('paid','refunded') LIMIT 1", [$email]) || val('SELECT id FROM tickets WHERE holder_email = ? LIMIT 1', [$email])) && throttle_ok('lien-' . $email)) {
         $exp = time() + 1800;
         $tok = rtrim(strtr(base64_encode($email . '|' . $exp . '|' . buyer_sig($email, $exp)), '+/', '-_'), '=');
-        try { Mailer::send($email, '🔑 Ton lien de connexion ' . setting('platform_name'), '<p>Clique ici pour retrouver tes infos préremplies (valable 30 minutes) :</p><p><a href="' . e(abs_url('/acheteur/' . $tok, ['r' => $back])) . '" style="display:inline-block;background:#0032fa;color:#fff;padding:12px 18px;border-radius:12px;text-decoration:none;font-weight:bold">Me connecter</a></p><p style="color:#777;font-size:13px">Pas toi ? Ignore cet e-mail.</p>'); }
+        try { Mailer::send($email, '🔑 Ton lien de connexion ' . setting('platform_name'), '<p>Clique ici pour retrouver tes infos préremplies (valable 30 minutes) :</p><p><a href="' . e(abs_url('/acheteur/' . $tok, ['r' => $back])) . '" style="display:inline-block;background:#0071e3;color:#fff;padding:12px 18px;border-radius:12px;text-decoration:none;font-weight:bold">Me connecter</a></p><p style="color:#777;font-size:13px">Pas toi ? Ignore cet e-mail.</p>'); }
         catch (Throwable $e) { log_line('emails', $e->getMessage()); }
     }
     json_out(['ok' => true, 'message' => '📬 Si tu as déjà acheté avec cette adresse, un lien vient de partir. Il est valable 30 minutes.']);

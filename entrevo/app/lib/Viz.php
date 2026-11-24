@@ -3,11 +3,11 @@ declare(strict_types=1);
 
 /**
  * Petits éléments de visualisation rendus côté serveur (sans JS) : mini-courbe, anneau de remplissage, variation.
- * Couleurs : série = bleu #0032fa (contraste ≥ 3:1 sur fond clair), atténué = gris neutre.
+ * Couleurs : série = bleu #0071e3 (contraste ≥ 3:1 sur fond clair), atténué = gris neutre.
  */
 final class Viz
 {
-    public const SERIES = '#0032fa';
+    public const SERIES = '#0071e3';
     public const MUTED = '#7d8699';
 
     /** Mini-courbe (12+ points) : la courbe en gris, le dernier point en accent. */

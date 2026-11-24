@@ -20,7 +20,7 @@ final class TicketPdf
         $pdf->SetAutoPageBreak(false);
         $pdf->SetTitle(self::t('Billets ' . $event['name']));
         $pdf->SetAuthor(self::t((string)setting('platform_name')));
-        $accent = self::hex((string)($event['ticket_color'] ?: setting('primary_color', '#0032fa')));
+        $accent = self::hex((string)($event['ticket_color'] ?: setting('primary_color', '#0071e3')));
         $light = self::luma($accent) > 0.6; // couleur claire : texte foncé par-dessus
         $ink = $light ? [17, 17, 20] : [255, 255, 255];
         $soft = $light ? [60, 60, 70] : self::mix($accent, [255, 255, 255], 0.78);

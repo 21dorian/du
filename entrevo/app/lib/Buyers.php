@@ -48,7 +48,7 @@ final class Buyers
                 '<p>Salut ' . e($first) . ' 👋</p><p><b>' . e($fromName) . '</b> te donne son billet pour <b>' . e($ev['name']) . '</b>. Chanceux·se !</p>'
                 . '<p style="margin:0;color:#555">' . e(fr_date($session['starts_at'] ?? $ev['starts_at'])) . ($ev['venue'] ? '<br>' . e($ev['venue']) . ($ev['city'] ? ', ' . e($ev['city']) : '') : '') . '</p>'
                 . '<p>🎟️ Ton billet est en pièce jointe, à ton nom. Montre le QR code à l\'entrée.</p>'
-                . '<p><a href="' . e($link) . '" style="background:' . e(setting('primary_color', '#0032fa')) . ';color:#fff;padding:12px 18px;border-radius:8px;text-decoration:none;display:inline-block">Voir mon billet</a></p>'
+                . '<p><a href="' . e($link) . '" style="background:' . e(setting('primary_color', '#0071e3')) . ';color:#fff;padding:12px 18px;border-radius:8px;text-decoration:none;display:inline-block">Voir mon billet</a></p>'
                 . '<p style="color:#777;font-size:13px">' . e(self::calendarLine($ev, $session)) . '</p>',
                 [['data' => $pdf, 'name' => 'billet-' . $code . '.pdf']], $org['email'] ?? null);
         } catch (Throwable $e) { log_line('emails', 'Transfert billet #' . $t['id'] . ' : ' . $e->getMessage()); }
@@ -146,8 +146,8 @@ final class Buyers
                     . '<table style="font-size:15px;border-collapse:collapse"><tr><td style="padding:4px 12px 4px 0">🕗</td><td><b>' . e(fr_date(date('Y-m-d H:i:s', $start))) . '</b></td></tr>'
                     . ($place ? '<tr><td style="padding:4px 12px 4px 0">📍</td><td>' . e($place) . ' — <a href="https://www.google.com/maps/search/?api=1&amp;query=' . e(rawurlencode($place)) . '">itinéraire</a></td></tr>' : '')
                     . '<tr><td style="padding:4px 12px 4px 0">🎟️</td><td>' . $nb . ' billet' . ($nb > 1 ? 's' : '') . ' · commande ' . e($o['ref']) . '</td></tr></table>'
-                    . (!empty($ev['reminder_message']) || !empty($ev['email_message']) ? '<div style="margin:16px 0;padding:12px 14px;background:#f6f4ef;border-left:4px solid #0032fa;white-space:pre-line">' . e((string)($ev['reminder_message'] ?: $ev['email_message'])) . '</div>' : '')
-                    . '<p><a href="' . e($link) . '" style="background:' . e(setting('primary_color', '#0032fa')) . ';color:#fff;padding:12px 18px;border-radius:8px;text-decoration:none;display:inline-block">Afficher mes billets</a></p>'
+                    . (!empty($ev['reminder_message']) || !empty($ev['email_message']) ? '<div style="margin:16px 0;padding:12px 14px;background:#f6f4ef;border-left:4px solid #0071e3;white-space:pre-line">' . e((string)($ev['reminder_message'] ?: $ev['email_message'])) . '</div>' : '')
+                    . '<p><a href="' . e($link) . '" style="background:' . e(setting('primary_color', '#0071e3')) . ';color:#fff;padding:12px 18px;border-radius:8px;text-decoration:none;display:inline-block">Afficher mes billets</a></p>'
                     . '<p style="color:#777;font-size:13px">Astuce : garde cette page ouverte ou fais une capture du QR code, au cas où le réseau sature sur place 😉</p>',
                     [], $org['email'] ?? null);
                 $n++;
@@ -186,7 +186,7 @@ final class Buyers
                 Mailer::send((string)$o['email'], '🛒 Tes billets pour ' . $ev['name'] . ' t\'attendent',
                     '<p>Salut ' . e($o['first_name']) . ' 👋</p><p>Tu as commencé à réserver pour <b>' . e($ev['name']) . '</b> (' . e(fr_date($ev['starts_at'], false)) . ') mais le paiement n\'est pas allé au bout. Un souci de carte, un coup de fil, le chat qui marche sur le clavier ?</p>'
                     . '<p>On t\'a gardé ton panier :</p><ul>' . $list . '</ul>'
-                    . '<p><a href="' . e($link) . '" style="background:' . e(setting('primary_color', '#0032fa')) . ';color:#fff;padding:12px 18px;border-radius:8px;text-decoration:none;display:inline-block">Reprendre ma réservation</a></p>'
+                    . '<p><a href="' . e($link) . '" style="background:' . e(setting('primary_color', '#0071e3')) . ';color:#fff;padding:12px 18px;border-radius:8px;text-decoration:none;display:inline-block">Reprendre ma réservation</a></p>'
                     . '<p style="color:#777;font-size:13px">Les places partent vite, on ne peut pas te les garder éternellement. Plus intéressé·e ? Ignore simplement cet e-mail, on ne te relancera pas.</p>',
                     [], $org['email'] ?? null);
                 $n++;
@@ -227,7 +227,7 @@ final class Buyers
                 Mailer::send($email, $code ? '🎁 −' . (int)$org['recovery_pct'] . ' % pour finir ta réservation : ' . $ev['name'] : '⏳ Dernier rappel : ' . $ev['name'],
                     '<p>Re-salut ' . e($o['first_name']) . ' 👋</p><p>Ton panier pour <b>' . e($ev['name']) . '</b> t\'attend toujours… mais plus pour très longtemps.</p>'
                     . ($code ? '<p style="font-size:17px">Pour te motiver, voici <b>−' . (int)$org['recovery_pct'] . ' %</b> avec le code <b style="font-family:monospace;background:#f4f4f8;padding:3px 8px;border-radius:6px">' . e($code) . '</b> (valable 72 h, déjà appliqué via le bouton).</p>' : '')
-                    . '<p><a href="' . e($link) . '" style="background:' . e(setting('primary_color', '#0032fa')) . ';color:#fff;padding:12px 18px;border-radius:8px;text-decoration:none;display:inline-block">Je finis ma réservation</a></p>'
+                    . '<p><a href="' . e($link) . '" style="background:' . e(setting('primary_color', '#0071e3')) . ';color:#fff;padding:12px 18px;border-radius:8px;text-decoration:none;display:inline-block">Je finis ma réservation</a></p>'
                     . '<p style="color:#777;font-size:13px">C\'est le dernier e-mail à ce sujet, promis.</p>', [], $org['email'] ?? null);
                 $n++;
             } catch (Throwable $e) { log_line('emails', 'Relance panier (2) #' . $o['id'] . ' : ' . $e->getMessage()); }
@@ -334,7 +334,7 @@ final class Buyers
         $org = one('SELECT * FROM organizers WHERE id = ?', [$ev['organizer_id']]);
         Mailer::send($email, '🔑 Ton accès à la prévente : ' . $ev['name'],
             '<p>Salut 👋</p><p>Tu fais partie des privilégiés : tu peux prendre tes places pour <b>' . e($ev['name']) . '</b> avant tout le monde (ouverture au public le ' . e(fr_date((string)$ev['presale_until'])) . ').</p>'
-            . '<p><a href="' . e(abs_url('/e/' . $ev['slug'] . '/prevente/' . $tok)) . '" style="background:' . e(setting('primary_color', '#0032fa')) . ';color:#fff;padding:12px 18px;border-radius:8px;text-decoration:none;display:inline-block">J\'accède à la prévente</a></p>'
+            . '<p><a href="' . e(abs_url('/e/' . $ev['slug'] . '/prevente/' . $tok)) . '" style="background:' . e(setting('primary_color', '#0071e3')) . ';color:#fff;padding:12px 18px;border-radius:8px;text-decoration:none;display:inline-block">J\'accède à la prévente</a></p>'
             . '<p style="color:#777;font-size:13px">Ce lien est personnel. Il fonctionne jusqu\'à l\'ouverture au public.</p>', [], $org['email'] ?? null);
     }
 

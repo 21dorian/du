@@ -95,7 +95,7 @@ final class Campaigns
      */
     public static function render(array $c, array $org, ?array $r = null): string
     {
-        $color = '#0032fa';
+        $color = '#0071e3';
         $first = $r['first_name'] ?? 'Camille';
         $sub = fn(string $s) => str_replace(['{prenom}', '{prénom}'], (string)$first, $s);
         $btn = fn(string $label, string $url) => '<table role="presentation" cellpadding="0" cellspacing="0" style="margin:18px 0"><tr><td style="border-radius:12px;background:' . $color . '">'
@@ -126,7 +126,7 @@ final class Campaigns
         $logo = $org['logo'] ? '<img src="' . e(abs_url($org['logo'])) . '" alt="" height="40" style="display:block;height:40px;margin-bottom:6px">' : '';
         $pre = trim((string)$c['preheader']) !== '' ? '<div style="display:none;max-height:0;overflow:hidden;opacity:0">' . e($sub((string)$c['preheader'])) . '</div>' : '';
         return '<!doctype html><html lang="fr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>' . e($c['subject']) . '</title></head>'
-            . '<body style="margin:0;padding:0;background:#f0f5fa;font-family:Avenir Next,Avenir,Nunito Sans,Helvetica,Arial,sans-serif;color:#1c1c28">' . $pre
+            . '<body style="margin:0;padding:0;background:#f0f5fa;font-family:-apple-system,BlinkMacSystemFont,Helvetica Neue,Helvetica,Arial,sans-serif;color:#1c1c28">' . $pre
             . '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#f0f5fa"><tr><td align="center" style="padding:24px 12px">'
             . '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:600px">'
             . '<tr><td style="padding:0 8px 14px">' . $logo . '<div style="font-weight:bold;font-size:15px;color:#0f0f14">' . e($org['name']) . '</div></td></tr>'
@@ -142,7 +142,7 @@ final class Campaigns
     private static function inline(string $escaped): string
     {
         $s = preg_replace('~\*\*(.+?)\*\*~u', '<b>$1</b>', $escaped);
-        return (string)preg_replace('~(https?://[^\s<]+)~u', '<a href="$1" style="color:#0032fa">$1</a>', (string)$s);
+        return (string)preg_replace('~(https?://[^\s<]+)~u', '<a href="$1" style="color:#0071e3">$1</a>', (string)$s);
     }
 
     public static function text(array $c): string

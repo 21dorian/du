@@ -66,8 +66,8 @@ final class Mailer
 
     private static function wrap(string $title, string $body): string
     {
-        $c = e(setting('primary_color', '#0032fa'));
-        return '<!doctype html><html><body style="margin:0;background:#f4f4f8;font-family:Avenir Next,Avenir,Nunito Sans,Helvetica,Arial,sans-serif;color:#1c1c28">'
+        $c = e(setting('primary_color', '#0071e3'));
+        return '<!doctype html><html><body style="margin:0;background:#f4f4f8;font-family:-apple-system,BlinkMacSystemFont,Helvetica Neue,Helvetica,Arial,sans-serif;color:#1c1c28">'
             . '<div style="max-width:600px;margin:0 auto;padding:24px 12px">'
             . '<div style="background:' . $c . ';color:#fff;border-radius:12px 12px 0 0;padding:18px 24px;font-size:20px;font-weight:bold">' . e(setting('platform_name')) . '</div>'
             . '<div style="background:#fff;border-radius:0 0 12px 12px;padding:24px;line-height:1.5;font-size:15px">' . $body . '</div>'
@@ -101,10 +101,10 @@ final class Mailer
             . '<p>🎟️ <b>Tes billets sont en pièce jointe (PDF).</b> Montre le QR code à l\'entrée, sur ton téléphone ou imprimé. Un QR code = une entrée : garde-le pour toi.</p>'
             . '<table style="width:100%;border-collapse:collapse;font-size:14px">' . $rows . '</table>'
             . ($products ? '<p style="margin-top:14px">✨ Avec ta commande : ' . e(implode(', ', array_map(fn($i) => $i['qty'] . ' × ' . $i['name'], $products))) . ' (à retirer sur place).</p>' : '')
-            . (!empty($ev['email_message']) ? '<div style="margin:18px 0;padding:14px 16px;background:#f6f4ef;border-left:4px solid #0032fa;white-space:pre-line">' . e($ev['email_message']) . '</div>' : '')
+            . (!empty($ev['email_message']) ? '<div style="margin:18px 0;padding:14px 16px;background:#f6f4ef;border-left:4px solid #0071e3;white-space:pre-line">' . e($ev['email_message']) . '</div>' : '')
             . (class_exists('Buyers') ? Buyers::calendarLinks($ev, $session) : '')
             . (class_exists('Buyers') ? '<p style="font-size:14px">👯 Tes potes viennent aussi ? Envoie-leur ce lien : <a href="' . e(Buyers::inviteUrl($ev, $o)) . '">' . e(Buyers::inviteUrl($ev, $o)) . '</a></p>' : '')
-            . '<p style="margin-top:22px"><a href="' . e($link) . '" style="background:' . e(setting('primary_color', '#0032fa')) . ';color:#fff;padding:12px 18px;border-radius:8px;text-decoration:none;display:inline-block">Voir mes billets</a></p>'
+            . '<p style="margin-top:22px"><a href="' . e($link) . '" style="background:' . e(setting('primary_color', '#0071e3')) . ';color:#fff;padding:12px 18px;border-radius:8px;text-decoration:none;display:inline-block">Voir mes billets</a></p>'
             . '<p style="color:#777;font-size:13px">Une question sur l\'événement ? Écris à l\'organisateur : ' . e($org['name']) . ($org['email'] ? ' — ' . e($org['email']) : '') . '</p>';
         $pdf = TicketPdf::build($o, $ev, $org, $tickets);
         self::send((string)$o['email'], '🎟️ Tes billets pour ' . $ev['name'], $html, [['data' => $pdf, 'name' => 'billets-' . $o['ref'] . '.pdf']], $org['email'] ?? null);

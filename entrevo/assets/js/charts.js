@@ -4,7 +4,7 @@
 (function () {
   'use strict';
   var NS = 'http://www.w3.org/2000/svg';
-  var COLORS = ['#0032fa', '#7d8699'];
+  var COLORS = ['#0071e3', '#7d8699'];
   function el(tag, attrs, parent) { var n = document.createElementNS(NS, tag); for (var k in attrs) n.setAttribute(k, attrs[k]); if (parent) parent.appendChild(n); return n; }
   function fmt(v, f) {
     if (f === 'money') return (v / 100).toLocaleString('fr-FR', { style: 'currency', currency: 'EUR', maximumFractionDigits: v % 100 ? 2 : 0 });

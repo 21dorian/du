@@ -157,7 +157,7 @@ function setting_defaults(): array
         'cgv' => '',
         'legal' => '',
         'signup_open' => '1',
-        'primary_color' => '#0032fa',
+        'primary_color' => '#0071e3',
     ];
 }
 

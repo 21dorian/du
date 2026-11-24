@@ -1,6 +1,6 @@
 <!doctype html><html lang="fr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
 <title><?= e($org['name']) ?></title><link rel="stylesheet" href="<?= asset('css/app.css') ?>">
-<style>:root{--primary:<?= e(setting('primary_color', '#0032fa')) ?>}body{background:transparent}.w{padding:12px}</style></head>
+<style>:root{--primary:<?= e(setting('primary_color', '#0071e3')) ?>}body{background:transparent}.w{padding:12px}</style></head>
 <body class="pub"><div class="w">
 <?php if (!$events): ?><p class="muted">Aucun événement en vente pour le moment.</p><?php endif; ?>
 <?php foreach ($events as $ev): $t = strtotime($ev['starts_at']); ?>

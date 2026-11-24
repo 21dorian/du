@@ -62,7 +62,7 @@ final class Recap
             $html .= '</table>';
         }
         if ($refunds) $html .= '<p style="background:#fbefd9;color:#8a5300;padding:10px 12px;border-radius:10px">💸 ' . $refunds . ' demande(s) de remboursement attendent ta réponse.</p>';
-        $html .= '<p><a href="' . e(abs_url('/pro')) . '" style="display:inline-block;background:#0032fa;color:#fff;padding:12px 18px;border-radius:12px;text-decoration:none;font-weight:bold">Ouvrir mon tableau de bord</a></p>'
+        $html .= '<p><a href="' . e(abs_url('/pro')) . '" style="display:inline-block;background:#0071e3;color:#fff;padding:12px 18px;border-radius:12px;text-decoration:none;font-weight:bold">Ouvrir mon tableau de bord</a></p>'
             . '<p style="color:#777;font-size:12px">Tu reçois ce récap car il est activé dans Mon organisation › Notifications. Tu peux le couper en un clic là-bas.</p>';
         $subject = ($weekly ? '📊 Ta semaine' : '☀️ Ton récap') . ' : ' . money((int)$k['t']) . ', ' . (int)$k['q'] . ' billet' . ((int)$k['q'] > 1 ? 's' : '');
         foreach ($to ? [$to] : self::recipients($org) as $email) Mailer::send($email, $subject, $html);

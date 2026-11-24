@@ -507,7 +507,7 @@ function find_tickets(): string
                 $list = '';
                 foreach ($orders as $o) $list .= '<li style="margin-bottom:8px"><a href="' . e(abs_url('/commande/' . $o['ref'], ['t' => $o['token']])) . '">' . e($o['ev_name']) . '</a> — ' . e(fr_date($o['starts_at'], false)) . ' (commande ' . e($o['ref']) . ')</li>';
                 try { Mailer::send($email, '🎟️ Ton espace billets ' . setting('platform_name'), '<p>Salut 👋</p><p>Voici ton accès à <b>tous tes billets</b> au même endroit (lien valable 30 minutes) :</p>'
-                    . '<p><a href="' . e(abs_url('/acheteur/' . $tok, ['r' => '/mes-billets'])) . '" style="display:inline-block;background:' . e(setting('primary_color', '#0032fa')) . ';color:#fff;padding:12px 18px;border-radius:12px;text-decoration:none;font-weight:bold">Ouvrir mon espace</a></p>'
+                    . '<p><a href="' . e(abs_url('/acheteur/' . $tok, ['r' => '/mes-billets'])) . '" style="display:inline-block;background:' . e(setting('primary_color', '#0071e3')) . ';color:#fff;padding:12px 18px;border-radius:12px;text-decoration:none;font-weight:bold">Ouvrir mon espace</a></p>'
                     . ($list ? '<p>Ou directement :</p><ul>' . $list . '</ul>' : '') . '<p style="color:#777;font-size:13px">Pas toi ? Ignore cet e-mail.</p>'); }
                 catch (Throwable $e) { log_line('emails', 'Mes billets : ' . $e->getMessage()); }
             }
