@@ -9,6 +9,7 @@ function drawer_fmt(array $sum): array
 {
     return ['lines' => array_map(fn($l) => ['name' => $l['name'], 'qty' => $l['qty'], 'kind' => $l['kind'], 'total' => money($l['qty'] * $l['unit_price'])], $sum['lines']),
         'subtotal' => money($sum['subtotal']), 'discount' => $sum['discount'] - (int)($sum['group']['amount'] ?? 0) > 0 ? money($sum['discount'] - (int)$sum['group']['amount']) : null,
+        'gift' => !empty($sum['gift']) ? ['code' => $sum['gift']['code'], 'amount' => money((int)$sum['gift']['amount'])] : null,
         'group' => !empty($sum['group']['amount']) ? ['pct' => $sum['group']['pct'], 'amount' => money($sum['group']['amount'])] : null,
         'group_next' => !empty($sum['group']['next']) ? ['missing' => $sum['group']['next']['min'] - $sum['group']['count'], 'pct' => $sum['group']['next']['pct']] : null, 'fees' => $sum['fees'] ? money($sum['fees']) : null,
         'donation' => $sum['donation'] ? money($sum['donation']) : null, 'total' => money($sum['total']), 'total_cents' => $sum['total'], 'places' => $sum['places'],
@@ -55,7 +56,10 @@ function drawer_cart(string $slug): never
     $msg = null; $errors = [];
     if ($a === 'code') {
         $r = Tickets::findPromo((int)$ev['id'], strtoupper(trim((string)input('code'))));
-        if (!empty($r['error']) || empty($r['promo'])) $errors[] = ($r['error'] ?? 'Code inconnu.') . '';
+        [$gc, $gErr] = (!empty($r['error']) || empty($r['promo'])) ? Store::giftFind((int)$ev['organizer_id'], (string)input('code')) : [null, null];
+        if ($gc) { $cart['gift'] = $gc['code']; $msg = 'Carte cadeau ajoutée : ' . money((int)$gc['balance']) . ' disponibles.'; }
+        elseif (!empty($r['error']) || empty($r['promo'])) $errors[] = $gErr ?: ($r['error'] ?? 'Code inconnu.');
+        elseif ($gc) { /* carte cadeau appliquée */ }
         elseif ($r['promo']['kind'] === 'unlock') { $cart['unlocked'] = array_values(array_unique(array_merge($cart['unlocked'] ?? [], $r['promo']['rate_list']))); $msg = 'unlock'; }
         else { $cart['promo'] = $r['promo']['code']; $msg = 'Code « ' . $r['promo']['code'] . ' » appliqué.'; }
     } elseif ($a === 'remove_code') {
@@ -64,7 +68,7 @@ function drawer_cart(string $slug): never
         $keep = $cart;
         fill_cart_from_input($ev, $cart, $_POST);
         $cart['promo'] = $keep['promo']; $cart['unlocked'] = $keep['unlocked'] ?? [];
-        foreach (['waitlist', 'partner'] as $k) if (isset($keep[$k])) $cart[$k] = $keep[$k];
+        foreach (['waitlist', 'partner', 'gift'] as $k) if (isset($keep[$k])) $cart[$k] = $keep[$k];
         if (!$cart['q']) $errors[] = 'Prends au moins un billet';
         elseif ($a === 'start') Traffic::hit($ev, 'carts');
     }
@@ -80,7 +84,7 @@ function drawer_order(string $slug): never
     $keep = $cart;
     fill_cart_from_input($ev, $cart, $_POST);
     $cart['promo'] = $keep['promo']; $cart['unlocked'] = $keep['unlocked'] ?? [];
-    foreach (['waitlist', 'partner'] as $k) if (isset($keep[$k])) $cart[$k] = $keep[$k];
+    foreach (['waitlist', 'partner', 'gift'] as $k) if (isset($keep[$k])) $cart[$k] = $keep[$k];
     cart_set((int)$ev['id'], $cart);
     if (!$cart['q']) json_out(['ok' => false, 'errors' => ['Ton panier est vide.']]);
     $session = cart_session($ev, $cart);

@@ -100,7 +100,8 @@
     if (summary.discount) add('good', 'Réduction' + (summary.promo ? ' (' + summary.promo + ')' : ''), '−' + summary.discount);
     if (summary.fees) add('muted', 'Frais de service', summary.fees);
     if (summary.donation) add('', 'Don', summary.donation);
-    if (summary.promo_note) add('muted', '' + summary.promo_note, '');
+    if (summary.promo_note) add('muted', summary.promo_note, '');
+    if (summary.gift) add('good', 'Carte cadeau ' + summary.gift.code, '−' + summary.gift.amount);
     add('total', 'Total', summary.total);
     box.appendChild(t);
   }

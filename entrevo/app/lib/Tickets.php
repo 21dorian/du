@@ -233,7 +233,7 @@ final class Tickets
         $org = $p['org'];
         $session = $p['session'] ?? null;
         $method = $p['method'] ?? 'online';
-        $staff = in_array($method, ['guichet', 'invitation', 'import'], true);
+        $staff = in_array($method, ['guichet', 'invitation', 'import', 'pass'], true);
         $partner = $p['partner'] ?? null;
         $waitlist = $p['waitlist'] ?? null;
         $resale = $p['resale'] ?? null;
@@ -288,7 +288,7 @@ final class Tickets
                         if ($wanted < (int)$rate['price']) { $errors[] = $rate['name'] . ' : minimum ' . money((int)$rate['price']) . '.'; continue; }
                         $price = min($wanted, 1000000);
                     }
-                    if (in_array($method, ['invitation', 'import'], true) || ($partner && $partner['free'])) $price = 0;
+                    if (in_array($method, ['invitation', 'import', 'pass'], true) || ($partner && $partner['free'])) $price = 0;
                 }
                 // placement numéroté
                 $seats = [];
@@ -348,6 +348,12 @@ final class Tickets
             else { $total = $net; $commission = min($fees, $net); $orgAmount = $net - $commission; }
             $total += $donation;
             $orgAmount += $donation;
+            // carte cadeau : réduit ce qui reste à payer ; l'organisateur a déjà touché ce montant à la vente de la carte
+            $giftCode = null; $giftAmount = 0;
+            if (!empty($p['gift']) && $method === 'online' && !$resale && $total > 0) {
+                [$card, $gErr] = Store::giftFind((int)$ev['organizer_id'], (string)$p['gift']);
+                if ($card) { $giftCode = $card['code']; $giftAmount = min((int)$card['balance'], $total); $total -= $giftAmount; $orgAmount = max(0, $orgAmount - $giftAmount); }
+            }
             if (!$online) { $orgAmount = 0; $commission = 0; } // encaissé directement par l'organisateur
 
             $buyer = $p['buyer'];
@@ -365,6 +371,8 @@ final class Tickets
                 'subtotal' => $subtotal,
                 'discount' => $discount,
                 'group_discount' => $group,
+                'gift_code' => $giftCode,
+                'gift_amount' => $giftAmount,
                 'fees' => $online ? $fees : 0,
                 'donation' => $donation,
                 'total' => $total,
@@ -418,6 +426,7 @@ final class Tickets
             if ($o['status'] === 'paid') { db()->commit(); return $o; }
             if (!in_array($o['status'], ['pending', 'expired'], true)) { db()->rollBack(); return $o; }
             update('orders', array_merge(['status' => 'paid', 'paid_at' => now()], $extra), 'id = ?', [$orderId]);
+            if (!empty($o['gift_code'])) Store::giftDebit($o);
             if ($o['promo_code']) q('UPDATE promos SET used = used + 1 WHERE event_id = ? AND code = ?', [$o['event_id'], $o['promo_code']]);
             $answers = json_decode((string)$o['answers'], true) ?: [];
             $holders = $answers['holders'] ?? [];
@@ -470,7 +479,8 @@ final class Tickets
         try { if (class_exists('Resale') && $o['resale_id']) Resale::settle($o); } catch (Throwable $e) { log_line('revente', $o['ref'] . ' : ' . $e->getMessage()); }
         if ($o['waitlist_id']) q("UPDATE waitlist SET status = 'converted', order_id = ? WHERE id = ?", [$o['id'], $o['waitlist_id']]);
         q('DELETE FROM seat_holds WHERE order_id = ?', [$o['id']]);
-        if ($sendEmail) Mailer::sendOrderSafe((int)$o['id']);
+        if ((int)$o['event_id'] === 0) { try { Store::fulfil($o); } catch (Throwable $e) { log_line('boutique', $o['ref'] . ' : ' . $e->getMessage()); } }
+        elseif ($sendEmail) Mailer::sendOrderSafe((int)$o['id']);
         try { if (class_exists('Hooks')) Hooks::fire((int)$o['organizer_id'], 'order.paid', Hooks::orderPayload($o)); } catch (Throwable $e) { log_line('webhooks', $e->getMessage()); }
         return $o;
     }

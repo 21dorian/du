@@ -19,6 +19,14 @@
     </div>
   </div>
   <?php if ($org['description']): ?><p class="org-about"><?= nl2br(e($org['description'])) ?></p><?php endif; ?>
+  <?php $hasPass = (bool)val('SELECT 1 FROM pass_types WHERE organizer_id = ? AND active = 1 LIMIT 1', [$org['id']]); $hasShop = !empty($org['shop_enabled']) && val('SELECT 1 FROM shop_products WHERE organizer_id = ? AND active = 1 LIMIT 1', [$org['id']]);
+  if ($hasPass || !empty($org['gift_enabled']) || $hasShop): ?>
+  <div class="org-store">
+    <?php if ($hasPass): ?><a class="btn btn-light" href="<?= url('/o/' . $org['slug'] . '/abonnements') ?>"><?= ui_icon('ticket', 18) ?> Abonnements</a><?php endif; ?>
+    <?php if (!empty($org['gift_enabled'])): ?><a class="btn btn-light" href="<?= url('/o/' . $org['slug'] . '/cartes-cadeaux') ?>"><?= ui_icon('gift', 18) ?> Offrir une carte cadeau</a><?php endif; ?>
+    <?php if ($hasShop): ?><a class="btn btn-light" href="<?= url('/o/' . $org['slug'] . '/boutique') ?>"><?= ui_icon('bag', 18) ?> Boutique</a><?php endif; ?>
+  </div>
+  <?php endif; ?>
 </section>
 <h2 class="org-h">À venir</h2>
 <?php if (!$events): ?><div class="card empty">Aucun événement en vente pour le moment.</div>

@@ -185,7 +185,11 @@ function event_select(string $slug): never
     if (input('action') === 'code') {
         $code = strtoupper(trim((string)input('code')));
         $r = Tickets::findPromo((int)$ev['id'], $code);
-        if (!empty($r['error']) || empty($r['promo'])) redirect($back, ['error' => ($r['error'] ?? 'Code inconnu.') . '']);
+        if (!empty($r['error']) || empty($r['promo'])) {
+            [$gc, $gErr] = Store::giftFind((int)$ev['organizer_id'], $code);
+            if ($gc) { $cart['gift'] = $gc['code']; cart_set((int)$ev['id'], $cart); redirect($back, ['success' => 'Carte cadeau ajoutée : ' . money((int)$gc['balance']) . ' disponibles.']); }
+            redirect($back, ['error' => $gErr ?: ($r['error'] ?? 'Code inconnu.')]);
+        }
         $p = $r['promo'];
         if ($p['kind'] === 'unlock') {
             $cart['unlocked'] = array_values(array_unique(array_merge($cart['unlocked'] ?? [], $p['rate_list'])));
@@ -262,8 +266,12 @@ function cart_summary(array $ev, array $org, array $cart): array
     $fees = Tickets::computeFees($org, $subtotal - $discount, $paidUnits);
     $buyerFees = $org['fee_mode'] === 'buyer' ? $fees : 0;
     $donation = (int)($cart['donation'] ?? 0);
-    return ['lines' => $lines, 'promo' => $promo, 'subtotal' => $subtotal, 'discount' => $discount, 'group' => $group, 'fees' => $buyerFees, 'donation' => $donation,
-        'total' => $subtotal - $discount + $buyerFees + $donation, 'places' => array_sum(array_map(fn($l) => $l['qty'] * $l['pack'], $lines))];
+    $gross = $subtotal - $discount + $buyerFees + $donation;
+    $giftAmt = 0; $giftCode = null;
+    if (!empty($cart['gift']) && $gross > 0) { [$card] = Store::giftFind((int)$ev['organizer_id'], (string)$cart['gift']); if ($card) { $giftAmt = min((int)$card['balance'], $gross); $giftCode = $card['code']; } }
+    return ['gift' => $giftAmt ? ['code' => $giftCode, 'amount' => $giftAmt] : null, 'gross' => $gross,
+        'lines' => $lines, 'promo' => $promo, 'subtotal' => $subtotal, 'discount' => $discount, 'group' => $group, 'fees' => $buyerFees, 'donation' => $donation,
+        'total' => $gross - $giftAmt, 'places' => array_sum(array_map(fn($l) => $l['qty'] * $l['pack'], $lines))];
 }
 
 /** Questions du formulaire applicables (toutes, ou seulement celles liées aux tarifs du panier). */
@@ -337,7 +345,7 @@ function place_order(array $ev, array $org, array $cart, ?array $session, array 
     if ($errors) return ['errors' => $errors];
     $r = Tickets::createOrder([
         'event' => $ev, 'org' => $org, 'session' => $session, 'quantities' => $cart['q'], 'prices' => $cart['prices'], 'products' => $cart['products'],
-        'donation' => $cart['donation'], 'seats' => $cart['seats'], 'buyer' => $buyer, 'holders' => $holders, 'order_answers' => $orderAnswers,
+        'donation' => $cart['donation'], 'seats' => $cart['seats'], 'buyer' => $buyer, 'holders' => $holders, 'order_answers' => $orderAnswers, 'gift' => $cart['gift'] ?? '',
         'promo' => $cart['promo'], 'unlocked' => $cart['unlocked'] ?? [], 'variants' => $cart['variants'] ?? [], 'method' => $partner ? 'partner' : 'online', 'partner' => $partner,
         'waitlist' => $waitlist, 'utm' => $_SESSION['utm'] ?? [], 'channel' => (($_SESSION['utm']['source'] ?? '') === 'widget') ? 'widget' : null,
     ]);
@@ -399,10 +407,10 @@ function payment_choice(string $ref): string
     if ($o['status'] === 'paid') redirect('/commande/' . $o['ref'] . '?t=' . $o['token']);
     if ($o['status'] !== 'pending' || strtotime((string)$o['expires_at']) < time()) {
         return pub('message', ['title' => 'Trop tard…', 'text' => 'Le chrono est fini, tes places sont reparties dans la nature. Rien de grave : recommence, il en reste peut-être.',
-            'link' => url('/e/' . val('SELECT slug FROM events WHERE id = ?', [$o['event_id']])), 'link_label' => 'Je retente ma chance'], 'Commande expirée');
+            'link' => $o['event_id'] ? url('/e/' . val('SELECT slug FROM events WHERE id = ?', [$o['event_id']])) : url('/o/' . val('SELECT slug FROM organizers WHERE id = ?', [$o['organizer_id']])), 'link_label' => 'Je retente ma chance'], 'Commande expirée');
     }
     $providers = Payments::available();
-    $ev = one('SELECT * FROM events WHERE id = ?', [$o['event_id']]);
+    $ev = one('SELECT * FROM events WHERE id = ?', [$o['event_id']]) ?: Store::pseudoEvent($o);
     $error = null;
     if (is_post() || count($providers) === 1) {
         $p = is_post() ? (string)input('provider') : (string)array_key_first($providers);
@@ -478,6 +486,7 @@ function order_page(string $ref): string
     }
     $ev = one('SELECT * FROM events WHERE id = ?', [$o['event_id']]);
     $org = one('SELECT * FROM organizers WHERE id = ?', [$o['organizer_id']]);
+    if (!$ev) { require_once APP . '/controllers/store.php'; return store_order_page($o, $org); }
     $tickets = all('SELECT * FROM tickets WHERE order_id = ? ORDER BY id', [$o['id']]);
     $items = all('SELECT * FROM order_items WHERE order_id = ?', [$o['id']]);
     $session = $o['session_id'] ? one('SELECT * FROM sessions WHERE id = ?', [$o['session_id']]) : null;

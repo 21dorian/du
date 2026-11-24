@@ -149,12 +149,14 @@ function settings(): string
             'payments' => ['stripe_secret', 'stripe_public', 'paypal_client_id', 'paypal_secret', 'sumup_api_key', 'sumup_merchant_code', 'mollie_api_key'],
             'emails' => ['smtp_host', 'smtp_port', 'smtp_secure', 'smtp_user', 'smtp_pass', 'mail_from', 'mail_from_name'],
             'legal' => ['cgv', 'legal', 'company_info'],
+            'sms' => ['sms_api_key', 'sms_price', 'sms_stop'],
         ][$tab] ?? [];
         $checks = ['general' => ['signup_open', 'org_approval'], 'fees' => ['refund_fees', 'kyc_required', 'invoice_auto'], 'payments' => ['demo_enabled', 'stripe_enabled', 'paypal_enabled', 'paypal_sandbox', 'sumup_enabled', 'mollie_enabled']][$tab] ?? [];
         foreach ($fields as $f) {
             if (!array_key_exists($f, $_POST)) continue;
             $v = trim((string)$_POST[$f]);
-            if (in_array($f, ['stripe_secret', 'paypal_secret', 'sumup_api_key', 'mollie_api_key', 'smtp_pass'], true) && $v === '') continue; // vide = inchangé
+            if (in_array($f, ['stripe_secret', 'paypal_secret', 'sumup_api_key', 'mollie_api_key', 'smtp_pass', 'sms_api_key'], true) && $v === '') continue;
+            if ($f === 'sms_price') $v = (string)parse_money($v); // vide = inchangé
             if ($f === 'fee_fixed') $v = (string)parse_money($v);
             if ($f === 'fee_percent') $v = (string)max(0, min(50, (float)str_replace(',', '.', $v)));
             if ($f === 'base_url') $v = rtrim($v, '/');
@@ -165,6 +167,13 @@ function settings(): string
         if (input('test_email')) {
             try { Mailer::send((string)input('test_email'), 'Test ' . setting('platform_name'), '<p>Si tu lis ça, les e-mails marchent.</p>'); redirect('/admin/reglages?tab=emails', ['success' => 'E-mail de test envoyé à ' . input('test_email') . '.']); }
             catch (Throwable $e) { redirect('/admin/reglages?tab=emails', ['error' => 'Échec de l\'envoi : ' . $e->getMessage()]); }
+        }
+        if ($tab === 'sms' && input('sms_key_clear')) set_setting('sms_api_key', '');
+        if ($tab === 'sms' && input('test_sms')) {
+            $to = Sms::normalize((string)input('test_sms'));
+            try { if (!$to) throw new RuntimeException('numéro de mobile invalide'); $st = Sms::send($to, 'Test ' . setting('platform_name') . ' : les SMS marchent.', 'Entrevo', 'test');
+                redirect('/admin/reglages?tab=sms', ['success' => $st === 'test' ? 'Pas de clé : SMS écrit dans le journal « sms » (mode test).' : 'SMS de test envoyé.']); }
+            catch (Throwable $e) { redirect('/admin/reglages?tab=sms', ['error' => 'Échec : ' . $e->getMessage()]); }
         }
         redirect('/admin/reglages?tab=' . urlencode($tab), ['success' => 'Réglages enregistrés.']);
     }

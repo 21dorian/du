@@ -41,16 +41,16 @@ function admin_home(): string
     // à faire
     $todo = [];
     $n = (int)val("SELECT COUNT(*) FROM organizers WHERE status = 'pending'");
-    if ($n) $todo[] = ['', $n . ' organisateur(s) à valider', 'Ils attendent pour publier', '/admin/organisateurs?st=pending', 'hot'];
+    if ($n) $todo[] = [ui_icon('users'), $n . ' organisateur(s) à valider', 'Ils attendent pour publier', '/admin/organisateurs?st=pending', 'hot'];
     $due = payouts_due();
     $sumDue = array_sum(array_column($due, 'balance'));
-    if ($due) $todo[] = ['', money($sumDue) . ' à reverser', count($due) . ' organisateur(s) · ' . count(array_filter($due, fn($o) => !$o['iban_ok'])) . ' sans IBAN valide', '/admin/reversements', ''];
+    if ($due) $todo[] = [ui_icon('euro'), money($sumDue) . ' à reverser', count($due) . ' organisateur(s) · ' . count(array_filter($due, fn($o) => !$o['iban_ok'])) . ' sans IBAN valide', '/admin/reversements', ''];
     $n = (int)val("SELECT COUNT(*) FROM resales WHERE refund_status = 'failed'");
-    if ($n) $todo[] = ['', $n . ' remboursement(s) de revente échoué(s)', 'À traiter à la main chez le prestataire', '/admin/commandes', 'hot'];
+    if ($n) $todo[] = [ui_icon('refund'), $n . ' remboursement(s) de revente échoué(s)', 'À traiter à la main chez le prestataire', '/admin/commandes', 'hot'];
     $cronLast = (int)setting('cron_last', 0);
-    if (!$cronLast || $cronLast < time() - 3600) $todo[] = ['', 'Tâche planifiée (cron) ' . ($cronLast ? 'arrêtée depuis ' . ago(date('Y-m-d H:i:s', $cronLast)) : 'jamais lancée'), 'Campagnes, récaps et rappels en dépendent', '/admin/sante', 'hot'];
-    if (array_keys(Payments::available()) === ['demo'] || !Payments::available()) $todo[] = ['', 'Paiement en mode démo uniquement', 'Branche Stripe, PayPal, SumUp ou Mollie', '/admin/reglages?tab=payments', 'hot'];
-    if (!setting('smtp_host')) $todo[] = ['', 'Pas de serveur SMTP configuré', 'Les e-mails partent via mail() : risque de spam', '/admin/reglages?tab=emails', ''];
+    if (!$cronLast || $cronLast < time() - 3600) $todo[] = [ui_icon('clock'), 'Tâche planifiée (cron) ' . ($cronLast ? 'arrêtée depuis ' . ago(date('Y-m-d H:i:s', $cronLast)) : 'jamais lancée'), 'Campagnes, récaps et rappels en dépendent', '/admin/sante', 'hot'];
+    if (array_keys(Payments::available()) === ['demo'] || !Payments::available()) $todo[] = [ui_icon('lock'), 'Paiement en mode démo uniquement', 'Branche Stripe, PayPal, SumUp ou Mollie', '/admin/reglages?tab=payments', 'hot'];
+    if (!setting('smtp_host')) $todo[] = [ui_icon('mail'), 'Pas de serveur SMTP configuré', 'Les e-mails partent via mail() : risque de spam', '/admin/reglages?tab=emails', ''];
     $recent = all('SELECT * FROM organizers ORDER BY created_at DESC LIMIT 6');
     $demo = (int)val("SELECT COUNT(*) FROM orders WHERE status = 'paid' AND provider = 'demo'");
     return admin_page('Vue d\'ensemble', 'home', compact('per', 'cur', 'prev', 'newOrgs', 'newOrgsPrev', 'allTickets', 'labels', 'com', 'gmv', 'top', 'todo', 'recent', 'demo', 'sumDue'), 'dash',
@@ -224,4 +224,32 @@ function health_page(): string
     try { $hooks = all('SELECT * FROM webhook_log ORDER BY id DESC LIMIT 10'); } catch (Throwable $e) {}
     $errors = tail_log('erreurs', 12); $mailErrors = tail_log('emails', 8); $taskErrors = tail_log('taches', 8);
     return admin_page('Santé de la plateforme', 'health', compact('checks', 'mails', 'hooks', 'errors', 'mailErrors', 'taskErrors'), 'health');
+}
+
+/** Statistiques de la plateforme : 12 mois glissants (ou 30/90 jours), démo incluse sur demande. */
+function admin_stats(): string
+{
+    require_login(['superadmin']);
+    $demo = input('demo') === '1';
+    $w = $demo ? "o.status = 'paid' AND o.method = 'online' AND o.provider IS NOT NULL" : REAL_ONLINE;
+    $months = in_array((int)input('m'), [3, 6, 12, 24], true) ? (int)input('m') : 12;
+    $from = date('Y-m-01 00:00:00', strtotime('-' . ($months - 1) . ' months'));
+    $labels = []; $keys = [];
+    for ($i = $months - 1; $i >= 0; $i--) { $t = strtotime(date('Y-m-01') . " -$i months"); $keys[] = date('Y-m', $t); $labels[] = ['', 'janv.', 'févr.', 'mars', 'avr.', 'mai', 'juin', 'juil.', 'août', 'sept.', 'oct.', 'nov.', 'déc.'][(int)date('n', $t)] . ' ' . date('y', $t); }
+    $by = fn(array $rows, string $col) => array_map(fn($k) => (int)($rows[$k][$col] ?? 0), $keys);
+    $monthly = array_column(all("SELECT DATE_FORMAT(o.paid_at, '%Y-%m') m, SUM(o.total) gmv, SUM(o.commission) com, COUNT(*) n,
+        SUM((SELECT COUNT(*) FROM tickets t WHERE t.order_id = o.id)) tk FROM orders o WHERE $w AND o.paid_at >= ? GROUP BY m", [$from]), null, 'm');
+    $orgsM = array_column(all("SELECT DATE_FORMAT(created_at, '%Y-%m') m, COUNT(*) n FROM organizers WHERE created_at >= ? GROUP BY m", [$from]), null, 'm');
+    $tot = one("SELECT COUNT(*) n, COALESCE(SUM(o.total), 0) gmv, COALESCE(SUM(o.commission), 0) com, COALESCE(SUM(o.refunded_amount), 0) ref,
+        COUNT(DISTINCT LOWER(o.email)) buyers, COUNT(DISTINCT o.organizer_id) orgs, COUNT(DISTINCT o.event_id) events FROM orders o WHERE $w AND o.paid_at >= ?", [$from]);
+    $tot['tickets'] = array_sum($by($monthly, 'tk'));
+    $prov = all("SELECT o.provider p, COUNT(*) n, SUM(o.total) gmv FROM orders o WHERE $w AND o.paid_at >= ? GROUP BY o.provider ORDER BY gmv DESC", [$from]);
+    $src = all("SELECT CASE WHEN o.link_id IS NOT NULL THEN 'Liens & ambassadeurs' WHEN o.referrer_order_id IS NOT NULL THEN 'Invité par un ami' WHEN o.recovered_from IS NOT NULL THEN 'Relance panier'
+        WHEN o.channel = 'widget' THEN 'Widget' WHEN o.utm_source IS NOT NULL THEN CONCAT('UTM : ', o.utm_source) ELSE 'Direct / site' END s, COUNT(*) n, SUM(o.total) gmv
+        FROM orders o WHERE $w AND o.paid_at >= ? GROUP BY s ORDER BY gmv DESC LIMIT 8", [$from]);
+    $topEv = all("SELECT e.id, e.name, g.name org, g.id org_id, COUNT(*) n, SUM(o.total) gmv, SUM(o.commission) com FROM orders o JOIN events e ON e.id = o.event_id JOIN organizers g ON g.id = o.organizer_id
+        WHERE $w AND o.paid_at >= ? GROUP BY e.id ORDER BY gmv DESC LIMIT 10", [$from]);
+    $repeat = (int)val("SELECT COUNT(*) FROM (SELECT LOWER(o.email) e FROM orders o WHERE $w AND o.paid_at >= ? GROUP BY LOWER(o.email) HAVING COUNT(DISTINCT o.event_id) >= 2) x", [$from]);
+    $series = ['labels' => $labels, 'gmv' => $by($monthly, 'gmv'), 'com' => $by($monthly, 'com'), 'tickets' => $by($monthly, 'tk'), 'orgs' => array_map(fn($k) => (int)($orgsM[$k]['n'] ?? 0), $keys)];
+    return admin_page('Statistiques', 'stats', compact('demo', 'months', 'tot', 'series', 'prov', 'src', 'topEv', 'repeat'), 'stats-plateforme');
 }

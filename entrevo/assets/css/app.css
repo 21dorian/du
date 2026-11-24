@@ -2031,3 +2031,82 @@ input[type=checkbox],input[type=radio]{accent-color:#1d1d1f}
 .timeline li::before{z-index:1}
 @media (max-width:680px){.has-cover .org-logo{margin-top:-46px}}
 .ev-price{color:var(--ink)!important;font-weight:600}
+.todo-ic{color:var(--ink)}.todo.hot .todo-ic{color:var(--red)}
+.stats-filters{justify-content:space-between;align-items:center}
+.seg{display:inline-flex;gap:4px;padding:5px;border-radius:14px;background:rgba(0,0,0,.05)}
+.seg-a{padding:7px 14px;border-radius:10px;font-size:14px;font-weight:500;color:var(--ink-2);text-decoration:none}
+.seg-a.on{background:#fff;color:var(--ink);box-shadow:0 1px 3px rgba(0,0,0,.1)}
+.kpis .kpi span.muted{display:block;font-size:13.5px;margin-top:4px}
+.kpis-3{grid-template-columns:repeat(3,1fr)!important}@media (max-width:900px){.kpis-3{grid-template-columns:1fr 1fr!important}}
+.hp{position:absolute!important;left:-9999px!important}
+
+/* ---------- 2.1 : cartes cadeaux, abonnements, boutique ---------- */
+.store-head{max-width:760px;margin:8px 0 28px}
+.store-head h1{font-size:48px;margin:4px 0 10px}
+.lead{font-size:19px;color:var(--ink-2);line-height:1.5}
+.store-grid{display:grid;grid-template-columns:minmax(0,1fr) 380px;gap:24px;align-items:start}
+.gift-preview{position:sticky;top:100px;display:grid;gap:14px}
+.giftcard{position:relative;display:flex;flex-direction:column;gap:6px;padding:28px;border-radius:24px;aspect-ratio:1.6/1;justify-content:flex-end;color:#fff;overflow:hidden;
+  background:radial-gradient(120% 140% at 100% 0%,rgba(212,175,55,.45),transparent 55%),linear-gradient(160deg,#1d1d1f,#0b0b0c);box-shadow:0 30px 60px -25px rgba(0,0,0,.55)}
+.giftcard::before{content:'';position:absolute;left:0;top:0;bottom:0;width:5px;background:linear-gradient(#e9c86a,#a67c00)}
+.giftcard small{position:absolute;top:24px;left:28px;color:#a1a1a6;font-size:13px}
+.giftcard b{font-size:44px;font-weight:600;letter-spacing:-.03em}
+.giftcard span{color:#d2d2d7;font-size:14px}
+.giftcard code{position:absolute;top:22px;right:24px;font-size:13px;color:#e9c86a;letter-spacing:.06em}
+.giftcard.sm{aspect-ratio:auto;padding:24px 24px 22px;margin:16px 0}.giftcard.sm small{position:static}
+.giftcard.lg{max-width:460px;margin:0 auto}
+.amount-pick{display:flex;flex-wrap:wrap;gap:10px}
+.amount-pick label{position:relative}
+.amount-pick input,.seg-r input,.pass-card input{position:absolute;opacity:0;pointer-events:none}
+.amount-pick span{display:inline-flex;min-width:92px;justify-content:center;padding:14px 18px;border-radius:16px;background:#fff;box-shadow:inset 0 0 0 1px rgba(0,0,0,.12);font-weight:600;font-size:17px;cursor:pointer}
+.amount-pick input:checked+span{background:#1d1d1f;color:#fff;box-shadow:none}
+.seg-full{display:flex;width:100%}.seg-r{flex:1;position:relative}
+.seg-r span{display:block;text-align:center;padding:9px 12px;border-radius:10px;font-weight:500;cursor:pointer;color:var(--ink-2)}
+.seg-r input:checked+span{background:#fff;color:var(--ink);box-shadow:0 1px 3px rgba(0,0,0,.1)}
+.small-note{font-size:13.5px;text-align:center}
+.pass-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:16px}
+.pass-card{position:relative;display:flex;flex-direction:column;gap:6px;padding:26px;border-radius:26px;background:#fff;box-shadow:var(--float);cursor:pointer;transition:box-shadow .2s,transform .2s}
+.pass-card:hover{transform:translateY(-2px)}
+.pass-card:has(input:checked){box-shadow:0 0 0 2px #1d1d1f,var(--float-lg)}
+.pass-card.full{opacity:.55;cursor:not-allowed}
+.pass-kind{font-size:13px;color:var(--muted);font-weight:500}
+.pass-name{font-size:22px;font-weight:600;letter-spacing:-.02em}
+.pass-price{font-size:34px;font-weight:600;letter-spacing:-.03em;margin:4px 0}
+.pass-desc{color:var(--ink-2)}
+.pass-ev{font-size:14px;color:var(--muted)}
+.pass-list{margin:4px 0 0;padding-left:18px;font-size:14px;color:var(--ink-2)}
+.pass-done{text-align:center}
+.shop-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:16px}
+.shop-card{display:flex;flex-direction:column;border-radius:24px;background:#fff;box-shadow:var(--float);overflow:hidden}
+.shop-card.out{opacity:.6}
+.shop-img{aspect-ratio:1/1;background:#f5f5f7;display:flex;align-items:center;justify-content:center;color:var(--muted)}
+.shop-img img{width:100%;height:100%;object-fit:cover}
+.shop-body{display:grid;gap:8px;padding:18px 20px 20px}
+.shop-body b{font-size:18px;font-weight:600}
+.shop-body p{margin:0;font-size:14.5px}
+.shop-row{display:flex;justify-content:space-between;align-items:center;gap:10px}
+.shop-price{font-size:22px;font-weight:600;letter-spacing:-.02em}
+.org-store{display:flex;flex-wrap:wrap;gap:10px;margin:22px 8px 0}
+@media (max-width:900px){.store-grid{grid-template-columns:1fr}.gift-preview{position:static}.store-head h1{font-size:36px}}
+
+/* 2.1 — Campagnes SMS */
+.sms-compose{grid-column:auto}
+.sms-grid{display:grid;grid-template-columns:minmax(0,1fr) 280px;gap:28px}
+.sms-tools{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-top:8px}
+.sms-tools .chip{font-size:13px;padding:5px 11px;cursor:pointer}
+.sms-count{margin-left:auto;font-size:13px;color:var(--muted);font-variant-numeric:tabular-nums}
+.sms-count.warn{color:#b25000}
+.sms-events{margin:4px 0 6px}
+.sms-events summary{cursor:pointer;font-size:14px;color:var(--ink-2)}
+.check-list{display:grid;gap:6px;max-height:200px;overflow:auto;padding:10px 0}
+.phone-mock{background:linear-gradient(180deg,#f5f5f7,#ececf0);border-radius:28px;padding:16px 14px 22px;border:1px solid rgba(0,0,0,.06);box-shadow:0 18px 40px -22px rgba(0,0,0,.35)}
+.phone-top{display:flex;flex-direction:column;align-items:center;gap:2px;padding-bottom:12px;border-bottom:1px solid rgba(0,0,0,.06);margin-bottom:14px}
+.phone-top b{font-size:14px}.phone-top small{font-size:11px;color:var(--muted)}
+.phone-mock .bubble{background:#e9e9eb;color:#1d1d1f;border-radius:18px 18px 18px 6px;padding:10px 13px;font-size:14px;line-height:1.4;white-space:pre-wrap;word-break:break-word;max-width:92%;min-height:40px}
+.sms-estimate{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:14px}
+.sms-estimate div{background:var(--surface-2,#f5f5f7);border-radius:12px;padding:10px 12px;display:flex;flex-direction:column}
+.sms-estimate span{font-size:12px;color:var(--muted)}.sms-estimate b{font-size:20px;font-variant-numeric:tabular-nums}
+.sms-side .row{display:flex;gap:8px}.sms-side .row input{flex:1;min-width:0}
+.optout-list{list-style:none;padding:0;margin:14px 0 0;display:grid;gap:6px;font-size:14px}
+.optout-list li{display:flex;justify-content:space-between;gap:8px}
+@media (max-width:1100px){.sms-grid{grid-template-columns:1fr}}

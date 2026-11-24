@@ -81,6 +81,7 @@ final class Mailer
         $o = one('SELECT * FROM orders WHERE id = ?', [$orderId]);
         if (!$o || $o['status'] !== 'paid' || !is_email((string)$o['email'])) return false;
         $ev = one('SELECT * FROM events WHERE id = ?', [$o['event_id']]);
+        if (!$ev) return false;
         $org = one('SELECT * FROM organizers WHERE id = ?', [$o['organizer_id']]);
         $tickets = all("SELECT * FROM tickets WHERE order_id = ? AND status = 'valid' AND holder_email IS NULL ORDER BY id", [$orderId]);
         $session = $o['session_id'] ? one('SELECT * FROM sessions WHERE id = ?', [$o['session_id']]) : null;

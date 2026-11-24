@@ -42,7 +42,6 @@
     </div>
     <div class="footer-links footer-soon">
       <a href="<?= url('/bientot/aide') ?>">Centre d'aide <em>bientôt</em></a>
-      <a href="<?= url('/bientot/cartes-cadeaux-public') ?>">Cartes cadeaux <em>bientôt</em></a>
       <a href="<?= url('/bientot/appli') ?>">Appli mobile <em>bientôt</em></a>
       <a href="<?= url('/bientot/langues-public') ?>">English <em>bientôt</em></a>
     </div>

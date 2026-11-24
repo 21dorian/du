@@ -25,7 +25,7 @@ final class Features
         // modules sortis du développement (1.5) : on garde leur fiche, avec un lien direct
         foreach (['jauge-zone' => '/pro/pc', 'tva' => '/pro/finances', 'export-compta' => '/pro/finances'] as $k => $url) if (isset($a[$k])) $a[$k] = ['status' => 'beta', 'url' => $url] + $a[$k];
         // 1.8 : sortis du développement
-        foreach (['avis' => '/pro/avis', 'relance-panier' => '/pro/campagnes', 'calendrier' => '/pro/campagnes', 'transfert-billet' => '/pro/evenements', 'early-bird' => '/pro/evenements', 'echange-date' => '/pro/evenements', 'tarif-groupe' => '/pro/evenements', 'vente-privee' => '/pro/evenements', 'restriction-age' => '/pro/evenements', 'affiliation' => '/pro/liens'] as $k => $url) if (isset($a[$k])) $a[$k] = ['status' => 'on', 'url' => $url] + $a[$k];
+        foreach (['avis' => '/pro/avis', 'relance-panier' => '/pro/campagnes', 'calendrier' => '/pro/campagnes', 'transfert-billet' => '/pro/evenements', 'early-bird' => '/pro/evenements', 'echange-date' => '/pro/evenements', 'tarif-groupe' => '/pro/evenements', 'vente-privee' => '/pro/evenements', 'restriction-age' => '/pro/evenements', 'affiliation' => '/pro/liens', 'cartes-cadeaux' => '/pro/cartes-cadeaux', 'abonnements' => '/pro/abonnements', 'boutique' => '/pro/boutique', 'sms' => '/pro/sms'] as $k => $url) if (isset($a[$k])) $a[$k] = ['status' => 'on', 'url' => $url] + $a[$k];
         return $a;
     }
 
@@ -58,7 +58,7 @@ final class Features
                 'pitch' => 'Préviens tes anciens participants de ton prochain événement : segments, éditeur, ouvertures, clics et ventes générées.'],
             'sms' => ['cat' => 'market', 'emoji' => '', 'name' => 'Campagnes SMS', 'status' => 'soon', 'eta' => '2027',
                 'pitch' => 'Un SMS la veille ou pour les dernières places : le canal le plus lu, en complément des e-mails.',
-                'points' => ['Crédits SMS prépayés', 'Mêmes segments que les e-mails', 'Lien court suivi et ventes attribuées', 'Désinscription STOP automatique']],
+                'points' => ['Mêmes segments que les e-mails', 'Lien suivi et ventes attribuées', 'Mention STOP et liste de désinscrits', 'Envoi seulement aux heures autorisées']],
             'mini-site' => ['cat' => 'market', 'emoji' => '', 'name' => 'Mini-site d\'événement', 'status' => 'soon', 'eta' => 'Printemps 2027',
                 'pitch' => 'Une vraie page de festival : programmation, artistes, plan, FAQ, partenaires, avec ton propre nom de domaine.',
                 'points' => ['Blocs : line-up, horaires, plan d\'accès, FAQ', 'Thèmes de couleurs et polices', 'Nom de domaine personnalisé', 'Billetterie intégrée']],
@@ -187,7 +187,7 @@ final class Features
 
     /** Fonctions à venir côté public (acheteurs et visiteurs du site). */
     /** Fonctions acheteurs déjà en ligne (1.8) : retirées des listes « bientôt ». */
-    public const PUBLIC_LIVE = ['agenda', 'transfert', 'filtres-date', 'avis-public', 'echange', 'inviter-amis', 'compte-acheteur'];
+    public const PUBLIC_LIVE = ['agenda', 'transfert', 'filtres-date', 'avis-public', 'echange', 'inviter-amis', 'compte-acheteur', 'cartes-cadeaux-public'];
 
     public static function public(): array
     {

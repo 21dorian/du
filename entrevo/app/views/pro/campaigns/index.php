@@ -75,6 +75,5 @@
 </div>
 <?= soon_card('Bientôt : encore plus d\'automatique', [
   'codes-auto' => ['Codes promo automatiques', 'Anniversaire, fidélité, retour après longtemps'],
-  'sms' => ['Campagnes SMS', 'Le canal le plus lu, en complément des e-mails'],
   'parrainage' => ['Parrainage acheteurs', 'Chaque acheteur fait venir ses amis'],
 ]) ?>

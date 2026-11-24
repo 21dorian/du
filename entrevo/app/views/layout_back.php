@@ -58,7 +58,7 @@ if ($area === 'admin') {
     $navGroups = [
         ['', [
             ['dash', '/admin', 'Vue d\'ensemble', $I['dash']],
-            $soonA('stats-plateforme', 'Statistiques', 'chart'),
+            ['stats-plateforme', '/admin/statistiques', 'Statistiques', $I['chart']],
         ]],
         ['Organisateurs', [
             ['orgs', '/admin/organisateurs', 'Organisateurs', $I['orgs']],
@@ -103,16 +103,16 @@ if ($area === 'admin') {
             ['participants', '/pro/participants', 'Participants', $I['people']],
         ]],
         ['Vendre plus', [
-            $soonP('boutique', 'Boutique & merch', 'bag'),
-            $soonP('abonnements', 'Abonnements', 'card'),
-            $soonP('cartes-cadeaux', 'Cartes cadeaux', 'gift'),
+            ['boutique', '/pro/boutique', 'Boutique & merch', $I['bag']],
+            ['abonnements', '/pro/abonnements', 'Abonnements', $I['card']],
+            ['cartes-cadeaux', '/pro/cartes-cadeaux', 'Cartes cadeaux', $I['gift']],
             $soonP('devis', 'Groupes & devis', 'quote'),
         ]],
         ['Faire venir du monde', [
             ['campagnes', '/pro/campagnes', 'Campagnes e-mail', $I['mail']],
             ['avis', '/pro/avis', 'Avis des participants', $I['star']],
             ['liens', '/pro/liens', 'Liens & ambassadeurs', $I['share']],
-            $soonP('sms', 'Campagnes SMS', 'sms'),
+            ['sms', '/pro/sms', 'Campagnes SMS', $I['sms']],
             $soonP('mini-site', 'Mini-site', 'globe'),
             $soonP('reseaux', 'Réseaux sociaux', 'share'),
         ]],

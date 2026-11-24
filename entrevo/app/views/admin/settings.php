@@ -1,7 +1,7 @@
 <?php
 $s = fn($k) => e(setting($k));
 $c = fn($k) => setting($k) === '1' ? 'checked' : '';
-$tabs = ['general' => 'Général', 'fees' => 'Commission', 'payments' => 'Paiements', 'emails' => 'E-mails', 'legal' => 'Textes légaux'];
+$tabs = ['general' => 'Général', 'fees' => 'Commission', 'payments' => 'Paiements', 'emails' => 'E-mails', 'sms' => 'SMS', 'legal' => 'Textes légaux'];
 $secret = fn($k) => setting($k) ? '•••••• (enregistré, laisser vide pour ne pas changer)' : '';
 ?>
 <nav class="tabs"><?php foreach ($tabs as $k => $l): ?><a class="<?= $tab === $k ? 'on' : '' ?>" href="<?= url('/admin/reglages', ['tab' => $k]) ?>"><?= $l ?></a><?php endforeach; ?></nav>
@@ -98,6 +98,18 @@ $secret = fn($k) => setting($k) ? '•••••• (enregistré, laisser vide
       <div class="field"><label>Nom d'expéditeur</label><input name="mail_from_name" value="<?= $s('mail_from_name') ?>" placeholder="<?= $s('platform_name') ?>"></div>
     </div>
     <div class="row mt"><input type="email" name="test_email" placeholder="Envoyer un test à…" style="max-width:300px"><button class="btn btn-ghost" name="send_test" value="1">Enregistrer et tester</button></div>
+  </div>
+<?php elseif ($tab === 'sms'): ?>
+  <?php $smsStats = one("SELECT COALESCE(SUM(sent), 0) sent, COALESCE(SUM(sent * segments), 0) seg, COALESCE(SUM(cost), 0) cost FROM sms_campaigns WHERE created_at >= DATE_FORMAT(NOW(), '%Y-%m-01')"); ?>
+  <div class="card" style="max-width:820px">
+    <p class="muted">Les campagnes SMS des organisateurs passent par l'API SMS de <b>Brevo</b> (compte Brevo › SMS › crédits, puis Paramètres › Clés API). Sans clé, tout fonctionne en <b>mode test</b> : rien ne part, chaque SMS est écrit dans le journal « sms ».</p>
+    <div class="grid2">
+      <div class="field"><label>Clé API Brevo</label><input type="password" name="sms_api_key" placeholder="<?= e($secret('sms_api_key')) ?: 'xkeysib-…' ?>" autocomplete="new-password"><?php if (Sms::live()): ?><label class="check mt"><input type="checkbox" name="sms_key_clear" value="1"> <span>Retirer la clé (repasser en mode test)</span></label><?php endif; ?></div>
+      <div class="field"><label>Prix facturé par SMS</label><div class="input-suffix"><input name="sms_price" value="<?= e(money_input(Sms::price())) ?>" inputmode="decimal"><span>€</span></div><small>Par tranche de 160 caractères, affiché aux organisateurs.</small></div>
+      <div class="field"><label>Mention de désinscription</label><input name="sms_stop" value="<?= e(Sms::stopText()) ?>"><small>Ajoutée à la fin de chaque SMS (obligatoire en France pour les SMS commerciaux).</small></div>
+      <div class="field"><label>Ce mois-ci</label><p class="mb0"><b><?= number_format((int)$smsStats['sent'], 0, ',', ' ') ?></b> destinataires · <b><?= number_format((int)$smsStats['seg'], 0, ',', ' ') ?></b> SMS · <b><?= e(money((int)$smsStats['cost'])) ?></b> à refacturer</p></div>
+    </div>
+    <div class="row mt"><input type="tel" name="test_sms" placeholder="Envoyer un test au 06…" style="max-width:300px"><button class="btn btn-ghost">Enregistrer et tester</button></div>
   </div>
 <?php else: ?>
   <div class="card" style="max-width:900px">

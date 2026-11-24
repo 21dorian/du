@@ -192,7 +192,7 @@ $fromPrice = $onSalePrices ? min($onSalePrices) : null;
         </div>
       <?php endif; ?>
     </form>
-    <?php if ($hasCodes && $anyOnSale): ?>
+    <?php if (($hasCodes || !empty($org['gift_enabled'])) && $anyOnSale): ?>
     <form method="post" action="<?= url($base) ?>"><?= csrf_field() ?>
       <details class="code-box"><summary>T'as un code ?</summary>
         <div class="row" style="margin-top:12px;flex-wrap:nowrap;gap:0"><input type="text" name="code" placeholder="CODE" style="text-transform:uppercase" required aria-label="Code"><button class="btn" name="action" value="code">OK</button></div>
@@ -252,7 +252,7 @@ $fromPrice = $onSalePrices ? min($onSalePrices) : null;
     <section class="dw-panel" data-panel="3" hidden>
       <div data-slot="options"></div>
       <div class="dw-recap" data-slot="recap"></div>
-      <?php if ($hasCodes): ?><div class="dw-code"><input data-code placeholder="Code promo" aria-label="Code promo" autocapitalize="characters"><button type="button" class="btn btn-sm btn-light" data-code-apply>Appliquer</button></div><?php endif; ?>
+      <?php if ($hasCodes || !empty($org['gift_enabled'])): ?><div class="dw-code"><input data-code placeholder="Code promo ou carte cadeau" aria-label="Code promo ou carte cadeau" autocapitalize="characters"><button type="button" class="btn btn-sm btn-light" data-code-apply>Appliquer</button></div><?php endif; ?>
       <label class="check"><input type="checkbox" name="optin" value="1" form="dw-buyer"> <span>Recevoir les prochains événements de <b><?= e($org['name']) ?></b> (désinscription en un clic)</span></label>
       <?php if (setting('cgv')): ?><label class="check"><input type="checkbox" name="cgv" value="1" form="dw-buyer" data-cgv> <span>J'accepte les <a href="<?= url('/cgv') ?>" target="_blank">conditions générales de vente</a></span></label><?php endif; ?>
     </section>

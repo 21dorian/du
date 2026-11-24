@@ -92,13 +92,16 @@
 
   // Afficher / masquer selon une case ou une liste
   document.querySelectorAll('[data-show-if]').forEach(function (el) {
-    var parts = el.dataset.showIf.split('='), src = document.querySelector('[name="' + parts[0] + '"]');
-    if (!src) return;
+    var parts = el.dataset.showIf.split('='), scope = el.closest('form') || document;
+    var srcs = scope.querySelectorAll('[name="' + parts[0] + '"]');
+    if (!srcs.length) srcs = document.querySelectorAll('[name="' + parts[0] + '"]');
+    if (!srcs.length) return;
     var sync = function () {
-      var v = src.type === 'checkbox' ? (src.checked ? '1' : '0') : src.value;
+      var v = '';
+      srcs.forEach(function (s) { if (s.type === 'radio') { if (s.checked) v = s.value; } else if (s.type === 'checkbox') v = s.checked ? '1' : '0'; else v = s.value; });
       el.style.display = parts[1].split('|').indexOf(v) >= 0 ? '' : 'none';
     };
-    src.addEventListener('change', sync); sync();
+    srcs.forEach(function (s) { s.addEventListener('change', sync); }); sync();
   });
 
   // Rafraîchissement automatique (contrôle en direct)
