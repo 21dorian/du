@@ -119,7 +119,7 @@ if ($area === 'admin') {
         ['Le jour J', [
             ['scan', '/scan', 'Contrôle d\'accès', $I['scan']],
             $soonP('controle-pro', 'PC sécurité', 'radar'),
-            $soonP('benevoles', 'Bénévoles & staff', 'hand'),
+            ['staff', '/pro/benevoles', 'Bénévoles & staff', $I['hand']],
             $soonP('artistes', 'Artistes & planning', 'mic'),
             $soonP('cashless', 'Cashless & bars', 'wallet'),
             $soonP('objets-trouves', 'Objets trouvés', 'box'),

@@ -37,6 +37,7 @@ $fromPrice = $onSalePrices ? min($onSalePrices) : null;
       <?php endif; ?>
       <div class="fact"><dt>Par</dt><dd><a href="<?= url('/o/' . $org['slug']) ?>"><?= e($org['name']) ?></a></dd></div>
     </dl>
+    <?php if (!empty($ev['volunteer_recruit'])): ?><a class="vol-cta" href="<?= url('/e/' . $ev['slug'] . '/benevoles') ?>">🙋 On cherche des bénévoles : rejoins l'équipe →</a><?php endif; ?>
     <a class="btn btn-lg" href="#billets"><?= $sessions && !$session ? 'Choisir ma date 📅' : 'Je réserve 🎟️' ?></a>
   </div>
 </div>

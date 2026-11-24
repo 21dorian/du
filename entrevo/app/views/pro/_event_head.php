@@ -3,7 +3,7 @@ $tabs = [
     'overview' => ['Vue d\'ensemble', ''], 'edit' => ['Infos & réglages', '/modifier'], 'sessions' => ['Dates', '/dates'], 'rates' => ['Tarifs', '/tarifs'],
     'products' => ['Options', '/options'], 'form' => ['Formulaire', '/formulaire'], 'promos' => ['Codes promo', '/promos'], 'seating' => ['Plan de salle', '/plan'],
     'attendees' => ['Participants', '/participants'], 'invites' => ['Invitations & partenaires', '/invitations'], 'accred' => ['Accréditations', '/accreditations'],
-    'box' => ['Guichet', '/guichet'], 'budget' => ['Budget', '/budget'], 'tasks' => ['Tâches', '/taches'], 'docs' => ['Documents', '/documents'], 'waitlist' => ['Attente & revente', '/attente'], 'messages' => ['Messages', '/messages'],
+    'box' => ['Guichet', '/guichet'], 'budget' => ['Budget', '/budget'], 'tasks' => ['Tâches', '/taches'], 'staff' => ['Bénévoles', '/benevoles'], 'docs' => ['Documents', '/documents'], 'waitlist' => ['Attente & revente', '/attente'], 'messages' => ['Messages', '/messages'],
     'access' => ['Contrôle d\'accès', '/acces'], 'live' => ['En direct', '/controle'], 'stats' => ['Stats', '/stats'],
 ];
 $link = abs_url('/e/' . $ev['slug']);
@@ -31,4 +31,4 @@ $link = abs_url('/e/' . $ev['slug']);
   </div>
 </div>
 <nav class="tabs"><?php foreach ($tabs as $k => [$l, $p]): ?><a class="<?= $k === $tab ? 'on' : '' ?>" href="<?= url('/pro/evenements/' . $ev['id'] . $p) ?>"><?= e($l) ?></a><?php endforeach; ?>
-  <?php foreach (['mini-site' => 'Mini-site', 'artistes' => 'Artistes', 'benevoles' => 'Bénévoles', 'avis' => 'Avis'] as $k => $l): ?><a class="tab-soon" href="<?= url('/pro/bientot/' . $k) ?>"><?= e($l) ?> <span class="soon-pill">En dév.</span></a><?php endforeach; ?></nav>
+  <?php foreach (['mini-site' => 'Mini-site', 'artistes' => 'Artistes', 'avis' => 'Avis'] as $k => $l): ?><a class="tab-soon" href="<?= url('/pro/bientot/' . $k) ?>"><?= e($l) ?> <span class="soon-pill">En dév.</span></a><?php endforeach; ?></nav>

@@ -107,7 +107,7 @@ final class Features
                 'points' => ['Dossier par événement', 'Rappels avant échéance (assurance, préfecture, SACEM)', 'Signature électronique', 'Partage avec l\'équipe']],
             'equipe' => ['cat' => 'team', 'emoji' => '👥', 'name' => 'Équipe & droits', 'status' => 'on', 'url' => '/pro/equipe', 'pitch' => 'Responsables, gestionnaires, contrôleurs.'],
             'journal' => ['cat' => 'team', 'emoji' => '🕵️', 'name' => 'Journal d\'activité', 'status' => 'on', 'url' => '/pro/journal', 'pitch' => 'Qui a fait quoi, et quand.'],
-            'benevoles' => ['cat' => 'team', 'emoji' => '🙋', 'name' => 'Staff & bénévoles', 'status' => 'soon', 'eta' => 'Printemps 2027',
+            'benevoles' => ['cat' => 'team', 'emoji' => '🙋', 'name' => 'Staff & bénévoles', 'status' => 'beta', 'url' => '/pro/benevoles', 'eta' => 'Printemps 2027',
                 'pitch' => 'Recrute, planifie et pointe tes bénévoles : créneaux, postes, rappels et badge QR.',
                 'points' => ['Annuaire réutilisable d\'un événement à l\'autre', 'Formulaire de candidature public', 'Planning par poste avec taux de remplissage', 'Espace perso pour chaque bénévole', 'Pointage par badge QR et heures réalisées']],
             'taches' => ['cat' => 'team', 'emoji' => '✅', 'name' => 'Tâches & rétroplanning', 'status' => 'beta', 'url' => '/pro/taches', 'eta' => '2027',
