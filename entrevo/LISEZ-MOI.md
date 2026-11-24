@@ -79,6 +79,23 @@ Couleurs : **vert** = entre, **orange** = déjà entré / pas entré (sortie), *
 
 ---
 
+## Nouveautés 1.5 ✨
+
+**Argent & conformité**
+- **Vérification du compte (KYC)** : l'organisateur dépose sa pièce d'identité, son Kbis/statuts et son RIB (stockés en privé) ; le super-admin valide ou refuse chaque pièce (Super-admin › Vérification KYC). Option : bloquer les reversements tant que ce n'est pas vérifié (Réglages › Commissions).
+- **Factures de commission** : une facture PDF numérotée par organisateur et par mois (HT, TVA, TTC), envoyée par e-mail, retrouvable dans Finances. Génération manuelle ou automatique le 1er du mois. Renseigne tes informations d'émetteur dans Réglages › Commissions.
+- **TVA par tarif** (et taux par défaut de l'organisation) : détail HT / TVA / TTC sur les reçus, récap mensuel de TVA collectée dans Finances.
+- **Export comptable** : ventes détaillées (CSV) et écritures au format **FEC**.
+
+**Organisation d'événement**
+- **Budget prévisionnel** par événement : dépenses et recettes prévues / réelles, billetterie reliée automatiquement, **seuil de rentabilité** en nombre de billets, export CSV, vue d'ensemble de tous les événements.
+- **Tâches & rétroplanning** : tableau à colonnes (glisser-déposer) ou liste, responsable et échéance, modèles prêts à l'emploi (concert, festival, conférence) calés sur la date de l'événement. Tâches en retard dans « À traiter ».
+- **Documents & contrats** : contrats artistes, assurances, autorisations… par événement, stockés en privé, avec date d'échéance et rappel 30 jours avant.
+
+**Le jour J**
+- **Bénévoles & staff** : annuaire, créneaux par poste avec frise horaire, affectations (avec détection des chevauchements), formulaire de candidature public, **espace bénévole** personnel (confirmer, se désister, s'inscrire), **badge QR**, rappel la veille, **pointage** arrivée/départ (douchette ou bouton), export des heures.
+- **PC sécurité** : écran sombre plein écran mis à jour toutes les 5 secondes : présents / jauge, **jauge par zone** (à définir sur chaque porte), rythme d'entrée et temps estimé, refus récents, téléphones de contrôle, messages aux contrôleurs. **Alerte automatique** envoyée aux téléphones quand une zone atteint 90 % puis 100 %.
+
 ## Nouveautés 1.4.2 ✨
 
 - **Plus de 50 nouvelles fonctionnalités annoncées « en développement »** directement dans les pages, sous forme de boutons et d'options pointillés avec le badge « dév ». Chacune ouvre sa page de présentation (et, côté organisateur, le vote).

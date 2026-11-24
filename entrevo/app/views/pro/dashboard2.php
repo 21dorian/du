@@ -17,7 +17,8 @@ $rateCur = $fun['rate']; $ratePrev = $funPrev['rate'];
   <a class="qa" href="<?= url('/pro/commandes', ['csv' => 1]) ?>"><span>⬇️</span>Exporter les ventes</a>
   <a class="qa" href="<?= url('/pro/campagnes') ?>"><span>✉️</span>Lancer une campagne</a>
   <a class="qa qa-soon" href="<?= url('/pro/bientot/saison') ?>"><span>📆</span>Préparer la saison <i class="soon-pill dev">dév</i></a>
-  <a class="qa qa-soon" href="<?= url('/pro/bientot/budget') ?>"><span>📒</span>Mon budget <i class="soon-pill dev">dév</i></a>
+  <a class="qa" href="<?= url('/pro/budget') ?>"><span>📒</span>Mon budget</a>
+  <a class="qa" href="<?= url('/pro/taches') ?>"><span>✅</span>Mes tâches</a>
   <a class="qa qa-soon" href="<?= url('/pro/bientot/app-orga') ?>"><span>📱</span>Appli mobile <i class="soon-pill dev">dév</i></a>
 </div>
 
