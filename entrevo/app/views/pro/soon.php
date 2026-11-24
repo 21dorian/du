@@ -1,7 +1,7 @@
 <?php /** @var array $f, $others */ $c = Features::CATEGORIES[$f['cat']]; ?>
 <div class="soon-hero">
   <div class="soon-copy">
-    <span class="eyebrow"><?= $c[0] ?> <?= e($c[1]) ?> · <span class="soon-pill">Bientôt<?= !empty($f['eta']) ? ' · ' . e($f['eta']) : '' ?></span></span>
+    <span class="eyebrow"><?= $c[0] ?> <?= e($c[1]) ?> · <span class="soon-pill">En développement<?= !empty($f['eta']) ? ' · ' . e($f['eta']) : '' ?></span></span>
     <h2><span class="soon-emoji"><?= $f['emoji'] ?></span> <?= e($f['name']) ?></h2>
     <p class="lead"><?= e($f['pitch']) ?></p>
     <?php if (!empty($f['points'])): ?><ul class="soon-points"><?php foreach ($f['points'] as $pt): ?><li><?= e($pt) ?></li><?php endforeach; ?></ul><?php endif; ?>
@@ -33,7 +33,7 @@
 <?php if ($others): ?>
 <h2 class="mod-cat">Dans la même veine</h2>
 <div class="mod-grid">
-  <?php foreach ($others as $k => $o): ?><a class="mod-card is-soon" href="<?= url('/pro/bientot/' . $k) ?>"><span class="mod-ico"><?= $o['emoji'] ?></span><span class="mod-body"><b><?= e($o['name']) ?></b><span><?= e($o['pitch']) ?></span></span><span class="mod-foot"><span class="soon-pill">Bientôt</span><span class="muted">Voir →</span></span></a><?php endforeach; ?>
+  <?php foreach ($others as $k => $o): ?><a class="mod-card is-soon" href="<?= url('/pro/bientot/' . $k) ?>"><span class="mod-ico"><?= $o['emoji'] ?></span><span class="mod-body"><b><?= e($o['name']) ?></b><span><?= e($o['pitch']) ?></span></span><span class="mod-foot"><span class="soon-pill">En développement</span><span class="muted">Voir →</span></span></a><?php endforeach; ?>
 </div>
 <?php endif; ?>
 <p class="center mt"><a href="<?= url('/pro/modules') ?>">← Tous les modules</a></p>

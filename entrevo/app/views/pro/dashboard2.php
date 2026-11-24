@@ -146,7 +146,7 @@ $rateCur = $fun['rate']; $ratePrev = $funPrev['rate'];
   <div class="card soon-teaser">
     <div class="card-head"><h2>🚧 Bientôt dans Entrevo</h2><a href="<?= url('/pro/modules') ?>">Tous les modules →</a></div>
     <div class="mod-grid">
-      <?php foreach ($soon as $k => $f): ?><a class="mod-card is-soon" href="<?= url('/pro/bientot/' . $k) ?>"><span class="mod-ico"><?= $f['emoji'] ?></span><span class="mod-body"><b><?= e($f['name']) ?></b><span><?= e($f['pitch']) ?></span></span><span class="mod-foot"><span class="soon-pill">Bientôt</span><span class="muted">Voter →</span></span></a><?php endforeach; ?>
+      <?php foreach ($soon as $k => $f): ?><a class="mod-card is-soon" href="<?= url('/pro/bientot/' . $k) ?>"><span class="mod-ico"><?= $f['emoji'] ?></span><span class="mod-body"><b><?= e($f['name']) ?></b><span><?= e($f['pitch']) ?></span></span><span class="mod-foot"><span class="soon-pill">En développement</span><span class="muted">Voter →</span></span></a><?php endforeach; ?>
     </div>
   </div>
   <div class="card">

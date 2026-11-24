@@ -63,6 +63,9 @@ final class Features
                 'points' => ['Envoi automatique après l\'événement', 'Questions personnalisables', 'Note moyenne affichée sur ta page organisateur']],
 
             // ---- Le jour J
+            'reseaux' => ['cat' => 'market', 'emoji' => '📲', 'name' => 'Réseaux sociaux', 'status' => 'soon', 'eta' => '2027',
+                'pitch' => 'Visuels prêts à poster générés depuis ton affiche, et publication programmée sur Instagram et Facebook.',
+                'points' => ['Visuels carré, story et bannière en un clic', 'Compte à rebours « J-7 », « Dernières places » automatiques', 'Publication programmée', 'Lien suivi pour mesurer les ventes']],
             'controle' => ['cat' => 'onsite', 'emoji' => '📷', 'name' => 'Contrôle d\'accès', 'status' => 'on', 'url' => '/scan', 'pitch' => 'Appli de scan hors ligne, douchette, portes, zones, entrées/sorties.'],
             'accreditations' => ['cat' => 'onsite', 'emoji' => '🪪', 'name' => 'Accréditations & badges', 'status' => 'on', 'url' => '/pro/evenements', 'pitch' => 'Presse, artistes, prestataires : badges imprimables par zone.'],
             'controle-pro' => ['cat' => 'onsite', 'emoji' => '🛰️', 'name' => 'PC sécurité temps réel', 'status' => 'soon', 'eta' => 'Printemps 2027',
@@ -76,6 +79,9 @@ final class Features
                 'points' => ['Formulaire de déclaration lié au billet', 'Registre avec photo', 'Notification automatique en cas de correspondance']],
 
             // ---- Argent & compta
+            'artistes' => ['cat' => 'onsite', 'emoji' => '🎤', 'name' => 'Artistes & planning', 'status' => 'soon', 'eta' => '2027',
+                'pitch' => 'La programmation et la logistique artistes : horaires de passage, fiches techniques, loges, catering, invitations.',
+                'points' => ['Feuille de route par artiste (arrivée, balance, passage)', 'Fiches techniques et riders en pièce jointe', 'Line-up publié automatiquement sur la page', 'Invitations artistes en un clic']],
             'finances' => ['cat' => 'money', 'emoji' => '💶', 'name' => 'Finances & reversements', 'status' => 'on', 'url' => '/pro/finances', 'pitch' => 'Solde, commissions, reversements et relevés.'],
             'factures' => ['cat' => 'money', 'emoji' => '🧾', 'name' => 'Factures & compta', 'status' => 'soon', 'eta' => 'Printemps 2027',
                 'pitch' => 'Factures automatiques pour les acheteurs pro, exports comptables, TVA par tarif.',
@@ -88,6 +94,12 @@ final class Features
                 'points' => ['Fréquentation par tranche d\'âge et ville', 'Part des tarifs réduits et gratuits', 'Export PDF du bilan']],
 
             // ---- Équipe & organisation
+            'budget' => ['cat' => 'money', 'emoji' => '📒', 'name' => 'Budget prévisionnel', 'status' => 'soon', 'eta' => '2027',
+                'pitch' => 'Dépenses prévues contre recettes réelles : sais en direct si ton événement est rentable, et à partir de combien de billets.',
+                'points' => ['Postes de dépenses (artistes, technique, sécurité…)', 'Seuil de rentabilité calculé', 'Recettes billetterie reliées automatiquement', 'Export pour ton trésorier']],
+            'documents' => ['cat' => 'money', 'emoji' => '🗂️', 'name' => 'Documents & contrats', 'status' => 'soon', 'eta' => '2027',
+                'pitch' => 'Tous les papiers de l\'événement au même endroit : contrats, assurances, autorisations, devis, avec rappels d\'échéance.',
+                'points' => ['Dossier par événement', 'Rappels avant échéance (assurance, préfecture, SACEM)', 'Signature électronique', 'Partage avec l\'équipe']],
             'equipe' => ['cat' => 'team', 'emoji' => '👥', 'name' => 'Équipe & droits', 'status' => 'on', 'url' => '/pro/equipe', 'pitch' => 'Responsables, gestionnaires, contrôleurs.'],
             'journal' => ['cat' => 'team', 'emoji' => '🕵️', 'name' => 'Journal d\'activité', 'status' => 'on', 'url' => '/pro/journal', 'pitch' => 'Qui a fait quoi, et quand.'],
             'benevoles' => ['cat' => 'team', 'emoji' => '🙋', 'name' => 'Staff & bénévoles', 'status' => 'soon', 'eta' => 'Printemps 2027',
@@ -111,6 +123,41 @@ final class Features
                 'points' => ['Bouton « Ajouter au Wallet » dans l\'e-mail', 'Mise à jour du billet en cas de changement', 'Rappel géolocalisé']],
         ];
     }
+
+    /** Chantiers côté super-admin (feuille de route de la plateforme). */
+    public static function admin(): array
+    {
+        return [
+            'stats-plateforme' => ['emoji' => '📊', 'name' => 'Statistiques de la plateforme', 'pitch' => 'Croissance, rétention des organisateurs, panier moyen, saisonnalité et prévisions de commissions.',
+                'points' => ['Cohortes d\'organisateurs (qui revient vendre ?)', 'Volume et commissions par mois, prévision', 'Répartition par catégorie et par ville', 'Export pour ton expert-comptable']],
+            'kyc' => ['emoji' => '🪪', 'name' => 'Vérification KYC', 'pitch' => 'Collecte et contrôle des justificatifs des organisateurs avant les premiers reversements.',
+                'points' => ['Dépôt Kbis / statuts / pièce d\'identité / RIB', 'Statut de vérification et date d\'expiration', 'Blocage des reversements tant que ce n\'est pas validé', 'Relances automatiques']],
+            'contrats' => ['emoji' => '🤝', 'name' => 'Contrats & tarifs négociés', 'pitch' => 'Conditions particulières par organisateur : commission dégressive, forfait, durée, avenants.',
+                'points' => ['Grilles de commission par palier de volume', 'Contrat signé en ligne', 'Date de fin et renouvellement', 'Historique des conditions']],
+            'prospection' => ['emoji' => '🎯', 'name' => 'Prospection', 'pitch' => 'Un mini-CRM pour suivre les organisateurs que tu démarches, jusqu\'à leur première vente.',
+                'points' => ['Pipeline : contacté, démo, inscrit, première vente', 'Notes et rappels', 'Liens d\'inscription avec suivi', 'Offres de bienvenue']],
+            'litiges' => ['emoji' => '⚖️', 'name' => 'Litiges & impayés', 'pitch' => 'Les contestations de paiement (chargebacks) remontées par Stripe, PayPal… et leur impact sur les soldes.',
+                'points' => ['Liste des litiges ouverts et délais de réponse', 'Preuves automatiques (billet scanné, e-mails)', 'Retenue sur le solde de l\'organisateur', 'Suivi gagné / perdu']],
+            'factures-commission' => ['emoji' => '🧾', 'name' => 'Factures de commission', 'pitch' => 'Ta facture mensuelle de commission à chaque organisateur, numérotée, avec TVA, envoyée automatiquement.',
+                'points' => ['Numérotation légale continue', 'TVA et mentions obligatoires', 'Envoi par e-mail et archive', 'Export comptable']],
+            'fraude' => ['emoji' => '🛡️', 'name' => 'Fraude & risques', 'pitch' => 'Repérer les achats suspects et les organisateurs à risque avant qu\'ils ne coûtent cher.',
+                'points' => ['Alertes : rafales d\'achats, cartes multiples, pays inhabituels', 'Score de risque organisateur', 'Mise en attente des reversements', 'Liste noire']],
+            'support' => ['emoji' => '💬', 'name' => 'Support', 'pitch' => 'Les demandes des organisateurs et des acheteurs dans une seule boîte, avec réponses types.',
+                'points' => ['Formulaire de contact relié aux commandes', 'Réponses types', 'Délai de réponse et satisfaction', 'Base d\'aide en ligne']],
+            'contenus' => ['emoji' => '🏠', 'name' => 'Accueil & contenus', 'pitch' => 'Composer la page d\'accueil publique : mises en avant, bannières, catégories, pages d\'aide.',
+                'points' => ['Événements mis en avant (sponsorisés ou coups de cœur)', 'Bannières et bandeaux', 'Pages libres (FAQ, à propos)', 'Référencement (titres, descriptions)']],
+            'emails-modeles' => ['emoji' => '✉️', 'name' => 'Modèles d\'e-mails', 'pitch' => 'Modifier les textes de tous les e-mails envoyés par la plateforme (confirmation, rappel, remboursement…).',
+                'points' => ['Éditeur avec variables ({prenom}, {evenement}…)', 'Aperçu et e-mail de test', 'Logo et couleurs de la plateforme']],
+            'marque-blanche' => ['emoji' => '🎨', 'name' => 'Marque blanche', 'pitch' => 'Proposer la billetterie aux gros clients sous leur propre marque et leur propre nom de domaine.',
+                'points' => ['Domaine personnalisé par organisateur', 'Logo, couleurs et e-mails à leur nom', 'Option payante']],
+            'langues' => ['emoji' => '🌍', 'name' => 'Langues', 'pitch' => 'Billetterie en anglais, espagnol, allemand… pour les festivals qui accueillent des touristes.',
+                'points' => ['Choix de la langue par l\'acheteur', 'Traduction des pages et des e-mails', 'Billets PDF traduits']],
+            'sauvegardes' => ['emoji' => '💾', 'name' => 'Sauvegardes automatiques', 'pitch' => 'Une sauvegarde quotidienne de la base et des images, gardée 30 jours, restaurable en un clic.',
+                'points' => ['Sauvegarde chaque nuit', 'Copie vers un stockage externe (FTP, S3)', 'Restauration guidée', 'Alerte en cas d\'échec']],
+        ];
+    }
+
+    public static function getAdmin(string $key): ?array { $a = self::admin(); return isset($a[$key]) ? $a[$key] + ['key' => $key, 'status' => 'soon', 'cat' => ''] : null; }
 
     public static function get(string $key): ?array { $a = self::all(); return isset($a[$key]) ? $a[$key] + ['key' => $key] : null; }
 

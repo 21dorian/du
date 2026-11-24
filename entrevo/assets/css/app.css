@@ -1134,3 +1134,19 @@ th.num .th-sort{justify-content:flex-end}
 .log-line{margin:0 0 8px;padding:8px 10px;border-radius:10px;background:#0f0f14;color:#e1e7ef;font:12px/1.45 var(--mono);white-space:pre-wrap;word-break:break-word;max-height:160px;overflow:auto}
 .notif-count[hidden]{display:none}
 .evg-img img{object-position:center 30%}
+/* menu 1.4.1 : rubriques repliables, modules en développement */
+.side-sec{margin:0}
+.side-sec>summary{display:flex;align-items:center;gap:6px;cursor:pointer;list-style:none;border-radius:8px;padding:4px 0}
+.side-sec>summary::-webkit-details-marker{display:none}
+.side-sec>summary i{font-style:normal;font-size:11px;transition:transform .2s}
+.side-sec:not([open])>summary i{transform:rotate(-90deg)}
+.side-sec>summary:hover{color:var(--ink)}
+.sec-soon{font:700 9.5px var(--mono);color:#7c5cc4;letter-spacing:.04em}
+.side-nav a.soon .soon-pill{font-size:9.5px;padding:1px 6px}
+.side-nav.hide-soon a.soon{display:none}
+.side-nav.hide-soon .side-sec:not(:has(a:not(.soon))){display:none}
+.side-toggle{display:flex;gap:8px;align-items:center;margin:10px 12px 4px;font-size:12px;color:var(--muted);cursor:pointer}
+.side-toggle input{width:14px;height:14px}
+.side-nav a .grow{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.side-nav a .soon-pill.dev{font-size:9px;padding:1px 5px;letter-spacing:.02em;flex:none}
+.side-nav a{gap:10px}

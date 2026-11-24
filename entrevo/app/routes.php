@@ -100,6 +100,7 @@ return [
     ['GET|POST', '/admin/reversements', 'platform@payouts_page'],
     ['GET|POST', '/admin/sante', 'platform@health_page'],
     ['GET', '/admin/modules', 'modules@admin_modules'],
+    ['GET|POST', '/admin/bientot/{key}', 'modules@admin_soon'],
     ['GET', '/admin/organisateurs', 'admin@organizers'],
     ['GET|POST', '/admin/organisateurs/{id}', 'admin@organizer_detail'],
     ['POST', '/admin/organisateurs/{id}/consulter', 'admin@organizer_impersonate'],

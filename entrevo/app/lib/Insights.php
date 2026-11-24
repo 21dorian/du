@@ -154,7 +154,7 @@ final class Insights
             $norm = fn($x) => mb_strtolower(iconv('UTF-8', 'ASCII//TRANSLIT', $x) ?: $x);
             $mods = [];
             foreach (Features::all() as $k => $f) if (str_contains($norm($f['name'] . ' ' . $f['pitch']), $norm($q)))
-                $mods[] = ['title' => $f['emoji'] . ' ' . $f['name'], 'sub' => $f['status'] === 'soon' ? 'Bientôt' : 'Module actif', 'url' => url($f['status'] === 'soon' ? '/pro/bientot/' . $k : $f['url'])];
+                $mods[] = ['title' => $f['emoji'] . ' ' . $f['name'], 'sub' => $f['status'] === 'soon' ? 'En développement' : 'Module actif', 'url' => url($f['status'] === 'soon' ? '/pro/bientot/' . $k : $f['url'])];
             if ($mods) $groups[] = ['label' => 'Modules', 'items' => array_slice($mods, 0, 5)];
         }
         return $groups;

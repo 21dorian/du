@@ -85,5 +85,24 @@ function admin_modules(): string
     $all = Features::all();
     $all = array_filter($all, fn($f) => $f['status'] === 'soon');
     uksort($all, fn($a, $b) => ($counts[$b] ?? 0) <=> ($counts[$a] ?? 0));
-    return view('layout_back', ['title' => 'Modules & votes', 'area' => 'admin', 'active' => 'modules', 'content' => view('admin/modules', compact('all', 'counts', 'comments'))]);
+    $prio = array_filter(explode(',', (string)setting('admin_roadmap')));
+    $adminItems = Features::admin();
+    uksort($adminItems, fn($a, $b) => (int)in_array($b, $prio, true) <=> (int)in_array($a, $prio, true));
+    return view('layout_back', ['title' => 'Feuille de route', 'area' => 'admin', 'active' => 'modules', 'content' => view('admin/modules', compact('all', 'counts', 'comments', 'adminItems', 'prio'))]);
+}
+
+/** Super-admin : page d'un chantier de la plateforme (en développement), marquable comme prioritaire. */
+function admin_soon(string $key): string
+{
+    require_login(['superadmin']);
+    $f = Features::getAdmin($key);
+    if (!$f) abort(404);
+    $prio = array_filter(explode(',', (string)setting('admin_roadmap')));
+    if (is_post()) {
+        $prio = in_array($key, $prio, true) ? array_values(array_diff($prio, [$key])) : array_merge($prio, [$key]);
+        set_setting('admin_roadmap', implode(',', $prio));
+        back(['success' => in_array($key, $prio, true) ? '⭐ Ajouté à tes priorités.' : 'Retiré de tes priorités.']);
+    }
+    return view('layout_back', ['title' => $f['name'], 'area' => 'admin', 'active' => $key,
+        'content' => view('admin/soon', ['f' => $f, 'prio' => in_array($key, $prio, true)])]);
 }

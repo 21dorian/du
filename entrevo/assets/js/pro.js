@@ -123,4 +123,18 @@
     try { if (localStorage.getItem(k)) { a.remove(); return; } } catch (e) { /* rien */ }
     a.querySelector('.announce-x').onclick = function () { try { localStorage.setItem(k, '1'); } catch (e) { /* rien */ } a.remove(); };
   });
+  // menu : rubriques repliables (mémorisées) et option pour masquer les modules en développement
+  (function () {
+    var nav = document.querySelector('[data-side-nav]'); if (!nav) return;
+    var get = function (k) { try { return localStorage.getItem('entrevo:' + k); } catch (e) { return null; } };
+    var set = function (k, v) { try { if (v === null) localStorage.removeItem('entrevo:' + k); else localStorage.setItem('entrevo:' + k, v); } catch (e) { /* rien */ } };
+    nav.querySelectorAll('details[data-sec]').forEach(function (d) {
+      if (!d.hasAttribute('data-has-on') && get('sec:' + d.dataset.sec) === 'closed') d.open = false;
+      d.addEventListener('toggle', function () { set('sec:' + d.dataset.sec, d.open ? null : 'closed'); });
+    });
+    var cb = nav.querySelector('[data-hide-soon]');
+    var apply = function () { nav.classList.toggle('hide-soon', cb.checked); };
+    cb.checked = get('hide-soon') === '1'; apply();
+    cb.addEventListener('change', function () { set('hide-soon', cb.checked ? '1' : null); apply(); });
+  })();
 })();

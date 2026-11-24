@@ -79,6 +79,13 @@ Couleurs : **vert** = entre, **orange** = déjà entré / pas entré (sortie), *
 
 ---
 
+## Nouveautés 1.4.1 ✨
+
+- **Menus réorganisés** en rubriques repliables (la position est mémorisée), pour les organisateurs comme pour le super-admin.
+- **Nouvelles rubriques « en développement »** (badge « dév ») : chacune a sa page de présentation. Organisateurs : boutique, abonnements, cartes cadeaux, groupes & devis, SMS, mini-site, réseaux sociaux, ambassadeurs, avis, PC sécurité, bénévoles, artistes & planning, cashless, objets trouvés, factures, budget prévisionnel, bilans & subventions, rétroplanning, documents, intégrations (les organisateurs peuvent voter). Super-admin : statistiques, vérification KYC, contrats & tarifs, prospection, litiges, factures de commission, fraude, support, accueil & contenus, modèles d'e-mails, marque blanche, langues, sauvegardes automatiques (marquables « prioritaire »).
+- Case « Masquer les modules en développement » en bas du menu.
+- Super-admin › **Feuille de route** : les votes des organisateurs et tes chantiers prioritaires.
+
 ## Nouveautés 1.4 ✨
 
 **Organisateurs**
