@@ -17,7 +17,7 @@ function sessions_tab(string $id): string
             if (val("SELECT id FROM tickets WHERE session_id = ? AND status = 'valid' LIMIT 1", [$sid])) back(['error' => 'Des billets sont vendus pour cette date : désactive-la plutôt.']);
             q('DELETE FROM sessions WHERE id = ? AND event_id = ?', [$sid, $ev['id']]);
             Tickets::syncEventDates((int)$ev['id']);
-            back(['success' => '🗑️ Date supprimée.']);
+            back(['success' => 'Date supprimée.']);
         }
         if ($a === 'toggle') { q('UPDATE sessions SET active = 1 - active WHERE id = ? AND event_id = ?', [$sid, $ev['id']]); Tickets::syncEventDates((int)$ev['id']); back(); }
         if ($a === 'generate') {
@@ -42,7 +42,7 @@ function sessions_tab(string $id): string
                 }
             }
             Tickets::syncEventDates((int)$ev['id']);
-            back(['success' => '📅 ' . $n . ' date(s) ajoutée(s).']);
+            back(['success' => '' . $n . ' date(s) ajoutée(s).']);
         }
         $data = ['label' => trim((string)input('label')) ?: null, 'starts_at' => dt_from_input(input('starts_at')), 'ends_at' => dt_from_input(input('ends_at')),
             'capacity' => max(0, (int)input('capacity')), 'active' => 1];
@@ -50,7 +50,7 @@ function sessions_tab(string $id): string
         if ($sid) { unset($data['active']); update('sessions', $data, 'id = ? AND event_id = ?', [$sid, $ev['id']]); }
         else insert('sessions', $data + ['event_id' => $ev['id']]);
         Tickets::syncEventDates((int)$ev['id']);
-        back(['success' => '✅ Date enregistrée.']);
+        back(['success' => 'Date enregistrée.']);
     }
     $sessions = all("SELECT s.*, (SELECT COUNT(*) FROM tickets t WHERE t.session_id = s.id AND t.status = 'valid' AND t.type IN ('ticket','invitation')) sold,
                      (SELECT COUNT(*) FROM tickets t WHERE t.session_id = s.id AND t.status = 'valid' AND t.entries > 0) checked FROM sessions s WHERE event_id = ? ORDER BY starts_at", [$ev['id']]);
@@ -67,14 +67,14 @@ function products_tab(string $id): string
         if (input('action') === 'delete') {
             if (val("SELECT i.id FROM order_items i JOIN orders o ON o.id = i.order_id WHERE i.product_id = ? AND o.status = 'paid' LIMIT 1", [$pid])) back(['error' => 'Cette option a déjà été vendue : désactive-la plutôt.']);
             q('DELETE FROM products WHERE id = ? AND event_id = ?', [$pid, $ev['id']]);
-            back(['success' => '🗑️ Option supprimée.']);
+            back(['success' => 'Option supprimée.']);
         }
         $data = ['name' => trim((string)input('name')), 'description' => trim((string)input('description')) ?: null, 'price' => parse_money(input('price')),
             'stock' => max(0, (int)input('stock')), 'max_per_order' => max(0, (int)input('max_per_order')), 'active' => checked('active'), 'sort' => (int)input('sort'),
             'variants' => implode(', ', array_slice(array_values(array_unique(array_filter(array_map(fn($v) => mb_substr(trim($v), 0, 30), explode(',', (string)input('variants'))), fn($v) => $v !== ''))), 0, 20)) ?: null];
         if ($data['name'] === '') back(['error' => 'Donne un nom à cette option.']);
         if ($pid) update('products', $data, 'id = ? AND event_id = ?', [$pid, $ev['id']]); else insert('products', $data + ['event_id' => $ev['id']]);
-        back(['success' => '✅ Option enregistrée.']);
+        back(['success' => 'Option enregistrée.']);
     }
     $products = all("SELECT p.*, (SELECT COALESCE(SUM(i.qty),0) FROM order_items i JOIN orders o ON o.id = i.order_id WHERE i.product_id = p.id AND o.status = 'paid') sold,
                      (SELECT COALESCE(SUM(i.qty * i.unit_price),0) FROM order_items i JOIN orders o ON o.id = i.order_id WHERE i.product_id = p.id AND o.status = 'paid') revenue
@@ -115,7 +115,7 @@ function seating_tab(string $id): string
         update('events', ['seatmap' => json_encode($clean, JSON_UNESCAPED_UNICODE)], 'id = ?', [$ev['id']]);
         $count = count(array_filter(Seating::seats($clean), fn($x) => !$x['off']));
         Audit::log('seatmap.saved', $count . ' places', (int)$ev['id']);
-        back(['success' => '💺 Plan enregistré : ' . $count . ' places. Pense à mettre la capacité de l\'événement à jour.']);
+        back(['success' => 'Plan enregistré : ' . $count . ' places. Pense à mettre la capacité de l\'événement à jour.']);
     }
     $sold = (int)val("SELECT COUNT(*) FROM tickets WHERE event_id = ? AND seat IS NOT NULL AND status = 'valid'", [$ev['id']]);
     return ev_page($ev, 'seating', 'Plan de salle', 'seating', ['map' => Seating::map($ev), 'sold' => $sold, 'payload' => Seating::payload($ev, null)]);
@@ -135,7 +135,7 @@ function invites_tab(string $id): string
             if (!$rate || trim((string)input('name')) === '') back(['error' => 'Nom du partenaire et tarif obligatoires.']);
             insert('partners', ['event_id' => $ev['id'], 'name' => trim((string)input('name')), 'email' => trim((string)input('email')) ?: null, 'token' => token(16),
                 'rate_id' => $rate['id'], 'quota' => max(0, (int)input('quota')), 'free' => checked('free'), 'active' => 1, 'created_at' => now()]);
-            back(['success' => '🤝 Partenaire créé. Envoie-lui son lien !']);
+            back(['success' => 'Partenaire créé. Envoie-lui son lien !']);
         }
         if ($a === 'partner_toggle') { q('UPDATE partners SET active = 1 - active WHERE id = ? AND event_id = ?', [(int)input('partner_id'), $ev['id']]); back(); }
         if ($a === 'invite') {
@@ -164,7 +164,7 @@ function invites_tab(string $id): string
                 if ($ok >= 1000) break;
             }
             if ($ok) Audit::log('invites.sent', $ok . ' invitation(s)', (int)$ev['id']);
-            back([$ok ? 'success' : 'error' => '🎁 ' . $ok . ' invitation(s) créée(s)' . ($bad ? '. Ignorées : ' . implode(', ', array_slice($bad, 0, 10)) . (count($bad) > 10 ? '…' : '') : '.')]);
+            back([$ok ? 'success' : 'error' => '' . $ok . ' invitation(s) créée(s)' . ($bad ? '. Ignorées : ' . implode(', ', array_slice($bad, 0, 10)) . (count($bad) > 10 ? '…' : '') : '.')]);
         }
         back();
     }
@@ -187,7 +187,7 @@ function accred_tab(string $id): string
             $data = ['name' => trim((string)input('name')) ?: 'Staff', 'color' => preg_match('~^#[0-9a-fA-F]{6}$~', (string)input('color')) ? (string)input('color') : '#0032fa',
                 'access_point_ids' => implode(',', array_map('intval', (array)($_POST['zones'] ?? []))) ?: null];
             if ($pid) update('populations', $data, 'id = ? AND event_id = ?', [$pid, $ev['id']]); else insert('populations', $data + ['event_id' => $ev['id']]);
-            back(['success' => '✅ Population enregistrée.']);
+            back(['success' => 'Population enregistrée.']);
         }
         if ($a === 'add') {
             $pop = one('SELECT * FROM populations WHERE id = ? AND event_id = ?', [(int)input('population_id'), $ev['id']]);
@@ -207,7 +207,7 @@ function accred_tab(string $id): string
                 $n++;
             }
             Audit::log('accred.created', $n . ' accréditation(s)', (int)$ev['id']);
-            back(['success' => '🪪 ' . $n . ' accréditation(s) créée(s). Imprime les badges !']);
+            back(['success' => '' . $n . ' accréditation(s) créée(s). Imprime les badges !']);
         }
         if ($a === 'revoke') { q("UPDATE tickets SET status = IF(status = 'valid', 'cancelled', 'valid'), updated_at = NOW() WHERE id = ? AND event_id = ? AND type = 'accreditation'", [(int)input('ticket_id'), $ev['id']]); back(); }
         if ($a === 'import') {
@@ -226,7 +226,7 @@ function accred_tab(string $id): string
                     'status' => 'valid', 'updated_at' => now(), 'created_at' => now()]);
                 if (++$n >= 50000) break;
             }
-            back(['success' => '📥 ' . $n . ' billet(s) externe(s) importé(s)' . ($dup ? ', ' . $dup . ' doublon(s) ignoré(s)' : '') . '. Ils passent au scanner comme les autres.']);
+            back(['success' => '' . $n . ' billet(s) externe(s) importé(s)' . ($dup ? ', ' . $dup . ' doublon(s) ignoré(s)' : '') . '. Ils passent au scanner comme les autres.']);
         }
         back();
     }
@@ -276,14 +276,14 @@ function waitlist_tab(string $id): string
         if (input('action') === 'cancel') q("UPDATE waitlist SET status = 'cancelled' WHERE id = ? AND event_id = ?", [$wid, $ev['id']]);
         if (input('action') === 'offer' && ($w = one("SELECT * FROM waitlist WHERE id = ? AND event_id = ? AND status IN ('waiting','expired')", [$wid, $ev['id']]))) {
             try { Waitlist::offer($w, $ev); } catch (Throwable $e) { log_line('emails', 'Liste d\'attente : ' . $e->getMessage()); }
-            back(['success' => '📨 Place proposée à ' . $w['email'] . ' (gardée ' . Waitlist::hours($ev) . ' h).']);
+            back(['success' => 'Place proposée à ' . $w['email'] . ' (gardée ' . Waitlist::hours($ev) . ' h).']);
         }
         if (input('action') === 'settings') {
             update('events', ['waitlist_hours' => max(1, min(168, (int)input('waitlist_hours', 24))), 'hold_minutes' => (int)input('hold_minutes') ? max(5, min(60, (int)input('hold_minutes'))) : null], 'id = ?', [$ev['id']]);
-            back(['success' => '✅ Délais enregistrés.']);
+            back(['success' => 'Délais enregistrés.']);
         }
-        if (input('action') === 'process') { $n = Waitlist::process(); back(['success' => '⏳ ' . $n . ' offre(s) envoyée(s).']); }
-        back(['success' => '✅ C\'est fait.']);
+        if (input('action') === 'process') { $n = Waitlist::process(); back(['success' => '' . $n . ' offre(s) envoyée(s).']); }
+        back(['success' => 'C\'est fait.']);
     }
     $list = all('SELECT w.*, s.starts_at s_start FROM waitlist w LEFT JOIN sessions s ON s.id = w.session_id WHERE w.event_id = ? ORDER BY FIELD(w.status, \'offered\', \'waiting\', \'converted\', \'expired\', \'cancelled\'), w.id', [$ev['id']]);
     $resales = all("SELECT x.*, t.code, t.first_name, t.last_name, t.rate_name, so.ref seller_ref, bo.ref buyer_ref FROM resales x JOIN tickets t ON t.id = x.ticket_id
@@ -305,7 +305,7 @@ function messages_tab(string $id): string
         $f = ['rate' => (int)input('rate'), 'session' => (int)input('session'), 'who' => (string)input('who', 'all')];
         $emails = message_recipients($ev, $f);
         if (input('action') === 'test') {
-            try { Mailer::send(user()['email'], '[TEST] ' . $subject, message_html($ev, $body, 'Camille')); back(['success' => '📬 Test envoyé à ' . user()['email'] . '.']); }
+            try { Mailer::send(user()['email'], '[TEST] ' . $subject, message_html($ev, $body, 'Camille')); back(['success' => 'Test envoyé à ' . user()['email'] . '.']); }
             catch (Throwable $e) { back(['error' => 'Envoi impossible : ' . $e->getMessage()]); }
         }
         if (!$emails) back(['error' => 'Personne ne correspond à ces critères.']);
@@ -317,7 +317,7 @@ function messages_tab(string $id): string
         insert('messages', ['event_id' => $ev['id'], 'subject' => mb_substr($subject, 0, 190), 'body' => $body, 'filters' => json_encode($f), 'recipients' => count($emails),
             'sent' => $sent, 'failed' => $failed, 'user_id' => user()['id'], 'created_at' => now()]);
         Audit::log('message.sent', $sent . ' destinataire(s) · ' . mb_substr((string)$subject, 0, 120), (int)$ev['id']);
-        back([$failed ? 'warning' : 'success' => '📣 Message envoyé à ' . $sent . ' personne(s)' . ($failed ? ', ' . $failed . ' échec(s)' : '') . '.']);
+        back([$failed ? 'warning' : 'success' => 'Message envoyé à ' . $sent . ' personne(s)' . ($failed ? ', ' . $failed . ' échec(s)' : '') . '.']);
     }
     $history = all('SELECT m.*, u.name user_name FROM messages m LEFT JOIN users u ON u.id = m.user_id WHERE event_id = ? ORDER BY id DESC', [$ev['id']]);
     $preview = count(message_recipients($ev, ['rate' => (int)input('rate'), 'session' => (int)input('session'), 'who' => (string)input('who', 'all')]));
@@ -340,7 +340,7 @@ function message_recipients(array $ev, array $f): array
 
 function message_html(array $ev, string $body, ?string $first): string
 {
-    return '<p>Salut ' . e($first ?: '') . ' 👋</p><div style="white-space:pre-line">' . e(str_replace('{prenom}', (string)$first, $body)) . '</div>'
+    return '<p>Salut ' . e($first ?: '') . '</p><div style="white-space:pre-line">' . e(str_replace('{prenom}', (string)$first, $body)) . '</div>'
         . '<p style="color:#777;font-size:13px;margin-top:22px">Message de l\'organisateur de « ' . e($ev['name']) . ' ». Tu le reçois car tu as un billet pour cet événement.</p>';
 }
 
@@ -417,7 +417,7 @@ function cash_tab(string $id): string
             'counted_cash' => $counted, 'note' => mb_substr(trim((string)input('note')), 0, 500), 'created_at' => now()]);
         $diff = $counted !== null ? $counted - (int)($totals['by_method']['especes'] ?? 0) : null;
         Audit::log('cash.closed', money($totals['total']), (int)$ev['id']);
-        back(['success' => '🧾 Caisse clôturée : ' . money($totals['total']) . ($diff !== null ? ' · écart espèces ' . ($diff >= 0 ? '+' : '') . money($diff) : '') . '.']);
+        back(['success' => 'Caisse clôturée : ' . money($totals['total']) . ($diff !== null ? ' · écart espèces ' . ($diff >= 0 ? '+' : '') . money($diff) : '') . '.']);
     }
     if (input('csv')) {
         $rows = [['Date', 'Commande', 'Vendeur', 'Client', 'Billets', 'Paiement', 'Montant', 'Statut']];

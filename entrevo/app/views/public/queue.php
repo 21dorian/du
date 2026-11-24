@@ -1,7 +1,7 @@
 <div class="queue-box card">
   <span class="eyebrow">File d'attente virtuelle</span>
   <h1><?= e($ev['name']) ?></h1>
-  <p class="muted">Beaucoup de monde en même temps ! Pour que tout le monde achète sans bug, on fait entrer les gens par petits groupes. Ne ferme pas cette page, elle avance toute seule. 🍿</p>
+  <p class="muted">Beaucoup de monde en même temps ! Pour que tout le monde achète sans bug, on fait entrer les gens par petits groupes. Ne ferme pas cette page, elle avance toute seule.</p>
   <div class="queue-pos" id="qpos"><?= (int)($st['position'] ?? 0) ?></div>
   <p>personne(s) devant toi · environ <b id="qmin"><?= (int)($st['minutes'] ?? 1) ?></b> min</p>
   <div class="bar"><i id="qbar" style="width:5%"></i></div>

@@ -22,11 +22,11 @@ function volunteer_apply(string $slug): string
             $picked = array_map('intval', (array)($_POST['shifts'] ?? []));
             foreach ($shifts as $s) if (in_array((int)$s['id'], $picked, true) && !val('SELECT id FROM staff_assignments WHERE shift_id = ? AND member_id = ?', [$s['id'], $mid])) Staff::assign((int)$s['id'], $mid, 'requested');
             try {
-                Mailer::send($m['email'], '🙌 Candidature reçue — ' . $ev['name'], '<p>Merci ' . e($m['first_name']) . ' !</p><p>Ta candidature pour être bénévole à <b>' . e($ev['name']) . '</b> est bien arrivée. L\'équipe de ' . e($org['name']) . ' revient vers toi très vite.</p>'
+                Mailer::send($m['email'], 'Candidature reçue — ' . $ev['name'], '<p>Merci ' . e($m['first_name']) . ' !</p><p>Ta candidature pour être bénévole à <b>' . e($ev['name']) . '</b> est bien arrivée. L\'équipe de ' . e($org['name']) . ' revient vers toi très vite.</p>'
                     . '<p>En attendant, ton espace bénévole : <a href="' . e(Staff::portalUrl($m)) . '">' . e(Staff::portalUrl($m)) . '</a></p>');
-                if (is_email((string)$org['email'])) Mailer::send($org['email'], '🙋 Nouvelle candidature bénévole : ' . $m['first_name'] . ' ' . $m['last_name'], '<p>Pour « ' . e($ev['name']) . ' » · ' . count($picked) . ' créneau(x) demandé(s).</p><p><a href="' . e(abs_url('/pro/evenements/' . $ev['id'] . '/benevoles')) . '">Voir le planning</a></p>');
+                if (is_email((string)$org['email'])) Mailer::send($org['email'], 'Nouvelle candidature bénévole : ' . $m['first_name'] . ' ' . $m['last_name'], '<p>Pour « ' . e($ev['name']) . ' » · ' . count($picked) . ' créneau(x) demandé(s).</p><p><a href="' . e(abs_url('/pro/evenements/' . $ev['id'] . '/benevoles')) . '">Voir le planning</a></p>');
             } catch (Throwable $e) { log_line('emails', $e->getMessage()); }
-            redirect('/benevole/' . $m['token'], ['success' => '🙌 Candidature envoyée ! Voici ton espace bénévole : garde bien ce lien.']);
+            redirect('/benevole/' . $m['token'], ['success' => 'Candidature envoyée ! Voici ton espace bénévole : garde bien ce lien.']);
         }
     }
     return view('layout_public', ['title' => 'Bénévoles · ' . $ev['name'], 'content' => view('public/volunteer_apply', compact('ev', 'org', 'shifts', 'errors'))]);
@@ -46,15 +46,15 @@ function volunteer_portal(string $token): string
     if (is_post()) {
         $a = (string)input('action');
         $as = one('SELECT a.*, s.title, s.needed, s.starts_at, s.ends_at, s.id sid, s.open_signup FROM staff_assignments a JOIN staff_shifts s ON s.id = a.shift_id WHERE a.id = ? AND a.member_id = ?', [(int)input('assignment_id'), $m['id']]);
-        if ($a === 'confirm' && $as) { update('staff_assignments', ['status' => 'confirmed'], 'id = ?', [$as['id']]); back(['success' => '👍 C\'est noté, merci !']); }
-        if ($a === 'decline' && $as && !$as['checked_in_at']) { update('staff_assignments', ['status' => 'declined'], 'id = ?', [$as['id']]); back(['success' => 'OK, on prévient l\'équipe. Merci de nous avoir dit 🙏']); }
+        if ($a === 'confirm' && $as) { update('staff_assignments', ['status' => 'confirmed'], 'id = ?', [$as['id']]); back(['success' => 'C\'est noté, merci !']); }
+        if ($a === 'decline' && $as && !$as['checked_in_at']) { update('staff_assignments', ['status' => 'declined'], 'id = ?', [$as['id']]); back(['success' => 'OK, on prévient l\'équipe. Merci de nous avoir dit']); }
         if ($a === 'signup') {
             $s = one('SELECT s.* FROM staff_shifts s JOIN events e ON e.id = s.event_id WHERE s.id = ? AND e.organizer_id = ? AND s.open_signup = 1 AND s.ends_at > NOW()', [(int)input('shift_id'), $m['organizer_id']]);
             if (!$s) back(['error' => 'Ce créneau n\'est plus disponible.']);
-            if (Staff::free($s) <= 0) back(['error' => 'Ce créneau est déjà complet 😅']);
+            if (Staff::free($s) <= 0) back(['error' => 'Ce créneau est déjà complet']);
             if ($c = Staff::conflict((int)$m['id'], $s)) back(['error' => 'Tu es déjà sur « ' . $c . ' » à ce moment-là.']);
             Staff::assign((int)$s['id'], (int)$m['id'], 'requested');
-            back(['success' => '🙋 Demande envoyée : l\'organisateur va la valider.']);
+            back(['success' => 'Demande envoyée : l\'organisateur va la valider.']);
         }
         back();
     }

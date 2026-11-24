@@ -89,7 +89,7 @@ function api_data(string $id): never
     foreach (all('SELECT id, name, scan_note, scan_color, min_age FROM rates WHERE event_id = ?', [$ev['id']]) as $r) {
         $rates[(int)$r['id']] = $r['name'];
         $age = max((int)($ev['min_age'] ?? 0), (int)($r['min_age'] ?? 0));
-        $note = trim(($age ? '🔞 ' . $age . ' ans et + : vérifier l\'âge. ' : '') . (string)$r['scan_note']);
+        $note = trim(($age ? '' . $age . ' ans et + : vérifier l\'âge. ' : '') . (string)$r['scan_note']);
         if ($note !== '' || $r['scan_color']) $rules[(int)$r['id']] = ['note' => $note, 'color' => (string)$r['scan_color']];
     }
     json_out([

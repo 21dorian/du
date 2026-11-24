@@ -1,7 +1,7 @@
 <?php $apName = array_column($aps, 'name', 'id'); ?>
 <div class="split">
   <div>
-    <div class="card"><div class="card-head"><h2>🪪 Populations</h2><a class="btn btn-sm btn-ghost" href="<?= url('/pro/evenements/' . $ev['id'] . '/badges') ?>" target="_blank">Imprimer tous les badges</a></div>
+    <div class="card"><div class="card-head"><h2>Populations</h2><a class="btn btn-sm btn-ghost" href="<?= url('/pro/evenements/' . $ev['id'] . '/badges') ?>" target="_blank">Imprimer tous les badges</a></div>
       <?php foreach ($pops as $p): $z = array_filter(explode(',', (string)$p['access_point_ids'])); ?>
         <details class="box"><summary><span><span style="display:inline-block;width:12px;height:12px;background:<?= e($p['color']) ?>"></span> <?= e($p['name']) ?></span><span class="muted" style="font-weight:500"><?= (int)$p['n'] ?> pers. · <?= $z ? e(implode(', ', array_map(fn($i) => $apName[$i] ?? '?', $z))) : 'toutes zones' ?></span></summary>
           <form method="post"><?= csrf_field() ?><input type="hidden" name="action" value="population"><input type="hidden" name="population_id" value="<?= (int)$p['id'] ?>">
@@ -22,7 +22,7 @@
       <button class="btn btn-block">Créer les accréditations</button>
     </form>
     <form class="card" method="post" enctype="multipart/form-data"><?= csrf_field() ?><input type="hidden" name="action" value="import">
-      <h2>📥 Importer des billets externes</h2>
+      <h2>Importer des billets externes</h2>
       <p class="muted" style="font-size:14px">Billets vendus ailleurs (Fnac, Ticketmaster, CE…) : importe leurs codes et ils passent au scanner Entrevo. <?= $external ? '<b>' . $external . ' déjà importés.</b>' : '' ?><br>Une ligne par billet : <code>code ; prénom ; nom ; tarif</code></p>
       <div class="field"><textarea name="codes" rows="4" placeholder="FNAC123456789 ; Léa ; Martin ; Fosse"></textarea></div>
       <div class="field"><input type="file" name="csv" accept=".csv,.txt"></div>
@@ -32,7 +32,7 @@
   <div class="card"><h2><?= count($people) ?> accrédité<?= count($people) > 1 ? 's' : '' ?></h2>
     <div class="table-wrap"><table class="table"><thead><tr><th>Personne</th><th>Population</th><th>Entrée</th><th></th></tr></thead><tbody>
     <?php foreach ($people as $t): ?><tr style="<?= $t['status'] === 'valid' ? '' : 'opacity:.45' ?>"><td><b><?= e($t['last_name']) ?></b> <?= e($t['first_name']) ?><br><small><?= e($t['company']) ?></small></td>
-      <td><span class="badge" style="color:<?= e($t['color']) ?>"><?= e($t['pop_name']) ?></span></td><td><?= $t['entries'] > 0 ? '✅' : '—' ?></td>
+      <td><span class="badge" style="color:<?= e($t['color']) ?>"><?= e($t['pop_name']) ?></span></td><td><?= $t['entries'] > 0 ? '' : '—' ?></td>
       <td class="right nowrap"><a class="btn btn-sm btn-light" href="<?= url('/pro/evenements/' . $ev['id'] . '/badges', ['t' => $t['id']]) ?>" target="_blank">Badge</a>
         <form method="post" class="inline-form"><?= csrf_field() ?><input type="hidden" name="ticket_id" value="<?= (int)$t['id'] ?>"><button class="btn btn-sm btn-light" name="action" value="revoke"><?= $t['status'] === 'valid' ? 'Révoquer' : 'Rétablir' ?></button></form></td></tr><?php endforeach; ?>
     <?php if (!$people): ?><tr><td colspan="4" class="empty">Personne pour l'instant.</td></tr><?php endif; ?>

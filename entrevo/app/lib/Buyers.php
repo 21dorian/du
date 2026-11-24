@@ -44,16 +44,16 @@ final class Buyers
         $link = abs_url('/billet/' . $token);
         try {
             $pdf = TicketPdf::build($o, $ev, $org, [$t]);
-            Mailer::send($email, '🎁 ' . $fromName . ' t\'offre ta place pour ' . $ev['name'],
-                '<p>Salut ' . e($first) . ' 👋</p><p><b>' . e($fromName) . '</b> te donne son billet pour <b>' . e($ev['name']) . '</b>. Chanceux·se !</p>'
+            Mailer::send($email, '' . $fromName . ' t\'offre ta place pour ' . $ev['name'],
+                '<p>Salut ' . e($first) . '</p><p><b>' . e($fromName) . '</b> te donne son billet pour <b>' . e($ev['name']) . '</b>. Chanceux·se !</p>'
                 . '<p style="margin:0;color:#555">' . e(fr_date($session['starts_at'] ?? $ev['starts_at'])) . ($ev['venue'] ? '<br>' . e($ev['venue']) . ($ev['city'] ? ', ' . e($ev['city']) : '') : '') . '</p>'
-                . '<p>🎟️ Ton billet est en pièce jointe, à ton nom. Montre le QR code à l\'entrée.</p>'
+                . '<p>Ton billet est en pièce jointe, à ton nom. Montre le QR code à l\'entrée.</p>'
                 . '<p><a href="' . e($link) . '" style="background:' . e(setting('primary_color', '#0071e3')) . ';color:#fff;padding:12px 18px;border-radius:8px;text-decoration:none;display:inline-block">Voir mon billet</a></p>'
                 . '<p style="color:#777;font-size:13px">' . e(self::calendarLine($ev, $session)) . '</p>',
                 [['data' => $pdf, 'name' => 'billet-' . $code . '.pdf']], $org['email'] ?? null);
         } catch (Throwable $e) { log_line('emails', 'Transfert billet #' . $t['id'] . ' : ' . $e->getMessage()); }
         if (is_email($fromEmail)) {
-            try { Mailer::send($fromEmail, '✅ Ton billet est bien parti', '<p>C\'est fait : ton billet « ' . e($t['rate_name']) . ' » pour <b>' . e($ev['name']) . '</b> est maintenant au nom de <b>' . e(trim($first . ' ' . $last)) . '</b> (' . e($email) . ').</p><p>L\'ancien QR code ne fonctionne plus : seul le nouveau, reçu par ton ami·e, passera à l\'entrée.</p>'); }
+            try { Mailer::send($fromEmail, 'Ton billet est bien parti', '<p>C\'est fait : ton billet « ' . e($t['rate_name']) . ' » pour <b>' . e($ev['name']) . '</b> est maintenant au nom de <b>' . e(trim($first . ' ' . $last)) . '</b> (' . e($email) . ').</p><p>L\'ancien QR code ne fonctionne plus : seul le nouveau, reçu par ton ami·e, passera à l\'entrée.</p>'); }
             catch (Throwable $e) { log_line('emails', 'Transfert (confirmation) : ' . $e->getMessage()); }
         }
         return $t;
@@ -109,13 +109,13 @@ final class Buyers
 
     private static function calendarLine(array $ev, ?array $session): string
     {
-        return '📅 Ajoute-le à ton agenda : ' . self::googleUrl($ev, $session);
+        return 'Ajoute-le à ton agenda : ' . self::googleUrl($ev, $session);
     }
 
     /** Liens HTML (e-mail) Google + fichier .ics. */
     public static function calendarLinks(array $ev, ?array $session): string
     {
-        return '<p style="font-size:14px">📅 Ajouter à mon agenda : <a href="' . e(self::googleUrl($ev, $session)) . '">Google</a> · <a href="' . e(abs_url('/e/' . $ev['slug'] . '/agenda.ics', $session ? ['seance' => (int)$session['id']] : [])) . '">Apple / Outlook (.ics)</a></p>';
+        return '<p style="font-size:14px">Ajouter à mon agenda : <a href="' . e(self::googleUrl($ev, $session)) . '">Google</a> · <a href="' . e(abs_url('/e/' . $ev['slug'] . '/agenda.ics', $session ? ['seance' => (int)$session['id']] : [])) . '">Apple / Outlook (.ics)</a></p>';
     }
 
     // ---------- Rappel la veille ----------
@@ -141,14 +141,14 @@ final class Buyers
             $place = self::place($ev);
             $link = abs_url('/commande/' . $o['ref'], ['t' => $o['token']]);
             try {
-                Mailer::send((string)$o['email'], '⏰ ' . $when . ' : ' . $ev['name'] . ' !',
-                    '<p>Salut ' . e($o['first_name']) . ' 👋</p><p><b>' . $when . '</b>, c\'est <b>' . e($ev['name']) . '</b>. On a hâte !</p>'
-                    . '<table style="font-size:15px;border-collapse:collapse"><tr><td style="padding:4px 12px 4px 0">🕗</td><td><b>' . e(fr_date(date('Y-m-d H:i:s', $start))) . '</b></td></tr>'
-                    . ($place ? '<tr><td style="padding:4px 12px 4px 0">📍</td><td>' . e($place) . ' — <a href="https://www.google.com/maps/search/?api=1&amp;query=' . e(rawurlencode($place)) . '">itinéraire</a></td></tr>' : '')
-                    . '<tr><td style="padding:4px 12px 4px 0">🎟️</td><td>' . $nb . ' billet' . ($nb > 1 ? 's' : '') . ' · commande ' . e($o['ref']) . '</td></tr></table>'
+                Mailer::send((string)$o['email'], '' . $when . ' : ' . $ev['name'] . ' !',
+                    '<p>Salut ' . e($o['first_name']) . '</p><p><b>' . $when . '</b>, c\'est <b>' . e($ev['name']) . '</b>. On a hâte !</p>'
+                    . '<table style="font-size:15px;border-collapse:collapse"><tr><td style="padding:4px 12px 4px 0"></td><td><b>' . e(fr_date(date('Y-m-d H:i:s', $start))) . '</b></td></tr>'
+                    . ($place ? '<tr><td style="padding:4px 12px 4px 0"></td><td>' . e($place) . ' — <a href="https://www.google.com/maps/search/?api=1&amp;query=' . e(rawurlencode($place)) . '">itinéraire</a></td></tr>' : '')
+                    . '<tr><td style="padding:4px 12px 4px 0"></td><td>' . $nb . ' billet' . ($nb > 1 ? 's' : '') . ' · commande ' . e($o['ref']) . '</td></tr></table>'
                     . (!empty($ev['reminder_message']) || !empty($ev['email_message']) ? '<div style="margin:16px 0;padding:12px 14px;background:#f6f4ef;border-left:4px solid #0071e3;white-space:pre-line">' . e((string)($ev['reminder_message'] ?: $ev['email_message'])) . '</div>' : '')
                     . '<p><a href="' . e($link) . '" style="background:' . e(setting('primary_color', '#0071e3')) . ';color:#fff;padding:12px 18px;border-radius:8px;text-decoration:none;display:inline-block">Afficher mes billets</a></p>'
-                    . '<p style="color:#777;font-size:13px">Astuce : garde cette page ouverte ou fais une capture du QR code, au cas où le réseau sature sur place 😉</p>',
+                    . '<p style="color:#777;font-size:13px">Astuce : garde cette page ouverte ou fais une capture du QR code, au cas où le réseau sature sur place</p>',
                     [], $org['email'] ?? null);
                 $n++;
             } catch (Throwable $e) { log_line('emails', 'Rappel J-1 #' . $o['id'] . ' : ' . $e->getMessage()); }
@@ -183,8 +183,8 @@ final class Buyers
             $list = implode('', array_map(fn($i) => '<li>' . (int)$i['qty'] . ' × ' . e($i['name']) . '</li>', $items));
             $link = abs_url('/reprendre/' . $o['ref'], ['t' => $o['token']]);
             try {
-                Mailer::send((string)$o['email'], '🛒 Tes billets pour ' . $ev['name'] . ' t\'attendent',
-                    '<p>Salut ' . e($o['first_name']) . ' 👋</p><p>Tu as commencé à réserver pour <b>' . e($ev['name']) . '</b> (' . e(fr_date($ev['starts_at'], false)) . ') mais le paiement n\'est pas allé au bout. Un souci de carte, un coup de fil, le chat qui marche sur le clavier ?</p>'
+                Mailer::send((string)$o['email'], 'Tes billets pour ' . $ev['name'] . ' t\'attendent',
+                    '<p>Salut ' . e($o['first_name']) . '</p><p>Tu as commencé à réserver pour <b>' . e($ev['name']) . '</b> (' . e(fr_date($ev['starts_at'], false)) . ') mais le paiement n\'est pas allé au bout. Un souci de carte, un coup de fil, le chat qui marche sur le clavier ?</p>'
                     . '<p>On t\'a gardé ton panier :</p><ul>' . $list . '</ul>'
                     . '<p><a href="' . e($link) . '" style="background:' . e(setting('primary_color', '#0071e3')) . ';color:#fff;padding:12px 18px;border-radius:8px;text-decoration:none;display:inline-block">Reprendre ma réservation</a></p>'
                     . '<p style="color:#777;font-size:13px">Les places partent vite, on ne peut pas te les garder éternellement. Plus intéressé·e ? Ignore simplement cet e-mail, on ne te relancera pas.</p>',
@@ -224,8 +224,8 @@ final class Buyers
             }
             $link = abs_url('/reprendre/' . $o['ref'], array_filter(['t' => $o['token'], 'code' => $code]));
             try {
-                Mailer::send($email, $code ? '🎁 −' . (int)$org['recovery_pct'] . ' % pour finir ta réservation : ' . $ev['name'] : '⏳ Dernier rappel : ' . $ev['name'],
-                    '<p>Re-salut ' . e($o['first_name']) . ' 👋</p><p>Ton panier pour <b>' . e($ev['name']) . '</b> t\'attend toujours… mais plus pour très longtemps.</p>'
+                Mailer::send($email, $code ? '−' . (int)$org['recovery_pct'] . ' % pour finir ta réservation : ' . $ev['name'] : 'Dernier rappel : ' . $ev['name'],
+                    '<p>Re-salut ' . e($o['first_name']) . '</p><p>Ton panier pour <b>' . e($ev['name']) . '</b> t\'attend toujours… mais plus pour très longtemps.</p>'
                     . ($code ? '<p style="font-size:17px">Pour te motiver, voici <b>−' . (int)$org['recovery_pct'] . ' %</b> avec le code <b style="font-family:monospace;background:#f4f4f8;padding:3px 8px;border-radius:6px">' . e($code) . '</b> (valable 72 h, déjà appliqué via le bouton).</p>' : '')
                     . '<p><a href="' . e($link) . '" style="background:' . e(setting('primary_color', '#0071e3')) . ';color:#fff;padding:12px 18px;border-radius:8px;text-decoration:none;display:inline-block">Je finis ma réservation</a></p>'
                     . '<p style="color:#777;font-size:13px">C\'est le dernier e-mail à ce sujet, promis.</p>', [], $org['email'] ?? null);
@@ -280,10 +280,10 @@ final class Buyers
             if (!is_email((string)$o['email'])) continue;
             $org = one('SELECT * FROM organizers WHERE id = ?', [$o['organizer_id']]);
             $stars = '';
-            for ($k = 1; $k <= 5; $k++) $stars .= '<a href="' . e(abs_url('/avis/' . $o['ref'], ['t' => $o['token'], 'note' => $k])) . '" style="display:inline-block;margin:0 3px;padding:10px 12px;border-radius:10px;background:#f4f4f8;text-decoration:none;font-size:22px" title="' . $k . '/5">' . str_repeat('⭐', 1) . '<span style="font-size:13px;color:#555;margin-left:4px">' . $k . '</span></a>';
+            for ($k = 1; $k <= 5; $k++) $stars .= '<a href="' . e(abs_url('/avis/' . $o['ref'], ['t' => $o['token'], 'note' => $k])) . '" style="display:inline-block;margin:0 3px;padding:10px 12px;border-radius:10px;background:#f4f4f8;text-decoration:none;font-size:22px" title="' . $k . '/5">' . str_repeat('', 1) . '<span style="font-size:13px;color:#555;margin-left:4px">' . $k . '</span></a>';
             try {
-                Mailer::send((string)$o['email'], '💬 Alors, ' . $ev['name'] . ', t\'as kiffé ?',
-                    '<p>Salut ' . e($o['first_name']) . ' 👋</p><p>Merci d\'être venu·e à <b>' . e($ev['name']) . '</b> ! ' . e($org['name']) . ' aimerait savoir ce que tu en as pensé. Ça prend 20 secondes, promis.</p>'
+                Mailer::send((string)$o['email'], 'Alors, ' . $ev['name'] . ', t\'as kiffé ?',
+                    '<p>Salut ' . e($o['first_name']) . '</p><p>Merci d\'être venu·e à <b>' . e($ev['name']) . '</b> ! ' . e($org['name']) . ' aimerait savoir ce que tu en as pensé. Ça prend 20 secondes, promis.</p>'
                     . '<p style="text-align:center;margin:22px 0">' . $stars . '</p><p style="color:#777;font-size:13px;text-align:center">1 = bof · 5 = on y retourne demain</p>',
                     [], $org['email'] ?? null);
                 $n++;
@@ -332,8 +332,8 @@ final class Buyers
         q('INSERT INTO presale_access (event_id, email, reason, created_at) VALUES (?, ?, ?, NOW()) ON DUPLICATE KEY UPDATE reason = VALUES(reason)', [$ev['id'], $email, $reason]);
         $tok = rtrim(strtr(base64_encode($email . '|' . self::presaleSig((int)$ev['id'], $email)), '+/', '-_'), '=');
         $org = one('SELECT * FROM organizers WHERE id = ?', [$ev['organizer_id']]);
-        Mailer::send($email, '🔑 Ton accès à la prévente : ' . $ev['name'],
-            '<p>Salut 👋</p><p>Tu fais partie des privilégiés : tu peux prendre tes places pour <b>' . e($ev['name']) . '</b> avant tout le monde (ouverture au public le ' . e(fr_date((string)$ev['presale_until'])) . ').</p>'
+        Mailer::send($email, 'Ton accès à la prévente : ' . $ev['name'],
+            '<p>Salut</p><p>Tu fais partie des privilégiés : tu peux prendre tes places pour <b>' . e($ev['name']) . '</b> avant tout le monde (ouverture au public le ' . e(fr_date((string)$ev['presale_until'])) . ').</p>'
             . '<p><a href="' . e(abs_url('/e/' . $ev['slug'] . '/prevente/' . $tok)) . '" style="background:' . e(setting('primary_color', '#0071e3')) . ';color:#fff;padding:12px 18px;border-radius:8px;text-decoration:none;display:inline-block">J\'accède à la prévente</a></p>'
             . '<p style="color:#777;font-size:13px">Ce lien est personnel. Il fonctionne jusqu\'à l\'ouverture au public.</p>', [], $org['email'] ?? null);
     }
@@ -357,7 +357,7 @@ final class Buyers
     public static function ageFieldsHtml(int $age): string
     {
         if (!$age) return '';
-        return '<div class="age-box"><b>🔞 Réservé aux ' . $age . ' ans et plus</b>'
+        return '<div class="age-box"><b>Réservé aux ' . $age . ' ans et plus</b>'
             . '<div class="field"><label>Ta date de naissance *</label><input type="date" name="birth_date" required max="' . date('Y-m-d') . '" autocomplete="bday"></div>'
             . '<label class="check"><input type="checkbox" name="age_ok" value="1" required> <span>Je confirme que chaque participant aura au moins ' . $age . ' ans le jour J (pièce d\'identité demandée à l\'entrée).</span></label></div>';
     }
@@ -368,7 +368,7 @@ final class Buyers
         $age = self::requiredAge($ev, $rateIds);
         if (!$age) return null;
         if (!$birth || !preg_match('~^\d{4}-\d{2}-\d{2}$~', $birth) || strtotime($birth) === false || strtotime($birth) > time()) return 'Indique ta date de naissance (événement réservé aux ' . $age . ' ans et +).';
-        if (self::ageAt($birth, (string)($session['starts_at'] ?? $ev['starts_at'])) < $age) return 'Désolé, cet événement est réservé aux ' . $age . ' ans et plus 🔞';
+        if (self::ageAt($birth, (string)($session['starts_at'] ?? $ev['starts_at'])) < $age) return 'Désolé, cet événement est réservé aux ' . $age . ' ans et plus';
         if (!$confirmed) return 'Confirme que chaque participant a au moins ' . $age . ' ans.';
         return null;
     }
@@ -414,7 +414,7 @@ final class Buyers
             q('SELECT id FROM events WHERE id = ? FOR UPDATE', [$ev['id']]);
             // revérifie sous verrou
             $again = array_values(array_filter(self::exchangeOptions($o, $ev)['list'], fn($s) => (int)$s['id'] === $sessionId && $s['ok']));
-            if (!$again) { db()->rollBack(); return 'Oups, cette date vient de se remplir 😬'; }
+            if (!$again) { db()->rollBack(); return 'Oups, cette date vient de se remplir'; }
             update('orders', ['session_id' => $sessionId, 'exchanges' => (int)$o['exchanges'] + 1], 'id = ?', [$o['id']]);
             q("UPDATE tickets SET session_id = ?, updated_at = NOW() WHERE order_id = ? AND status = 'valid'", [$sessionId, $o['id']]);
             db()->commit();

@@ -23,7 +23,7 @@
     Object.keys(picked).forEach(function (k) { got++; html += '<input type="hidden" name="seats[' + picked[k] + '][]" value="' + esc(k) + '">'; var s = info[k]; list.push(s ? s[5] + ' ' + s[6] + s[7] : k); });
     box.innerHTML = html;
     document.getElementById('seat-count').textContent = tot ? got + ' / ' + tot : '';
-    document.getElementById('seat-picked').textContent = got ? '✅ ' + list.join(' · ') : (tot ? '👉 Ouvre le plan pour choisir ' + tot + ' place' + (tot > 1 ? 's' : '') + '.' : 'Choisis tes billets, puis clique sur les places du plan.');
+    document.getElementById('seat-picked').textContent = got ? '' + list.join(' · ') : (tot ? 'Ouvre le plan pour choisir ' + tot + ' place' + (tot > 1 ? 's' : '') + '.' : 'Choisis tes billets, puis clique sur les places du plan.');
     if (data) draw();
   }
   function draw() {
@@ -48,7 +48,7 @@
     if (picked[k]) { delete picked[k]; sync(); return; }
     if (s[4]) return;
     var rid = rateFor(s[3]);
-    if (!rid) { document.getElementById('seat-hint').textContent = '🙅 Pas de billet disponible pour cette catégorie de place. Ajoute un billet du bon tarif, ou libère une place.'; return; }
+    if (!rid) { document.getElementById('seat-hint').textContent = 'Pas de billet disponible pour cette catégorie de place. Ajoute un billet du bon tarif, ou libère une place.'; return; }
     picked[k] = rid; document.getElementById('seat-hint').textContent = 'Clique sur une place libre pour la prendre, reclique pour la libérer.'; sync();
   });
   function load() {
@@ -66,7 +66,7 @@
   form.addEventListener('submit', function (e) {
     if (e.submitter && e.submitter.value !== 'buy') return;
     var n = need(), ok = true; Object.keys(n).forEach(function (rid) { if (countFor(rid) !== n[rid]) ok = false; });
-    if (!ok) { e.preventDefault(); modal.hidden = false; if (!data) load(); document.getElementById('seat-hint').textContent = '💺 Choisis une place pour chaque billet avant de continuer.'; }
+    if (!ok) { e.preventDefault(); modal.hidden = false; if (!data) load(); document.getElementById('seat-hint').textContent = 'Choisis une place pour chaque billet avant de continuer.'; }
   });
   sync();
 })();

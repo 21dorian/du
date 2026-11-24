@@ -10,10 +10,10 @@ function admin_invoices(): string
         if (input('action') === 'generate') {
             if (trim((string)setting('invoice_name')) === '' || trim((string)setting('invoice_address')) === '') back(['error' => 'Renseigne d\'abord tes informations d\'émetteur (Réglages › Commissions).']);
             try { $ids = Invoices::generate((string)input('period'), (bool)input('send')); } catch (Throwable $e) { back(['error' => $e->getMessage()]); }
-            back(['success' => $ids ? '🧾 ' . count($ids) . ' facture(s) créée(s)' . (input('send') ? ' et envoyée(s).' : '.') : 'Aucune nouvelle facture : tout est déjà facturé pour ce mois (ou pas de commission).']);
+            back(['success' => $ids ? '' . count($ids) . ' facture(s) créée(s)' . (input('send') ? ' et envoyée(s).' : '.') : 'Aucune nouvelle facture : tout est déjà facturé pour ce mois (ou pas de commission).']);
         }
         if (input('action') === 'resend') {
-            try { Invoices::send((int)input('id')); back(['success' => '📬 Facture renvoyée.']); } catch (Throwable $e) { back(['error' => $e->getMessage()]); }
+            try { Invoices::send((int)input('id')); back(['success' => 'Facture renvoyée.']); } catch (Throwable $e) { back(['error' => $e->getMessage()]); }
         }
         back();
     }

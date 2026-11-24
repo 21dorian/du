@@ -1,5 +1,5 @@
 <?php $qs = array_filter(['who' => $who ?: null, 'type' => $type ?: null]); ?>
-<p class="muted">Qui a fait quoi, et quand. Pratique pour savoir qui a remboursé, renommé ou annulé quelque chose 🕵️</p>
+<p class="muted">Qui a fait quoi, et quand. Pratique pour savoir qui a remboursé, renommé ou annulé quelque chose</p>
 <form class="filters card" method="get">
   <div class="filters-main">
     <select name="who" aria-label="Personne"><option value="">Toute l'équipe</option><?php foreach ($users as $u): ?><option value="<?= (int)$u['id'] ?>" <?= $who === (int)$u['id'] ? 'selected' : '' ?>><?= e($u['name']) ?></option><?php endforeach; ?></select>

@@ -13,8 +13,8 @@
     <?php endfor; ?>
   </div>
   <div class="card rv-side">
-    <div class="kpi-mini"><span>💬 Avec commentaire</span><b><?= (int)$kpi['comments'] ?></b></div>
-    <div class="kpi-mini"><span>✅ Vérifiés (billet scanné)</span><b><?= (int)$kpi['verified'] ?></b></div>
+    <div class="kpi-mini"><span>Avec commentaire</span><b><?= (int)$kpi['comments'] ?></b></div>
+    <div class="kpi-mini"><span>Vérifiés (billet scanné)</span><b><?= (int)$kpi['verified'] ?></b></div>
   </div>
 </div>
 
@@ -38,18 +38,18 @@
   <div class="card rv-item <?= $r['visible'] ? '' : 'hidden-rv' ?>">
     <div class="rv-head">
       <span class="rv-stars" aria-label="<?= (int)$r['rating'] ?> sur 5"><?= Buyers::stars((float)$r['rating']) ?></span>
-      <b><?= e($r['author'] ?: 'Anonyme') ?></b><?= $r['verified'] ? ' <span class="badge green">✅ Venu·e</span>' : '' ?><?= $r['visible'] ? '' : ' <span class="badge grey">Masqué</span>' ?>
+      <b><?= e($r['author'] ?: 'Anonyme') ?></b><?= $r['verified'] ? ' <span class="badge green">Venu·e</span>' : '' ?><?= $r['visible'] ? '' : ' <span class="badge grey">Masqué</span>' ?>
       <small class="muted"><?= e($r['ev_name']) ?> · <?= e(short_date($r['created_at'])) ?> · <a href="<?= url('/pro/commandes', ['q' => $r['ref']]) ?>"><?= e($r['ref']) ?></a></small>
-      <form method="post" class="inline-form rv-act"><?= csrf_field() ?><input type="hidden" name="review_id" value="<?= (int)$r['id'] ?>"><button class="btn btn-sm btn-light" name="action" value="toggle"><?= $r['visible'] ? '🙈 Masquer' : '👁️ Afficher' ?></button></form>
+      <form method="post" class="inline-form rv-act"><?= csrf_field() ?><input type="hidden" name="review_id" value="<?= (int)$r['id'] ?>"><button class="btn btn-sm btn-light" name="action" value="toggle"><?= $r['visible'] ? 'Masquer' : 'Afficher' ?></button></form>
     </div>
     <?php if ($r['comment']): ?><p class="rv-text"><?= nl2br(e($r['comment'])) ?></p><?php else: ?><p class="muted rv-text">Note seule, pas de commentaire.</p><?php endif; ?>
     <details class="rv-reply" <?= $r['reply'] ? 'open' : '' ?>>
-      <summary><?= $r['reply'] ? '💬 Ta réponse (publique)' : '💬 Répondre publiquement' ?></summary>
+      <summary><?= $r['reply'] ? 'Ta réponse (publique)' : 'Répondre publiquement' ?></summary>
       <form method="post" class="rv-reply-form"><?= csrf_field() ?><input type="hidden" name="review_id" value="<?= (int)$r['id'] ?>"><input type="hidden" name="action" value="reply">
         <textarea name="reply" rows="2" maxlength="1000" placeholder="Merci pour ton retour ! …"><?= e((string)$r['reply']) ?></textarea>
         <button class="btn btn-sm"><?= $r['reply'] ? 'Mettre à jour' : 'Publier la réponse' ?></button></form>
     </details>
   </div>
 <?php endforeach; ?>
-<?php if (!$list): ?><div class="card empty">Pas encore d'avis<?= $evId || $note ? ' avec ces filtres' : '' ?>. Ils arrivent le lendemain de tes événements 🌙</div><?php endif; ?>
+<?php if (!$list): ?><div class="card empty">Pas encore d'avis<?= $evId || $note ? ' avec ces filtres' : '' ?>. Ils arrivent le lendemain de tes événements</div><?php endif; ?>
 </div>

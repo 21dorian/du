@@ -1,5 +1,5 @@
 <div class="auth-box card center">
-  <div class="state-mark info">🔒</div>
+  <div class="state-mark info"><?= ui_icon('lock', 30) ?></div>
   <h1><?= e($ev['name']) ?></h1>
   <p class="muted">Événement privé. Entre le mot de passe donné par l'organisateur.</p>
   <?php if ($error): ?><div class="flash error"><?= e($error) ?></div><?php endif; ?>

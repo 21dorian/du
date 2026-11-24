@@ -1,6 +1,6 @@
 <?php $init = $map ?: ['stage' => 'Scène', 'categories' => [['id' => 'cat1', 'name' => 'Catégorie 1', 'color' => '#ffb703'], ['id' => 'cat2', 'name' => 'Catégorie 2', 'color' => '#4cc9f0']],
     'blocks' => [['id' => 'ORCH', 'name' => 'Orchestre', 'rows' => 8, 'cols' => 16, 'x' => 0, 'y' => 0, 'row_start' => 'A', 'num_start' => 1, 'cat' => 'cat1']], 'disabled' => []]; ?>
-<?php if (!$map): ?><div class="notice mb">💺 Pas de plan : placement libre. Crée un plan pour que les acheteurs choisissent leur siège. Chaque tarif peut être limité à une catégorie de places (onglet Tarifs).</div><?php endif; ?>
+<?php if (!$map): ?><div class="notice mb">Pas de plan : placement libre. Crée un plan pour que les acheteurs choisissent leur siège. Chaque tarif peut être limité à une catégorie de places (onglet Tarifs).</div><?php endif; ?>
 <?php if ($sold): ?><div class="flash warning"><?= $sold ?> places numérotées sont déjà vendues : évite de renommer ou de supprimer des blocs existants.</div><?php endif; ?>
 <form method="post" id="seat-editor"><?= csrf_field() ?>
 <input type="hidden" name="seatmap" id="seatmap-json" value="<?= e(json_encode($init, JSON_UNESCAPED_UNICODE)) ?>">

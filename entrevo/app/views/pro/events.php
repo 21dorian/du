@@ -9,13 +9,13 @@ $cap = fn($ev) => (int)$ev['capacity'] ?: (int)$ev['sess_cap'];
 <form class="filters card" method="get">
   <?php if ($filter !== 'avenir'): ?><input type="hidden" name="f" value="<?= e($filter) ?>"><?php endif; ?>
   <div class="filters-main">
-    <label class="search-field"><span aria-hidden="true">🔎</span><input type="search" name="q" value="<?= e($q) ?>" placeholder="Nom, lieu, ville…" aria-label="Rechercher un événement"></label>
+    <label class="search-field"><span aria-hidden="true"></span><input type="search" name="q" value="<?= e($q) ?>" placeholder="Nom, lieu, ville…" aria-label="Rechercher un événement"></label>
     <select name="tri" aria-label="Trier par" onchange="this.form.submit()"><?php foreach (['date' => 'Trier par date', 'ventes' => 'Les plus vendus', 'recettes' => 'Les plus rentables', 'nom' => 'Ordre alphabétique'] as $k => $l): ?><option value="<?= $k ?>" <?= $sort === $k ? 'selected' : '' ?>><?= $l ?></option><?php endforeach; ?></select>
     <button class="btn btn-sm">Filtrer</button>
     <span class="grow"></span>
     <div class="seg-mini" role="group" aria-label="Affichage">
       <a class="<?= $view === 'cartes' ? 'on' : '' ?>" href="<?= url('/pro/evenements', $qs + ['vue' => 'cartes']) ?>">▦ Cartes</a>
-      <a class="<?= $view === 'liste' ? 'on' : '' ?>" href="<?= url('/pro/evenements', $qs + ['vue' => 'liste']) ?>">☰ Liste</a>
+      <a class="<?= $view === 'liste' ? 'on' : '' ?>" href="<?= url('/pro/evenements', $qs + ['vue' => 'liste']) ?>">Liste</a>
     </div>
   </div>
 </form>
@@ -26,7 +26,7 @@ $cap = fn($ev) => (int)$ev['capacity'] ?: (int)$ev['sess_cap'];
     $ts = strtotime($ev['starts_at']); $link = abs_url('/e/' . $ev['slug']); $past = strtotime((string)($ev['ends_at'] ?: $ev['starts_at'])) < time() - 6 * 3600; ?>
     <article class="evg-card">
       <a class="evg-img" href="<?= url('/pro/evenements/' . $ev['id']) ?>">
-        <?php if ($ev['image']): ?><img src="<?= url($ev['image']) ?>" alt="" loading="lazy"><?php else: ?><span class="evg-noimg">🖼️<small>Pas d'affiche</small></span><?php endif; ?>
+        <?php if ($ev['image']): ?><img src="<?= url($ev['image']) ?>" alt="" loading="lazy"><?php else: ?><span class="evg-noimg"><small>Pas d'affiche</small></span><?php endif; ?>
         <span class="evg-date"><b><?= date('j', $ts) ?></b><?= e(['', 'janv.', 'févr.', 'mars', 'avr.', 'mai', 'juin', 'juil.', 'août', 'sept.', 'oct.', 'nov.', 'déc.'][(int)date('n', $ts)]) ?></span>
         <span class="evg-status"><?= badge($ev['status']) ?></span>
         <?php if (!$past && $ts > time()): ?><span class="evg-count"><?= e(ago_until($ts)) ?></span><?php endif; ?>
@@ -44,17 +44,17 @@ $cap = fn($ev) => (int)$ev['capacity'] ?: (int)$ev['sess_cap'];
       </div>
       <div class="evg-actions">
         <a class="btn btn-sm" href="<?= url('/pro/evenements/' . $ev['id']) ?>">Gérer</a>
-        <a class="icon-act" href="<?= e($link) ?>" target="_blank" title="Voir la page publique" aria-label="Voir la page publique">↗</a>
-        <button type="button" class="icon-act" data-copy="<?= e($link) ?>" title="Copier le lien" aria-label="Copier le lien">🔗</button>
-        <a class="icon-act" href="<?= url('/pro/evenements/' . $ev['id'] . '/guichet') ?>" title="Guichet" aria-label="Guichet">💵</a>
-        <a class="icon-act" href="<?= url('/pro/evenements/' . $ev['id'] . '/stats') ?>" title="Statistiques" aria-label="Statistiques">📊</a>
-        <form method="post" action="<?= url('/pro/evenements/' . $ev['id'] . '/dupliquer') ?>" class="inline-form"><?= csrf_field() ?><button class="icon-act" title="Dupliquer" aria-label="Dupliquer" data-confirm="Dupliquer « <?= e($ev['name']) ?> » (tarifs, formulaire et accès compris) ?">📑</button></form>
+        <a class="icon-act" href="<?= e($link) ?>" target="_blank" title="Voir la page publique" aria-label="Voir la page publique"></a>
+        <button type="button" class="icon-act" data-copy="<?= e($link) ?>" title="Copier le lien" aria-label="Copier le lien"></button>
+        <a class="icon-act" href="<?= url('/pro/evenements/' . $ev['id'] . '/guichet') ?>" title="Guichet" aria-label="Guichet"></a>
+        <a class="icon-act" href="<?= url('/pro/evenements/' . $ev['id'] . '/stats') ?>" title="Statistiques" aria-label="Statistiques"></a>
+        <form method="post" action="<?= url('/pro/evenements/' . $ev['id'] . '/dupliquer') ?>" class="inline-form"><?= csrf_field() ?><button class="icon-act" title="Dupliquer" aria-label="Dupliquer" data-confirm="Dupliquer « <?= e($ev['name']) ?> » (tarifs, formulaire et accès compris) ?"></button></form>
       </div>
     </article>
   <?php endforeach; ?>
-  <a class="evg-new" href="<?= url('/pro/evenements/nouveau') ?>"><span>➕</span><b>Nouvel événement</b><small>5 minutes chrono</small></a>
+  <a class="evg-new" href="<?= url('/pro/evenements/nouveau') ?>"><span></span><b>Nouvel événement</b><small>5 minutes chrono</small></a>
 </div>
-<?php if (!$list): ?><p class="muted center"><?= $q !== '' ? 'Rien ne correspond à « ' . e($q) . ' ».' : ($filter === 'passes' ? 'Pas encore d\'historique.' : 'Rien par ici 🦗') ?></p><?php endif; ?>
+<?php if (!$list): ?><p class="muted center"><?= $q !== '' ? 'Rien ne correspond à « ' . e($q) . ' ».' : ($filter === 'passes' ? 'Pas encore d\'historique.' : 'Rien par ici') ?></p><?php endif; ?>
 
 <?php else: ?>
 <div class="card table-card">
@@ -74,7 +74,7 @@ $cap = fn($ev) => (int)$ev['capacity'] ?: (int)$ev['sess_cap'];
         <td class="right nowrap"><a class="btn btn-sm btn-ghost" href="<?= url('/pro/evenements/' . $ev['id']) ?>">Gérer</a></td>
       </tr>
     <?php endforeach; ?>
-    <?php if (!$list): ?><tr><td colspan="8" class="empty"><?= $filter === 'passes' ? 'Pas encore d\'historique.' : 'Le calendrier est vide 🦗' ?> <a href="<?= url('/pro/evenements/nouveau') ?>">Créer un événement</a></td></tr><?php endif; ?>
+    <?php if (!$list): ?><tr><td colspan="8" class="empty"><?= $filter === 'passes' ? 'Pas encore d\'historique.' : 'Le calendrier est vide' ?> <a href="<?= url('/pro/evenements/nouveau') ?>">Créer un événement</a></td></tr><?php endif; ?>
     </tbody>
   </table></div>
 </div>

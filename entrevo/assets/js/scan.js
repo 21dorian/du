@@ -56,9 +56,9 @@
     var n = $('net'); if (!n) return;
     n.classList.toggle('off', !online);
     n.title = online ? 'En ligne' : 'Hors ligne : les passages sont gardés sur le téléphone';
-    $('pending').textContent = queue.length ? queue.length + ' ⏳' : (online ? '' : 'hors ligne');
+    $('pending').textContent = queue.length ? queue.length + '' : (online ? '' : 'hors ligne');
     var info = $('m-sync-info');
-    if (info) info.textContent = (queue.length ? queue.length + ' passage(s) en attente d\'envoi. ' : 'Tout est envoyé ✅ ') + (conflicts ? conflicts + ' conflit(s) corrigé(s) par le serveur.' : '') + (data && data.server_time ? ' Dernière mise à jour : ' + hhmm(data.server_time) : '');
+    if (info) info.textContent = (queue.length ? queue.length + ' passage(s) en attente d\'envoi. ' : 'Tout est envoyé ') + (conflicts ? conflicts + ' conflit(s) corrigé(s) par le serveur.' : '') + (data && data.server_time ? ' Dernière mise à jour : ' + hhmm(data.server_time) : '');
   }
 
   // ---------- Écrans ----------
@@ -91,13 +91,13 @@
   }
 
   function renderEvents(auto) {
-    $('hello').textContent = 'Salut ' + me.user.name.split(' ')[0] + ' 👋 · ' + me.org;
+    $('hello').textContent = 'Salut ' + me.user.name.split(' ')[0] + ' · ' + me.org;
     var list = $('events-list'); list.innerHTML = '';
     me.events.forEach(function (ev) {
       var b = document.createElement('button');
       b.className = 'pick' + (ev.id === cfg.eventId ? ' on' : '');
       var cached = store.get('ev:' + ev.id);
-      b.innerHTML = '<b>' + esc(ev.name) + '</b><small>' + esc(ev.date) + ' · ' + ev.sold + ' billets' + (cached ? ' · 📥 dispo hors ligne' : '') + '</small>';
+      b.innerHTML = '<b>' + esc(ev.name) + '</b><small>' + esc(ev.date) + ' · ' + ev.sold + ' billets' + (cached ? ' · dispo hors ligne' : '') + '</small>';
       b.onclick = function () { openSetup(ev.id); };
       list.appendChild(b);
     });
@@ -124,19 +124,19 @@
 
   function download(full) {
     var id = cfg.eventId;
-    $('dl-text').textContent = full ? '📥 Téléchargement des billets…' : '🔄 Mise à jour…';
+    $('dl-text').textContent = full ? 'Téléchargement des billets…' : 'Mise à jour…';
     $('dl-bar').style.width = '30%';
     var since = !full && data ? '?since=' + encodeURIComponent(data.server_time) : '';
     return api('GET', '/api/scan/event/' + id + '/data' + since, null, 30000).then(function (j) {
       merge(j);
       $('dl-bar').style.width = '100%';
-      $('dl-text').textContent = '✅ ' + Object.keys(data.tickets).length + ' billets sur ce téléphone. Prêt même sans réseau.';
+      $('dl-text').textContent = '' + Object.keys(data.tickets).length + ' billets sur ce téléphone. Prêt même sans réseau.';
       $('start-btn').disabled = false;
       renderAps();
     }).catch(function (e) {
       if (e.auth) { show('login'); return; }
       $('dl-bar').style.width = data ? '100%' : '0';
-      $('dl-text').textContent = data ? '📵 Pas de réseau : on utilise la liste déjà téléchargée (' + Object.keys(data.tickets).length + ' billets).' : '😬 Impossible de télécharger les billets. Il faut du réseau la première fois.';
+      $('dl-text').textContent = data ? 'Pas de réseau : on utilise la liste déjà téléchargée (' + Object.keys(data.tickets).length + ' billets).' : 'Impossible de télécharger les billets. Il faut du réseau la première fois.';
       $('start-btn').disabled = !data;
     });
   }
@@ -165,7 +165,7 @@
       var b = document.createElement('button');
       b.className = 'pick' + (a.id === cfg.apId ? ' on' : '');
       var rates = a.rates.length && data ? a.rates.map(function (r) { return data.rates[r] || '?'; }).join(', ') : 'Tous les billets';
-      b.innerHTML = '<b>' + esc(a.name) + (a.active ? '' : ' 🔒') + '</b><small>' + esc(rates) + '</small>';
+      b.innerHTML = '<b>' + esc(a.name) + (a.active ? '' : '') + '</b><small>' + esc(rates) + '</small>';
       b.onclick = function () { cfg.apId = a.id; saveCfg(); renderAps(); };
       list.appendChild(b);
     });
@@ -183,7 +183,7 @@
       ss.forEach(function (x) { var b = document.createElement('button'); b.className = 'pick' + (x.id === cfg.sessionId ? ' on' : ''); b.innerHTML = '<b>' + esc(x.label) + '</b>'; b.onclick = function () { cfg.sessionId = x.id; saveCfg(); renderAps(); }; sl.appendChild(b); });
     }
     document.querySelectorAll('.seg button').forEach(function (b) { b.classList.toggle('on', b.dataset.dir === cfg.dir); });
-    $('reentry-note').textContent = data ? (data.event.reentry ? '↩️ Sorties et ré-entrées autorisées sur cet événement.' : '1 billet = 1 entrée. Le mode Sortie ne sert que si les ré-entrées sont activées.') : '';
+    $('reentry-note').textContent = data ? (data.event.reentry ? 'Sorties et ré-entrées autorisées sur cet événement.' : '1 billet = 1 entrée. Le mode Sortie ne sert que si les ré-entrées sont activées.') : '';
     saveCfg();
   }
   document.querySelectorAll('.seg button').forEach(function (b) { b.onclick = function () { cfg.dir = b.dataset.dir; saveCfg(); renderAps(); }; });
@@ -274,9 +274,9 @@
 
   // ---------- Validation ----------
   var LABELS = {
-    ok: '✅ Bienvenue !', exit: '👋 Sortie OK', already: '✋ Déjà entré', invalid: '❌ Billet inconnu', forged: '❌ Code invalide',
-    cancelled: '🚫 Billet annulé', wrong_event: '🙅 Autre événement', not_allowed: '⛔ Pas pour cette porte', not_inside: '🤔 Pas entré', closed: '🔒 Porte fermée',
-    wrong_session: '📅 Mauvaise date', max_reached: '✋ Entrées épuisées', not_today: '✋ Déjà venu aujourd\'hui'
+    ok: 'Bienvenue !', exit: 'Sortie OK', already: 'Déjà entré', invalid: 'Billet inconnu', forged: 'Code invalide',
+    cancelled: 'Billet annulé', wrong_event: 'Autre événement', not_allowed: 'Pas pour cette porte', not_inside: 'Pas entré', closed: 'Porte fermée',
+    wrong_session: 'Mauvaise date', max_reached: 'Entrées épuisées', not_today: 'Déjà venu aujourd\'hui'
   };
   function levelOf(r) { return r === 'ok' || r === 'exit' ? 'ok' : (['already', 'not_inside', 'not_today', 'max_reached'].indexOf(r) >= 0 ? 'warn' : 'error'); }
   function normalize(raw) {
@@ -340,7 +340,7 @@
     }).catch(function (e) {
       busy = false;
       if (e.auth) { show('login'); return; }
-      if (e.http) { toastResult('error', '😵 Erreur serveur', e.message); return; }
+      if (e.http) { toastResult('error', 'Erreur serveur', e.message); return; }
       offline();
     });
   }
@@ -351,15 +351,15 @@
     var name = r.ticket ? r.ticket.name : '';
     var info = [];
     if (r.ticket && r.ticket.rate) info.push(r.ticket.rate);
-    if (r.ticket && r.ticket.seat) info.push('💺 ' + r.ticket.seat);
-    if (r.info && r.info.population) info.push('🪪 ' + r.info.population);
+    if (r.ticket && r.ticket.seat) info.push('' + r.ticket.seat);
+    if (r.info && r.info.population) info.push('' + r.info.population);
     if (r.info && r.info.left !== undefined) info.push('encore ' + r.info.left + ' entrée(s)');
     if (r.result === 'wrong_session' && r.info && r.info.session) info.push('Billet pour le ' + r.info.session);
     if (r.result === 'already' && r.info && (r.info.last_at)) info.push('entré à ' + hhmm(r.info.last_at) + (r.info.last_ap ? ' · ' + r.info.last_ap : ''));
     if (r.result === 'wrong_event' && r.info && r.info.other_event) info.push('Billet pour : ' + r.info.other_event);
-    if (r.info && r.info.reentry) info.push('↩️ ré-entrée');
+    if (r.info && r.info.reentry) info.push('ré-entrée');
     if (r.result === 'invalid' && wasOffline) info.push('Pas dans la liste du téléphone (billet acheté à l\'instant ?)');
-    if (wasOffline) info.push('📵 hors ligne');
+    if (wasOffline) info.push('hors ligne');
     lastScan = (r.result === 'ok' || r.result === 'exit') ? { uuid: id, code: r.ticket ? r.ticket.code : '', result: r.result } : null;
     var rule = r.result === 'ok' && r.ticket && data.rules ? data.rules[r.ticket.rate_id] : null;
     toastResult(level, LABELS[r.result] || r.label || r.result, name || (r.code || ''), info.join(' · '), rule);
@@ -388,7 +388,7 @@
   function resetResult() {
     $('result').className = 'result idle';
     $('r-label').textContent = 'Vise un QR code';
-    $('r-name').textContent = 'Ou tape le code en dessous 👇';
+    $('r-name').textContent = 'Ou tape le code en dessous';
     $('r-info').textContent = ''; $('r-undo').hidden = true; $('r-rule').hidden = true;
   }
 
@@ -406,12 +406,12 @@
       if (s.result === 'ok') { cfg.mine[data.event.id] = Math.max(0, (cfg.mine[data.event.id] || 1) - 1); saveCfg(); }
       saveData(); renderCounters();
       hist.forEach(function (h) { if (h.uuid === s.uuid) h.undone = 1; }); store.set('hist:' + data.event.id, hist);
-      toastResult('warn', '↩️ Passage annulé', t ? t.n : s.code, '');
+      toastResult('warn', 'Passage annulé', t ? t.n : s.code, '');
       if (done) done(true);
     };
     if (idx >= 0) { queue.splice(idx, 1); saveQueue(); revert(); return; }
     api('POST', '/api/scan/event/' + data.event.id + '/undo', { uuid: s.uuid }, 4000).then(function (j) { if (j.stats) data.stats = j.stats; revert(); })
-      .catch(function () { toastResult('error', '😬 Annulation impossible', 'Pas de réseau', 'Réessaie quand le réseau revient.'); if (done) done(false); });
+      .catch(function () { toastResult('error', 'Annulation impossible', 'Pas de réseau', 'Réessaie quand le réseau revient.'); if (done) done(false); });
   }
 
   // ---------- Compteurs ----------
@@ -438,12 +438,12 @@
         return out.length >= 60;
       });
     }
-    list.innerHTML = q.length < 2 ? '<p class="muted">Tape au moins 2 lettres.</p>' : (out.length ? '' : '<p class="muted">Personne à ce nom 🤷</p>');
+    list.innerHTML = q.length < 2 ? '<p class="muted">Tape au moins 2 lettres.</p>' : (out.length ? '' : '<p class="muted">Personne à ce nom</p>');
     out.forEach(function (x) {
       var code = x[0], t = x[1], div = document.createElement('div');
-      var st = !t.v ? '🚫 annulé' : (t.i ? '✅ sur place' : (t.e ? '↩️ sorti' : '⏳ pas encore arrivé'));
+      var st = !t.v ? 'annulé' : (t.i ? 'sur place' : (t.e ? 'sorti' : 'pas encore arrivé'));
       div.className = 'search-item';
-      div.innerHTML = '<div><b>' + esc(t.n) + '</b><small>' + esc(data.rates[t.r] || t.rn || '') + (t.st ? ' · 💺 ' + esc(t.st) : '') + ' · ' + st + '</small><small class="mono">' + esc(code) + '</small></div>';
+      div.innerHTML = '<div><b>' + esc(t.n) + '</b><small>' + esc(data.rates[t.r] || t.rn || '') + (t.st ? ' · ' + esc(t.st) : '') + ' · ' + st + '</small><small class="mono">' + esc(code) + '</small></div>';
       if (t.v) { var b = document.createElement('button'); b.className = 'btn btn-sm'; b.textContent = cfg.dir === 'out' ? 'Sortie' : 'Valider'; b.onclick = function () { overlay('search', false); handle(code, 'search'); }; div.appendChild(b); }
       list.appendChild(div);
     });
@@ -488,7 +488,7 @@
     else { beep(220, 0.45); vibrate([250, 80, 250]); }
   }
   function vibrate(p) { try { if (navigator.vibrate) navigator.vibrate(p); } catch (e) { /* rien */ } }
-  function renderSound() { $('m-sound-info').textContent = cfg.sound ? 'Activé (bip vert, double bip orange, buzz rouge)' : 'Coupé 🤫'; }
+  function renderSound() { $('m-sound-info').textContent = cfg.sound ? 'Activé (bip vert, double bip orange, buzz rouge)' : 'Coupé'; }
   $('m-sound').onclick = function () { cfg.sound = !cfg.sound; saveCfg(); renderSound(); unlockAudio(); feedback('ok'); };
   renderSound();
 
@@ -500,7 +500,7 @@
 
   // ---------- Sens au toucher ----------
   function renderDir() {
-    $('dir-pill').textContent = cfg.dir === 'out' ? '⬆️ Sortie' : '⬇️ Entrée';
+    $('dir-pill').textContent = cfg.dir === 'out' ? 'Sortie' : 'Entrée';
     $('dir-pill').classList.toggle('out', cfg.dir === 'out');
     document.querySelectorAll('.seg button').forEach(function (b) { b.classList.toggle('on', b.dataset.dir === cfg.dir); });
   }
@@ -514,7 +514,7 @@
       var div = document.createElement('div'); div.className = 'search-item hist ' + h.level + (h.undone ? ' undone' : '');
       var txt = document.createElement('div');
       var b = document.createElement('b'); b.textContent = h.name || h.code; txt.appendChild(b);
-      var sm = document.createElement('small'); sm.textContent = h.at.slice(0, 5) + ' · ' + h.label + (h.off ? ' · 📵' : '') + (h.undone ? ' · annulé' : ''); txt.appendChild(sm);
+      var sm = document.createElement('small'); sm.textContent = h.at.slice(0, 5) + ' · ' + h.label + (h.off ? ' ·' : '') + (h.undone ? ' · annulé' : ''); txt.appendChild(sm);
       div.appendChild(txt);
       if (!h.undone && (h.result === 'ok' || h.result === 'exit')) {
         var bt = document.createElement('button'); bt.className = 'btn btn-sm btn-ghost'; bt.textContent = 'Annuler';
@@ -561,8 +561,8 @@
     var pct = st.sold ? Math.round(st.checked / st.sold * 100) : 0;
     var bar = add('div', 'stats-bar'); var bi = document.createElement('i'); bi.style.width = pct + '%'; bar.appendChild(bi);
     add('p', 'muted', pct + ' % des billets sont passés');
-    if (!live) { add('p', 'muted', online ? 'Chargement…' : '📵 Hors ligne : chiffres de ce téléphone uniquement.'); return; }
-    add('h2', '', '🚪 Par porte');
+    if (!live) { add('p', 'muted', online ? 'Chargement…' : 'Hors ligne : chiffres de ce téléphone uniquement.'); return; }
+    add('h2', '', 'Par porte');
     if (!live.per_ap.length) add('p', 'muted', 'Pas encore de passage.');
     var mx = 1; live.per_ap.forEach(function (a) { mx = Math.max(mx, a.in); });
     live.per_ap.forEach(function (a) {
@@ -570,7 +570,7 @@
       var b = document.createElement('span'); b.className = 'stats-hbar'; var i = document.createElement('i'); i.style.width = Math.round(a.in / mx * 100) + '%'; b.appendChild(i); row.appendChild(b);
       var v = document.createElement('b'); v.textContent = a.in + (a.out ? ' · ↑' + a.out : ''); row.appendChild(v);
     });
-    add('h2', '', '⏱️ Entrées par heure');
+    add('h2', '', 'Entrées par heure');
     if (!live.per_hour.length) add('p', 'muted', 'Pas encore d\u2019entrée ces 6 dernières heures.');
     var hx = 1; live.per_hour.forEach(function (h) { hx = Math.max(hx, h.n); });
     var cols = add('div', 'stats-cols');

@@ -1,10 +1,10 @@
 <?php $cap = (int)$ev['capacity']; ?>
-<?php if ($ev['status'] === 'draft'): ?><div class="flash info">👀 Brouillon : personne ne le voit encore. Vérifie tes <a href="<?= url('/pro/evenements/' . $ev['id'] . '/tarifs') ?>">tarifs</a>, puis clique sur <b>Publier</b> pour ouvrir les vannes.</div><?php endif; ?>
+<?php if ($ev['status'] === 'draft'): ?><div class="flash info">Brouillon : personne ne le voit encore. Vérifie tes <a href="<?= url('/pro/evenements/' . $ev['id'] . '/tarifs') ?>">tarifs</a>, puis clique sur <b>Publier</b> pour ouvrir les vannes.</div><?php endif; ?>
 <div class="kpis">
-  <div class="kpi"><small class="muted">🎟️ Billets vendus</small><b><?= $stats['sold'] ?><?= $cap ? '<small style="font-size:16px;color:var(--muted)"> / ' . $cap . '</small>' : '' ?></b><?php if ($cap): ?><div class="bar"><i style="width:<?= min(100, round($stats['sold'] / $cap * 100)) ?>%"></i></div><?php endif; ?></div>
-  <div class="kpi"><small class="muted">💶 Recettes</small><b><?= e(money($stats['revenue'])) ?></b><div class="sub"><?= $stats['orders'] ?> commandes</div></div>
-  <div class="kpi"><small class="muted">💰 Ta part (en ligne)</small><b><?= e(money($stats['org_amount'])) ?></b><div class="sub">commission : <?= e(money($stats['commission'])) ?></div></div>
-  <div class="kpi"><small class="muted">✅ Entrées</small><b><?= $stats['checked'] ?></b><div class="bar green"><i style="width:<?= $stats['sold'] ? round($stats['checked'] / $stats['sold'] * 100) : 0 ?>%"></i></div></div>
+  <div class="kpi"><small class="muted">Billets vendus</small><b><?= $stats['sold'] ?><?= $cap ? '<small style="font-size:16px;color:var(--muted)"> / ' . $cap . '</small>' : '' ?></b><?php if ($cap): ?><div class="bar"><i style="width:<?= min(100, round($stats['sold'] / $cap * 100)) ?>%"></i></div><?php endif; ?></div>
+  <div class="kpi"><small class="muted">Recettes</small><b><?= e(money($stats['revenue'])) ?></b><div class="sub"><?= $stats['orders'] ?> commandes</div></div>
+  <div class="kpi"><small class="muted">Ta part (en ligne)</small><b><?= e(money($stats['org_amount'])) ?></b><div class="sub">commission : <?= e(money($stats['commission'])) ?></div></div>
+  <div class="kpi"><small class="muted">Entrées</small><b><?= $stats['checked'] ?></b><div class="bar green"><i style="width:<?= $stats['sold'] ? round($stats['checked'] / $stats['sold'] * 100) : 0 ?>%"></i></div></div>
 </div>
 <div class="split-3">
   <div class="card">
@@ -25,12 +25,12 @@
   </div>
   <div>
     <div class="card">
-      <h2>📣 Fais tourner</h2>
+      <h2>Fais tourner</h2>
       <p class="muted" style="font-size:14px">Le lien de ta billetterie, à coller partout (Insta, site, mails, frigo…) :</p>
       <input readonly value="<?= e(abs_url('/e/' . $ev['slug'])) ?>" onclick="this.select()">
-      <div class="center mt"><?= Qr::svg(abs_url('/e/' . $ev['slug']), 150) ?><br><small>À imprimer sur tes affiches 👆</small></div>
+      <div class="center mt"><?= Qr::svg(abs_url('/e/' . $ev['slug']), 150) ?><br><small>À imprimer sur tes affiches</small></div>
       <?php $w = '<iframe src="' . abs_url('/widget/e/' . $ev['slug']) . '" style="width:100%;max-width:480px;min-height:460px;border:0" loading="lazy" title="Billetterie ' . e($ev['name']) . '"></iframe>'; ?>
-      <h3 class="mt">🧩 Widget pour ton site</h3>
+      <h3 class="mt">Widget pour ton site</h3>
       <textarea readonly rows="3" onclick="this.select()" class="mono" style="font-size:12px"><?= e($w) ?></textarea>
       <button type="button" class="btn btn-sm btn-light mt" data-copy="<?= e($w) ?>">Copier le code</button>
     </div>

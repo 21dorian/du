@@ -139,14 +139,14 @@ function event_form(?string $id = null): string
         try { $logo = upload_image('ticket_logo'); if ($logo) $data['ticket_logo'] = $logo; } catch (RuntimeException $e) { $errors[] = $e->getMessage(); }
         if ($data['name'] === '') $errors[] = 'Il manque le nom de l\'événement.';
         if (!$data['starts_at']) $errors[] = 'Il manque la date de début.';
-        if ($data['ends_at'] && $data['starts_at'] && $data['ends_at'] < $data['starts_at']) $errors[] = 'La fin avant le début ? Même Doc Brown n\'oserait pas 🕰️';
+        if ($data['ends_at'] && $data['starts_at'] && $data['ends_at'] < $data['starts_at']) $errors[] = 'La fin avant le début ? Même Doc Brown n\'oserait pas';
         try { $img = upload_image('image'); if ($img) $data['image'] = $img; } catch (RuntimeException $e) { $errors[] = $e->getMessage(); }
         if ($ev && checked('remove_image')) $data['image'] = null;
         if (!$errors) {
             if ($ev) {
                 update('events', $data, 'id = ?', [$ev['id']]);
                 Audit::log('event.updated', $ev['name'], (int)$ev['id']);
-                redirect('/pro/evenements/' . $ev['id'], ['success' => '✅ C\'est enregistré.']);
+                redirect('/pro/evenements/' . $ev['id'], ['success' => 'C\'est enregistré.']);
             }
             $data += ['organizer_id' => $org['id'], 'slug' => unique_slug('events', $data['name'] . ' ' . date('Y', strtotime($data['starts_at']))), 'status' => 'draft', 'created_at' => now()];
             $newId = insert('events', $data);
@@ -154,7 +154,7 @@ function event_form(?string $id = null): string
             insert('rates', ['event_id' => $newId, 'name' => trim((string)input('first_rate')) ?: 'Entrée', 'price' => $price, 'quota' => 0, 'active' => 1, 'sort' => 0]);
             insert('access_points', ['event_id' => $newId, 'name' => 'Entrée principale', 'active' => 1]);
             Audit::log('event.created', (string)input('name'), (int)$newId);
-            redirect('/pro/evenements/' . $newId . '/tarifs', ['success' => '🎉 Événement créé (en brouillon). Vérifie tes tarifs, puis publie-le !']);
+            redirect('/pro/evenements/' . $newId . '/tarifs', ['success' => 'Événement créé (en brouillon). Vérifie tes tarifs, puis publie-le !']);
         }
         $ev = array_merge($ev ?? [], $data);
     }
@@ -182,11 +182,11 @@ function event_status(string $id): never
     $ev = org_event((int)$id);
     $st = (string)input('status');
     if (!in_array($st, ['draft', 'published', 'closed'], true)) back();
-    if ($st === 'published' && (current_org()['status'] ?? '') === 'pending') back(['warning' => '⏳ Ton compte est en cours de validation par l\'équipe ' . setting('platform_name') . '. Tu pourras publier dès qu\'il est validé (on te prévient par e-mail).']);
-    if ($st === 'published' && !val('SELECT id FROM rates WHERE event_id = ? AND active = 1', [$ev['id']])) back(['error' => 'Ajoute au moins un tarif actif avant de publier. Sans billets, ça marche moins bien 😅']);
+    if ($st === 'published' && (current_org()['status'] ?? '') === 'pending') back(['warning' => 'Ton compte est en cours de validation par l\'équipe ' . setting('platform_name') . '. Tu pourras publier dès qu\'il est validé (on te prévient par e-mail).']);
+    if ($st === 'published' && !val('SELECT id FROM rates WHERE event_id = ? AND active = 1', [$ev['id']])) back(['error' => 'Ajoute au moins un tarif actif avant de publier. Sans billets, ça marche moins bien']);
     update('events', ['status' => $st], 'id = ?', [$ev['id']]);
     Audit::log('event.status', $ev['name'] . ' → ' . $st, (int)$ev['id']);
-    back(['success' => ['draft' => 'Retour en brouillon 🙈 Plus personne ne le voit.', 'published' => '🚀 C\'est en ligne ! La billetterie est ouverte.', 'closed' => '🔒 Ventes clôturées. Les billets vendus restent valables.'][$st]]);
+    back(['success' => ['draft' => 'Retour en brouillon Plus personne ne le voit.', 'published' => 'C\'est en ligne ! La billetterie est ouverte.', 'closed' => 'Ventes clôturées. Les billets vendus restent valables.'][$st]]);
 }
 
 function event_duplicate(string $id): never
@@ -206,7 +206,7 @@ function event_duplicate(string $id): never
     $remap = fn($ids) => $ids ? implode(',', array_filter(array_map(fn($i) => $map[(int)$i] ?? null, explode(',', $ids)))) : null;
     foreach (all('SELECT * FROM access_points WHERE event_id = ?', [$ev['id']]) as $a) { unset($a['id']); $a['event_id'] = $newId; $a['rate_ids'] = $remap($a['rate_ids']); insert('access_points', $a); }
     Audit::log('event.created', 'Duplication de « ' . $ev['name'] . ' »', (int)$newId);
-    redirect('/pro/evenements/' . $newId . '/modifier', ['success' => '📑 Dupliqué ! Tarifs, formulaire et accès copiés. Pense à changer les dates.']);
+    redirect('/pro/evenements/' . $newId . '/modifier', ['success' => 'Dupliqué ! Tarifs, formulaire et accès copiés. Pense à changer les dates.']);
 }
 
 function event_delete(string $id): never
@@ -217,7 +217,7 @@ function event_delete(string $id): never
     foreach (['rates', 'promos', 'form_fields', 'access_points', 'scans'] as $t) q("DELETE FROM $t WHERE event_id = ?", [$ev['id']]);
     q('DELETE FROM events WHERE id = ?', [$ev['id']]);
     Audit::log('event.deleted', $ev['name']);
-    redirect('/pro/evenements', ['success' => '🗑️ Événement supprimé.']);
+    redirect('/pro/evenements', ['success' => 'Événement supprimé.']);
 }
 
 // ---------- Tarifs ----------
@@ -232,7 +232,7 @@ function rates(string $id): string
             if (val('SELECT id FROM order_items WHERE rate_id = ? LIMIT 1', [$rid])) back(['error' => 'Ce tarif a déjà été vendu : désactive-le plutôt que de le supprimer.']);
             q('DELETE FROM rates WHERE id = ? AND event_id = ?', [$rid, $ev['id']]);
             Audit::log('rate.deleted', 'Tarif #' . (int)input('rate_id'), (int)$ev['id']);
-            back(['success' => '🗑️ Tarif supprimé.']);
+            back(['success' => 'Tarif supprimé.']);
         }
         $data = [
             'name' => trim((string)input('name')),
@@ -258,11 +258,11 @@ function rates(string $id): string
             'after_rate_id' => ((int)input('after_rate_id') && (int)input('after_rate_id') !== $rid && val('SELECT id FROM rates WHERE id = ? AND event_id = ?', [(int)input('after_rate_id'), $ev['id']])) ? (int)input('after_rate_id') : null,
         ];
         if ($data['name'] === '') back(['error' => 'Donne un nom à ce tarif.']);
-        if ($data['after_rate_id'] && $rid && (int)val('SELECT after_rate_id FROM rates WHERE id = ?', [$data['after_rate_id']]) === $rid) back(['error' => 'Ces deux tarifs s\'attendent l\'un l\'autre 🔁 : choisis un seul sens.']);
+        if ($data['after_rate_id'] && $rid && (int)val('SELECT after_rate_id FROM rates WHERE id = ?', [$data['after_rate_id']]) === $rid) back(['error' => 'Ces deux tarifs s\'attendent l\'un l\'autre : choisis un seul sens.']);
         if ($rid) update('rates', $data, 'id = ? AND event_id = ?', [$rid, $ev['id']]);
         else insert('rates', $data + ['event_id' => $ev['id']]);
         Audit::log('rate.saved', (string)input('name'), (int)$ev['id']);
-        back(['success' => '✅ Tarif enregistré.']);
+        back(['success' => 'Tarif enregistré.']);
     }
     $org = current_org();
     $rates = all('SELECT r.*, (SELECT COUNT(*) FROM tickets t WHERE t.rate_id = r.id AND t.status = \'valid\') sold FROM rates r WHERE event_id = ? ORDER BY sort, id', [$ev['id']]);
@@ -278,7 +278,7 @@ function form_fields(string $id): string
     $ev = org_event((int)$id);
     if (is_post()) {
         $fid = (int)input('field_id');
-        if (input('action') === 'delete') { q('DELETE FROM form_fields WHERE id = ? AND event_id = ?', [$fid, $ev['id']]); back(['success' => '🗑️ Question supprimée.']); }
+        if (input('action') === 'delete') { q('DELETE FROM form_fields WHERE id = ? AND event_id = ?', [$fid, $ev['id']]); back(['success' => 'Question supprimée.']); }
         $type = (string)input('type');
         $data = [
             'label' => trim((string)input('label')),
@@ -293,7 +293,7 @@ function form_fields(string $id): string
         if ($data['type'] === 'select' && !$data['options']) back(['error' => 'Indique les choix possibles (un par ligne).']);
         if ($fid) update('form_fields', $data, 'id = ? AND event_id = ?', [$fid, $ev['id']]);
         else insert('form_fields', $data + ['event_id' => $ev['id']]);
-        back(['success' => '✅ Question enregistrée.']);
+        back(['success' => 'Question enregistrée.']);
     }
     $fields = all('SELECT * FROM form_fields WHERE event_id = ? ORDER BY sort, id', [$ev['id']]);
     $rates = all('SELECT id, name FROM rates WHERE event_id = ? ORDER BY sort, id', [$ev['id']]);
@@ -316,7 +316,7 @@ function promos(string $id): string
     if (is_post()) {
         $pid = (int)input('promo_id');
         $a = (string)input('action');
-        if ($a === 'delete') { q('DELETE FROM promos WHERE id = ? AND event_id = ? AND used = 0', [$pid, $ev['id']]) ; back(['success' => '🗑️ Code supprimé (un code déjà utilisé ne peut qu\'être désactivé).']); }
+        if ($a === 'delete') { q('DELETE FROM promos WHERE id = ? AND event_id = ? AND used = 0', [$pid, $ev['id']]) ; back(['success' => 'Code supprimé (un code déjà utilisé ne peut qu\'être désactivé).']); }
         if ($a === 'toggle') { q('UPDATE promos SET active = 1 - active WHERE id = ? AND event_id = ?', [$pid, $ev['id']]); back(); }
         if ($a === 'batch_off') { q('UPDATE promos SET active = 0 WHERE batch = ? AND event_id = ?', [(string)input('batch'), $ev['id']]); back(['success' => 'Lot désactivé.']); }
         $kind = (string)input('kind');
@@ -340,13 +340,13 @@ function promos(string $id): string
                 insert('promos', $base + ['code' => $code, 'batch' => $batch, 'max_uses' => $base['max_uses'] ?: 1]);
             }
             Audit::log('promo.batch', $count . ' codes ' . $batch, (int)$ev['id']);
-            back(['success' => '🏷️ ' . $count . ' codes uniques créés (lot ' . $batch . '). Exporte-les en CSV pour les distribuer.']);
+            back(['success' => '' . $count . ' codes uniques créés (lot ' . $batch . '). Exporte-les en CSV pour les distribuer.']);
         }
         $code = strtoupper(preg_replace('~[^A-Za-z0-9_-]~', '', (string)input('code')));
         if (input('generate') || $code === '') $code = random_code(8);
         if (val('SELECT id FROM promos WHERE event_id = ? AND code = ?', [$ev['id'], $code])) back(['error' => 'Ce code existe déjà pour cet événement.']);
         insert('promos', $base + ['code' => $code]);
-        back(['success' => '🏷️ Code « ' . $code . ' » créé. Fais-le tourner !']);
+        back(['success' => 'Code « ' . $code . ' » créé. Fais-le tourner !']);
     }
     $stats = [];
     foreach (all("SELECT promo_code, COUNT(*) n, SUM(total) revenue, SUM(discount - group_discount) disc FROM orders WHERE event_id = ? AND status = 'paid' AND promo_code IS NOT NULL GROUP BY promo_code", [$ev['id']]) as $r) $stats[$r['promo_code']] = $r;
@@ -368,8 +368,8 @@ function access_points(string $id): string
     $rates = all('SELECT id, name FROM rates WHERE event_id = ? ORDER BY sort, id', [$ev['id']]);
     if (is_post()) {
         $aid = (int)input('ap_id');
-        if (input('action') === 'delete') { q('DELETE FROM access_points WHERE id = ? AND event_id = ?', [$aid, $ev['id']]); back(['success' => '🗑️ Point d\'accès supprimé.']); }
-        if (input('action') === 'reentry') { update('events', ['allow_reentry' => checked('allow_reentry')], 'id = ?', [$ev['id']]); back(['success' => '✅ C\'est noté.']); }
+        if (input('action') === 'delete') { q('DELETE FROM access_points WHERE id = ? AND event_id = ?', [$aid, $ev['id']]); back(['success' => 'Point d\'accès supprimé.']); }
+        if (input('action') === 'reentry') { update('events', ['allow_reentry' => checked('allow_reentry')], 'id = ?', [$ev['id']]); back(['success' => 'C\'est noté.']); }
         $valid = array_map('intval', array_column($rates, 'id'));
         $rateIds = array_values(array_filter(array_map('intval', (array)($_POST['rate_ids'] ?? [])), fn($r) => in_array($r, $valid, true)));
         $data = ['name' => trim((string)input('name')) ?: 'Entrée', 'rate_ids' => $rateIds ? implode(',', $rateIds) : null, 'active' => checked('active'), 'capacity' => (int)input('capacity') > 0 ? (int)input('capacity') : null,
@@ -377,7 +377,7 @@ function access_points(string $id): string
         if ($data['opens_at'] && $data['closes_at'] && $data['closes_at'] <= $data['opens_at']) back(['error' => 'La fermeture doit être après l\'ouverture.']);
         if ($aid) update('access_points', $data, 'id = ? AND event_id = ?', [$aid, $ev['id']]);
         else insert('access_points', $data + ['event_id' => $ev['id']]);
-        back(['success' => '✅ Point d\'accès enregistré.']);
+        back(['success' => 'Point d\'accès enregistré.']);
     }
     $aps = all("SELECT a.*, (SELECT COUNT(*) FROM scans s WHERE s.access_point_id = a.id AND s.result = 'ok' AND s.undone = 0) entries FROM access_points a WHERE event_id = ? ORDER BY id", [$ev['id']]);
     $scanners = all("SELECT name, email FROM users WHERE organizer_id = ? AND role = 'scanner' AND active = 1", [$ev['organizer_id']]);
@@ -435,7 +435,7 @@ function box_office(string $id): string
         $buyer = ['first_name' => trim((string)input('first_name')), 'last_name' => trim((string)input('last_name')),
             'email' => trim((string)input('email')), 'phone' => trim((string)input('phone'))];
         if ($buyer['last_name'] === '') $errors[] = 'Il faut au moins un nom.';
-        if ($buyer['email'] !== '' && !is_email($buyer['email'])) $errors[] = 'Cette adresse e-mail a l\'air bizarre 🤨';
+        if ($buyer['email'] !== '' && !is_email($buyer['email'])) $errors[] = 'Cette adresse e-mail a l\'air bizarre';
         if (!$errors) {
             $session = Tickets::hasSessions((int)$ev['id']) ? one('SELECT * FROM sessions WHERE id = ? AND event_id = ?', [(int)input('session_id'), $ev['id']]) : null;
             $seats = [];
@@ -449,7 +449,7 @@ function box_office(string $id): string
                 $o = Tickets::confirm((int)$r['order']['id'], [], $send);
                 $sent = $send && val('SELECT email_sent_at FROM orders WHERE id = ?', [$o['id']]);
                 Audit::log('box.sale', $o['ref'] . ' · ' . money((int)$o['total']), (int)$ev['id'], (int)$o['id']);
-                redirect('/pro/commandes/' . $o['id'], ['success' => ($method === 'invitation' ? '🎁 Invitation créée' : '💵 Vente enregistrée') . ($sent ? ', billets envoyés par e-mail 📬' : ' !')]);
+                redirect('/pro/commandes/' . $o['id'], ['success' => ($method === 'invitation' ? 'Invitation créée' : 'Vente enregistrée') . ($sent ? ', billets envoyés par e-mail' : ' !')]);
             }
         }
     }
@@ -466,7 +466,7 @@ function live_control(string $id): string
     require_org(['owner', 'manager']);
     $ev = org_event((int)$id);
     if (is_post() && input('action') === 'undo') {
-        Tickets::undoScan((int)input('scan_id'), (int)$ev['id']) ? back(['success' => '↩️ Passage annulé.']) : back(['error' => 'Impossible d\'annuler ce passage.']);
+        Tickets::undoScan((int)input('scan_id'), (int)$ev['id']) ? back(['success' => 'Passage annulé.']) : back(['error' => 'Impossible d\'annuler ce passage.']);
     }
     if (is_post() && input('action') === 'checkin') {
         $t = one('SELECT * FROM tickets WHERE id = ? AND event_id = ?', [(int)input('ticket_id'), $ev['id']]);
@@ -478,7 +478,7 @@ function live_control(string $id): string
         if ($body === '') back(['error' => 'Le message est vide.']);
         insert('scan_messages', ['event_id' => $ev['id'], 'body' => $body, 'level' => in_array(input('level'), ['info', 'warn', 'alert'], true) ? (string)input('level') : 'info', 'user_id' => user()['id'], 'created_at' => now()]);
         Audit::log('message.sent', 'Message aux contrôleurs : ' . $body, (int)$ev['id']);
-        back(['success' => '📢 Message envoyé aux téléphones de contrôle (il s\'affiche d\'ici 30 secondes).']);
+        back(['success' => 'Message envoyé aux téléphones de contrôle (il s\'affiche d\'ici 30 secondes).']);
     }
     $devices = all('SELECT d.*, u.name user_name FROM scan_devices d LEFT JOIN users u ON u.id = d.user_id WHERE d.event_id = ? AND d.last_seen >= NOW() - INTERVAL 12 HOUR ORDER BY d.last_seen DESC', [$ev['id']]);
     $messages = all('SELECT m.*, u.name user_name FROM scan_messages m LEFT JOIN users u ON u.id = m.user_id WHERE m.event_id = ? ORDER BY m.id DESC LIMIT 5', [$ev['id']]);
@@ -525,7 +525,7 @@ function team(): string
                 redirect('/pro/equipe');
             }
             Audit::log('team.changed', (string)input('action'));
-            back(['success' => '✅ C\'est fait.']);
+            back(['success' => 'C\'est fait.']);
         }
         back();
     }
@@ -554,14 +554,14 @@ function organization(): string
         if (input('action') === 'recap_test') {
             update('organizers', ['recap' => $data['recap']], 'id = ?', [$org['id']]);
             try { $ok = Recap::send(['recap' => $data['recap'] ?: 'daily'] + $org, user()['email']); } catch (Throwable $e) { back(['error' => 'Envoi impossible : ' . $e->getMessage()]); }
-            back([$ok ? 'success' : 'warning' => $ok ? '📬 Exemple envoyé à ' . user()['email'] . '.' : 'Rien à raconter pour l\'instant : publie un événement d\'abord 😉']);
+            back([$ok ? 'success' : 'warning' => $ok ? 'Exemple envoyé à ' . user()['email'] . '.' : 'Rien à raconter pour l\'instant : publie un événement d\'abord']);
         }
-        if (input('action') === 'api_key') { update('organizers', ['api_key' => 'ev_' . token(28)], 'id = ?', [$org['id']]); redirect('/pro/organisation', ['success' => '🔑 Nouvelle clé API générée (l\'ancienne ne marche plus).']); }
+        if (input('action') === 'api_key') { update('organizers', ['api_key' => 'ev_' . token(28)], 'id = ?', [$org['id']]); redirect('/pro/organisation', ['success' => 'Nouvelle clé API générée (l\'ancienne ne marche plus).']); }
         try { $logo = upload_image('logo'); if ($logo) $data['logo'] = $logo; } catch (RuntimeException $e) { back(['error' => $e->getMessage()]); }
         if (!$data['name'] || !is_email((string)$data['email'])) back(['error' => 'Nom et e-mail de contact obligatoires.']);
         update('organizers', $data, 'id = ?', [$org['id']]);
         Audit::log('org.updated', 'Profil de l\'organisation');
-        redirect('/pro/organisation', ['success' => '✅ C\'est enregistré.']);
+        redirect('/pro/organisation', ['success' => 'C\'est enregistré.']);
     }
     [$pct, $fixed] = Tickets::feeRates($org);
     return pro_page('Mon organisation', 'organization', compact('org', 'pct', 'fixed'), 'org');

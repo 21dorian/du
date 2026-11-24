@@ -9,9 +9,9 @@ declare(strict_types=1);
 final class Kyc
 {
     public const KINDS = [
-        'id' => ['🪪', 'Pièce d\'identité du représentant légal', 'Carte d\'identité ou passeport en cours de validité (recto et verso).'],
-        'legal' => ['🏛️', 'Justificatif de la structure', 'Extrait Kbis de moins de 3 mois, ou statuts + récépissé de déclaration pour une association.'],
-        'rib' => ['🏦', 'RIB au nom de la structure', 'Le même IBAN que celui renseigné dans Mon organisation.'],
+        'id' => ['', 'Pièce d\'identité du représentant légal', 'Carte d\'identité ou passeport en cours de validité (recto et verso).'],
+        'legal' => ['', 'Justificatif de la structure', 'Extrait Kbis de moins de 3 mois, ou statuts + récépissé de déclaration pour une association.'],
+        'rib' => ['', 'RIB au nom de la structure', 'Le même IBAN que celui renseigné dans Mon organisation.'],
     ];
     public const STATUS = ['none' => ['À compléter', 'grey'], 'incomplete' => ['Incomplet', 'orange'], 'pending' => ['En cours de vérification', 'orange'], 'verified' => ['Vérifié', 'green'], 'rejected' => ['À corriger', 'red']];
     public const DOC_STATUS = ['pending' => ['En attente', 'orange'], 'approved' => ['Validé', 'green'], 'rejected' => ['Refusé', 'red']];

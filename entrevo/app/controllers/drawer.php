@@ -33,7 +33,7 @@ function drawer_fields_html(array $ev, array $sum): string
         for ($i = 0; $i < $n; $i++) {
             $total++;
             $p = 'h[' . $l['rate_id'] . '][' . $i . ']';
-            $blocks .= '<div class="dw-holder"><div class="dw-holder-title">🎟️ ' . e($l['name']) . ($n > 1 ? ' n°' . ($i + 1) : '') . '</div><div class="grid2">'
+            $blocks .= '<div class="dw-holder"><div class="dw-holder-title">' . e($l['name']) . ($n > 1 ? ' n°' . ($i + 1) : '') . '</div><div class="grid2">'
                 . '<input name="' . $p . '[first_name]" placeholder="Prénom" autocomplete="off" aria-label="Prénom"><input name="' . $p . '[last_name]" placeholder="Nom" autocomplete="off" aria-label="Nom"></div>';
             foreach ($tf as $f) $blocks .= custom_field_html($f, $p . '[f][' . $f['id'] . ']', '');
             $blocks .= '</div>';
@@ -41,7 +41,7 @@ function drawer_fields_html(array $ev, array $sum): string
     }
     $h .= Buyers::ageFieldsHtml(Buyers::requiredAge($ev, array_values(array_map(fn($l) => $l['rate_id'], array_filter($sum['lines'], fn($l) => $l['kind'] === 'rate')))));
     if ($total > 1 || $required) {
-        $h .= '<details class="dw-names"' . ($required ? ' open' : '') . '><summary>' . ($required ? '📝 Infos pour chaque billet (demandées par l\'organisateur)' : '👯 Mettre les noms des participants maintenant <small>(facultatif)</small>') . '</summary>'
+        $h .= '<details class="dw-names"' . ($required ? ' open' : '') . '><summary>' . ($required ? 'Infos pour chaque billet (demandées par l\'organisateur)' : 'Mettre les noms des participants maintenant <small>(facultatif)</small>') . '</summary>'
             . ($required ? '' : '<p class="muted">Sinon tes billets seront à ton nom : tu pourras les renommer après l\'achat, depuis l\'e-mail de confirmation.</p>') . $blocks . '</details>';
     }
     return $h;
@@ -55,9 +55,9 @@ function drawer_cart(string $slug): never
     $msg = null; $errors = [];
     if ($a === 'code') {
         $r = Tickets::findPromo((int)$ev['id'], strtoupper(trim((string)input('code'))));
-        if (!empty($r['error']) || empty($r['promo'])) $errors[] = ($r['error'] ?? 'Code inconnu.') . ' 🙅';
+        if (!empty($r['error']) || empty($r['promo'])) $errors[] = ($r['error'] ?? 'Code inconnu.') . '';
         elseif ($r['promo']['kind'] === 'unlock') { $cart['unlocked'] = array_values(array_unique(array_merge($cart['unlocked'] ?? [], $r['promo']['rate_list']))); $msg = 'unlock'; }
-        else { $cart['promo'] = $r['promo']['code']; $msg = '🎉 Code « ' . $r['promo']['code'] . ' » appliqué.'; }
+        else { $cart['promo'] = $r['promo']['code']; $msg = 'Code « ' . $r['promo']['code'] . ' » appliqué.'; }
     } elseif ($a === 'remove_code') {
         $cart['promo'] = '';
     } else {
@@ -65,7 +65,7 @@ function drawer_cart(string $slug): never
         fill_cart_from_input($ev, $cart, $_POST);
         $cart['promo'] = $keep['promo']; $cart['unlocked'] = $keep['unlocked'] ?? [];
         foreach (['waitlist', 'partner'] as $k) if (isset($keep[$k])) $cart[$k] = $keep[$k];
-        if (!$cart['q']) $errors[] = 'Prends au moins un billet 😉';
+        if (!$cart['q']) $errors[] = 'Prends au moins un billet';
         elseif ($a === 'start') Traffic::hit($ev, 'carts');
     }
     cart_set((int)$ev['id'], $cart);
@@ -109,10 +109,10 @@ function buyer_link_request(): never
     if (is_email($email) && (val("SELECT id FROM orders WHERE LOWER(email) = ? AND status IN ('paid','refunded') LIMIT 1", [$email]) || val('SELECT id FROM tickets WHERE holder_email = ? LIMIT 1', [$email])) && throttle_ok('lien-' . $email)) {
         $exp = time() + 1800;
         $tok = rtrim(strtr(base64_encode($email . '|' . $exp . '|' . buyer_sig($email, $exp)), '+/', '-_'), '=');
-        try { Mailer::send($email, '🔑 Ton lien de connexion ' . setting('platform_name'), '<p>Clique ici pour retrouver tes infos préremplies (valable 30 minutes) :</p><p><a href="' . e(abs_url('/acheteur/' . $tok, ['r' => $back])) . '" style="display:inline-block;background:#0071e3;color:#fff;padding:12px 18px;border-radius:12px;text-decoration:none;font-weight:bold">Me connecter</a></p><p style="color:#777;font-size:13px">Pas toi ? Ignore cet e-mail.</p>'); }
+        try { Mailer::send($email, 'Ton lien de connexion ' . setting('platform_name'), '<p>Clique ici pour retrouver tes infos préremplies (valable 30 minutes) :</p><p><a href="' . e(abs_url('/acheteur/' . $tok, ['r' => $back])) . '" style="display:inline-block;background:#0071e3;color:#fff;padding:12px 18px;border-radius:12px;text-decoration:none;font-weight:bold">Me connecter</a></p><p style="color:#777;font-size:13px">Pas toi ? Ignore cet e-mail.</p>'); }
         catch (Throwable $e) { log_line('emails', $e->getMessage()); }
     }
-    json_out(['ok' => true, 'message' => '📬 Si tu as déjà acheté avec cette adresse, un lien vient de partir. Il est valable 30 minutes.']);
+    json_out(['ok' => true, 'message' => 'Si tu as déjà acheté avec cette adresse, un lien vient de partir. Il est valable 30 minutes.']);
 }
 
 function throttle_ok(string $k): bool
@@ -134,8 +134,8 @@ function buyer_link(string $token): never
     $o = one("SELECT first_name, last_name, email, phone FROM orders WHERE LOWER(email) = ? AND status IN ('paid','refunded') ORDER BY id DESC LIMIT 1", [$email]);
     $_SESSION['buyer'] = $o ?: ['email' => $email];
     $_SESSION['buyer_email'] = strtolower($email); // espace « Mes billets » ouvert
-    if (str_starts_with($back, '/mes-billets')) redirect('/mes-billets', ['success' => '👋 Bienvenue dans ton espace' . (!empty($o['first_name']) ? ', ' . $o['first_name'] : '') . ' !']);
-    redirect($back . (str_contains($back, '#') ? '' : '#acheter'), ['success' => '👋 Re-bonjour ' . ($o['first_name'] ?? '') . ' ! Tes infos sont préremplies.']);
+    if (str_starts_with($back, '/mes-billets')) redirect('/mes-billets', ['success' => 'Bienvenue dans ton espace' . (!empty($o['first_name']) ? ', ' . $o['first_name'] : '') . ' !']);
+    redirect($back . (str_contains($back, '#') ? '' : '#acheter'), ['success' => 'Re-bonjour ' . ($o['first_name'] ?? '') . ' ! Tes infos sont préremplies.']);
 }
 
 // ---------- Noms des billets après l'achat ----------
@@ -155,5 +155,5 @@ function order_names(string $ref): never
         $n++;
     }
     if ($n && input('send')) { try { Mailer::sendOrder((int)$o['id']); } catch (Throwable $e) { log_line('emails', $e->getMessage()); } }
-    redirect($back, ['success' => $n ? '✅ ' . $n . ' billet(s) renommé(s). Les PDF sont à jour' . (input('send') ? ' et renvoyés par e-mail.' : '.') : 'Rien n\'a changé 🙂']);
+    redirect($back, ['success' => $n ? '' . $n . ' billet(s) renommé(s). Les PDF sont à jour' . (input('send') ? ' et renvoyés par e-mail.' : '.') : 'Rien n\'a changé']);
 }

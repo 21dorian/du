@@ -1,7 +1,7 @@
 <?php $jours = [1 => 'Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam', 'Dim']; ?>
 <div class="split-3">
   <div class="card">
-    <div class="card-head"><h2>📅 <?= count($sessions) ?> date<?= count($sessions) > 1 ? 's' : '' ?></h2></div>
+    <div class="card-head"><h2><?= count($sessions) ?> date<?= count($sessions) > 1 ? 's' : '' ?></h2></div>
     <?php if (!$sessions): ?><p class="muted">Pas de date pour l'instant : l'événement a lieu une seule fois, à la date de ses infos. Ajoute des dates pour un spectacle joué plusieurs soirs, des visites, des créneaux… Chaque date a sa propre jauge.</p><?php endif; ?>
     <div class="table-wrap"><table class="table">
       <thead><tr><th>Date</th><th>Libellé</th><th>Remplissage</th><th class="num">Entrés</th><th></th></tr></thead>
@@ -30,7 +30,7 @@
       <button class="btn btn-block">Ajouter</button>
     </form>
     <form class="card" method="post"><?= csrf_field() ?><input type="hidden" name="action" value="generate">
-      <h2>🔁 Dates récurrentes</h2>
+      <h2>Dates récurrentes</h2>
       <div class="grid2"><div class="field"><label>Du</label><input type="date" name="from" required></div><div class="field"><label>Au</label><input type="date" name="to" required></div></div>
       <div class="field"><label>Jours</label><div class="row" style="gap:6px 14px"><?php foreach ($jours as $k => $j): ?><label class="check" style="font-weight:400"><input type="checkbox" name="days[]" value="<?= $k ?>"> <?= $j ?></label><?php endforeach; ?></div></div>
       <div class="field"><label>Heures</label><input name="times" placeholder="14:00, 16:30, 20:30" required></div>

@@ -13,7 +13,7 @@ function auto_settings(): never
         'reminder_hours' => in_array((int)input('reminder_hours'), [24, 48, 72, 168], true) ? (int)input('reminder_hours') : 24];
     update('organizers', $data, 'id = ?', [$org['id']]);
     Audit::log('org.auto', 'Envois automatiques modifiés', null, null, (int)$org['id']);
-    redirect('/pro/campagnes', ['success' => '✅ Envois automatiques enregistrés.']);
+    redirect('/pro/campagnes', ['success' => 'Envois automatiques enregistrés.']);
 }
 
 function reviews_page(): string
@@ -26,9 +26,9 @@ function reviews_page(): string
         if (input('action') === 'reply') {
             $reply = mb_substr(trim((string)input('reply')), 0, 1000);
             q('UPDATE reviews SET reply = ?, replied_at = ? WHERE id = ? AND organizer_id = ?', [$reply ?: null, $reply ? now() : null, $id, $oid]);
-            back(['success' => $reply ? '💬 Réponse publiée sous l\'avis.' : 'Réponse retirée.']);
+            back(['success' => $reply ? 'Réponse publiée sous l\'avis.' : 'Réponse retirée.']);
         }
-        back(['success' => 'C\'est noté 👍']);
+        back(['success' => 'C\'est noté']);
     }
     $evId = (int)input('ev');
     $note = (int)input('note');

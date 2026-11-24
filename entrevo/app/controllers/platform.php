@@ -14,7 +14,7 @@ function admin_home(): string
         set_setting('announce_text', mb_substr(trim((string)input('announce_text')), 0, 600));
         set_setting('announce_level', in_array(input('announce_level'), ['info', 'warn', 'success'], true) ? (string)input('announce_level') : 'info');
         set_setting('announce_until', preg_match('~^\d{4}-\d{2}-\d{2}$~', (string)input('announce_until')) ? (string)input('announce_until') . ' 23:59:59' : '');
-        back(['success' => trim((string)input('announce_text')) !== '' ? '📣 Annonce publiée dans l\'espace de tous les organisateurs.' : 'Annonce retirée.']);
+        back(['success' => trim((string)input('announce_text')) !== '' ? 'Annonce publiée dans l\'espace de tous les organisateurs.' : 'Annonce retirée.']);
     }
     $per = Insights::period((int)input('p', 30));
     $k = fn(string $from, string $to) => one("SELECT COUNT(*) n, COALESCE(SUM(o.total),0) gmv, COALESCE(SUM(o.commission),0) com,
@@ -41,16 +41,16 @@ function admin_home(): string
     // à faire
     $todo = [];
     $n = (int)val("SELECT COUNT(*) FROM organizers WHERE status = 'pending'");
-    if ($n) $todo[] = ['⏳', $n . ' organisateur(s) à valider', 'Ils attendent pour publier', '/admin/organisateurs?st=pending', 'hot'];
+    if ($n) $todo[] = ['', $n . ' organisateur(s) à valider', 'Ils attendent pour publier', '/admin/organisateurs?st=pending', 'hot'];
     $due = payouts_due();
     $sumDue = array_sum(array_column($due, 'balance'));
-    if ($due) $todo[] = ['🏦', money($sumDue) . ' à reverser', count($due) . ' organisateur(s) · ' . count(array_filter($due, fn($o) => !$o['iban_ok'])) . ' sans IBAN valide', '/admin/reversements', ''];
+    if ($due) $todo[] = ['', money($sumDue) . ' à reverser', count($due) . ' organisateur(s) · ' . count(array_filter($due, fn($o) => !$o['iban_ok'])) . ' sans IBAN valide', '/admin/reversements', ''];
     $n = (int)val("SELECT COUNT(*) FROM resales WHERE refund_status = 'failed'");
-    if ($n) $todo[] = ['⚠️', $n . ' remboursement(s) de revente échoué(s)', 'À traiter à la main chez le prestataire', '/admin/commandes', 'hot'];
+    if ($n) $todo[] = ['', $n . ' remboursement(s) de revente échoué(s)', 'À traiter à la main chez le prestataire', '/admin/commandes', 'hot'];
     $cronLast = (int)setting('cron_last', 0);
-    if (!$cronLast || $cronLast < time() - 3600) $todo[] = ['⏰', 'Tâche planifiée (cron) ' . ($cronLast ? 'arrêtée depuis ' . ago(date('Y-m-d H:i:s', $cronLast)) : 'jamais lancée'), 'Campagnes, récaps et rappels en dépendent', '/admin/sante', 'hot'];
-    if (array_keys(Payments::available()) === ['demo'] || !Payments::available()) $todo[] = ['🧪', 'Paiement en mode démo uniquement', 'Branche Stripe, PayPal, SumUp ou Mollie', '/admin/reglages?tab=payments', 'hot'];
-    if (!setting('smtp_host')) $todo[] = ['📮', 'Pas de serveur SMTP configuré', 'Les e-mails partent via mail() : risque de spam', '/admin/reglages?tab=emails', ''];
+    if (!$cronLast || $cronLast < time() - 3600) $todo[] = ['', 'Tâche planifiée (cron) ' . ($cronLast ? 'arrêtée depuis ' . ago(date('Y-m-d H:i:s', $cronLast)) : 'jamais lancée'), 'Campagnes, récaps et rappels en dépendent', '/admin/sante', 'hot'];
+    if (array_keys(Payments::available()) === ['demo'] || !Payments::available()) $todo[] = ['', 'Paiement en mode démo uniquement', 'Branche Stripe, PayPal, SumUp ou Mollie', '/admin/reglages?tab=payments', 'hot'];
+    if (!setting('smtp_host')) $todo[] = ['', 'Pas de serveur SMTP configuré', 'Les e-mails partent via mail() : risque de spam', '/admin/reglages?tab=emails', ''];
     $recent = all('SELECT * FROM organizers ORDER BY created_at DESC LIMIT 6');
     $demo = (int)val("SELECT COUNT(*) FROM orders WHERE status = 'paid' AND provider = 'demo'");
     return admin_page('Vue d\'ensemble', 'home', compact('per', 'cur', 'prev', 'newOrgs', 'newOrgsPrev', 'allTickets', 'labels', 'com', 'gmv', 'top', 'todo', 'recent', 'demo', 'sumDue'), 'dash',
@@ -128,7 +128,7 @@ function payouts_page(): string
             set_setting('sepa_name', mb_substr(trim((string)input('sepa_name')), 0, 70));
             set_setting('sepa_iban', $iban);
             set_setting('sepa_bic', strtoupper(trim((string)input('sepa_bic'))));
-            back(['success' => '✅ Compte émetteur enregistré.']);
+            back(['success' => 'Compte émetteur enregistré.']);
         }
         if (in_array($a, ['sepa', 'mark'], true)) {
             $ids = array_values(array_filter(array_map('intval', (array)($_POST['ids'] ?? []))));
@@ -152,7 +152,7 @@ function payouts_page(): string
                 foreach ($lines as $l) insert('payouts', ['organizer_id' => $l['org']['id'], 'amount' => $l['amount'], 'reference' => $batch, 'note' => $a === 'sepa' ? 'Virement groupé SEPA' : 'Reversement groupé',
                     'batch' => $batch, 'created_by' => $u['id'], 'created_at' => now()]);
             }
-            if ($a === 'mark') back(['success' => '💸 ' . count($lines) . ' reversement(s) enregistré(s), lot ' . $batch . '.']);
+            if ($a === 'mark') back(['success' => '' . count($lines) . ' reversement(s) enregistré(s), lot ' . $batch . '.']);
             header('Content-Type: application/xml; charset=utf-8');
             header('Content-Disposition: attachment; filename="virements-' . $batch . '.xml"');
             echo sepa_xml($lines, $batch);
@@ -192,7 +192,7 @@ function dir_size(string $dir): int
 function health_page(): string
 {
     require_super();
-    if (is_post() && input('action') === 'run_jobs') { $r = Jobs::run(true); back(['success' => '⚙️ Tâches lancées : ' . json_encode($r, JSON_UNESCAPED_UNICODE)]); }
+    if (is_post() && input('action') === 'run_jobs') { $r = Jobs::run(true); back(['success' => 'Tâches lancées : ' . json_encode($r, JSON_UNESCAPED_UNICODE)]); }
     $checks = [];
     $add = function (string $group, string $label, string $level, string $detail = '', string $fix = '') use (&$checks) { $checks[$group][] = compact('label', 'level', 'detail', 'fix'); };
     // serveur

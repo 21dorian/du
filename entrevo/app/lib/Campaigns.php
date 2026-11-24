@@ -117,7 +117,7 @@ final class Campaigns
                         . '<td style="padding:14px 16px;vertical-align:top"><div style="font-size:12px;font-weight:bold;color:' . $color . ';text-transform:uppercase;letter-spacing:.06em">' . e(fr_date($ev['starts_at'])) . '</div>'
                         . '<div style="font-size:20px;font-weight:bold;margin:4px 0;color:#0f0f14">' . e($ev['name']) . '</div>'
                         . '<div style="font-size:14px;color:#667085">' . e(trim($ev['venue'] . ($ev['city'] ? ' · ' . $ev['city'] : ''), ' ·')) . ($min !== null ? ' · ' . ((int)$min ? 'dès ' . e(money((int)$min)) : 'gratuit') : '') . '</div>'
-                        . $btn((string)($b['label'] ?? '') ?: 'Je prends ma place 🎟️', self::eventUrl($c, $ev)) . '</td></tr></table>';
+                        . $btn((string)($b['label'] ?? '') ?: 'Je prends ma place', self::eventUrl($c, $ev)) . '</td></tr></table>';
                     break;
             }
         }
@@ -130,7 +130,7 @@ final class Campaigns
             . '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#f0f5fa"><tr><td align="center" style="padding:24px 12px">'
             . '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:600px">'
             . '<tr><td style="padding:0 8px 14px">' . $logo . '<div style="font-weight:bold;font-size:15px;color:#0f0f14">' . e($org['name']) . '</div></td></tr>'
-            . '<tr><td style="background:#ffffff;border-radius:18px;padding:28px 32px">' . ($body ?: '<p style="color:#98a2b3">Ajoute des blocs à ton e-mail 👈</p>') . '</td></tr>'
+            . '<tr><td style="background:#ffffff;border-radius:18px;padding:28px 32px">' . ($body ?: '<p style="color:#98a2b3">Ajoute des blocs à ton e-mail</p>') . '</td></tr>'
             . '<tr><td style="padding:18px 8px;font-size:12px;line-height:1.5;color:#667085;text-align:center">'
             . 'Tu reçois cet e-mail car tu as participé à un événement de ' . e($org['name']) . '.<br>'
             . '<a href="' . e($unsub) . '" style="color:#667085">Ne plus recevoir les actus de ' . e($org['name']) . '</a>'
@@ -223,10 +223,10 @@ final class Campaigns
     {
         $ev = $upcoming[0]['id'] ?? 0;
         return [
-            'annonce' => ['📣 Annonce d\'événement', 'Ton prochain plan est là', [['type' => 'heading', 'text' => 'Salut {prenom}, on remet ça ! 🎉'], ['type' => 'text', 'text' => "Tu étais là la dernière fois, alors on te prévient en premier.\nLes places partent vite : réserve la tienne avant tout le monde."], ['type' => 'event', 'event_id' => $ev, 'label' => 'Je réserve 🎟️']]],
-            'dernieres' => ['🔥 Dernières places', 'Plus que quelques places…', [['type' => 'heading', 'text' => 'Plus que quelques places 😬'], ['type' => 'text', 'text' => "Hé {prenom}, c'est presque complet.\nSi tu hésitais encore, c'est **maintenant ou jamais**."], ['type' => 'event', 'event_id' => $ev, 'label' => 'Je fonce 🏃']]],
-            'merci' => ['🙏 Merci d\'être venu', 'Merci pour hier soir !', [['type' => 'heading', 'text' => 'Merci {prenom} ! 🙌'], ['type' => 'text', 'text' => "Quelle soirée ! Merci d'avoir été là.\nOn prépare déjà la suite, et tu seras le premier au courant."], ['type' => 'divider'], ['type' => 'text', 'text' => 'Un souvenir, une photo, un avis ? Réponds simplement à cet e-mail 💌']]],
-            'vide' => ['📝 Page blanche', '', [['type' => 'heading', 'text' => 'Salut {prenom} 👋'], ['type' => 'text', 'text' => '']]],
+            'annonce' => ['Annonce d\'événement', 'Ton prochain plan est là', [['type' => 'heading', 'text' => 'Salut {prenom}, on remet ça !'], ['type' => 'text', 'text' => "Tu étais là la dernière fois, alors on te prévient en premier.\nLes places partent vite : réserve la tienne avant tout le monde."], ['type' => 'event', 'event_id' => $ev, 'label' => 'Je réserve']]],
+            'dernieres' => ['Dernières places', 'Plus que quelques places…', [['type' => 'heading', 'text' => 'Plus que quelques places'], ['type' => 'text', 'text' => "Hé {prenom}, c'est presque complet.\nSi tu hésitais encore, c'est **maintenant ou jamais**."], ['type' => 'event', 'event_id' => $ev, 'label' => 'Je fonce']]],
+            'merci' => ['Merci d\'être venu', 'Merci pour hier soir !', [['type' => 'heading', 'text' => 'Merci {prenom} !'], ['type' => 'text', 'text' => "Quelle soirée ! Merci d'avoir été là.\nOn prépare déjà la suite, et tu seras le premier au courant."], ['type' => 'divider'], ['type' => 'text', 'text' => 'Un souvenir, une photo, un avis ? Réponds simplement à cet e-mail']]],
+            'vide' => ['Page blanche', '', [['type' => 'heading', 'text' => 'Salut {prenom}'], ['type' => 'text', 'text' => '']]],
         ];
     }
 }

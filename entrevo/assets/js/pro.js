@@ -29,7 +29,7 @@
     timer = setTimeout(function () {
       fetch(BASE + '/' + AREA + '/recherche?q=' + encodeURIComponent(q), { credentials: 'same-origin' }).then(function (r) { return r.json(); }).then(function (j) {
         res.textContent = ''; items = []; sel = 0;
-        if (!j.groups.length) { var p = document.createElement('p'); p.className = 'muted'; p.textContent = 'Rien trouvé 🤷'; res.appendChild(p); return; }
+        if (!j.groups.length) { var p = document.createElement('p'); p.className = 'muted'; p.textContent = 'Rien trouvé'; res.appendChild(p); return; }
         j.groups.forEach(function (g) {
           var h = document.createElement('div'); h.className = 'cmdk-group'; h.textContent = g.label; res.appendChild(h);
           g.items.forEach(function (it) {
@@ -50,7 +50,7 @@
       var c = notif.querySelector('.notif-count'), list = notif.querySelector('.notif-list');
       c.hidden = !j.items.length; c.textContent = j.items.length > 9 ? '9+' : j.items.length;
       list.textContent = '';
-      if (!j.items.length) { var p = document.createElement('p'); p.className = 'muted'; p.textContent = 'Rien à signaler, tout roule 😎'; list.appendChild(p); return; }
+      if (!j.items.length) { var p = document.createElement('p'); p.className = 'muted'; p.textContent = 'Rien à signaler, tout roule'; list.appendChild(p); return; }
       j.items.forEach(function (n) {
         var a = document.createElement('a'); a.href = n.url; a.className = 'notif-item ' + (n.level || '');
         var t = document.createElement('b'); t.textContent = n.title; a.appendChild(t);

@@ -19,7 +19,7 @@
   buy.querySelectorAll('input[name^="product["]').forEach(function (i) { optionRows.push(i.closest('.rate')); });
   var don = buy.querySelector('#donation'); if (don) optionRows.push(don.closest('.rate'));
   if (optionRows.length) {
-    var h = document.createElement('h3'); h.className = 'dw-h'; h.textContent = '✨ Envie d’un petit plus ?'; opts.appendChild(h);
+    var h = document.createElement('h3'); h.className = 'dw-h'; h.textContent = 'Envie d’un petit plus ?'; opts.appendChild(h);
     optionRows.forEach(function (r) { if (!r) return; r.querySelectorAll('input, select').forEach(function (i) { i.setAttribute('form', 'buy'); }); if (r.classList.contains('extras-head')) r.remove(); else opts.appendChild(r); });
   }
   // prérenseignement : lien de connexion, sinon cet appareil
@@ -94,20 +94,20 @@
     if (!summary) return;
     var t = document.createElement('div'); t.className = 'dw-ticket';
     var add = function (cls, a, b) { var r = document.createElement('div'); r.className = 'dw-line ' + (cls || ''); var x = document.createElement('span'); x.textContent = a; var y = document.createElement('span'); y.textContent = b; r.appendChild(x); r.appendChild(y); t.appendChild(r); };
-    var hd = document.createElement('div'); hd.className = 'dw-ticket-head'; hd.textContent = '🎟️ Ton récap'; t.appendChild(hd);
+    var hd = document.createElement('div'); hd.className = 'dw-ticket-head'; hd.textContent = 'Ton récap'; t.appendChild(hd);
     summary.lines.forEach(function (l) { add('', l.qty + ' × ' + l.name, l.total); });
-    if (summary.group) add('good', '👥 Tarif groupe (−' + summary.group.pct + ' %)', '−' + summary.group.amount);
+    if (summary.group) add('good', 'Tarif groupe (−' + summary.group.pct + ' %)', '−' + summary.group.amount);
     if (summary.discount) add('good', 'Réduction' + (summary.promo ? ' (' + summary.promo + ')' : ''), '−' + summary.discount);
     if (summary.fees) add('muted', 'Frais de service', summary.fees);
-    if (summary.donation) add('', '💛 Don', summary.donation);
-    if (summary.promo_note) add('muted', 'ℹ️ ' + summary.promo_note, '');
+    if (summary.donation) add('', 'Don', summary.donation);
+    if (summary.promo_note) add('muted', '' + summary.promo_note, '');
     add('total', 'Total', summary.total);
     box.appendChild(t);
   }
 
   $('[data-dw-next]').addEventListener('click', function () {
     if (step === 1) {
-      if (!count()) { errors(['Choisis au moins un billet 😉']); return; }
+      if (!count()) { errors(['Choisis au moins un billet']); return; }
       busy(true);
       refresh('start').then(function (j) {
         busy(false);
@@ -121,7 +121,7 @@
       busy(true);
       refresh().then(function () { busy(false); go(3); }).catch(function () { busy(false); go(3); });
     } else if (step === 3) {
-      var cgv = $('[data-cgv]'); if (cgv && !cgv.checked) { errors(['Coche les conditions de vente pour continuer 😉']); return; }
+      var cgv = $('[data-cgv]'); if (cgv && !cgv.checked) { errors(['Coche les conditions de vente pour continuer']); return; }
       var fd = cartData(); new FormData(buyer).forEach(function (v, k) { fd.append(k, v); });
       busy(true);
       post(dw.dataset.order, fd).then(function (j) {
@@ -162,14 +162,14 @@
       var s = Math.max(0, Math.round((end - Date.now()) / 1000));
       left.textContent = Math.floor(s / 60) + ':' + String(s % 60).padStart(2, '0');
       el.classList.toggle('hurry', s < 120);
-      if (!s) { clearInterval(timer); el.textContent = '⌛ Temps écoulé : tes places sont reparties. Recharge la page pour retenter ta chance.'; var f = $('.dw-pay-form'); if (f) f.hidden = true; }
+      if (!s) { clearInterval(timer); el.textContent = 'Temps écoulé : tes places sont reparties. Recharge la page pour retenter ta chance.'; var f = $('.dw-pay-form'); if (f) f.hidden = true; }
     };
     tick(); timer = setInterval(tick, 1000);
   }
 
   // e-mail : on montre où partent les billets
   var em = buyer.querySelector('[name=email]');
-  em.addEventListener('input', function () { var hEl = $('[data-email-hint]'); hEl.textContent = em.value ? 'Tes billets arriveront à ' + em.value + ' 📬' : 'Tes billets arriveront ici.'; });
+  em.addEventListener('input', function () { var hEl = $('[data-email-hint]'); hEl.textContent = em.value ? 'Tes billets arriveront à ' + em.value + '' : 'Tes billets arriveront ici.'; });
 
   // connexion rapide par lien
   $('[data-quick-open]').addEventListener('click', function () { $('.dw-quick-form').hidden = false; $('[data-quick-mail]').focus(); });

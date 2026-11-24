@@ -1,5 +1,5 @@
 <div class="vol-wrap">
-  <div class="vol-hero"><span class="eyebrow">🙋 On recrute des bénévoles</span><h1><?= e($ev['name']) ?></h1>
+  <div class="vol-hero"><span class="eyebrow">On recrute des bénévoles</span><h1><?= e($ev['name']) ?></h1>
     <p class="muted"><?= e(fr_date($ev['starts_at'])) ?> · <?= e(trim($ev['venue'] . ' ' . $ev['city'])) ?> · organisé par <?= e($org['name']) ?></p>
     <?php if ($ev['volunteer_intro']): ?><div class="vol-intro"><?= nl2br(e($ev['volunteer_intro'])) ?></div><?php endif; ?></div>
   <?php foreach ($errors as $er): ?><div class="flash error"><?= e($er) ?></div><?php endforeach; ?>
@@ -20,7 +20,7 @@
       <?php endforeach; ?></div>
     <?php endif; ?>
     <div class="field mb0"><label>Un petit mot ?</label><textarea name="message" rows="2"><?= e(input('message')) ?></textarea></div>
-    <button class="btn btn-lg">Je candidate 🙌</button>
+    <button class="btn btn-lg">Je candidate</button>
     <small class="muted">Tes coordonnées ne servent qu'à l'organisation de cet événement par <?= e($org['name']) ?>.</small>
   </form>
 </div>

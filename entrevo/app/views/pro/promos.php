@@ -2,15 +2,15 @@
 $effect = fn($p) => $p['kind'] === 'percent' ? '−' . (int)$p['value'] . ' %' : ($p['kind'] === 'amount' ? '−' . money((int)$p['value']) . ' / billet' : 'Débloque un tarif');
 $totalRev = array_sum(array_map(fn($s) => (int)$s['revenue'], $stats)); $totalUses = array_sum(array_map(fn($s) => (int)$s['n'], $stats)); $totalDisc = array_sum(array_map(fn($s) => (int)$s['disc'], $stats)); ?>
 <div class="page-head-row">
-  <div class="kpi-mini"><span>🧾 Commandes avec code</span><b><?= $totalUses ?></b></div>
-  <div class="kpi-mini"><span>💶 Ventes générées</span><b><?= e(money($totalRev)) ?></b></div>
-  <div class="kpi-mini"><span>🎁 Remises accordées</span><b><?= e(money($totalDisc)) ?></b></div>
-  <a class="kpi-mini" href="<?= url('/pro/evenements/' . $ev['id'] . '/promos', ['csv' => 1]) ?>"><span>📥 Export</span><b style="font-size:15px">Tous les codes (CSV)</b></a>
+  <div class="kpi-mini"><span>Commandes avec code</span><b><?= $totalUses ?></b></div>
+  <div class="kpi-mini"><span>Ventes générées</span><b><?= e(money($totalRev)) ?></b></div>
+  <div class="kpi-mini"><span>Remises accordées</span><b><?= e(money($totalDisc)) ?></b></div>
+  <a class="kpi-mini" href="<?= url('/pro/evenements/' . $ev['id'] . '/promos', ['csv' => 1]) ?>"><span>Export</span><b style="font-size:15px">Tous les codes (CSV)</b></a>
 </div>
 <div class="split-3">
   <div class="stack">
   <div class="card">
-    <h2>🏷️ Tes codes</h2>
+    <h2>Tes codes</h2>
     <div class="table-wrap"><table class="table">
       <thead><tr><th>Code</th><th>Effet</th><th>Conditions</th><th class="num">Utilisations</th><th class="num">Ventes</th><th></th></tr></thead>
       <tbody>
@@ -34,19 +34,19 @@ $totalRev = array_sum(array_map(fn($s) => (int)$s['revenue'], $stats)); $totalUs
             <?php if (!(int)$p['used']): ?><button class="btn btn-sm btn-ghost" name="action" value="delete" data-confirm="Supprimer ce code ?">✕</button><?php endif; ?></form></td>
         </tr>
       <?php endforeach; ?>
-      <?php if (!$promos): ?><tr><td colspan="6" class="empty">Aucun code. Les influenceurs vont être déçus 😏</td></tr><?php endif; ?>
+      <?php if (!$promos): ?><tr><td colspan="6" class="empty">Aucun code. Les influenceurs vont être déçus</td></tr><?php endif; ?>
       </tbody>
     </table></div>
   </div>
   <?php if ($batches): ?>
   <div class="card">
-    <h2>📦 Lots de codes uniques</h2>
+    <h2>Lots de codes uniques</h2>
     <div class="table-wrap"><table class="table">
       <thead><tr><th>Lot</th><th>Effet</th><th class="num">Codes</th><th class="num">Utilisés</th><th class="num">Ventes</th><th></th></tr></thead>
       <tbody><?php foreach ($batches as $b): ?>
         <tr><td><b class="mono"><?= e($b['batch']) ?></b><?= $b['label'] ? '<br><small class="muted">' . e($b['label']) . '</small>' : '' ?></td><td><?= e($effect($b)) ?></td><td class="num"><?= (int)$b['n'] ?><?= (int)$b['active'] < (int)$b['n'] ? '<br><small class="muted">' . (int)$b['active'] . ' actifs</small>' : '' ?></td>
           <td class="num"><?= (int)$b['used'] ?> <small class="muted">(<?= $b['n'] ? round($b['used'] / $b['n'] * 100) : 0 ?> %)</small></td><td class="num"><?= $b['revenue'] ? '<b>' . e(money((int)$b['revenue'])) . '</b>' : '—' ?></td>
-          <td class="right nowrap"><a class="btn btn-sm btn-light" href="<?= url('/pro/evenements/' . $ev['id'] . '/promos', ['csv' => 1, 'batch' => $b['batch']]) ?>">📥 CSV</a>
+          <td class="right nowrap"><a class="btn btn-sm btn-light" href="<?= url('/pro/evenements/' . $ev['id'] . '/promos', ['csv' => 1, 'batch' => $b['batch']]) ?>">CSV</a>
             <?php if ((int)$b['active']): ?><form method="post" class="inline-form"><?= csrf_field() ?><input type="hidden" name="batch" value="<?= e($b['batch']) ?>"><button class="btn btn-sm btn-ghost" name="action" value="batch_off" data-confirm="Désactiver tous les codes de ce lot ?">Désactiver</button></form><?php endif; ?></td></tr>
       <?php endforeach; ?></tbody>
     </table></div>
@@ -56,14 +56,14 @@ $totalRev = array_sum(array_map(fn($s) => (int)$s['revenue'], $stats)); $totalUs
   <form class="card" method="post"><?= csrf_field() ?>
     <h2>+ Nouveau code</h2>
     <div class="field"><label>Type</label><select name="kind">
-      <option value="percent">Réduction en %</option><option value="amount">Réduction en € par billet</option><option value="unlock">🤫 Code d'accès à un tarif secret</option></select></div>
+      <option value="percent">Réduction en %</option><option value="amount">Réduction en € par billet</option><option value="unlock">Code d'accès à un tarif secret</option></select></div>
     <div class="field"><label>Combien de codes ?</label><select name="count"><option value="1">Un code partagé</option><?php foreach ([10, 25, 50, 100, 250, 500] as $c): ?><option value="<?= $c ?>"><?= $c ?> codes uniques (1 utilisation chacun)</option><?php endforeach; ?></select></div>
     <div class="field" data-show-if="count=1"><label>Code</label><input name="code" placeholder="Vide = on en invente un" style="text-transform:uppercase"></div>
     <div class="field" data-show-if="count=10|25|50|100|250|500"><label>Préfixe des codes</label><input name="prefix" placeholder="INFLU" maxlength="8" style="text-transform:uppercase"><small>Ex. INFLU-K7P2QX, INFLU-93HD2A…</small></div>
     <div class="field"><label>Libellé interne</label><input name="label" placeholder="Ex. : Instagram @lucie, Abonnés newsletter…" maxlength="190"></div>
     <div class="field" data-show-if="kind=percent|amount"><label>Valeur (% ou €)</label><input name="value" value="10" inputmode="decimal"></div>
     <div class="field"><label>Tarifs concernés</label>
-      <?php foreach ($rates as $r): ?><label class="check" style="margin-bottom:6px"><input type="checkbox" name="rate_ids[]" value="<?= (int)$r['id'] ?>"> <?= e($r['name']) ?><?= $r['hidden'] ? ' <span class="badge violet">🤫 Secret</span>' : '' ?></label><?php endforeach; ?>
+      <?php foreach ($rates as $r): ?><label class="check" style="margin-bottom:6px"><input type="checkbox" name="rate_ids[]" value="<?= (int)$r['id'] ?>"> <?= e($r['name']) ?><?= $r['hidden'] ? ' <span class="badge violet">Secret</span>' : '' ?></label><?php endforeach; ?>
       <small>Aucun coché = tous les tarifs (pour une réduction).</small></div>
     <div class="grid2">
       <div class="field"><label>Valable à partir du</label><input type="datetime-local" name="valid_from"></div>

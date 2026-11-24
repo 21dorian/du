@@ -13,7 +13,7 @@ function give_input(): array
     $email = strtolower(trim((string)input('to_email')));
     $errors = [];
     if ($first === '' || $last === '') $errors[] = 'Indique le prénom et le nom de la personne.';
-    if (!is_email($email)) $errors[] = 'Son adresse e-mail a l\'air bizarre 🤨';
+    if (!is_email($email)) $errors[] = 'Son adresse e-mail a l\'air bizarre';
     return [$first, $last, $email, $errors];
 }
 
@@ -27,10 +27,10 @@ function ticket_give(string $ref): never
     if (!$t) redirect($back, ['error' => 'Billet introuvable.']);
     if ($why = Buyers::cannotTransfer($t, $o, $ev)) redirect($back, ['error' => $why]);
     [$first, $last, $email, $errors] = give_input();
-    if (strtolower((string)$o['email']) === $email) $errors[] = 'C\'est ta propre adresse 😄 Pour changer juste le nom, utilise « Qui vient avec toi ? ».';
+    if (strtolower((string)$o['email']) === $email) $errors[] = 'C\'est ta propre adresse Pour changer juste le nom, utilise « Qui vient avec toi ? ».';
     if ($errors) redirect($back, ['error' => implode(' ', $errors)]);
     Buyers::transfer($t, $o, $ev, $first, $last, $email, trim($o['first_name'] . ' ' . $o['last_name']), (string)$o['email']);
-    redirect($back, ['success' => '🎁 Billet envoyé à ' . $first . ' ! Il ou elle le reçoit par e-mail, et ton ancien QR code ne passe plus.']);
+    redirect($back, ['success' => 'Billet envoyé à ' . $first . ' ! Il ou elle le reçoit par e-mail, et ton ancien QR code ne passe plus.']);
 }
 
 function held_ticket_load(string $token): array
@@ -73,11 +73,11 @@ function held_ticket_give(string $token): never
     $back = '/billet/' . $token;
     if ($why = Buyers::cannotTransfer($t, $o, $ev)) redirect($back, ['error' => $why]);
     [$first, $last, $email, $errors] = give_input();
-    if ($email === $t['holder_email']) $errors[] = 'C\'est déjà ton adresse 😄';
+    if ($email === $t['holder_email']) $errors[] = 'C\'est déjà ton adresse';
     if ($errors) redirect($back, ['error' => implode(' ', $errors)]);
     $from = trim($t['first_name'] . ' ' . $t['last_name']);
     Buyers::transfer($t, $o, $ev, $first, $last, $email, $from, (string)$t['holder_email']);
-    redirect('/e/' . $ev['slug'], ['success' => '🎁 Billet envoyé à ' . $first . ' ! Ton ancien QR code ne passe plus.']);
+    redirect('/e/' . $ev['slug'], ['success' => 'Billet envoyé à ' . $first . ' ! Ton ancien QR code ne passe plus.']);
 }
 
 // ---------- Agenda ----------
@@ -98,10 +98,10 @@ function recover_cart(string $ref): never
 {
     $o = order_by_ref($ref);
     $ev = one('SELECT * FROM events WHERE id = ?', [$o['event_id']]);
-    if ($o['status'] === 'paid') redirect('/commande/' . $o['ref'] . '?t=' . $o['token'], ['info' => '😉 Bonne nouvelle : cette commande est déjà payée.']);
+    if ($o['status'] === 'paid') redirect('/commande/' . $o['ref'] . '?t=' . $o['token'], ['info' => 'Bonne nouvelle : cette commande est déjà payée.']);
     if ($o['status'] === 'pending' && $o['expires_at'] && strtotime((string)$o['expires_at']) > time()) redirect('/paiement/' . $o['ref'] . '?t=' . $o['token']);
     if (val("SELECT id FROM orders WHERE LOWER(email) = ? AND event_id = ? AND status = 'paid' AND id > ? LIMIT 1", [strtolower((string)$o['email']), $o['event_id'], $o['id']]))
-        redirect('/e/' . $ev['slug'], ['info' => '🎟️ Tu as déjà pris tes billets pour cet événement depuis. Bonne fête !']);
+        redirect('/e/' . $ev['slug'], ['info' => 'Tu as déjà pris tes billets pour cet événement depuis. Bonne fête !']);
     [$ev, $cart] = Buyers::restoreCart($o);
     $code = strtoupper(preg_replace('~[^A-Za-z0-9-]~', '', (string)input('code')));
     if ($code !== '' && empty(Tickets::findPromo((int)$ev['id'], $code)['error'])) $cart['promo'] = $code;
@@ -109,7 +109,7 @@ function recover_cart(string $ref): never
     $_SESSION['recover'][$ev['id']] = (int)$o['id'];
     $_SESSION['buyer'] = ['first_name' => $o['first_name'], 'last_name' => $o['last_name'], 'email' => $o['email'], 'phone' => $o['phone']];
     $hasMap = (bool)Seating::map($ev);
-    redirect('/e/' . $ev['slug'] . ($cart['session'] ? '?seance=' . (int)$cart['session'] : '') . ($hasMap ? '' : '#acheter'), ['success' => '🛒 Ton panier est de retour ! Vérifie les quantités et c\'est reparti.']);
+    redirect('/e/' . $ev['slug'] . ($cart['session'] ? '?seance=' . (int)$cart['session'] : '') . ($hasMap ? '' : '#acheter'), ['success' => 'Ton panier est de retour ! Vérifie les quantités et c\'est reparti.']);
 }
 
 // ---------- Avis ----------
@@ -146,11 +146,11 @@ function presale_request(string $slug): never
     $email = strtolower(trim((string)input('email')));
     $back = '/e/' . $ev['slug'] . '#billets';
     if (!Buyers::presaleActive($ev)) redirect($back);
-    if (!is_email($email)) redirect($back, ['error' => 'Cette adresse e-mail a l\'air bizarre 🤨']);
+    if (!is_email($email)) redirect($back, ['error' => 'Cette adresse e-mail a l\'air bizarre']);
     if (throttle_ok('prevente-' . $ev['id'] . '-' . $email) && ($why = Buyers::presaleAllowed($ev, $email))) {
         try { Buyers::sendPresaleLink($ev, $email, $why); } catch (Throwable $e) { log_line('emails', 'Prévente : ' . $e->getMessage()); }
     }
-    redirect($back, ['info' => '📬 Si ton adresse fait partie de la prévente, ton lien d\'accès vient de partir. Pense à regarder tes spams.']);
+    redirect($back, ['info' => 'Si ton adresse fait partie de la prévente, ton lien d\'accès vient de partir. Pense à regarder tes spams.']);
 }
 
 function presale_enter(string $slug, string $token): never
@@ -161,7 +161,7 @@ function presale_enter(string $slug, string $token): never
     if (!is_email($email) || !hash_equals(Buyers::presaleSig((int)$ev['id'], $email), $sig)) redirect('/e/' . $ev['slug'], ['error' => 'Ce lien de prévente n\'est pas valable.']);
     $_SESSION['presale'][$ev['id']] = strtolower($email);
     $_SESSION['buyer'] = ($_SESSION['buyer'] ?? []) + ['email' => strtolower($email)];
-    redirect('/e/' . $ev['slug'] . '#acheter', ['success' => '🔓 Bienvenue dans la prévente ! Les billets sont à toi avant tout le monde.']);
+    redirect('/e/' . $ev['slug'] . '#acheter', ['success' => 'Bienvenue dans la prévente ! Les billets sont à toi avant tout le monde.']);
 }
 
 // ---------- 1.9 : changer de date ----------
@@ -173,5 +173,5 @@ function order_exchange(string $ref): never
     $err = Buyers::exchange($o, $ev, (int)input('session_id'));
     if ($err) redirect($back, ['error' => $err]);
     $s = one('SELECT * FROM sessions WHERE id = ?', [(int)input('session_id')]);
-    redirect($back, ['success' => '📅 C\'est changé ! Rendez-vous le ' . fr_date((string)$s['starts_at']) . '. Tes billets (mêmes QR codes) t\'ont été renvoyés par e-mail.']);
+    redirect($back, ['success' => 'C\'est changé ! Rendez-vous le ' . fr_date((string)$s['starts_at']) . '. Tes billets (mêmes QR codes) t\'ont été renvoyés par e-mail.']);
 }

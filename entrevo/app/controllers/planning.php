@@ -7,7 +7,7 @@ require_once APP . '/controllers/pro.php';
 
 const BUDGET_EXPENSES = ['Artistes & cachets', 'Technique (son, lumière, scène)', 'Lieu & location', 'Sécurité & secours', 'Communication', 'Restauration & bar', 'Personnel', 'Assurance', 'Droits (SACEM, SACD…)', 'Transport & hébergement', 'Décoration', 'Divers'];
 const BUDGET_INCOMES = ['Subventions', 'Partenaires & sponsors', 'Bar & restauration', 'Merchandising', 'Mécénat & dons', 'Autres recettes'];
-const DOC_CATEGORIES = ['contrat' => '🎤 Contrat artiste', 'devis' => '🧾 Devis / facture fournisseur', 'assurance' => '☂️ Assurance', 'autorisation' => '🏛️ Autorisation (mairie, préfecture)', 'droits' => '🎼 SACEM / droits', 'technique' => '🔧 Fiche technique / plan', 'securite' => '🦺 Sécurité', 'autre' => '📎 Autre'];
+const DOC_CATEGORIES = ['contrat' => 'Contrat artiste', 'devis' => 'Devis / facture fournisseur', 'assurance' => 'Assurance', 'autorisation' => 'Autorisation (mairie, préfecture)', 'droits' => 'SACEM / droits', 'technique' => 'Fiche technique / plan', 'securite' => 'Sécurité', 'autre' => 'Autre'];
 
 // ---------- Budget ----------
 /** Recettes de billetterie (part organisateur) d'un événement : ventes en ligne nettes + guichet. */
@@ -50,14 +50,14 @@ function budget_tab(string $id): string
             if ($d['label'] === '') back(['error' => 'Donne un intitulé à la ligne.']);
             if ($line) update('budget_lines', $d, 'id = ?', [$line['id']]);
             else insert('budget_lines', $d + ['event_id' => $ev['id'], 'created_at' => now(), 'sort' => (int)val('SELECT COALESCE(MAX(sort),0)+1 FROM budget_lines WHERE event_id = ?', [$ev['id']])]);
-            back(['success' => $line ? '✅ Ligne modifiée.' : '➕ Ligne ajoutée.']);
+            back(['success' => $line ? 'Ligne modifiée.' : 'Ligne ajoutée.']);
         }
-        if ($a === 'delete' && $line) { q('DELETE FROM budget_lines WHERE id = ?', [$line['id']]); back(['success' => '🗑️ Ligne supprimée.']); }
+        if ($a === 'delete' && $line) { q('DELETE FROM budget_lines WHERE id = ?', [$line['id']]); back(['success' => 'Ligne supprimée.']); }
         if ($a === 'template') {
             $tpl = ['Artistes & cachets' => 'Cachet tête d\'affiche', 'Technique (son, lumière, scène)' => 'Location son et lumière', 'Lieu & location' => 'Location de la salle', 'Sécurité & secours' => 'Agents de sécurité',
                 'Communication' => 'Affiches et réseaux sociaux', 'Assurance' => 'Responsabilité civile organisateur', 'Droits (SACEM, SACD…)' => 'SACEM'];
             $i = 0; foreach ($tpl as $cat => $label) insert('budget_lines', ['event_id' => $ev['id'], 'kind' => 'expense', 'category' => $cat, 'label' => $label, 'planned' => 0, 'sort' => ++$i, 'created_at' => now()]);
-            back(['success' => '🧩 Postes de base ajoutés : renseigne les montants.']);
+            back(['success' => 'Postes de base ajoutés : renseigne les montants.']);
         }
         back();
     }
@@ -84,19 +84,19 @@ function budget_overview(): string
 }
 
 // ---------- Tâches ----------
-const TASK_STATUS = ['todo' => '📝 À faire', 'doing' => '⏳ En cours', 'done' => '✅ Fait'];
+const TASK_STATUS = ['todo' => 'À faire', 'doing' => 'En cours', 'done' => 'Fait'];
 
 /** Modèles de rétroplanning : [jours avant l'événement, intitulé]. */
 function task_templates(): array
 {
     return [
-        'concert' => ['🎸 Concert / soirée', [[-60, 'Confirmer la date et signer le contrat de salle'], [-55, 'Contrats artistes et fiches techniques'], [-50, 'Déclarer l\'événement (SACEM)'], [-45, 'Ouvrir la billetterie'], [-40, 'Affiche et visuels réseaux sociaux'],
+        'concert' => ['Concert / soirée', [[-60, 'Confirmer la date et signer le contrat de salle'], [-55, 'Contrats artistes et fiches techniques'], [-50, 'Déclarer l\'événement (SACEM)'], [-45, 'Ouvrir la billetterie'], [-40, 'Affiche et visuels réseaux sociaux'],
             [-30, 'Campagne e-mail aux anciens participants'], [-21, 'Réserver son, lumière et backline'], [-14, 'Prévoir la sécurité et les secours'], [-10, 'Brief bénévoles et planning du jour J'], [-7, 'Campagne « dernières places »'],
             [-3, 'Créer les comptes contrôleurs et tester le scan'], [-1, 'Imprimer la liste de contrôle de secours'], [0, 'Jour J : ouverture des portes'], [2, 'Payer les prestataires et faire le bilan']]],
-        'festival' => ['🎪 Festival', [[-180, 'Valider le budget prévisionnel'], [-150, 'Demander les autorisations (mairie, préfecture)'], [-120, 'Programmation et contrats artistes'], [-100, 'Dossiers de subventions'], [-90, 'Ouverture des préventes (early bird)'],
+        'festival' => ['Festival', [[-180, 'Valider le budget prévisionnel'], [-150, 'Demander les autorisations (mairie, préfecture)'], [-120, 'Programmation et contrats artistes'], [-100, 'Dossiers de subventions'], [-90, 'Ouverture des préventes (early bird)'],
             [-75, 'Recherche de partenaires et sponsors'], [-60, 'Assurance de l\'événement'], [-45, 'Recrutement des bénévoles'], [-30, 'Plan du site, signalétique, sécurité'], [-21, 'Commande bar, food-trucks et merch'],
             [-14, 'Planning des bénévoles et des équipes'], [-7, 'Test du contrôle d\'accès et des terminaux de paiement'], [-1, 'Montage et briefing général'], [0, 'Jour J'], [7, 'Bilan financier et bilan pour les financeurs']]],
-        'conference' => ['🎤 Conférence / salon', [[-90, 'Réserver le lieu'], [-75, 'Confirmer les intervenants'], [-60, 'Ouvrir les inscriptions'], [-45, 'Programme détaillé en ligne'], [-30, 'Relance des inscrits et des partenaires'],
+        'conference' => ['Conférence / salon', [[-90, 'Réserver le lieu'], [-75, 'Confirmer les intervenants'], [-60, 'Ouvrir les inscriptions'], [-45, 'Programme détaillé en ligne'], [-30, 'Relance des inscrits et des partenaires'],
             [-14, 'Badges et signalétique'], [-7, 'Rappel aux participants'], [-1, 'Installation et tests techniques'], [0, 'Jour J : accueil'], [3, 'Questionnaire de satisfaction']]],
     ];
 }
@@ -127,12 +127,12 @@ function tasks_page(?string $eventId = null): string
             else {
                 insert('tasks', $d + ['organizer_id' => $oid, 'status' => 'todo', 'created_by' => user()['id'], 'created_at' => now()]);
                 if ($assignee && $assignee !== (int)user()['id'] && ($u = one('SELECT * FROM users WHERE id = ?', [$assignee])) && is_email((string)$u['email'])) {
-                    try { Mailer::send($u['email'], '✅ Nouvelle tâche : ' . $d['title'], '<p>' . e(user()['name']) . ' t\'a confié une tâche : <b>' . e($d['title']) . '</b>' . ($d['due_date'] ? ' pour le ' . e(date('d/m/Y', strtotime($d['due_date']))) : '') . '.</p><p><a href="' . e(abs_url('/pro/taches')) . '">Voir mes tâches</a></p>'); } catch (Throwable $e) { log_line('emails', $e->getMessage()); }
+                    try { Mailer::send($u['email'], 'Nouvelle tâche : ' . $d['title'], '<p>' . e(user()['name']) . ' t\'a confié une tâche : <b>' . e($d['title']) . '</b>' . ($d['due_date'] ? ' pour le ' . e(date('d/m/Y', strtotime($d['due_date']))) : '') . '.</p><p><a href="' . e(abs_url('/pro/taches')) . '">Voir mes tâches</a></p>'); } catch (Throwable $e) { log_line('emails', $e->getMessage()); }
                 }
             }
-            back(['success' => $t ? '✅ Tâche modifiée.' : '➕ Tâche ajoutée.']);
+            back(['success' => $t ? 'Tâche modifiée.' : 'Tâche ajoutée.']);
         }
-        if ($a === 'delete' && $t) { q('DELETE FROM tasks WHERE id = ?', [$t['id']]); back(['success' => '🗑️ Tâche supprimée.']); }
+        if ($a === 'delete' && $t) { q('DELETE FROM tasks WHERE id = ?', [$t['id']]); back(['success' => 'Tâche supprimée.']); }
         if ($a === 'template') {
             $tpl = task_templates()[(string)input('template')] ?? null;
             $target = one('SELECT * FROM events WHERE id = ? AND organizer_id = ?', [(int)input('event_id'), $oid]);
@@ -140,7 +140,7 @@ function tasks_page(?string $eventId = null): string
             $start = strtotime(substr($target['starts_at'], 0, 10));
             foreach ($tpl[1] as $i => [$days, $title]) insert('tasks', ['organizer_id' => $oid, 'event_id' => $target['id'], 'title' => $title, 'due_date' => date('Y-m-d', $start + $days * 86400),
                 'status' => 'todo', 'sort' => $i, 'created_by' => user()['id'], 'created_at' => now()]);
-            back(['success' => '🗓️ Rétroplanning « ' . $tpl[0] . ' » ajouté : ' . count($tpl[1]) . ' tâches calées sur la date de l\'événement.']);
+            back(['success' => 'Rétroplanning « ' . $tpl[0] . ' » ajouté : ' . count($tpl[1]) . ' tâches calées sur la date de l\'événement.']);
         }
         back();
     }
@@ -175,10 +175,10 @@ function documents_page(?string $eventId = null): string
                 'category' => isset(DOC_CATEGORIES[(string)input('category')]) ? (string)input('category') : 'autre', 'file' => $file['file'], 'original_name' => $file['original'], 'mime' => $file['mime'], 'size' => $file['size'],
                 'expires_at' => preg_match('~^\d{4}-\d{2}-\d{2}$~', (string)input('expires_at')) ? (string)input('expires_at') : null, 'note' => mb_substr(trim((string)input('note')), 0, 500) ?: null,
                 'uploaded_by' => user()['id'], 'created_at' => now()]);
-            back(['success' => '📎 Document ajouté.']);
+            back(['success' => 'Document ajouté.']);
         }
         $d = one('SELECT * FROM documents WHERE id = ? AND organizer_id = ?', [(int)input('doc_id'), $oid]);
-        if ($a === 'delete' && $d) { delete_private_file($d['file']); q('DELETE FROM documents WHERE id = ?', [$d['id']]); back(['success' => '🗑️ Document supprimé.']); }
+        if ($a === 'delete' && $d) { delete_private_file($d['file']); q('DELETE FROM documents WHERE id = ?', [$d['id']]); back(['success' => 'Document supprimé.']); }
         back();
     }
     $f = ['ev' => $ev ? (int)$ev['id'] : (int)input('ev'), 'cat' => isset(DOC_CATEGORIES[(string)input('cat')]) ? (string)input('cat') : '', 'q' => trim((string)input('q'))];

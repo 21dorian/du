@@ -58,7 +58,7 @@ final class Waitlist
     {
         $link = abs_url('/attente/' . $w['token']);
         try {
-            Mailer::send($w['email'], '🎉 Une place s\'est libérée pour ' . $ev['name'] . ' !', '<p>Salut ' . e($w['first_name'] ?: '') . ' 👋</p>'
+            Mailer::send($w['email'], 'Une place s\'est libérée pour ' . $ev['name'] . ' !', '<p>Salut ' . e($w['first_name'] ?: '') . '</p>'
                 . '<p>Bonne nouvelle : ' . ((int)$w['qty'] > 1 ? (int)$w['qty'] . ' places se sont libérées' : 'une place s\'est libérée') . ' pour <b>' . e($ev['name']) . '</b>'
                 . ($session ? ' (' . e(fr_date($session['starts_at'])) . ')' : '') . '.</p>'
                 . '<p>On te la garde jusqu\'au <b>' . e(fr_date($exp)) . '</b>. Après, elle passe au suivant. Pas de pression. (Un peu quand même.)</p>'

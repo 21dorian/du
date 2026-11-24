@@ -12,16 +12,16 @@
       <div class="kpi-mini"><span>Heures pointées</span><b><?= e(Staff::hm($done)) ?></b></div>
     </div>
     <div class="card table-card">
-      <div class="table-head-row"><h2 class="mb0">🗓️ Créneaux</h2></div>
+      <div class="table-head-row"><h2 class="mb0">Créneaux</h2></div>
       <div class="table-wrap"><table class="table">
         <thead><tr><th>Quand</th><th>Poste</th><th>Événement</th><th>Statut</th><th>Pointage</th></tr></thead>
         <tbody>
         <?php foreach ($shifts as $s): ?>
           <tr><td class="nowrap"><?= e(short_date($s['starts_at'])) ?> → <?= e(date('H:i', strtotime($s['ends_at']))) ?></td>
-            <td><b><?= e($s['title']) ?></b><?= $s['location'] ? '<br><small class="muted">📍 ' . e($s['location']) . '</small>' : '' ?></td>
+            <td><b><?= e($s['title']) ?></b><?= $s['location'] ? '<br><small class="muted">' . e($s['location']) . '</small>' : '' ?></td>
             <td><a href="<?= url('/pro/evenements/' . $s['event_id'] . '/benevoles') ?>"><?= e($s['ev_name']) ?></a></td>
             <td><?= Staff::badge($s['status']) ?></td>
-            <td><small><?= $s['checked_in_at'] ? '✅ ' . e(date('H:i', strtotime($s['checked_in_at']))) . ($s['checked_out_at'] ? ' → ' . e(date('H:i', strtotime($s['checked_out_at']))) : '') : '<span class="muted">—</span>' ?></small></td></tr>
+            <td><small><?= $s['checked_in_at'] ? '' . e(date('H:i', strtotime($s['checked_in_at']))) . ($s['checked_out_at'] ? ' → ' . e(date('H:i', strtotime($s['checked_out_at']))) : '') : '<span class="muted">—</span>' ?></small></td></tr>
         <?php endforeach; ?>
         <?php if (!$shifts): ?><tr><td colspan="5" class="empty">Aucun créneau pour l'instant. Place-le depuis l'onglet « Bénévoles » d'un événement.</td></tr><?php endif; ?>
         </tbody>
@@ -30,13 +30,13 @@
   </div>
   <div>
     <div class="card">
-      <h2>🔗 Espace bénévole</h2>
+      <h2>Espace bénévole</h2>
       <p class="muted">Lien personnel : planning, confirmation des créneaux, inscription sur les créneaux ouverts et badge QR.</p>
       <div class="copy-field"><input value="<?= e($link) ?>" readonly aria-label="Lien de l'espace bénévole"><button type="button" class="btn btn-sm btn-light" data-copy="<?= e($link) ?>">Copier</button></div>
       <form method="post" class="row" style="margin-top:10px;gap:8px"><?= csrf_field() ?>
-        <button class="btn btn-sm" name="action" value="send">📬 Envoyer par e-mail</button>
-        <a class="btn btn-sm btn-light" href="<?= url('/benevole/' . $m['token'] . '/badge') ?>" target="_blank">🪪 Badge</a>
-        <button class="btn btn-sm btn-light" name="action" value="new_link" data-confirm="Créer un nouveau lien ? L'ancien lien et l'ancien badge ne marcheront plus.">🔑 Nouveau lien</button>
+        <button class="btn btn-sm" name="action" value="send">Envoyer par e-mail</button>
+        <a class="btn btn-sm btn-light" href="<?= url('/benevole/' . $m['token'] . '/badge') ?>" target="_blank">Badge</a>
+        <button class="btn btn-sm btn-light" name="action" value="new_link" data-confirm="Créer un nouveau lien ? L'ancien lien et l'ancien badge ne marcheront plus.">Nouveau lien</button>
       </form>
     </div>
     <div class="card">

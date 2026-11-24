@@ -101,7 +101,7 @@ function json_out($data, int $code = 200): never
 function abort(int $code, string $msg = ''): never
 {
     http_response_code($code);
-    $titles = [403 => '🚫 Pas par ici', 404 => '🤷 Page introuvable', 500 => '😵 Oups'];
+    $titles = [403 => 'Pas par ici', 404 => 'Page introuvable', 500 => 'Oups'];
     $default = [403 => 'Cette porte est réservée au staff.', 404 => 'Cette page a quitté la soirée sans prévenir.'][$code] ?? 'Un truc a coincé.';
     echo view('layout_public', ['title' => strip_tags($titles[$code] ?? 'Erreur'), 'content' =>
         '<div class="card center auth-box"><h1>' . e($titles[$code] ?? 'Erreur') . '</h1><p class="muted">' . e($msg ?: $default) . '</p><p><a class="btn" href="' . url('/') . '">Retour à l\'accueil</a></p></div>']);
@@ -129,7 +129,7 @@ function csrf_check(): void
     $t = $_POST['_csrf'] ?? $_SERVER['HTTP_X_CSRF'] ?? '';
     if (!is_string($t) || !hash_equals(csrf_token(), $t)) {
         http_response_code(419);
-        exit('Ta session a expiré ⏳ Recharge la page et recommence.');
+        exit('Ta session a expiré Recharge la page et recommence.');
     }
 }
 
@@ -138,7 +138,7 @@ function setting_defaults(): array
 {
     return [
         'platform_name' => APP_NAME,
-        'tagline' => 'Des billets, des QR codes, et des soirées réussies 🎟️',
+        'tagline' => 'Des billets, des QR codes, et des soirées réussies',
         'contact_email' => '',
         'base_url' => '',
         'company_info' => '',
@@ -406,4 +406,45 @@ function custom_field_html(array $f, string $name, string $val): string
             $h .= '<input type="' . $type . '" id="' . $id . '" name="' . e($name) . '" value="' . e($val) . '"' . $req . '>';
     }
     return $h . '</div>';
+}
+
+/** Icônes fines (trait 1,75, style « SF Symbols ») utilisées à la place des emojis. */
+function ui_icon(string $name, int $size = 20): string
+{
+    static $p = [
+        'plus' => '<path d="M12 5v14M5 12h14"/>',
+        'ticket' => '<path d="M3 8a2 2 0 0 0 2-2h14a2 2 0 0 0 2 2v2a2 2 0 0 0 0 4v2a2 2 0 0 0-2 2H5a2 2 0 0 0-2-2v-2a2 2 0 0 0 0-4z"/><path d="M14 6v12" stroke-dasharray="2 2"/>',
+        'store' => '<path d="M4 9l1.5-5h13L20 9"/><path d="M4 9v10h16V9"/><path d="M4 9h16"/><path d="M10 19v-5h4v5"/>',
+        'gift' => '<rect x="3" y="8" width="18" height="4" rx="1"/><path d="M5 12v8h14v-8M12 8v12"/><path d="M12 8S10.5 4 8 4a2 2 0 0 0 0 4zM12 8s1.5-4 4-4a2 2 0 0 1 0 4z"/>',
+        'mail' => '<rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 7l9 6 9-6"/>',
+        'send' => '<path d="M21 3L10 14"/><path d="M21 3l-7 18-4-7-7-4z"/>',
+        'scan' => '<path d="M4 8V5a1 1 0 0 1 1-1h3M16 4h3a1 1 0 0 1 1 1v3M20 16v3a1 1 0 0 1-1 1h-3M8 20H5a1 1 0 0 1-1-1v-3"/><path d="M7 12h10"/>',
+        'download' => '<path d="M12 4v11M7 10l5 5 5-5"/><path d="M5 20h14"/>',
+        'megaphone' => '<path d="M3 10v4a1 1 0 0 0 1 1h3l6 4V5L7 9H4a1 1 0 0 0-1 1z"/><path d="M17 9a4 4 0 0 1 0 6"/>',
+        'calendar' => '<rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/>',
+        'chart' => '<path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/>',
+        'euro' => '<path d="M17 6a7 7 0 1 0 0 12"/><path d="M4 10h9M4 14h9"/>',
+        'users' => '<circle cx="9" cy="8" r="3.5"/><path d="M2.5 20a6.5 6.5 0 0 1 13 0"/><path d="M16 4.5a3.5 3.5 0 0 1 0 7M18 14a6 6 0 0 1 3.5 6"/>',
+        'link' => '<path d="M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1"/><path d="M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1-1"/>',
+        'check' => '<path d="M5 12.5l4.5 4.5L19 7"/>',
+        'clock' => '<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>',
+        'info' => '<circle cx="12" cy="12" r="9"/><path d="M12 11v6M12 7.5v.5"/>',
+        'lock' => '<rect x="4" y="11" width="16" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/>',
+        'star' => '<path d="M12 3.5l2.6 5.3 5.9.9-4.3 4.1 1 5.8L12 16.9l-5.2 2.7 1-5.8L3.5 9.7l5.9-.9z"/>',
+        'shield' => '<path d="M12 3l8 3v6c0 4.5-3.4 8.3-8 9-4.6-.7-8-4.5-8-9V6z"/>',
+        'sparkles' => '<path d="M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8z"/><path d="M19 15l.8 2.2L22 18l-2.2.8L19 21l-.8-2.2L16 18l2.2-.8z"/>',
+        'settings' => '<circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/>',
+        'bag' => '<path d="M5 8h14l-1 13H6z"/><path d="M9 8V6a3 3 0 0 1 6 0v2"/>',
+        'pin' => '<path d="M12 21s-7-6.3-7-12a7 7 0 0 1 14 0c0 5.7-7 12-7 12z"/><circle cx="12" cy="9" r="2.5"/>',
+        'cart' => '<circle cx="9" cy="20" r="1.3"/><circle cx="18" cy="20" r="1.3"/><path d="M2 3h3l2.5 12.5h11.5L21 7H6"/>',
+        'refund' => '<path d="M3 12a9 9 0 1 0 3-6.7"/><path d="M3 4v5h5"/>',
+    ];
+    $d = $p[$name] ?? $p['sparkles'];
+    return '<svg class="ui-ico" width="' . $size . '" height="' . $size . '" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' . $d . '</svg>';
+}
+
+/** Icône d'une fonction du catalogue selon sa catégorie. */
+function feature_icon(array $f): string
+{
+    return ui_icon(['sell' => 'ticket', 'market' => 'megaphone', 'onsite' => 'scan', 'money' => 'euro', 'team' => 'users', 'connect' => 'link'][$f['cat'] ?? ''] ?? 'sparkles');
 }

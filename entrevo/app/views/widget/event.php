@@ -4,9 +4,9 @@
 <body class="pub"><div class="w">
 <?php $target = url('/e/' . $ev['slug'] . '/panier'); ?>
 <form class="tickets-box" method="get" action="<?= e($target) ?>" target="_blank" id="buy">
-  <div class="tickets-box-head"><h2>🎟️ <?= e($ev['name']) ?></h2><small><?= e($session ? fr_date($session['starts_at']) : fr_date($ev['starts_at'], false)) ?></small></div>
+  <div class="tickets-box-head"><h2><?= e($ev['name']) ?></h2><small><?= e($session ? fr_date($session['starts_at']) : fr_date($ev['starts_at'], false)) ?></small></div>
   <?php if ($sessions): ?>
-    <div class="rate"><select onchange="location.href='?seance='+this.value" aria-label="Date"><option value="">📅 Choisis ta date…</option>
+    <div class="rate"><select onchange="location.href='?seance='+this.value" aria-label="Date"><option value="">Choisis ta date…</option>
       <?php foreach ($sessions as $x): ?><option value="<?= (int)$x['id'] ?>" <?= $session && (int)$session['id'] === (int)$x['id'] ? 'selected' : '' ?>><?= e(fr_date($x['starts_at'])) ?></option><?php endforeach; ?></select></div>
     <?php if ($session): ?><input type="hidden" name="seance" value="<?= (int)$session['id'] ?>"><?php endif; ?>
   <?php endif; ?>
@@ -16,6 +16,6 @@
       <?php if ($max): ?><div class="qty" data-price="<?= (int)$r['price'] + $fee ?>"><button type="button" data-d="-1">−</button><input type="number" name="qty[<?= (int)$r['id'] ?>]" value="0" min="0" max="<?= $max ?>"><button type="button" data-d="1">+</button></div><?php endif; ?></div>
   <?php endforeach; ?>
   <?php if ($rates): ?><div class="buy-foot"><div class="buy-total"><span>Total</span><span id="buy-total">0,00 €</span></div><button class="btn btn-block btn-lg">Réserver →</button>
-  <p class="secure-note">🔒 Paiement sécurisé sur <?= e(setting('platform_name')) ?> (nouvel onglet)</p></div><?php endif; ?>
+  <p class="secure-note">Paiement sécurisé sur <?= e(setting('platform_name')) ?> (nouvel onglet)</p></div><?php endif; ?>
 </form>
 </div><script src="<?= asset('js/app.js') ?>"></script></body></html>

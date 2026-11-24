@@ -13,12 +13,12 @@ function staff_directory(): string
     if (is_post()) {
         $a = (string)input('action');
         if ($a === 'add') {
-            if (trim((string)input('first_name')) === '' || trim((string)input('last_name')) === '') back(['error' => 'Prénom et nom, au minimum 😉']);
-            if (input('email') !== '' && !is_email((string)input('email'))) back(['error' => 'Cet e-mail a l\'air bancal 🤔']);
+            if (trim((string)input('first_name')) === '' || trim((string)input('last_name')) === '') back(['error' => 'Prénom et nom, au minimum']);
+            if (input('email') !== '' && !is_email((string)input('email'))) back(['error' => 'Cet e-mail a l\'air bancal']);
             $id = Staff::upsertMember($oid, $_POST);
             Audit::log('staff.added', trim(input('first_name') . ' ' . input('last_name')));
             if (input('send') && ($m = Staff::member($oid, $id))) { try { Staff::sendPlanning($m); } catch (Throwable $e) { back(['warning' => 'Ajouté, mais l\'e-mail n\'est pas parti : ' . $e->getMessage()]); } }
-            back(['success' => '🙌 Bienvenue dans l\'équipe !']);
+            back(['success' => 'Bienvenue dans l\'équipe !']);
         }
         if ($a === 'import') {
             $n = 0; $bad = 0;
@@ -31,19 +31,19 @@ function staff_directory(): string
                 $n++;
             }
             Audit::log('staff.added', "Import : $n personne(s)");
-            back([$n ? 'success' : 'error' => "📥 $n personne(s) importée(s)" . ($bad ? ", $bad ligne(s) ignorée(s)." : '.')]);
+            back([$n ? 'success' : 'error' => "$n personne(s) importée(s)" . ($bad ? ", $bad ligne(s) ignorée(s)." : '.')]);
         }
         $ids = array_values(array_filter(array_map('intval', (array)($_POST['ids'] ?? []))));
         if ($ids && in_array($a, ['archive', 'activate', 'send'], true)) {
             $in = implode(',', $ids); $n = 0;
             if ($a === 'send') {
                 foreach (all("SELECT * FROM staff_members WHERE organizer_id = ? AND id IN ($in)", [$oid]) as $m) { try { if (Staff::sendPlanning($m)) $n++; } catch (Throwable $e) { log_line('emails', $e->getMessage()); } }
-                back(['success' => "📬 Lien d'accès envoyé à $n personne(s)."]);
+                back(['success' => "Lien d'accès envoyé à $n personne(s)."]);
             }
             $n = q("UPDATE staff_members SET status = ? WHERE organizer_id = ? AND id IN ($in)", [$a === 'archive' ? 'archived' : 'active', $oid])->rowCount();
-            back(['success' => $a === 'archive' ? "🗄️ $n personne(s) archivée(s)." : "✅ $n personne(s) activée(s)."]);
+            back(['success' => $a === 'archive' ? "$n personne(s) archivée(s)." : "$n personne(s) activée(s)."]);
         }
-        back(['error' => 'Coche au moins une personne 😉']);
+        back(['error' => 'Coche au moins une personne']);
     }
     $f = ['q' => trim((string)input('q')), 'team' => (string)input('team'), 'st' => (string)input('st')];
     $w = 'm.organizer_id = ?'; $p = [$oid];
@@ -77,21 +77,21 @@ function staff_member_page(string $id): string
             $d['email'] = strtolower(trim((string)input('email'))) ?: null;
             $d['notes'] = trim((string)input('notes')) ?: null;
             if (!$d['first_name'] || !$d['last_name']) back(['error' => 'Prénom et nom obligatoires.']);
-            if ($d['email'] && !is_email($d['email'])) back(['error' => 'Cet e-mail a l\'air bancal 🤔']);
+            if ($d['email'] && !is_email($d['email'])) back(['error' => 'Cet e-mail a l\'air bancal']);
             if (isset(Staff::MEMBER_STATUS[(string)input('status')])) $d['status'] = (string)input('status');
             update('staff_members', $d, 'id = ?', [$m['id']]);
-            back(['success' => '✅ Fiche enregistrée.']);
+            back(['success' => 'Fiche enregistrée.']);
         }
         if ($a === 'send') {
-            try { Staff::sendPlanning($m) ? back(['success' => '📬 Planning et lien envoyés à ' . $m['email'] . '.']) : back(['error' => 'Pas d\'e-mail valide sur cette fiche.']); }
+            try { Staff::sendPlanning($m) ? back(['success' => 'Planning et lien envoyés à ' . $m['email'] . '.']) : back(['error' => 'Pas d\'e-mail valide sur cette fiche.']); }
             catch (Throwable $e) { back(['error' => 'Envoi impossible : ' . $e->getMessage()]); }
         }
-        if ($a === 'new_link') { update('staff_members', ['token' => token(24)], 'id = ?', [$m['id']]); back(['success' => '🔑 Nouveau lien créé : l\'ancien (et l\'ancien badge) ne marchent plus.']); }
+        if ($a === 'new_link') { update('staff_members', ['token' => token(24)], 'id = ?', [$m['id']]); back(['success' => 'Nouveau lien créé : l\'ancien (et l\'ancien badge) ne marchent plus.']); }
         if ($a === 'delete') {
             q('DELETE FROM staff_assignments WHERE member_id = ?', [$m['id']]);
             q('DELETE FROM staff_members WHERE id = ?', [$m['id']]);
             Audit::log('staff.removed', $m['first_name'] . ' ' . $m['last_name']);
-            redirect('/pro/benevoles', ['success' => '🗑️ Fiche supprimée.']);
+            redirect('/pro/benevoles', ['success' => 'Fiche supprimée.']);
         }
         back();
     }
@@ -134,7 +134,7 @@ function staff_event_action(array $org, array $ev): never
     switch ($a) {
         case 'settings':
             update('events', ['volunteer_recruit' => checked('volunteer_recruit'), 'volunteer_intro' => trim((string)input('volunteer_intro')) ?: null], 'id = ?', [$evId]);
-            back(['success' => checked('volunteer_recruit') ? '📣 Recrutement ouvert : partage le lien !' : '✅ Enregistré.']);
+            back(['success' => checked('volunteer_recruit') ? 'Recrutement ouvert : partage le lien !' : 'Enregistré.']);
         case 'shift':
             $date = (string)input('date');
             $st = strtotime($date . ' ' . input('start')); $en = strtotime($date . ' ' . input('end'));
@@ -144,7 +144,7 @@ function staff_event_action(array $org, array $ev): never
                 'location' => mb_substr(trim((string)input('location')), 0, 120) ?: null, 'starts_at' => date('Y-m-d H:i:s', $st), 'ends_at' => date('Y-m-d H:i:s', $en),
                 'needed' => max(1, min(500, (int)input('needed', 1))), 'description' => trim((string)input('description')) ?: null, 'open_signup' => checked('open_signup')];
             $repeat = max(1, min(30, (int)input('repeat', 1)));
-            if ($shift) { unset($d['event_id']); update('staff_shifts', $d, 'id = ?', [$shift['id']]); redirect('/pro/evenements/' . $evId . '/benevoles', ['success' => '✅ Créneau modifié.']); }
+            if ($shift) { unset($d['event_id']); update('staff_shifts', $d, 'id = ?', [$shift['id']]); redirect('/pro/evenements/' . $evId . '/benevoles', ['success' => 'Créneau modifié.']); }
             // « répéter » : crée N créneaux consécutifs de même durée (ex. 4 × 2 h au bar)
             $len = $en - $st;
             for ($i = 0; $i < $repeat; $i++) {
@@ -152,13 +152,13 @@ function staff_event_action(array $org, array $ev): never
                 insert('staff_shifts', $d);
             }
             Audit::log('staff.shift', $d['title'] . ($repeat > 1 ? " × $repeat" : ''), $evId);
-            back(['success' => $repeat > 1 ? "🗓️ $repeat créneaux créés." : '🗓️ Créneau créé.']);
+            back(['success' => $repeat > 1 ? "$repeat créneaux créés." : 'Créneau créé.']);
         case 'delete_shift':
             if ($shift) { q('DELETE FROM staff_assignments WHERE shift_id = ?', [$shift['id']]); q('DELETE FROM staff_shifts WHERE id = ?', [$shift['id']]); }
-            back(['success' => '🗑️ Créneau supprimé.']);
+            back(['success' => 'Créneau supprimé.']);
         case 'duplicate_shift':
             if ($shift) { $c = $shift; unset($c['id']); $c['created_at'] = now(); insert('staff_shifts', $c); }
-            back(['success' => '📑 Créneau dupliqué.']);
+            back(['success' => 'Créneau dupliqué.']);
         case 'assign':
             if (!$shift) back();
             $ids = array_values(array_filter(array_map('intval', (array)($_POST['member_ids'] ?? [input('member_id')]))));
@@ -172,7 +172,7 @@ function staff_event_action(array $org, array $ev): never
                 if ($m['status'] === 'candidate') update('staff_members', ['status' => 'active'], 'id = ?', [$mid]);
                 $n++;
             }
-            back([$warn ? 'warning' : 'success' => "👍 $n personne(s) placée(s) sur « {$shift['title']} »." . ($warn ? ' Attention : ' . implode(' ; ', $warn) . '.' : '')]);
+            back([$warn ? 'warning' : 'success' => "$n personne(s) placée(s) sur « {$shift['title']} »." . ($warn ? ' Attention : ' . implode(' ; ', $warn) . '.' : '')]);
         case 'set_status':
             $as = one('SELECT a.* FROM staff_assignments a JOIN staff_shifts s ON s.id = a.shift_id WHERE a.id = ? AND s.event_id = ?', [(int)input('assignment_id'), $evId]);
             $st = (string)input('status');
@@ -185,13 +185,13 @@ function staff_event_action(array $org, array $ev): never
         case 'accept_all':
             $n = q("UPDATE staff_assignments a JOIN staff_shifts s ON s.id = a.shift_id SET a.status = 'confirmed' WHERE s.event_id = ? AND a.status = 'requested'", [$evId])->rowCount();
             q("UPDATE staff_members m JOIN staff_assignments a ON a.member_id = m.id JOIN staff_shifts s ON s.id = a.shift_id SET m.status = 'active' WHERE s.event_id = ? AND a.status = 'confirmed' AND m.status = 'candidate'", [$evId]);
-            back(['success' => "✅ $n candidature(s) acceptée(s)."]);
+            back(['success' => "$n candidature(s) acceptée(s)."]);
         case 'send_all':
             $members = all("SELECT DISTINCT m.* FROM staff_members m JOIN staff_assignments a ON a.member_id = m.id JOIN staff_shifts s ON s.id = a.shift_id WHERE s.event_id = ? AND a.status <> 'declined'", [$evId]);
             $n = 0; $intro = trim((string)input('intro'));
             foreach ($members as $m) { try { if (Staff::sendPlanning($m, $evId, $intro)) $n++; } catch (Throwable $e) { log_line('emails', $e->getMessage()); } }
             Audit::log('message.sent', "Plannings bénévoles : $n e-mail(s)", $evId);
-            back(['success' => "📬 Planning envoyé à $n bénévole(s)."]);
+            back(['success' => "Planning envoyé à $n bénévole(s)."]);
     }
     back();
 }
@@ -205,7 +205,7 @@ function staff_checkin(string $id): string
         if (input('badge') !== '') $r = Staff::checkByBadge((int)$ev['id'], (string)input('badge'));
         else {
             $a = one('SELECT a.*, s.title, m.first_name, m.last_name FROM staff_assignments a JOIN staff_shifts s ON s.id = a.shift_id JOIN staff_members m ON m.id = a.member_id WHERE a.id = ? AND s.event_id = ?', [(int)input('assignment_id'), $ev['id']]);
-            if ($a && input('undo')) { update('staff_assignments', ['checked_in_at' => null, 'checked_out_at' => null], 'id = ?', [$a['id']]); $r = ['ok' => true, 'msg' => '↩️ Pointage annulé.']; }
+            if ($a && input('undo')) { update('staff_assignments', ['checked_in_at' => null, 'checked_out_at' => null], 'id = ?', [$a['id']]); $r = ['ok' => true, 'msg' => 'Pointage annulé.']; }
             else $r = $a ? Staff::toggle($a, $a['first_name'] . ' ' . $a['last_name']) : ['ok' => false, 'msg' => 'Introuvable.'];
         }
         if (input('ajax')) json_out($r);

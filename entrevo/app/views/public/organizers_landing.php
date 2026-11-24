@@ -1,14 +1,14 @@
 <?php $pname = (string)setting('platform_name'); $ex = ['fee_percent' => null, 'fee_fixed' => null]; $f20 = Tickets::computeFees($ex, 2000, 1); ?>
 <section class="vit-hero">
   <div class="vit-hero-copy">
-    <span class="eyebrow">🎤 Pour les organisateurs</span>
+    <span class="eyebrow">Pour les organisateurs</span>
     <h1>Ta billetterie en ligne en 5 minutes. Sans abonnement.</h1>
     <p class="lead">Vends tes billets, remplis ta salle et contrôle les entrées avec ton téléphone, même sans réseau. Tu ne paies que quand tu vends.</p>
-    <div class="vit-cta"><a class="btn btn-lg" href="<?= url('/inscription') ?>">Créer ma billetterie gratuitement</a><?= pub_soon('demo-visio', '🎥 Démo en visio', 'btn btn-lg btn-ghost soon-btn') ?></div>
-    <div class="vit-proof"><span>✅ Billets gratuits : 0 €</span><span>✅ Paiement sécurisé</span><span>✅ Scan hors ligne</span></div>
+    <div class="vit-cta"><a class="btn btn-lg" href="<?= url('/inscription') ?>">Créer ma billetterie gratuitement</a><?= pub_soon('demo-visio', 'Démo en visio', 'btn btn-lg btn-ghost soon-btn') ?></div>
+    <div class="vit-proof"><span>Billets gratuits : 0 €</span><span>Paiement sécurisé</span><span>Scan hors ligne</span></div>
   </div>
   <div class="vit-hero-visual" aria-hidden="true">
-    <div class="vit-phone"><div class="vit-phone-in"><b>✅ Bienvenue !</b><span>LÉA MARTIN</span><small>Pass 3 jours</small></div></div>
+    <div class="vit-phone"><div class="vit-phone-in"><b>Bienvenue !</b><span>LÉA MARTIN</span><small>Pass 3 jours</small></div></div>
     <div class="vit-float one"><small>Ventes du jour</small><b>+42 billets</b></div>
     <div class="vit-float two"><small>Remplissage</small><b>87 %</b></div>
   </div>
@@ -27,11 +27,11 @@
 </section>
 <section class="vit-features">
   <h2>Tout ce qu'il faut, déjà inclus</h2>
-  <div class="mod-grid"><?php foreach ($live as $k => $f): ?><div class="mod-card"><span class="mod-ico"><?= $f['emoji'] ?></span><span class="mod-body"><b><?= e($f['name']) ?></b><span><?= e($f['pitch']) ?></span></span></div><?php endforeach; ?></div>
+  <div class="mod-grid"><?php foreach ($live as $k => $f): ?><div class="mod-card"><span class="mod-ico"><?= feature_icon($f) ?></span><span class="mod-body"><b><?= e($f['name']) ?></b><span><?= e($f['pitch']) ?></span></span></div><?php endforeach; ?></div>
 </section>
 <section class="vit-features soon">
   <h2>Et ça arrive bientôt <span class="soon-tag big">en préparation</span></h2>
-  <div class="mod-grid"><?php foreach ($soon as $k => $f): ?><a class="mod-card is-soon" href="<?= url('/bientot/' . $k) ?>"><span class="mod-ico"><?= $f['emoji'] ?></span><span class="mod-body"><b><?= e($f['name']) ?></b><span><?= e($f['pitch']) ?></span></span><span class="mod-foot"><span class="soon-tag">bientôt</span><span class="muted">En savoir plus →</span></span></a><?php endforeach; ?></div>
+  <div class="mod-grid"><?php foreach ($soon as $k => $f): ?><a class="mod-card is-soon" href="<?= url('/bientot/' . $k) ?>"><span class="mod-ico"><?= feature_icon($f) ?></span><span class="mod-body"><b><?= e($f['name']) ?></b><span><?= e($f['pitch']) ?></span></span><span class="mod-foot"><span class="soon-tag">bientôt</span><span class="muted">En savoir plus →</span></span></a><?php endforeach; ?></div>
 </section>
 <section class="vit-price" id="tarifs">
   <div>
@@ -55,9 +55,9 @@
   <details><summary>Et si je dois annuler ou rembourser ?</summary><p>Tu rembourses en un clic, en entier ou en partie, depuis la fiche de la commande.</p></details>
 </section>
 <section class="vit-end">
-  <h2>Prêt à remplir ta salle ? 🎉</h2>
+  <h2>Prêt à remplir ta salle ?</h2>
   <a class="btn btn-lg" href="<?= url('/inscription') ?>">Créer ma billetterie</a>
-  <div class="soon-row" style="justify-content:center"><?= pub_soon('ressources', '📚 Guides & ressources') ?><?= pub_soon('migration', '🚚 Migrer depuis une autre billetterie') ?></div>
+  <div class="soon-row" style="justify-content:center"><?= pub_soon('ressources', 'Guides & ressources') ?><?= pub_soon('migration', 'Migrer depuis une autre billetterie') ?></div>
 </section>
 <script>
 (function () { var s = document.querySelector('[data-sim]'); if (!s) return; var pct = parseFloat(s.dataset.pct) || 0, fx = parseInt(s.dataset.fixed, 10) || 0;

@@ -24,7 +24,7 @@
       var tier = null; tiers.forEach(function (t) { if (nbPaid >= t.min) tier = t; });
       if (tier && !legacy) net -= Math.round(net * tier.pct / 100);
       var nx = null; tiers.forEach(function (t) { if (!nx && nbPaid < t.min) nx = t; });
-      var tierHint = tier ? '👥 Tarif groupe : −' + tier.pct + ' % appliqué' + (nx ? ' · encore ' + (nx.min - nbPaid) + ' billet' + (nx.min - nbPaid > 1 ? 's' : '') + ' pour −' + nx.pct + ' %' : '') : (nx && nbPaid > 0 ? '👥 Plus que ' + (nx.min - nbPaid) + ' billet' + (nx.min - nbPaid > 1 ? 's' : '') + ' pour −' + nx.pct + ' % sur tout le groupe' : '');
+      var tierHint = tier ? 'Tarif groupe : −' + tier.pct + ' % appliqué' + (nx ? ' · encore ' + (nx.min - nbPaid) + ' billet' + (nx.min - nbPaid > 1 ? 's' : '') + ' pour −' + nx.pct + ' %' : '') : (nx && nbPaid > 0 ? 'Plus que ' + (nx.min - nbPaid) + ' billet' + (nx.min - nbPaid > 1 ? 's' : '') + ' pour −' + nx.pct + ' % sur tout le groupe' : '');
       var hintEl = document.querySelector('p[data-tier-hint]'); if (hintEl) { hintEl.textContent = tierHint; hintEl.hidden = !tierHint; }
       if (!legacy) total += net + (net > 0 ? Math.round(net * pct / 100) + fixed * paid : 0);
       var don = document.getElementById('donation');

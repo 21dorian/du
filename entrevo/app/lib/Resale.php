@@ -14,7 +14,7 @@ final class Resale
         if ($t['status'] !== 'valid' || $t['type'] !== 'ticket') return 'Ce billet ne peut pas être revendu.';
         if ((int)$t['entries'] > 0) return 'Ce billet a déjà servi : impossible de le revendre.';
         if ($t['resale_status'] === 'listed') return 'Ce billet est déjà en vente.';
-        if ((int)$t['price'] <= 0) return 'Les billets gratuits ne se revendent pas 😉';
+        if ((int)$t['price'] <= 0) return 'Les billets gratuits ne se revendent pas';
         if ($o['method'] !== 'online' || !in_array($o['provider'], ['stripe', 'paypal', 'sumup', 'mollie', 'demo'], true)) return 'Seuls les billets achetés en ligne peuvent être revendus.';
         $start = $t['session_id'] ? val('SELECT starts_at FROM sessions WHERE id = ?', [$t['session_id']]) : $ev['starts_at'];
         if (strtotime((string)$start) < time()) return 'L\'événement a commencé, la bourse est fermée.';
@@ -30,7 +30,7 @@ final class Resale
         update('tickets', ['resale_status' => 'listed', 'updated_at' => now()], 'id = ?', [$t['id']]);
         // on prévient les premières personnes de la liste d'attente
         foreach (all("SELECT * FROM waitlist WHERE event_id = ? AND status = 'waiting' AND (session_id IS NULL OR session_id = ?) ORDER BY id LIMIT 5", [$ev['id'], (int)$t['session_id']]) as $w) {
-            try { Mailer::send($w['email'], '🔁 Un billet est dispo en revente : ' . $ev['name'], '<p>Un billet vient d\'être mis en vente sur la bourse officielle. Premier arrivé, premier servi !</p><p><a href="' . e(abs_url('/revente/' . $id)) . '">Voir le billet</a></p>'); }
+            try { Mailer::send($w['email'], 'Un billet est dispo en revente : ' . $ev['name'], '<p>Un billet vient d\'être mis en vente sur la bourse officielle. Premier arrivé, premier servi !</p><p><a href="' . e(abs_url('/revente/' . $id)) . '">Voir le billet</a></p>'); }
             catch (Throwable $e) { log_line('emails', $e->getMessage()); }
         }
         return $id;
@@ -59,8 +59,8 @@ final class Resale
             log_line('revente', 'Remboursement vendeur ' . $seller['ref'] . ' : ' . $e->getMessage());
         }
         try {
-            if (is_email((string)$seller['email'])) Mailer::send((string)$seller['email'], '💸 Ton billet est revendu !', '<p>Ton billet « ' . e($old['rate_name']) . ' » a trouvé preneur sur la bourse officielle.</p>'
-                . '<p>On te rembourse <b>' . e(money($amount)) . '</b> (prix ' . e(money((int)$x['price'])) . ' moins ' . e(money((int)$x['fee'])) . ' de frais de revente) sur ton moyen de paiement d\'origine, sous quelques jours.</p><p>Ton ancien QR code ne marche plus. Bonne continuation 👋</p>');
+            if (is_email((string)$seller['email'])) Mailer::send((string)$seller['email'], 'Ton billet est revendu !', '<p>Ton billet « ' . e($old['rate_name']) . ' » a trouvé preneur sur la bourse officielle.</p>'
+                . '<p>On te rembourse <b>' . e(money($amount)) . '</b> (prix ' . e(money((int)$x['price'])) . ' moins ' . e(money((int)$x['fee'])) . ' de frais de revente) sur ton moyen de paiement d\'origine, sous quelques jours.</p><p>Ton ancien QR code ne marche plus. Bonne continuation</p>');
         } catch (Throwable $e) { log_line('emails', $e->getMessage()); }
     }
 }

@@ -25,7 +25,7 @@ function coming_soon(string $key): string
         if (input('action') === 'unvote') q('DELETE FROM feature_votes WHERE organizer_id = ? AND feature = ?', [$org['id'], $key]);
         else q('INSERT INTO feature_votes (organizer_id, feature, user_id, comment, created_at) VALUES (?, ?, ?, ?, NOW()) ON DUPLICATE KEY UPDATE comment = COALESCE(VALUES(comment), comment)',
             [$org['id'], $key, user()['id'], mb_substr(trim((string)input('comment')), 0, 500) ?: null]);
-        back(['success' => input('action') === 'unvote' ? 'Vote retiré.' : '🙌 C\'est noté ! On te prévient dès que « ' . $f['name'] . ' » arrive.']);
+        back(['success' => input('action') === 'unvote' ? 'Vote retiré.' : 'C\'est noté ! On te prévient dès que « ' . $f['name'] . ' » arrive.']);
     }
     $voted = isset(Features::votes((int)$org['id'])[$key]);
     $count = (int)(Features::counts()[$key] ?? 0);
@@ -102,7 +102,7 @@ function admin_soon(string $key): string
     if (is_post()) {
         $prio = in_array($key, $prio, true) ? array_values(array_diff($prio, [$key])) : array_merge($prio, [$key]);
         set_setting('admin_roadmap', implode(',', $prio));
-        back(['success' => in_array($key, $prio, true) ? '⭐ Ajouté à tes priorités.' : 'Retiré de tes priorités.']);
+        back(['success' => in_array($key, $prio, true) ? 'Ajouté à tes priorités.' : 'Retiré de tes priorités.']);
     }
     return view('layout_back', ['title' => $f['name'], 'area' => 'admin', 'active' => $key,
         'content' => view('admin/soon', ['f' => $f, 'prio' => in_array($key, $prio, true)])]);

@@ -10,15 +10,15 @@ $be = $s['break_even'];
 $edit = $edit ?: ['id' => 0, 'kind' => (string)input('type') === 'recette' ? 'income' : 'expense', 'category' => '', 'label' => '', 'planned' => 0, 'actual' => null, 'paid' => 0, 'supplier' => '', 'note' => ''];
 ?>
 <div class="stat-grid">
-  <div class="stat"><div class="stat-top"><small>💸 Dépenses</small></div><b><?= e(money($s['exp_a'])) ?></b><div class="stat-sub">prévu <?= e(money($s['exp_p'])) ?></div></div>
-  <div class="stat"><div class="stat-top"><small>🎟️ Billetterie (ta part)</small></div><b><?= e(money($tk['net'])) ?></b><div class="stat-sub"><?= $tk['tickets'] ?> billets · <?= e(money($s['avg'])) ?> en moyenne</div></div>
-  <div class="stat"><div class="stat-top"><small>🤝 Autres recettes</small></div><b><?= e(money($s['inc_a'])) ?></b><div class="stat-sub">prévu <?= e(money($s['inc_p'])) ?></div></div>
-  <div class="stat <?= $res >= 0 ? 'good' : 'bad' ?>"><div class="stat-top"><small><?= $res >= 0 ? '🎉 Résultat' : '⚠️ Résultat' ?></small></div><b class="<?= $res >= 0 ? 'pos' : 'neg' ?>"><?= $res >= 0 ? '+' : '' ?><?= e(money($res)) ?></b><div class="stat-sub">à ce jour, billetterie comprise</div></div>
+  <div class="stat"><div class="stat-top"><small>Dépenses</small></div><b><?= e(money($s['exp_a'])) ?></b><div class="stat-sub">prévu <?= e(money($s['exp_p'])) ?></div></div>
+  <div class="stat"><div class="stat-top"><small>Billetterie (ta part)</small></div><b><?= e(money($tk['net'])) ?></b><div class="stat-sub"><?= $tk['tickets'] ?> billets · <?= e(money($s['avg'])) ?> en moyenne</div></div>
+  <div class="stat"><div class="stat-top"><small>Autres recettes</small></div><b><?= e(money($s['inc_a'])) ?></b><div class="stat-sub">prévu <?= e(money($s['inc_p'])) ?></div></div>
+  <div class="stat <?= $res >= 0 ? 'good' : 'bad' ?>"><div class="stat-top"><small><?= $res >= 0 ? 'Résultat' : 'Résultat' ?></small></div><b class="<?= $res >= 0 ? 'pos' : 'neg' ?>"><?= $res >= 0 ? '+' : '' ?><?= e(money($res)) ?></b><div class="stat-sub">à ce jour, billetterie comprise</div></div>
 </div>
 
 <div class="split-3">
   <div class="card">
-    <div class="card-head"><h2>🎯 Seuil de rentabilité</h2><small class="muted">Combien de billets pour couvrir les dépenses ?</small></div>
+    <div class="card-head"><h2>Seuil de rentabilité</h2><small class="muted">Combien de billets pour couvrir les dépenses ?</small></div>
     <?php if ($be === null): ?><p class="muted">Ajoute un tarif payant ou des ventes pour calculer le seuil.</p>
     <?php elseif (!$s['exp_a']): ?><p class="muted">Ajoute tes dépenses pour calculer le seuil.</p>
     <?php else: $max = max($be, $tk['tickets'], $cap ?: 0, 1); ?>
@@ -28,12 +28,12 @@ $edit = $edit ?: ['id' => 0, 'kind' => (string)input('type') === 'recette' ? 'in
         <span class="be-mark" style="left:<?= min(100, round($be / $max * 100)) ?>%"><em>Seuil</em></span>
         <?php if ($cap): ?><span class="be-mark cap" style="left:<?= min(100, round($cap / $max * 100)) ?>%"><em>Jauge <?= $cap ?></em></span><?php endif; ?>
       </div>
-      <p class="mb0"><?= $tk['tickets'] >= $be ? '🎉 Seuil dépassé : chaque billet vendu maintenant, c\'est du bénéfice.' : '🚀 Encore <b>' . ($be - $tk['tickets']) . ' billets</b> à vendre pour être à l\'équilibre.' ?>
-        <?= $cap && $be > $cap ? '<br><span class="neg">⚠️ Le seuil dépasse la jauge : il faut réduire les dépenses, trouver des recettes ou augmenter les prix.</span>' : '' ?></p>
+      <p class="mb0"><?= $tk['tickets'] >= $be ? 'Seuil dépassé : chaque billet vendu maintenant, c\'est du bénéfice.' : 'Encore <b>' . ($be - $tk['tickets']) . ' billets</b> à vendre pour être à l\'équilibre.' ?>
+        <?= $cap && $be > $cap ? '<br><span class="neg">Le seuil dépasse la jauge : il faut réduire les dépenses, trouver des recettes ou augmenter les prix.</span>' : '' ?></p>
     <?php endif; ?>
   </div>
   <div class="card">
-    <div class="card-head"><h2>📊 Dépenses par poste</h2></div>
+    <div class="card-head"><h2>Dépenses par poste</h2></div>
     <?php $mx = max(1, max($byCat ?: [1])); foreach ($byCat as $c => $v): ?>
       <div class="hbar"><span class="hbar-l"><?= e($c) ?></span><span class="hbar-b"><i style="width:<?= max(2, round($v / $mx * 100)) ?>%;background:<?= Viz::SERIES ?>"></i></span><span class="hbar-v"><?= e(money($v)) ?></span></div>
     <?php endforeach; ?>
@@ -43,7 +43,7 @@ $edit = $edit ?: ['id' => 0, 'kind' => (string)input('type') === 'recette' ? 'in
 
 <div class="split-3 mt">
   <div>
-    <?php foreach (['expense' => '💸 Dépenses', 'income' => '🤝 Recettes (hors billetterie)'] as $kind => $title): $ls = array_filter($s['lines'], fn($l) => $l['kind'] === $kind); ?>
+    <?php foreach (['expense' => 'Dépenses', 'income' => 'Recettes (hors billetterie)'] as $kind => $title): $ls = array_filter($s['lines'], fn($l) => $l['kind'] === $kind); ?>
     <div class="card table-card">
       <div class="table-head-row"><h2 class="mb0"><?= $title ?></h2><span class="muted"><?= count($ls) ?> ligne(s)</span></div>
       <div class="table-wrap"><table class="table">
@@ -52,19 +52,19 @@ $edit = $edit ?: ['id' => 0, 'kind' => (string)input('type') === 'recette' ? 'in
           <tr><td><small><?= e($l['category']) ?></small></td><td><b><?= e($l['label']) ?></b><?= $l['supplier'] ? '<br><small class="muted">' . e($l['supplier']) . '</small>' : '' ?></td>
             <td class="num"><?= e(money((int)$l['planned'])) ?></td><td class="num"><?= $l['actual'] !== null ? e(money((int)$l['actual'])) : '<span class="muted">—</span>' ?></td>
             <td class="num"><?php if ($gap): $bad = $kind === 'expense' ? $gap > 0 : $gap < 0; ?><span class="<?= $bad ? 'neg' : 'pos' ?>"><?= $gap > 0 ? '+' : '' ?><?= e(money($gap)) ?></span><?php else: ?><span class="muted">—</span><?php endif; ?></td>
-            <td><?= $l['paid'] ? '✅' : '<span class="muted">—</span>' ?></td>
-            <td class="right nowrap"><a class="btn btn-sm btn-light" href="<?= url($base, ['modifier' => $l['id']]) ?>#ligne">✏️</a>
-              <form method="post" class="inline-form"><?= csrf_field() ?><input type="hidden" name="line_id" value="<?= (int)$l['id'] ?>"><button class="btn btn-sm btn-light" name="action" value="delete" data-confirm="Supprimer cette ligne ?">🗑️</button></form></td></tr>
+            <td><?= $l['paid'] ? '' : '<span class="muted">—</span>' ?></td>
+            <td class="right nowrap"><a class="btn btn-sm btn-light" href="<?= url($base, ['modifier' => $l['id']]) ?>#ligne"></a>
+              <form method="post" class="inline-form"><?= csrf_field() ?><input type="hidden" name="line_id" value="<?= (int)$l['id'] ?>"><button class="btn btn-sm btn-light" name="action" value="delete" data-confirm="Supprimer cette ligne ?"></button></form></td></tr>
         <?php endforeach; ?>
         <?php if ($kind === 'income'): ?><tr class="row-auto"><td><small>Billetterie</small></td><td><b>Ventes de billets</b><br><small class="muted">automatique, part qui te revient</small></td><td class="num">—</td><td class="num"><?= e(money($tk['net'])) ?></td><td></td><td></td><td></td></tr><?php endif; ?>
         <?php if (!$ls && $kind === 'expense'): ?><tr><td colspan="7" class="empty">Aucune dépense. <form method="post" class="inline-form"><?= csrf_field() ?><button class="link-btn" name="action" value="template">Ajouter les postes de base</button></form> ou saisis-les à droite.</td></tr><?php endif; ?>
       </tbody></table></div>
     </div>
     <?php endforeach; ?>
-    <p><a class="btn btn-sm btn-ghost" href="<?= url($base, ['csv' => 1]) ?>">⬇️ Exporter le budget (CSV)</a></p>
+    <p><a class="btn btn-sm btn-ghost" href="<?= url($base, ['csv' => 1]) ?>">Exporter le budget (CSV)</a></p>
   </div>
   <div class="card" id="ligne">
-    <h2><?= $edit['id'] ? '✏️ Modifier la ligne' : '➕ Nouvelle ligne' ?></h2>
+    <h2><?= $edit['id'] ? 'Modifier la ligne' : 'Nouvelle ligne' ?></h2>
     <form method="post" class="stack"><?= csrf_field() ?><input type="hidden" name="action" value="save"><input type="hidden" name="line_id" value="<?= (int)$edit['id'] ?>">
       <div class="seg-mini" role="radiogroup" style="align-self:flex-start">
         <label class="seg-radio"><input type="radio" name="kind" value="expense" <?= $edit['kind'] !== 'income' ? 'checked' : '' ?> data-budget-kind> Dépense</label>

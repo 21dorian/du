@@ -10,4 +10,4 @@
   <?php if (!$list): ?><tr><td colspan="9" class="empty">Aucune commande.</td></tr><?php endif; ?>
   </tbody>
 </table></div></div>
-<div class="soon-row mt"><?= soon_btn('litiges', '⚖️ Litiges & impayés', 'admin') ?><?= soon_btn('fraude', '🛡️ Commandes suspectes', 'admin') ?><?= soon_btn('stats-plateforme', '📊 Export des ventes', 'admin') ?></div>
+<div class="soon-row mt"><?= soon_btn('litiges', 'Litiges & impayés', 'admin') ?><?= soon_btn('fraude', 'Commandes suspectes', 'admin') ?><?= soon_btn('stats-plateforme', 'Export des ventes', 'admin') ?></div>

@@ -73,17 +73,17 @@ final class Insights
         foreach (all("SELECT o.id, o.ref, o.first_name, o.last_name, o.total, o.method, o.status, o.paid_at at, o.cancelled_at, e.name ev,
                       (SELECT COUNT(*) FROM tickets t WHERE t.order_id = o.id) n FROM orders o JOIN events e ON e.id = o.event_id
                       WHERE o.organizer_id = ? AND o.status IN ('paid','refunded','cancelled') AND (o.channel IS NULL OR o.channel <> 'systeme')$ev ORDER BY o.id DESC LIMIT $limit", [$orgId]) as $o) {
-            $icon = ['guichet' => '💵', 'invitation' => '🎁', 'partner' => '🤝'][$o['method']] ?? '🎟️';
-            $items[] = ['at' => $o['status'] === 'paid' ? $o['at'] : ($o['cancelled_at'] ?: $o['at']), 'icon' => $o['status'] === 'paid' ? $icon : '↩️',
+            $icon = ['guichet' => '', 'invitation' => '', 'partner' => ''][$o['method']] ?? '';
+            $items[] = ['at' => $o['status'] === 'paid' ? $o['at'] : ($o['cancelled_at'] ?: $o['at']), 'icon' => $o['status'] === 'paid' ? $icon : '',
                 'title' => trim($o['first_name'] . ' ' . $o['last_name']) . ($o['status'] === 'paid' ? ' · ' . $o['n'] . ' billet' . ($o['n'] > 1 ? 's' : '') : ' · ' . ($o['status'] === 'refunded' ? 'remboursé' : 'annulé')),
                 'sub' => $o['ev'], 'amount' => $o['status'] === 'paid' ? (int)$o['total'] : -(int)$o['total'], 'url' => url('/pro/commandes/' . $o['id'])];
         }
         $evw = $eventId ? ' AND w.event_id = ' . (int)$eventId : '';
         foreach (all("SELECT w.*, e.name ev FROM waitlist w JOIN events e ON e.id = w.event_id WHERE e.organizer_id = ?$evw ORDER BY w.id DESC LIMIT 5", [$orgId]) as $w) {
-            $items[] = ['at' => $w['created_at'], 'icon' => '⏳', 'title' => ($w['first_name'] ?: $w['email']) . ' · liste d\'attente', 'sub' => $w['ev'], 'amount' => null, 'url' => url('/pro/evenements/' . $w['event_id'] . '/attente')];
+            $items[] = ['at' => $w['created_at'], 'icon' => '', 'title' => ($w['first_name'] ?: $w['email']) . ' · liste d\'attente', 'sub' => $w['ev'], 'amount' => null, 'url' => url('/pro/evenements/' . $w['event_id'] . '/attente')];
         }
         foreach (all("SELECT x.*, e.name ev FROM resales x JOIN events e ON e.id = x.event_id WHERE e.organizer_id = ?" . ($eventId ? ' AND x.event_id = ' . (int)$eventId : '') . ' ORDER BY x.id DESC LIMIT 5', [$orgId]) as $x) {
-            $items[] = ['at' => $x['sold_at'] ?: $x['created_at'], 'icon' => '🔁', 'title' => $x['status'] === 'sold' ? 'Billet revendu' : 'Billet mis en revente', 'sub' => $x['ev'], 'amount' => null, 'url' => url('/pro/evenements/' . $x['event_id'] . '/attente')];
+            $items[] = ['at' => $x['sold_at'] ?: $x['created_at'], 'icon' => '', 'title' => $x['status'] === 'sold' ? 'Billet revendu' : 'Billet mis en revente', 'sub' => $x['ev'], 'amount' => null, 'url' => url('/pro/evenements/' . $x['event_id'] . '/attente')];
         }
         usort($items, fn($a, $b) => strcmp((string)$b['at'], (string)$a['at']));
         return array_slice($items, 0, $limit);
@@ -96,28 +96,28 @@ final class Insights
         if ($org) {
             $id = (int)$org['id'];
             foreach (all("SELECT o.id, o.ref, o.first_name, o.last_name FROM orders o WHERE o.organizer_id = ? AND o.status = 'paid' AND o.refund_requested_at IS NOT NULL ORDER BY o.refund_requested_at DESC LIMIT 5", [$id]) as $o)
-                $n[] = ['level' => 'warn', 'title' => '💸 Demande de remboursement ' . $o['ref'], 'sub' => trim($o['first_name'] . ' ' . $o['last_name']), 'url' => url('/pro/commandes/' . $o['id'])];
+                $n[] = ['level' => 'warn', 'title' => 'Demande de remboursement ' . $o['ref'], 'sub' => trim($o['first_name'] . ' ' . $o['last_name']), 'url' => url('/pro/commandes/' . $o['id'])];
             foreach (all("SELECT e.id, e.name, e.capacity, (SELECT COUNT(*) FROM tickets t WHERE t.event_id = e.id AND t.status = 'valid' AND t.type IN ('ticket','invitation')) sold
                           FROM events e WHERE e.organizer_id = ? AND e.status = 'published' AND e.capacity > 0 AND COALESCE(e.ends_at, e.starts_at) > NOW()", [$id]) as $e) {
                 $p = $e['sold'] / $e['capacity'] * 100;
-                if ($p >= 90) $n[] = ['level' => $p >= 100 ? 'bad' : 'warn', 'title' => ($p >= 100 ? '🫠 Complet : ' : '🔥 Presque complet : ') . $e['name'], 'sub' => $e['sold'] . ' / ' . $e['capacity'] . ' billets', 'url' => url('/pro/evenements/' . $e['id'])];
+                if ($p >= 90) $n[] = ['level' => $p >= 100 ? 'bad' : 'warn', 'title' => ($p >= 100 ? 'Complet : ' : 'Presque complet : ') . $e['name'], 'sub' => $e['sold'] . ' / ' . $e['capacity'] . ' billets', 'url' => url('/pro/evenements/' . $e['id'])];
             }
             foreach (all("SELECT p.name, p.stock, p.event_id, (SELECT COALESCE(SUM(i.qty),0) FROM order_items i JOIN orders o ON o.id = i.order_id WHERE i.product_id = p.id AND o.status = 'paid') sold
                           FROM products p JOIN events e ON e.id = p.event_id WHERE e.organizer_id = ? AND p.active = 1 AND p.stock > 0", [$id]) as $p)
-                if ($p['stock'] - $p['sold'] <= max(3, $p['stock'] * 0.1)) $n[] = ['level' => 'warn', 'title' => '📦 Stock bas : ' . $p['name'], 'sub' => 'reste ' . max(0, $p['stock'] - $p['sold']), 'url' => url('/pro/evenements/' . $p['event_id'] . '/options')];
+                if ($p['stock'] - $p['sold'] <= max(3, $p['stock'] * 0.1)) $n[] = ['level' => 'warn', 'title' => 'Stock bas : ' . $p['name'], 'sub' => 'reste ' . max(0, $p['stock'] - $p['sold']), 'url' => url('/pro/evenements/' . $p['event_id'] . '/options')];
             $w = (int)val("SELECT COUNT(*) FROM waitlist w JOIN events e ON e.id = w.event_id WHERE e.organizer_id = ? AND w.status = 'waiting'", [$id]);
-            if ($w) $n[] = ['level' => '', 'title' => '⏳ ' . $w . ' personne(s) en liste d\'attente', 'sub' => 'Augmente la jauge ou libère des places', 'url' => url('/pro/evenements')];
+            if ($w) $n[] = ['level' => '', 'title' => '' . $w . ' personne(s) en liste d\'attente', 'sub' => 'Augmente la jauge ou libère des places', 'url' => url('/pro/evenements')];
             foreach (all("SELECT id, name FROM events WHERE organizer_id = ? AND status = 'draft' AND starts_at BETWEEN NOW() AND NOW() + INTERVAL 30 DAY AND publish_at IS NULL", [$id]) as $e)
-                $n[] = ['level' => '', 'title' => '👀 Pas encore publié : ' . $e['name'], 'sub' => 'L\'événement approche', 'url' => url('/pro/evenements/' . $e['id'])];
+                $n[] = ['level' => '', 'title' => 'Pas encore publié : ' . $e['name'], 'sub' => 'L\'événement approche', 'url' => url('/pro/evenements/' . $e['id'])];
             if (!$org['iban'] && val("SELECT id FROM orders WHERE organizer_id = ? AND status = 'paid' AND method = 'online' AND total > 0 LIMIT 1", [$id]))
-                $n[] = ['level' => 'warn', 'title' => '🏦 Ajoute ton IBAN', 'sub' => 'Pour recevoir tes reversements', 'url' => url('/pro/organisation')];
+                $n[] = ['level' => 'warn', 'title' => 'Ajoute ton IBAN', 'sub' => 'Pour recevoir tes reversements', 'url' => url('/pro/organisation')];
         }
         if ($super) {
             foreach (all("SELECT x.id, x.event_id, x.refund_info FROM resales x WHERE x.refund_status = 'failed' LIMIT 5") as $x)
-                $n[] = ['level' => 'bad', 'title' => '⚠️ Remboursement vendeur échoué (revente)', 'sub' => mb_strimwidth((string)$x['refund_info'], 0, 80, '…'), 'url' => url('/admin/commandes')];
+                $n[] = ['level' => 'bad', 'title' => 'Remboursement vendeur échoué (revente)', 'sub' => mb_strimwidth((string)$x['refund_info'], 0, 80, '…'), 'url' => url('/admin/commandes')];
             $new = (int)val('SELECT COUNT(*) FROM organizers WHERE created_at > NOW() - INTERVAL 7 DAY');
-            if ($new) $n[] = ['level' => '', 'title' => '👋 ' . $new . ' nouvel(s) organisateur(s) cette semaine', 'sub' => '', 'url' => url('/admin/organisateurs')];
-            if (array_keys(Payments::available()) === ['demo'] || !Payments::available()) $n[] = ['level' => 'warn', 'title' => '🧪 Paiement de démo seulement', 'sub' => 'Branche un vrai prestataire', 'url' => url('/admin/reglages?tab=payments')];
+            if ($new) $n[] = ['level' => '', 'title' => '' . $new . ' nouvel(s) organisateur(s) cette semaine', 'sub' => '', 'url' => url('/admin/organisateurs')];
+            if (array_keys(Payments::available()) === ['demo'] || !Payments::available()) $n[] = ['level' => 'warn', 'title' => 'Paiement de démo seulement', 'sub' => 'Branche un vrai prestataire', 'url' => url('/admin/reglages?tab=payments')];
         }
         return $n;
     }

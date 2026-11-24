@@ -47,24 +47,24 @@ function organizer_detail(string $id): string
                 'fee_fixed' => $fixed === '' ? null : parse_money($fixed),
                 'fee_mode' => input('fee_mode') === 'organizer' ? 'organizer' : 'buyer',
             ], 'id = ?', [$org['id']]);
-            back(['success' => '✅ Commission mise à jour (s\'applique aux prochaines commandes).']);
+            back(['success' => 'Commission mise à jour (s\'applique aux prochaines commandes).']);
         }
         if ($a === 'approve') {
             update('organizers', ['status' => 'active', 'approved_at' => now()], 'id = ?', [$org['id']]);
-            try { Mailer::send((string)$org['email'], '✅ Ton compte ' . setting('platform_name') . ' est validé !', '<p>Bonne nouvelle : ton compte organisateur « ' . e($org['name']) . ' » est validé 🎉</p><p>Tu peux maintenant publier tes événements et vendre tes billets.</p><p><a href="' . e(abs_url('/pro')) . '">Ouvrir mon espace</a></p>'); } catch (Throwable $e) { log_line('emails', $e->getMessage()); }
-            back(['success' => '✅ Organisateur validé, il a été prévenu par e-mail.']);
+            try { Mailer::send((string)$org['email'], 'Ton compte ' . setting('platform_name') . ' est validé !', '<p>Bonne nouvelle : ton compte organisateur « ' . e($org['name']) . ' » est validé</p><p>Tu peux maintenant publier tes événements et vendre tes billets.</p><p><a href="' . e(abs_url('/pro')) . '">Ouvrir mon espace</a></p>'); } catch (Throwable $e) { log_line('emails', $e->getMessage()); }
+            back(['success' => 'Organisateur validé, il a été prévenu par e-mail.']);
         }
-        if ($a === 'note') { update('organizers', ['admin_note' => trim((string)input('admin_note')) ?: null], 'id = ?', [$org['id']]); back(['success' => '📝 Note enregistrée.']); }
+        if ($a === 'note') { update('organizers', ['admin_note' => trim((string)input('admin_note')) ?: null], 'id = ?', [$org['id']]); back(['success' => 'Note enregistrée.']); }
         if ($a === 'status') {
             update('organizers', ['status' => $org['status'] === 'active' ? 'suspended' : 'active'], 'id = ?', [$org['id']]);
-            back(['success' => $org['status'] === 'active' ? '⛔ Organisateur suspendu : ses pages sont hors ligne.' : '✅ Organisateur réactivé.']);
+            back(['success' => $org['status'] === 'active' ? 'Organisateur suspendu : ses pages sont hors ligne.' : 'Organisateur réactivé.']);
         }
         if ($a === 'payout') {
             $amount = parse_money(input('amount'));
             if ($amount <= 0) back(['error' => 'Montant invalide.']);
             insert('payouts', ['organizer_id' => $org['id'], 'amount' => $amount, 'reference' => trim((string)input('reference')) ?: null,
                 'note' => trim((string)input('note')) ?: null, 'created_by' => $u['id'], 'created_at' => now()]);
-            back(['success' => '💸 Reversement de ' . money($amount) . ' enregistré.']);
+            back(['success' => 'Reversement de ' . money($amount) . ' enregistré.']);
         }
         if ($a === 'delete_payout') { q('DELETE FROM payouts WHERE id = ? AND organizer_id = ?', [(int)input('payout_id'), $org['id']]); back(['success' => 'Reversement supprimé.']); }
         back();
@@ -76,7 +76,7 @@ function organizer_detail(string $id): string
     [$pct, $fixed] = Tickets::feeRates($org);
     return admin_page($org['name'], 'organizer_detail', compact('org', 'balance', 'payouts', 'events', 'users', 'pct', 'fixed'), 'orgs',
         ['crumbs' => [['Organisateurs', '/admin/organisateurs']],
-         'actions' => '<form method="post" action="' . url('/admin/organisateurs/' . $org['id'] . '/consulter') . '">' . csrf_field() . '<button class="btn">👀 Entrer dans son espace</button></form>']);
+         'actions' => '<form method="post" action="' . url('/admin/organisateurs/' . $org['id'] . '/consulter') . '">' . csrf_field() . '<button class="btn">Entrer dans son espace</button></form>']);
 }
 
 function organizer_impersonate(string $id): never
@@ -84,7 +84,7 @@ function organizer_impersonate(string $id): never
     require_super();
     if (!val('SELECT id FROM organizers WHERE id = ?', [(int)$id])) abort(404);
     $_SESSION['as_org'] = (int)$id;
-    redirect('/pro', ['info' => '👀 Tu consultes l\'espace de cet organisateur. Bouton « Retour super-admin » en bas à gauche.']);
+    redirect('/pro', ['info' => 'Tu consultes l\'espace de cet organisateur. Bouton « Retour super-admin » en bas à gauche.']);
 }
 
 function stop_impersonate(): never
@@ -117,7 +117,7 @@ function users(): string
             if (val('SELECT id FROM users WHERE email = ?', [$email])) back(['error' => 'Cet e-mail est déjà utilisé.']);
             insert('users', ['organizer_id' => null, 'email' => $email, 'name' => trim((string)input('name')), 'password_hash' => password_hash((string)input('password'), PASSWORD_DEFAULT),
                 'role' => 'superadmin', 'active' => 1, 'created_at' => now()]);
-            back(['success' => '✅ Super-admin ajouté.']);
+            back(['success' => 'Super-admin ajouté.']);
         }
         $t = one('SELECT * FROM users WHERE id = ?', [(int)input('user_id')]);
         if ($t && $t['id'] != $me['id']) {
@@ -125,10 +125,10 @@ function users(): string
             if ($a === 'password') {
                 $pass = strtolower(random_code(10));
                 update('users', ['password_hash' => password_hash($pass, PASSWORD_DEFAULT)], 'id = ?', [$t['id']]);
-                back(['success' => '🔑 Nouveau mot de passe pour ' . $t['email'] . ' : ' . $pass]);
+                back(['success' => 'Nouveau mot de passe pour ' . $t['email'] . ' : ' . $pass]);
             }
         }
-        back(['success' => '✅ C\'est fait.']);
+        back(['success' => 'C\'est fait.']);
     }
     $q = trim((string)input('q'));
     $sql = 'SELECT u.*, o.name org_name FROM users u LEFT JOIN organizers o ON o.id = u.organizer_id';
@@ -163,10 +163,10 @@ function settings(): string
         }
         foreach ($checks as $c) set_setting($c, checked($c));
         if (input('test_email')) {
-            try { Mailer::send((string)input('test_email'), '📬 Test ' . setting('platform_name'), '<p>Si tu lis ça, les e-mails marchent. 🎉</p>'); redirect('/admin/reglages?tab=emails', ['success' => '📬 E-mail de test envoyé à ' . input('test_email') . '.']); }
+            try { Mailer::send((string)input('test_email'), 'Test ' . setting('platform_name'), '<p>Si tu lis ça, les e-mails marchent.</p>'); redirect('/admin/reglages?tab=emails', ['success' => 'E-mail de test envoyé à ' . input('test_email') . '.']); }
             catch (Throwable $e) { redirect('/admin/reglages?tab=emails', ['error' => 'Échec de l\'envoi : ' . $e->getMessage()]); }
         }
-        redirect('/admin/reglages?tab=' . urlencode($tab), ['success' => '✅ Réglages enregistrés.']);
+        redirect('/admin/reglages?tab=' . urlencode($tab), ['success' => 'Réglages enregistrés.']);
     }
     return admin_page('Réglages', 'settings', ['tab' => $tab], 'settings');
 }
@@ -189,7 +189,7 @@ function updates(): string
                 redirect('/admin/mises-a-jour');
             } catch (Throwable $e) {
                 log_line('mises-a-jour', 'Échec : ' . $e->getMessage());
-                redirect('/admin/mises-a-jour', ['error' => '😬 ' . $e->getMessage()]);
+                redirect('/admin/mises-a-jour', ['error' => '' . $e->getMessage()]);
             }
         }
         if ($a === 'rollback') {
@@ -197,7 +197,7 @@ function updates(): string
                 $meta = Updater::rollback((string)input('backup'));
                 insert('update_log', ['version' => (string)($meta['version_avant'] ?? '?'), 'previous' => (string)($meta['version_apres'] ?? '?'), 'action' => 'rollback',
                     'notes' => 'Retour arrière', 'backup' => (string)input('backup'), 'user_id' => $u['id'], 'created_at' => now()]);
-                redirect('/admin/mises-a-jour', ['success' => '↩️ Retour à la version ' . ($meta['version_avant'] ?? '?') . ' effectué.']);
+                redirect('/admin/mises-a-jour', ['success' => 'Retour à la version ' . ($meta['version_avant'] ?? '?') . ' effectué.']);
             } catch (Throwable $e) { redirect('/admin/mises-a-jour', ['error' => $e->getMessage()]); }
         }
         redirect('/admin/mises-a-jour');

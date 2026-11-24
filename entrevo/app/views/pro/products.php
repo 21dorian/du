@@ -11,7 +11,7 @@
     <div class="form-actions"><button class="btn"><?= $p['id'] ? 'Enregistrer' : 'Ajouter' ?></button><?php if ($p['id']): ?><button class="btn btn-ghost" name="action" value="delete" data-confirm="Supprimer cette option ?">Supprimer</button><?php endif; ?></div>
   </form>
 <?php return ob_get_clean(); }; ?>
-<p class="muted">✨ Ventes additionnelles proposées avec les billets : merch, parking, repas, consigne, navette… Elles apparaissent dans la commande et l'export participants.</p>
+<p class="muted">Ventes additionnelles proposées avec les billets : merch, parking, repas, consigne, navette… Elles apparaissent dans la commande et l'export participants.</p>
 <?php foreach ($products as $p): ?>
   <details class="box"><summary><span><?= e($p['name']) ?> <?= $p['active'] ? '' : badge('draft') ?></span><span class="muted" style="font-weight:500"><?= e(money((int)$p['price'])) ?> · <?= (int)$p['sold'] ?><?= $p['stock'] ? ' / ' . (int)$p['stock'] : '' ?> vendus · <?= e(money((int)$p['revenue'])) ?></span></summary>
     <?php $byVar = $p['variants'] ? all("SELECT COALESCE(i.variant, '—') v, SUM(i.qty) n FROM order_items i JOIN orders o ON o.id = i.order_id WHERE i.product_id = ? AND o.status = 'paid' GROUP BY i.variant ORDER BY n DESC", [$p['id']]) : []; if ($byVar): ?>

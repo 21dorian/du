@@ -6,7 +6,7 @@
   var blocks = []; try { blocks = JSON.parse(form.dataset.blocks || '[]'); } catch (e) { blocks = []; }
   var events = []; try { events = JSON.parse(form.dataset.events || '[]'); } catch (e) { events = []; }
   var list = document.getElementById('blocks'), input = document.getElementById('blocks-input'), frame = document.getElementById('pv');
-  var NAMES = { heading: '🔠 Titre', text: '📝 Texte', event: '🎟️ Événement', button: '🔘 Bouton', image: '🖼️ Image', divider: '➖ Séparateur' };
+  var NAMES = { heading: 'Titre', text: 'Texte', event: 'Événement', button: 'Bouton', image: 'Image', divider: 'Séparateur' };
   var DEFAULTS = { heading: { text: 'Un titre qui donne envie' }, text: { text: '' }, event: { event_id: events[0] ? events[0].id : 0, label: '' }, button: { label: 'J’y vais', url: '' }, image: { url: '' }, divider: {} };
 
   function el(tag, props, kids) {
@@ -41,7 +41,7 @@
         events.forEach(function (e) { var o = el('option', { value: e.id, text: e.name + ' · ' + e.date }); sel.appendChild(o); });
         sel.value = b.event_id; sel.onchange = function () { b.event_id = parseInt(sel.value, 10); changed(); };
         body.appendChild(field('Événement', sel));
-        body.appendChild(field('Texte du bouton', bind(el('input', { maxlength: 80, placeholder: 'Je prends ma place 🎟️' }), b, 'label')));
+        body.appendChild(field('Texte du bouton', bind(el('input', { maxlength: 80, placeholder: 'Je prends ma place' }), b, 'label')));
         if (!events.length) body.appendChild(el('p', { class: 'muted', text: 'Crée d’abord un événement.' }));
       }
       var card = el('div', { class: 'blk', draggable: 'true' }, [head, body]);
@@ -61,7 +61,7 @@
       body.addEventListener('mouseup', function () { card.draggable = true; });
       list.appendChild(card);
     });
-    if (!blocks.length) list.appendChild(el('p', { class: 'muted center', text: 'Ton e-mail est vide. Ajoute un premier bloc 👇' }));
+    if (!blocks.length) list.appendChild(el('p', { class: 'muted center', text: 'Ton e-mail est vide. Ajoute un premier bloc' }));
     input.value = JSON.stringify(blocks);
   }
 

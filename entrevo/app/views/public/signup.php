@@ -1,5 +1,5 @@
 <div class="auth-box wide">
-  <div class="center mb"><h1>Lance ta billetterie 🚀</h1><p class="muted">Zéro abonnement. On se paie seulement quand tu vends : <b><?= e(rtrim(rtrim(number_format($pct, 2, ',', ''), '0'), ',')) ?> %<?= $fixed ? ' + ' . e(money($fixed)) : '' ?></b> par billet payant. Les billets gratuits ? Gratuits. Logique. 🤝</p></div>
+  <div class="center mb"><h1>Lance ta billetterie</h1><p class="muted">Zéro abonnement. On se paie seulement quand tu vends : <b><?= e(rtrim(rtrim(number_format($pct, 2, ',', ''), '0'), ',')) ?> %<?= $fixed ? ' + ' . e(money($fixed)) : '' ?></b> par billet payant. Les billets gratuits ? Gratuits. Logique.</p></div>
   <form class="card" method="post"><?= csrf_field() ?>
     <?php if ($errors): ?><div class="flash error"><?= implode('<br>', array_map('e', $errors)) ?></div><?php endif; ?>
     <div class="field"><label for="org_name">Ton organisation</label><input id="org_name" name="org_name" value="<?= e(input('org_name')) ?>" required placeholder="Asso, salle, festival, boîte…"><small>C'est ce nom qui s'affiche sur tes pages et tes billets.</small></div>
@@ -11,7 +11,7 @@
     </div>
     <label class="check"><input type="checkbox" name="terms" value="1" required> J'accepte les conditions d'utilisation<?= setting('cgv') ? ' (<a href="' . url('/cgv') . '" target="_blank">lire</a>)' : '' ?>.</label>
     <div style="height:16px"></div>
-    <button class="btn btn-lg btn-block">Créer mon espace 🚀</button>
+    <button class="btn btn-lg btn-block">Créer mon espace</button>
   </form>
   <p class="center muted mt">Déjà dans la place ? <a href="<?= url('/connexion') ?>">Connecte-toi</a></p>
 </div>

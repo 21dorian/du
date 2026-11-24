@@ -9,7 +9,7 @@ function pub(string $view, array $vars, string $title, array $extra = []): strin
 function public_event(string $slug, bool $gates = true): array
 {
     $ev = one('SELECT * FROM events WHERE slug = ?', [$slug]);
-    if (!$ev) abort(404, 'Cet événement n\'existe pas. Ou plus. Ou pas encore. 🤔');
+    if (!$ev) abort(404, 'Cet événement n\'existe pas. Ou plus. Ou pas encore.');
     $org = one('SELECT * FROM organizers WHERE id = ?', [$ev['organizer_id']]);
     $u = user();
     $isOwner = $u && ($u['role'] === 'superadmin' || (int)$u['organizer_id'] === (int)$ev['organizer_id']);
@@ -74,10 +74,10 @@ function home_filters(): array
     $wkEnd = date('Y-m-d 23:59:59', strtotime($w === 7 ? 'today' : 'sunday this week'));
     $weekEnd = date('Y-m-d 23:59:59', strtotime('+7 days'));
     return [
-        'ce-soir' => ['label' => '🌙 Ce soir'] + $overlap($now, $tonightEnd),
-        'week-end' => ['label' => '🎉 Ce week-end'] + $overlap($wkStart, $wkEnd),
-        'semaine' => ['label' => '📆 Cette semaine'] + $overlap($now, $weekEnd),
-        'gratuit' => ['label' => '🆓 Gratuit', 'sql' => "EXISTS (SELECT 1 FROM rates r WHERE r.event_id = e.id AND r.active = 1 AND r.hidden = 0) AND NOT EXISTS (SELECT 1 FROM rates r WHERE r.event_id = e.id AND r.active = 1 AND r.hidden = 0 AND r.price > 0)", 'p' => []],
+        'ce-soir' => ['label' => 'Ce soir'] + $overlap($now, $tonightEnd),
+        'week-end' => ['label' => 'Ce week-end'] + $overlap($wkStart, $wkEnd),
+        'semaine' => ['label' => 'Cette semaine'] + $overlap($now, $weekEnd),
+        'gratuit' => ['label' => 'Gratuit', 'sql' => "EXISTS (SELECT 1 FROM rates r WHERE r.event_id = e.id AND r.active = 1 AND r.hidden = 0) AND NOT EXISTS (SELECT 1 FROM rates r WHERE r.event_id = e.id AND r.active = 1 AND r.hidden = 0 AND r.price > 0)", 'p' => []],
     ];
 }
 
@@ -144,7 +144,7 @@ function event_page(string $slug): string
     foreach ($products as &$pr) $pr['left'] = Tickets::productRemaining($pr);
     unset($pr);
     $promo = $cart['promo'] ? (Tickets::findPromo((int)$ev['id'], $cart['promo'])['promo'] ?? null) : null;
-    $soldOut = $rates && !array_filter($rates, fn($r) => $r['sale']['ok']) && array_filter($rates, fn($r) => ($r['sale']['why'] ?? '') === 'Complet 🫠');
+    $soldOut = $rates && !array_filter($rates, fn($r) => $r['sale']['ok']) && array_filter($rates, fn($r) => ($r['sale']['why'] ?? '') === 'Complet');
     $resales = $ev['resale_enabled'] ? all("SELECT x.*, t.rate_name, t.seat FROM resales x JOIN tickets t ON t.id = x.ticket_id
         WHERE x.event_id = ? AND x.status = 'listed'" . ($session ? ' AND t.session_id = ' . (int)$session['id'] : '') . ' ORDER BY x.price, x.id LIMIT 30', [$ev['id']]) : [];
     $seatmap = Seating::map($ev) ? true : false;
@@ -171,20 +171,20 @@ function event_select(string $slug): never
     if (input('action') === 'code') {
         $code = strtoupper(trim((string)input('code')));
         $r = Tickets::findPromo((int)$ev['id'], $code);
-        if (!empty($r['error']) || empty($r['promo'])) redirect($back, ['error' => ($r['error'] ?? 'Code inconnu.') . ' 🙅']);
+        if (!empty($r['error']) || empty($r['promo'])) redirect($back, ['error' => ($r['error'] ?? 'Code inconnu.') . '']);
         $p = $r['promo'];
         if ($p['kind'] === 'unlock') {
             $cart['unlocked'] = array_values(array_unique(array_merge($cart['unlocked'] ?? [], $p['rate_list'])));
             cart_set((int)$ev['id'], $cart);
-            redirect($back, ['success' => '🤫 Code accepté : un tarif secret vient d\'apparaître.']);
+            redirect($back, ['success' => 'Code accepté : un tarif secret vient d\'apparaître.']);
         }
         $cart['promo'] = $p['code'];
         cart_set((int)$ev['id'], $cart);
-        redirect($back, ['success' => '🎉 Code « ' . $p['code'] . ' » appliqué. Ton portefeuille te remercie.']);
+        redirect($back, ['success' => 'Code « ' . $p['code'] . ' » appliqué. Ton portefeuille te remercie.']);
     }
     if (input('action') === 'remove_code') { $cart['promo'] = ''; cart_set((int)$ev['id'], $cart); redirect($back); }
     fill_cart_from_input($ev, $cart, $_POST);
-    if (!$cart['q']) redirect($back, ['error' => 'Prends au moins un billet, sinon ça va être compliqué d\'entrer 😅']);
+    if (!$cart['q']) redirect($back, ['error' => 'Prends au moins un billet, sinon ça va être compliqué d\'entrer']);
     Traffic::hit($ev, 'carts');
     cart_set((int)$ev['id'], $cart);
     redirect('/e/' . $slug . '/infos');
@@ -199,7 +199,7 @@ function widget_cart(string $slug): never
     fill_cart_from_input($ev, $cart, $_GET);
     cart_set((int)$ev['id'], $cart);
     if (!$cart['q']) redirect('/e/' . $slug);
-    if (Seating::map($ev)) redirect('/e/' . $slug . ($cart['session'] ? '?seance=' . (int)$cart['session'] : ''), ['info' => '💺 Choisis tes places sur le plan.']);
+    if (Seating::map($ev)) redirect('/e/' . $slug . ($cart['session'] ? '?seance=' . (int)$cart['session'] : ''), ['info' => 'Choisis tes places sur le plan.']);
     redirect('/e/' . $slug . '/infos');
 }
 
@@ -302,7 +302,7 @@ function place_order(array $ev, array $org, array $cart, ?array $session, array 
     $buyer = ['email' => trim((string)input('email')), 'first_name' => trim((string)input('first_name')),
         'last_name' => trim((string)input('last_name')), 'phone' => trim((string)input('phone'))];
     if ($buyer['first_name'] === '' || $buyer['last_name'] === '') $errors[] = 'On a besoin de ton prénom et de ton nom.';
-    if (!is_email($buyer['email'])) $errors[] = 'Cette adresse e-mail a l\'air bizarre 🤨';
+    if (!is_email($buyer['email'])) $errors[] = 'Cette adresse e-mail a l\'air bizarre';
     if (isset($_POST['email2']) && $buyer['email'] !== trim((string)input('email2'))) $errors[] = 'Les deux e-mails ne sont pas pareils. Petite faute de frappe ?';
     if (trim((string)input('website')) !== '') $errors[] = 'Requête refusée.'; // piège à robots
     $orderAnswers = collect_answers($orderFields, (array)($_POST['f'] ?? []), $errors, '');
@@ -317,7 +317,7 @@ function place_order(array $ev, array $org, array $cart, ?array $session, array 
                 'answers' => $fieldsForRate ? collect_answers($fieldsForRate, (array)($h['f'] ?? []), $errors, ' (' . $label . ')') : []];
         }
     }
-    if (setting('cgv') && empty($_POST['cgv'])) $errors[] = 'Coche les conditions de vente, on sait que tu les as lues 😉';
+    if (setting('cgv') && empty($_POST['cgv'])) $errors[] = 'Coche les conditions de vente, on sait que tu les as lues';
     $ageErr = Buyers::checkAge($ev, $session, array_keys($cart['q']), (string)input('birth_date') ?: null, !empty($_POST['age_ok']));
     if ($ageErr) $errors[] = $ageErr;
     if ($errors) return ['errors' => $errors];
@@ -369,7 +369,7 @@ function field_options(array $f): array
 function order_by_ref(string $ref, bool $requireToken = true): array
 {
     $o = one('SELECT * FROM orders WHERE ref = ?', [$ref]);
-    if (!$o) abort(404, 'Commande introuvable 🕵️');
+    if (!$o) abort(404, 'Commande introuvable');
     $t = (string)input('t');
     $mine = in_array($o['ref'], $_SESSION['orders'] ?? [], true) || (!empty($_SESSION['buyer_email']) && strtolower((string)$o['email']) === $_SESSION['buyer_email']);
     $u = user();
@@ -383,7 +383,7 @@ function payment_choice(string $ref): string
     $o = order_by_ref($ref);
     if ($o['status'] === 'paid') redirect('/commande/' . $o['ref'] . '?t=' . $o['token']);
     if ($o['status'] !== 'pending' || strtotime((string)$o['expires_at']) < time()) {
-        return pub('message', ['title' => '⌛ Trop tard…', 'text' => 'Le chrono est fini, tes places sont reparties dans la nature. Rien de grave : recommence, il en reste peut-être.',
+        return pub('message', ['title' => 'Trop tard…', 'text' => 'Le chrono est fini, tes places sont reparties dans la nature. Rien de grave : recommence, il en reste peut-être.',
             'link' => url('/e/' . val('SELECT slug FROM events WHERE id = ?', [$o['event_id']])), 'link_label' => 'Je retente ma chance'], 'Commande expirée');
     }
     $providers = Payments::available();
@@ -391,7 +391,7 @@ function payment_choice(string $ref): string
     $error = null;
     if (is_post() || count($providers) === 1) {
         $p = is_post() ? (string)input('provider') : (string)array_key_first($providers);
-        if (!isset($providers[$p])) $error = 'Choisis comment tu payes 💳';
+        if (!isset($providers[$p])) $error = 'Choisis comment tu payes';
         else {
             try { $to = Payments::start($p, $o, $ev); header('Location: ' . $to, true, 303); exit; }
             catch (Throwable $e) { $error = $e->getMessage(); log_line('paiements', $o['ref'] . ' : ' . $e->getMessage()); }
@@ -427,7 +427,7 @@ function payment_return(string $ref): never
 function payment_cancel(string $ref): never
 {
     $o = order_by_ref($ref);
-    redirect('/paiement/' . $o['ref'] . '?t=' . $o['token'], ['warning' => 'Paiement annulé. Pas de souci, tes places t\'attendent encore un peu ⏱️']);
+    redirect('/paiement/' . $o['ref'] . '?t=' . $o['token'], ['warning' => 'Paiement annulé. Pas de souci, tes places t\'attendent encore un peu']);
 }
 
 function payment_webhook(string $provider): never
@@ -475,7 +475,7 @@ function order_page(string $ref): string
 function order_pdf(string $ref): never
 {
     $o = order_by_ref($ref);
-    if ($o['status'] !== 'paid') abort(404, 'Tes billets arrivent dès que le paiement est confirmé. Encore un peu de patience ⏳');
+    if ($o['status'] !== 'paid') abort(404, 'Tes billets arrivent dès que le paiement est confirmé. Encore un peu de patience');
     $ev = one('SELECT * FROM events WHERE id = ?', [$o['event_id']]);
     $org = one('SELECT * FROM organizers WHERE id = ?', [$o['organizer_id']]);
     $sql = "SELECT * FROM tickets WHERE order_id = ? AND status = 'valid' AND holder_email IS NULL";
@@ -494,7 +494,7 @@ function order_pdf(string $ref): never
 function find_tickets(): string
 {
     $sent = false;
-    if (input('sortir')) { unset($_SESSION['buyer_email']); redirect('/mes-billets', ['info' => '👋 Déconnecté de ton espace.']); }
+    if (input('sortir')) { unset($_SESSION['buyer_email']); redirect('/mes-billets', ['info' => 'Déconnecté de ton espace.']); }
     if (is_post()) {
         $email = strtolower(trim((string)input('email')));
         if (is_email($email) && throttle_ok_pub('mes-billets-' . $email)) {
@@ -506,7 +506,7 @@ function find_tickets(): string
                 $tok = rtrim(strtr(base64_encode($email . '|' . $exp . '|' . buyer_sig($email, $exp)), '+/', '-_'), '=');
                 $list = '';
                 foreach ($orders as $o) $list .= '<li style="margin-bottom:8px"><a href="' . e(abs_url('/commande/' . $o['ref'], ['t' => $o['token']])) . '">' . e($o['ev_name']) . '</a> — ' . e(fr_date($o['starts_at'], false)) . ' (commande ' . e($o['ref']) . ')</li>';
-                try { Mailer::send($email, '🎟️ Ton espace billets ' . setting('platform_name'), '<p>Salut 👋</p><p>Voici ton accès à <b>tous tes billets</b> au même endroit (lien valable 30 minutes) :</p>'
+                try { Mailer::send($email, 'Ton espace billets ' . setting('platform_name'), '<p>Salut</p><p>Voici ton accès à <b>tous tes billets</b> au même endroit (lien valable 30 minutes) :</p>'
                     . '<p><a href="' . e(abs_url('/acheteur/' . $tok, ['r' => '/mes-billets'])) . '" style="display:inline-block;background:' . e(setting('primary_color', '#0071e3')) . ';color:#fff;padding:12px 18px;border-radius:12px;text-decoration:none;font-weight:bold">Ouvrir mon espace</a></p>'
                     . ($list ? '<p>Ou directement :</p><ul>' . $list . '</ul>' : '') . '<p style="color:#777;font-size:13px">Pas toi ? Ignore cet e-mail.</p>'); }
                 catch (Throwable $e) { log_line('emails', 'Mes billets : ' . $e->getMessage()); }
@@ -553,7 +553,7 @@ function event_password(string $slug): string
             $_SESSION['evpass'][$ev['id']] = 1;
             redirect('/e/' . $slug);
         }
-        $error = 'Mauvais mot de passe 🔒 Demande-le à l\'organisateur.';
+        $error = 'Mauvais mot de passe Demande-le à l\'organisateur.';
     }
     return pub('password', ['ev' => $ev, 'error' => $error], $ev['name'], ['widget_ok' => true]);
 }
@@ -578,7 +578,7 @@ function waitlist_join(string $slug): never
     $back = '/e/' . $slug . ($cart['session'] ? '?seance=' . (int)$cart['session'] : '');
     if (!$ev['waitlist_enabled']) redirect($back);
     $email = trim((string)input('email'));
-    if (!is_email($email)) redirect($back, ['error' => 'Cette adresse e-mail a l\'air bizarre 🤨']);
+    if (!is_email($email)) redirect($back, ['error' => 'Cette adresse e-mail a l\'air bizarre']);
     $qty = max(1, min(10, (int)input('qty', 1)));
     $exists = val("SELECT id FROM waitlist WHERE event_id = ? AND email = ? AND COALESCE(session_id,0) = ? AND status IN ('waiting','offered')", [$ev['id'], $email, (int)$cart['session']]);
     if (!$exists) insert('waitlist', ['event_id' => $ev['id'], 'session_id' => $cart['session'] ?: null, 'email' => $email,
@@ -586,7 +586,7 @@ function waitlist_join(string $slug): never
         'qty' => $qty, 'token' => token(20), 'created_at' => now()]);
     $pos = (int)val("SELECT COUNT(*) FROM waitlist WHERE event_id = ? AND COALESCE(session_id,0) = ? AND status = 'waiting' AND id <= (SELECT MAX(id) FROM waitlist WHERE event_id = ? AND email = ?)",
         [$ev['id'], (int)$cart['session'], $ev['id'], $email]);
-    redirect($back, ['success' => '⏳ C\'est noté ! Tu es n°' . max(1, $pos) . ' sur la liste d\'attente. Si une place se libère, on te l\'envoie par e-mail et on te la garde ' . Waitlist::hours($ev) . ' h.']);
+    redirect($back, ['success' => 'C\'est noté ! Tu es n°' . max(1, $pos) . ' sur la liste d\'attente. Si une place se libère, on te l\'envoie par e-mail et on te la garde ' . Waitlist::hours($ev) . ' h.']);
 }
 
 function waitlist_claim(string $token): never
@@ -595,7 +595,7 @@ function waitlist_claim(string $token): never
     if (!$w) abort(404, 'Lien inconnu.');
     $ev = one('SELECT * FROM events WHERE id = ?', [$w['event_id']]);
     if ($w['status'] !== 'offered' || strtotime((string)$w['expires_at']) < time()) {
-        redirect('/e/' . $ev['slug'], ['warning' => '⌛ Cette offre a expiré ou a déjà été utilisée. Tu peux te réinscrire sur la liste d\'attente.']);
+        redirect('/e/' . $ev['slug'], ['warning' => 'Cette offre a expiré ou a déjà été utilisée. Tu peux te réinscrire sur la liste d\'attente.']);
     }
     $cart = cart_get((int)$ev['id']);
     $cart['waitlist'] = (int)$w['id'];
@@ -603,7 +603,7 @@ function waitlist_claim(string $token): never
     $_SESSION['evpass'][$ev['id']] = 1;
     Queue::admit($ev);
     cart_set((int)$ev['id'], $cart);
-    redirect('/e/' . $ev['slug'] . ($cart['session'] ? '?seance=' . $cart['session'] : ''), ['success' => '🎉 Ta place t\'attend ! Elle est gardée pour toi jusqu\'au ' . fr_date($w['expires_at']) . ' (' . (int)$w['qty'] . ' billet' . ($w['qty'] > 1 ? 's' : '') . ').']);
+    redirect('/e/' . $ev['slug'] . ($cart['session'] ? '?seance=' . $cart['session'] : ''), ['success' => 'Ta place t\'attend ! Elle est gardée pour toi jusqu\'au ' . fr_date($w['expires_at']) . ' (' . (int)$w['qty'] . ' billet' . ($w['qty'] > 1 ? 's' : '') . ').']);
 }
 
 function partner_page(string $token): string
@@ -624,7 +624,7 @@ function partner_page(string $token): string
         $_SESSION['evpass'][$ev['id']] = 1;
         Queue::admit($ev);
         cart_set((int)$ev['id'], $cart);
-        if (Seating::map($ev)) redirect('/e/' . $ev['slug'] . ($cart['session'] ? '?seance=' . $cart['session'] : ''), ['info' => '💺 Choisis tes places sur le plan.']);
+        if (Seating::map($ev)) redirect('/e/' . $ev['slug'] . ($cart['session'] ? '?seance=' . $cart['session'] : ''), ['info' => 'Choisis tes places sur le plan.']);
         redirect('/e/' . $ev['slug'] . '/infos');
     }
     return pub('partner', compact('pa', 'ev', 'org', 'rate', 'used', 'sessions'), $ev['name'] . ' — ' . $pa['name']);
@@ -641,19 +641,19 @@ function resale_list(string $ref): never
     if (input('action') === 'cancel') {
         q("UPDATE resales SET status = 'cancelled' WHERE ticket_id = ? AND status = 'listed'", [$t['id']]);
         update('tickets', ['resale_status' => null, 'updated_at' => now()], 'id = ?', [$t['id']]);
-        redirect($back, ['success' => 'Revente annulée, ton billet est de nouveau valable 🎟️']);
+        redirect($back, ['success' => 'Revente annulée, ton billet est de nouveau valable']);
     }
     $err = Resale::canList($t, $o, $ev);
     if ($err) redirect($back, ['error' => $err]);
     Resale::list($t, $o, $ev);
-    redirect($back, ['success' => '🔁 Ton billet est en vente sur la bourse officielle. Dès qu\'il est racheté, tu es remboursé automatiquement (moins ' . rtrim(rtrim((string)$ev['resale_fee_percent'], '0'), '.') . ' % de frais de revente). En attendant, il reste valable.']);
+    redirect($back, ['success' => 'Ton billet est en vente sur la bourse officielle. Dès qu\'il est racheté, tu es remboursé automatiquement (moins ' . rtrim(rtrim((string)$ev['resale_fee_percent'], '0'), '.') . ' % de frais de revente). En attendant, il reste valable.']);
 }
 
 /** Un acheteur rachète un billet de la bourse. */
 function resale_buy(string $id): string
 {
     $x = one("SELECT x.*, t.rate_id, t.session_id, t.seat, t.rate_name FROM resales x JOIN tickets t ON t.id = x.ticket_id WHERE x.id = ? AND x.status = 'listed'", [(int)$id]);
-    if (!$x) abort(404, 'Trop tard, ce billet a déjà trouvé preneur 🏃');
+    if (!$x) abort(404, 'Trop tard, ce billet a déjà trouvé preneur');
     if ((int)val('SELECT entries FROM tickets WHERE id = ?', [$x['ticket_id']]) > 0) {
         q("UPDATE resales SET status = 'cancelled' WHERE id = ?", [$x['id']]);
         abort(404, 'Ce billet n\'est plus disponible.');
@@ -664,9 +664,9 @@ function resale_buy(string $id): string
     if (is_post()) {
         $buyer = ['email' => trim((string)input('email')), 'first_name' => trim((string)input('first_name')), 'last_name' => trim((string)input('last_name')), 'phone' => ''];
         if ($buyer['first_name'] === '' || $buyer['last_name'] === '' || !is_email($buyer['email'])) $errors[] = 'Nom, prénom et e-mail valides, s\'il te plaît.';
-        if (setting('cgv') && empty($_POST['cgv'])) $errors[] = 'Coche les conditions de vente 😉';
+        if (setting('cgv') && empty($_POST['cgv'])) $errors[] = 'Coche les conditions de vente';
         $busy = val("SELECT id FROM orders WHERE resale_id = ? AND status = 'pending' AND expires_at > NOW()", [$x['id']]);
-        if ($busy) $errors[] = 'Quelqu\'un est en train de payer ce billet. Reviens dans quelques minutes 🤞';
+        if ($busy) $errors[] = 'Quelqu\'un est en train de payer ce billet. Reviens dans quelques minutes';
         if (!$errors) {
             $session = $x['session_id'] ? one('SELECT * FROM sessions WHERE id = ?', [$x['session_id']]) : null;
             $r = Tickets::createOrder(['event' => $ev, 'org' => $org, 'session' => $session, 'quantities' => [$x['rate_id'] => 1], 'buyer' => $buyer,
@@ -690,9 +690,9 @@ function refund_request(string $ref): never
     if (val("SELECT id FROM tickets WHERE order_id = ? AND entries > 0 LIMIT 1", [$o['id']])) redirect($back, ['error' => 'Un billet de cette commande a déjà servi, pas de remboursement possible.']);
     update('orders', ['refund_requested_at' => now(), 'refund_reason' => mb_substr(trim((string)input('reason')), 0, 500)], 'id = ?', [$o['id']]);
     $org = one('SELECT * FROM organizers WHERE id = ?', [$o['organizer_id']]);
-    try { if ($org['email']) Mailer::send($org['email'], '💸 Demande de remboursement ' . $o['ref'], '<p>' . e($o['first_name'] . ' ' . $o['last_name']) . ' demande le remboursement de la commande <b>' . e($o['ref']) . '</b> (' . e(money((int)$o['total'])) . ') pour « ' . e($ev['name']) . ' ».</p><p>Motif : ' . e((string)input('reason')) . '</p><p><a href="' . e(abs_url('/pro/commandes/' . $o['id'])) . '">Traiter la demande</a></p>'); }
+    try { if ($org['email']) Mailer::send($org['email'], 'Demande de remboursement ' . $o['ref'], '<p>' . e($o['first_name'] . ' ' . $o['last_name']) . ' demande le remboursement de la commande <b>' . e($o['ref']) . '</b> (' . e(money((int)$o['total'])) . ') pour « ' . e($ev['name']) . ' ».</p><p>Motif : ' . e((string)input('reason')) . '</p><p><a href="' . e(abs_url('/pro/commandes/' . $o['id'])) . '">Traiter la demande</a></p>'); }
     catch (Throwable $e) { log_line('emails', $e->getMessage()); }
-    redirect($back, ['success' => '📨 Demande envoyée à l\'organisateur. Tu recevras un e-mail dès qu\'elle est traitée.']);
+    redirect($back, ['success' => 'Demande envoyée à l\'organisateur. Tu recevras un e-mail dès qu\'elle est traitée.']);
 }
 
 // ---------- Widget (à intégrer dans le site de l'organisateur) ----------

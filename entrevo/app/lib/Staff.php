@@ -120,13 +120,13 @@ final class Staff
         $list = '';
         foreach ($rows as $r) {
             $list .= '<li style="margin-bottom:8px"><b>' . e($r['title']) . '</b> — ' . e($r['ev_name']) . '<br>' . e(fr_date($r['starts_at'])) . ' → ' . e(date('H:i', strtotime($r['ends_at'])))
-                . ($r['location'] ? ' · 📍 ' . e($r['location']) : '') . ' · <i>' . e(self::STATUS[$r['status']][0]) . '</i></li>';
+                . ($r['location'] ? ' · ' . e($r['location']) : '') . ' · <i>' . e(self::STATUS[$r['status']][0]) . '</i></li>';
         }
-        $html = '<p>Salut ' . e($m['first_name']) . ' 👋</p>' . ($intro !== '' ? '<div style="white-space:pre-line">' . e($intro) . '</div>' : '<p>Voici ton planning avec <b>' . e($org['name'] ?? '') . '</b>.</p>')
-            . ($list ? '<ul style="padding-left:18px">' . $list . '</ul>' : '<p>Pas encore de créneau pour toi : jette un œil aux créneaux ouverts 👀</p>')
+        $html = '<p>Salut ' . e($m['first_name']) . '</p>' . ($intro !== '' ? '<div style="white-space:pre-line">' . e($intro) . '</div>' : '<p>Voici ton planning avec <b>' . e($org['name'] ?? '') . '</b>.</p>')
+            . ($list ? '<ul style="padding-left:18px">' . $list . '</ul>' : '<p>Pas encore de créneau pour toi : jette un œil aux créneaux ouverts</p>')
             . '<p><a href="' . e(self::portalUrl($m)) . '" style="display:inline-block;background:#0071e3;color:#fff;padding:12px 18px;border-radius:12px;text-decoration:none;font-weight:700">Ouvrir mon espace bénévole</a></p>'
             . '<p style="color:#777;font-size:13px">Confirme tes créneaux, inscris-toi sur d\'autres et retrouve ton badge QR. Ce lien est personnel, ne le partage pas.</p>';
-        Mailer::send((string)$m['email'], '🙌 Ton planning bénévole — ' . ($org['name'] ?? ''), $html);
+        Mailer::send((string)$m['email'], 'Ton planning bénévole — ' . ($org['name'] ?? ''), $html);
         return true;
     }
 
@@ -142,11 +142,11 @@ final class Staff
             $s = one('SELECT s.*, e.name ev_name FROM staff_assignments a JOIN staff_shifts s ON s.id = a.shift_id JOIN events e ON e.id = s.event_id WHERE a.id = ?', [$r['id']]);
             if (!$m || !$s || !$m['email']) continue;
             try {
-                Mailer::send((string)$m['email'], '⏰ Demain : ' . $s['title'] . ' — ' . $s['ev_name'],
+                Mailer::send((string)$m['email'], 'Demain : ' . $s['title'] . ' — ' . $s['ev_name'],
                     '<p>Salut ' . e($m['first_name']) . ' !</p><p>Petit rappel : tu es attendu·e <b>' . e(fr_date($s['starts_at'])) . '</b> (jusqu\'à ' . e(date('H:i', strtotime($s['ends_at']))) . ')'
                     . ($s['location'] ? ', rendez-vous <b>' . e($s['location']) . '</b>' : '') . ' pour « ' . e($s['title']) . ' ».</p>'
                     . ($s['description'] ? '<div style="white-space:pre-line">' . e($s['description']) . '</div>' : '')
-                    . '<p>Pense à ton badge QR (dans ton espace) pour pointer en arrivant 😉</p><p><a href="' . e(self::portalUrl($m)) . '">Mon espace bénévole</a></p>');
+                    . '<p>Pense à ton badge QR (dans ton espace) pour pointer en arrivant</p><p><a href="' . e(self::portalUrl($m)) . '">Mon espace bénévole</a></p>');
                 $n++;
             } catch (Throwable $e) { log_line('emails', 'Rappel bénévole : ' . $e->getMessage()); }
         }
@@ -158,12 +158,12 @@ final class Staff
     {
         $code = trim(preg_replace('~^.*/benevole/~', '', $code));
         $m = one('SELECT m.* FROM staff_members m JOIN events e ON e.organizer_id = m.organizer_id WHERE m.token = ? AND e.id = ?', [$code, $eventId]);
-        if (!$m) return ['ok' => false, 'msg' => '❌ Badge inconnu pour cet événement.'];
+        if (!$m) return ['ok' => false, 'msg' => 'Badge inconnu pour cet événement.'];
         $a = one("SELECT a.*, s.title, s.starts_at, s.ends_at FROM staff_assignments a JOIN staff_shifts s ON s.id = a.shift_id
             WHERE a.member_id = ? AND s.event_id = ? AND a.status IN ('confirmed','proposed') AND s.ends_at >= NOW() - INTERVAL 2 HOUR AND s.starts_at <= NOW() + INTERVAL 3 HOUR
             ORDER BY (a.checked_in_at IS NOT NULL AND a.checked_out_at IS NULL) DESC, ABS(TIMESTAMPDIFF(MINUTE, s.starts_at, NOW())) LIMIT 1", [$m['id'], $eventId]);
         $who = $m['first_name'] . ' ' . $m['last_name'];
-        if (!$a) return ['ok' => false, 'msg' => '🤔 ' . $who . ' n\'a pas de créneau maintenant.'];
+        if (!$a) return ['ok' => false, 'msg' => '' . $who . ' n\'a pas de créneau maintenant.'];
         return self::toggle($a, $who);
     }
 
@@ -171,12 +171,12 @@ final class Staff
     {
         if (!$a['checked_in_at']) {
             update('staff_assignments', ['checked_in_at' => now(), 'status' => 'confirmed'], 'id = ?', [$a['id']]);
-            return ['ok' => true, 'msg' => '✅ ' . $who . ' est arrivé·e — ' . $a['title']];
+            return ['ok' => true, 'msg' => '' . $who . ' est arrivé·e — ' . $a['title']];
         }
         if (!$a['checked_out_at']) {
             update('staff_assignments', ['checked_out_at' => now()], 'id = ?', [$a['id']]);
-            return ['ok' => true, 'msg' => '👋 ' . $who . ' est reparti·e — merci ! (' . self::hm(max(0, (int)((time() - strtotime($a['checked_in_at'])) / 60))) . ')'];
+            return ['ok' => true, 'msg' => '' . $who . ' est reparti·e — merci ! (' . self::hm(max(0, (int)((time() - strtotime($a['checked_in_at'])) / 60))) . ')'];
         }
-        return ['ok' => false, 'msg' => 'ℹ️ ' . $who . ' a déjà pointé son arrivée et son départ.'];
+        return ['ok' => false, 'msg' => '' . $who . ' a déjà pointé son arrivée et son départ.'];
     }
 }

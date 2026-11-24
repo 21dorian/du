@@ -1845,3 +1845,117 @@ label,.field label{font-weight:500}
 }
 .today-title{border-radius:16px!important}
 .today{overflow:hidden}
+/* icônes fines à la place des emojis */
+.ui-ico{display:block;flex:none}
+.qa span,.mod-ico,.feed-ico,.soon-emoji,.psoon-emoji{color:var(--primary)}
+.qa span{background:color-mix(in srgb,var(--primary) 10%,#fff)}
+.mod-ico .ui-ico{width:22px;height:22px}
+.tpl-ico{display:inline-flex;width:40px;height:40px;align-items:center;justify-content:center;border-radius:12px;background:color-mix(in srgb,var(--primary) 10%,#fff);color:var(--primary)}
+.soon-emoji{display:inline-flex;vertical-align:middle;margin-right:6px}
+.psoon-emoji{display:flex;width:64px;height:64px;margin:0 auto 12px;align-items:center;justify-content:center;border-radius:20px;background:color-mix(in srgb,var(--primary) 10%,#fff)}
+.psoon-emoji .ui-ico{width:30px;height:30px}
+.state-mark .ui-ico{color:var(--green)}
+.state-mark.wait .ui-ico{color:var(--orange)}
+.state-mark.info .ui-ico{color:var(--primary)}
+.given-stub{color:var(--muted)}
+
+/* =====================================================================
+   2.0 — Finition « haut de gamme » : sobriété, noir profond, beaucoup d'air
+   ===================================================================== */
+:root,body.pub,body.back,body.pc-body{
+  --btn:#1d1d1f; --bg:#f5f5f7; --surface:#fff; --ink:#1d1d1f; --ink-2:#424245; --muted:#86868b;
+  --line:rgba(0,0,0,.07); --line-2:rgba(0,0,0,.045);
+  --float:0 0 0 1px rgba(0,0,0,.035),0 2px 6px rgba(0,0,0,.03),0 20px 40px -18px rgba(0,0,0,.12);
+  --float-lg:0 0 0 1px rgba(0,0,0,.04),0 30px 60px -20px rgba(0,0,0,.22);
+  --r:22px; --r-lg:30px;
+}
+body.pub,body.back{background:var(--bg)}
+body{font-size:17px;line-height:1.5}
+::selection{background:#1d1d1f;color:#fff}
+
+/* typographie éditoriale */
+h1{font-weight:600;letter-spacing:-.032em!important;line-height:1.05}
+h2{font-weight:600;letter-spacing:-.024em!important}
+.event-title{font-size:60px;font-weight:600;line-height:1.02}
+.featured-body h1{font-size:58px;font-weight:600;line-height:1.02}
+.page-head h1{font-size:40px;font-weight:600}
+.main h2,.back-main h2{margin-top:.2em}
+.eyebrow{color:var(--muted)!important;font-weight:500!important;font-size:15px!important}
+.muted,small{color:var(--muted)}
+.kpi b,.kpi-mini b,.rate-price,.dw-total b,.bl-top b{font-weight:600!important;letter-spacing:-.025em!important;font-variant-numeric:tabular-nums}
+
+/* boutons : noir profond, le bleu reste pour les liens */
+.btn{background:#1d1d1f;color:#fff!important;font-weight:500!important;padding:12px 22px;letter-spacing:-.01em!important}
+.btn:hover{background:#000;box-shadow:0 10px 24px -8px rgba(0,0,0,.45);transform:translateY(-1px)}
+.btn-lg{padding:16px 28px;font-size:17px!important}
+.btn-ghost,.btn-light{background:transparent;color:var(--ink)!important;box-shadow:inset 0 0 0 1px rgba(0,0,0,.14)}
+.btn-ghost:hover,.btn-light:hover{background:rgba(0,0,0,.04);box-shadow:inset 0 0 0 1px rgba(0,0,0,.28);transform:none}
+.dw-next,.dw-paybtn{background:#1d1d1f}
+.side-nav a.on{background:#1d1d1f!important;box-shadow:0 8px 18px -8px rgba(0,0,0,.5)!important}
+.tabs a.on,.steps span.on{color:var(--ink)!important}
+.quick-filters .qf.on,.chip.on{background:#1d1d1f!important;color:#fff!important}
+
+/* logo monochrome */
+.logo-mark path:first-child{fill:var(--ink)}
+.logo-mark path:last-child{stroke:#fff}
+.footer .logo-mark path:first-child{fill:#fff}
+
+/* pastilles et badges discrets */
+.pill-soft{background:rgba(0,0,0,.05);color:var(--ink-2)}
+.pill-dark{background:#1d1d1f}
+.badge{background:rgba(0,0,0,.05);color:var(--ink-2)}
+.qa span,.mod-ico,.feed-ico,.tpl-ico,.psoon-emoji{background:rgba(0,0,0,.045)!important;color:var(--ink)!important}
+.soon-emoji{color:var(--ink)}
+
+/* beaucoup d'air */
+.main{padding-top:44px;padding-bottom:96px}
+.card{padding:30px}
+.back-main{padding:28px 40px 80px}
+.event-top{gap:56px!important}
+.rate{padding:20px 22px}
+
+/* en-tête et pied de page */
+.topbar-in{background:rgba(255,255,255,.7);box-shadow:0 0 0 1px rgba(0,0,0,.04),0 10px 30px -12px rgba(0,0,0,.18)}
+.topnav a:not(.btn){color:var(--ink-2)!important;font-weight:400!important}
+.footer{background:#0b0b0c!important;color:#86868b!important;border:0!important;margin-top:80px;padding:56px 0!important}
+.footer a{color:#d2d2d7!important}
+.footer b{color:#f5f5f7}
+.footer .soon-tag{background:rgba(255,255,255,.08);color:#a1a1a6}
+
+/* surfaces sombres « moment fort » */
+.featured,.buy-launch,.presale-box,.dw-ticket{background:#0b0b0c!important}
+.buy-launch::before{background:radial-gradient(circle,rgba(255,255,255,.18) 0%,transparent 70%)!important;opacity:.6}
+.today-title{background:#0b0b0c!important}
+
+/* affiches : ombre de studio */
+.event-poster{box-shadow:0 40px 80px -30px rgba(0,0,0,.45)}
+.ev-card .ev-img img,.my-img img{transition:transform .6s cubic-bezier(.2,.8,.2,1)}
+.ev-card:hover .ev-img img,.my-card:hover .my-img img{transform:scale(1.04)}
+
+/* champs */
+input:not([type=checkbox]):not([type=radio]):not([type=range]),select,textarea{border-color:rgba(0,0,0,.12)!important;padding:12px 14px}
+input:focus,select:focus,textarea:focus{border-color:#1d1d1f!important;box-shadow:0 0 0 4px rgba(0,0,0,.08)!important}
+input[type=checkbox],input[type=radio]{accent-color:#1d1d1f}
+
+@media (max-width:900px){.event-title,.featured-body h1{font-size:42px}.page-head h1{font-size:32px}.back-main{padding:16px 16px 60px}}
+@media (max-width:680px){.event-title,.featured-body h1{font-size:34px}.main{padding-top:28px}.card{padding:22px}}
+.featured-body .btn,.featured .btn{background:#fff!important;color:#1d1d1f!important}
+.featured-body .btn:hover,.featured .btn:hover{background:#f5f5f7!important;box-shadow:0 12px 30px -10px rgba(255,255,255,.35)}
+.pager-n.on{background:#1d1d1f!important;border-color:#1d1d1f!important;color:#fff!important}
+.announce{background:#fff!important;color:var(--ink)!important;box-shadow:var(--float)!important;border:0!important;border-radius:18px!important}
+.pills a.on,.seg button.on{background:#1d1d1f!important;color:#fff!important;border-color:#1d1d1f!important}
+.given-stub .ui-ico{width:44px!important;height:44px!important}
+.invite-box{background:#fff!important;box-shadow:var(--float)!important}
+.ticket-stub{background:#fafafa!important}
+.modules-hero{background:#0b0b0c!important}
+.modules-hero::after{content:none}
+.org-cta,.ev-hero{background:#0b0b0c!important}
+.avatar{background:#1d1d1f!important}
+.goal-bar i,.be-sold,.sk-chart i{background:#1d1d1f!important}
+.vit-hero-visual{background:radial-gradient(120% 120% at 80% 0%,#2a2a2e 0%,#0b0b0c 60%)!important}
+.dw-steps li.on{color:var(--ink)!important;border-bottom-color:var(--ink)!important}
+.dw-steps li.on::before{background:var(--ink)!important}
+.qty button{color:var(--ink)!important}
+.vit-step b::before,.vit-steps .num,.step-num{background:#1d1d1f!important}
+.vit-steps-grid span{background:#1d1d1f!important;color:#fff!important}
+.vit-steps-grid div{border:0!important;box-shadow:var(--float)}

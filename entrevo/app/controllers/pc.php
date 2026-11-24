@@ -42,7 +42,7 @@ function pc_data(string $id): never
     json_out($snap);
 }
 
-const PC_CATEGORIES = ['secours' => '🚑 Secours', 'securite' => '🛡️ Sécurité', 'acces' => '🚪 Accès', 'technique' => '🔧 Technique', 'perdu' => '🧸 Objet / enfant perdu', 'autre' => '📝 Autre'];
+const PC_CATEGORIES = ['secours' => 'Secours', 'securite' => 'Sécurité', 'acces' => 'Accès', 'technique' => 'Technique', 'perdu' => 'Objet / enfant perdu', 'autre' => 'Autre'];
 
 /** Main courante : export CSV de tous les incidents de l'événement. */
 function pc_incidents_csv(string $id): never

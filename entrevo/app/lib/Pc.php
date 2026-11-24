@@ -53,7 +53,7 @@ final class Pc
                 if ($z['pct'] < $lvl) continue;
                 if (val('SELECT 1 FROM zone_alerts WHERE access_point_id = ? AND level = ?', [$z['id'], $lvl])) break;
                 q('INSERT IGNORE INTO zone_alerts (access_point_id, level, created_at) VALUES (?, ?, NOW())', [$z['id'], $lvl]);
-                insert('scan_messages', ['event_id' => $ev['id'], 'body' => ($lvl >= 100 ? '⛔ ' . $z['name'] . ' est PLEINE (' . $z['inside'] . '/' . $z['capacity'] . ') : on ne fait plus entrer, attendez des sorties.' : '⚠️ ' . $z['name'] . ' à ' . $z['pct'] . ' % (' . $z['inside'] . '/' . $z['capacity'] . ') : ralentissez les entrées.'),
+                insert('scan_messages', ['event_id' => $ev['id'], 'body' => ($lvl >= 100 ? '' . $z['name'] . ' est PLEINE (' . $z['inside'] . '/' . $z['capacity'] . ') : on ne fait plus entrer, attendez des sorties.' : '' . $z['name'] . ' à ' . $z['pct'] . ' % (' . $z['inside'] . '/' . $z['capacity'] . ') : ralentissez les entrées.'),
                     'level' => $lvl >= 100 ? 'alert' : 'warn', 'user_id' => null, 'created_at' => now()]);
                 break;
             }

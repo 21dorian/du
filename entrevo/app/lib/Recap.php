@@ -48,10 +48,10 @@ final class Recap
         $refunds = (int)val("SELECT COUNT(*) FROM orders WHERE organizer_id = ? AND status = 'paid' AND refund_requested_at IS NOT NULL", [$org['id']]);
         $period = $weekly ? 'ces 7 derniers jours' : 'hier';
         $cell = fn($l, $v) => '<td style="padding:12px;background:#f0f5fa;border-radius:12px;text-align:center"><div style="font-size:12px;color:#667085;text-transform:uppercase;letter-spacing:.05em">' . $l . '</div><div style="font-size:24px;font-weight:bold;color:#0f0f14">' . $v . '</div></td>';
-        $html = '<p>Salut 👋 Voici ce qui s\'est passé <b>' . $period . '</b> chez <b>' . e($org['name']) . '</b>.</p>'
+        $html = '<p>Salut Voici ce qui s\'est passé <b>' . $period . '</b> chez <b>' . e($org['name']) . '</b>.</p>'
             . '<table role="presentation" width="100%" cellspacing="6" cellpadding="0"><tr>' . $cell('Recettes', e(money((int)$k['t']))) . $cell('Billets', (int)$k['q']) . $cell('Commandes', (int)$k['n']) . '</tr></table>';
         if ($events) {
-            $html .= '<h3 style="margin:22px 0 8px">📅 Tes prochains événements</h3><table role="presentation" width="100%" cellpadding="0" cellspacing="0">';
+            $html .= '<h3 style="margin:22px 0 8px">Tes prochains événements</h3><table role="presentation" width="100%" cellpadding="0" cellspacing="0">';
             foreach ($events as $ev) {
                 $cap = (int)$ev['capacity'];
                 $pct = $cap ? min(100, round($ev['sold'] / $cap * 100)) : null;
@@ -61,10 +61,10 @@ final class Recap
             }
             $html .= '</table>';
         }
-        if ($refunds) $html .= '<p style="background:#fbefd9;color:#8a5300;padding:10px 12px;border-radius:10px">💸 ' . $refunds . ' demande(s) de remboursement attendent ta réponse.</p>';
+        if ($refunds) $html .= '<p style="background:#fbefd9;color:#8a5300;padding:10px 12px;border-radius:10px">' . $refunds . ' demande(s) de remboursement attendent ta réponse.</p>';
         $html .= '<p><a href="' . e(abs_url('/pro')) . '" style="display:inline-block;background:#0071e3;color:#fff;padding:12px 18px;border-radius:12px;text-decoration:none;font-weight:bold">Ouvrir mon tableau de bord</a></p>'
             . '<p style="color:#777;font-size:12px">Tu reçois ce récap car il est activé dans Mon organisation › Notifications. Tu peux le couper en un clic là-bas.</p>';
-        $subject = ($weekly ? '📊 Ta semaine' : '☀️ Ton récap') . ' : ' . money((int)$k['t']) . ', ' . (int)$k['q'] . ' billet' . ((int)$k['q'] > 1 ? 's' : '');
+        $subject = ($weekly ? 'Ta semaine' : 'Ton récap') . ' : ' . money((int)$k['t']) . ', ' . (int)$k['q'] . ' billet' . ((int)$k['q'] > 1 ? 's' : '');
         foreach ($to ? [$to] : self::recipients($org) as $email) Mailer::send($email, $subject, $html);
         return true;
     }
@@ -83,8 +83,8 @@ final class Recap
             $t = max($hit);
             update('events', ['alerts_sent' => implode(',', array_unique(array_merge($done, $hit)))], 'id = ?', [$ev['id']]);
             $org = one('SELECT * FROM organizers WHERE id = ?', [$ev['organizer_id']]);
-            $title = $t >= 100 ? '🫠 COMPLET : ' . $ev['name'] : ($t >= 80 ? '🔥 ' . $ev['name'] . ' est rempli à ' . $t . ' %' : '🎉 ' . $ev['name'] . ' a passé la moitié');
-            $tip = $t >= 100 ? 'Ouvre une liste d\'attente ou ajoute une date pour ne pas perdre ces ventes.' : ($t >= 80 ? 'C\'est le moment d\'envoyer une campagne « dernières places » 😉' : 'Belle dynamique, continue de partager le lien !');
+            $title = $t >= 100 ? 'COMPLET : ' . $ev['name'] : ($t >= 80 ? '' . $ev['name'] . ' est rempli à ' . $t . ' %' : '' . $ev['name'] . ' a passé la moitié');
+            $tip = $t >= 100 ? 'Ouvre une liste d\'attente ou ajoute une date pour ne pas perdre ces ventes.' : ($t >= 80 ? 'C\'est le moment d\'envoyer une campagne « dernières places »' : 'Belle dynamique, continue de partager le lien !');
             $html = '<p><b>' . e($title) . '</b></p><p>' . (int)$ev['sold'] . ' billets vendus sur ' . (int)$ev['capacity'] . '.</p><p>' . e($tip) . '</p>'
                 . '<p><a href="' . e(abs_url('/pro/evenements/' . $ev['id'])) . '">Voir l\'événement</a></p>';
             foreach (self::recipients($org) as $email) { try { Mailer::send($email, $title, $html); } catch (Throwable $e) { log_line('emails', 'Alerte seuil : ' . $e->getMessage()); } }

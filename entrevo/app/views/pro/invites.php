@@ -1,6 +1,6 @@
 <div class="split">
   <form class="card" method="post" enctype="multipart/form-data"><?= csrf_field() ?><input type="hidden" name="action" value="invite">
-    <h2>🎁 Envoyer des invitations</h2>
+    <h2>Envoyer des invitations</h2>
     <p class="muted" style="font-size:14px">Une ligne par invité : <code>prénom ; nom ; e-mail ; nombre</code> (le nombre est facultatif). Ou importe un fichier CSV avec ces colonnes.</p>
     <div class="grid2">
       <div class="field"><label>Tarif</label><select name="rate_id"><?php foreach ($rates as $r): ?><option value="<?= (int)$r['id'] ?>"><?= e($r['name']) ?></option><?php endforeach; ?></select></div>
@@ -15,7 +15,7 @@
   </form>
   <div>
     <form class="card" method="post"><?= csrf_field() ?><input type="hidden" name="action" value="partner">
-      <h2>🤝 Nouveau partenaire</h2>
+      <h2>Nouveau partenaire</h2>
       <p class="muted" style="font-size:14px">Un CE, un sponsor, une asso, un revendeur… reçoit un lien perso pour réserver ses billets lui-même, dans la limite de son lot.</p>
       <div class="grid2"><div class="field"><label>Nom *</label><input name="name" required></div><div class="field"><label>E-mail</label><input type="email" name="email"></div>
         <div class="field"><label>Tarif</label><select name="rate_id"><?php foreach ($rates as $r): ?><option value="<?= (int)$r['id'] ?>"><?= e($r['name']) ?> (<?= e(money((int)$r['price'])) ?>)</option><?php endforeach; ?></select></div>
@@ -25,8 +25,8 @@
     </form>
     <div class="card"><h2>Partenaires</h2>
       <?php foreach ($partners as $pa): $link = abs_url('/p/' . $pa['token']); ?>
-        <div class="list-item" style="<?= $pa['active'] ? '' : 'opacity:.5' ?>"><span class="grow"><b><?= e($pa['name']) ?></b> · <?= e($pa['rate_name']) ?> <?= $pa['free'] ? '🎁' : '💳' ?><br><small><?= (int)$pa['used'] ?><?= $pa['quota'] ? ' / ' . (int)$pa['quota'] : '' ?> places utilisées</small></span>
-          <button type="button" class="btn btn-sm btn-light" data-copy="<?= e($link) ?>">🔗 Lien</button>
+        <div class="list-item" style="<?= $pa['active'] ? '' : 'opacity:.5' ?>"><span class="grow"><b><?= e($pa['name']) ?></b> · <?= e($pa['rate_name']) ?> <?= $pa['free'] ? '' : '' ?><br><small><?= (int)$pa['used'] ?><?= $pa['quota'] ? ' / ' . (int)$pa['quota'] : '' ?> places utilisées</small></span>
+          <button type="button" class="btn btn-sm btn-light" data-copy="<?= e($link) ?>">Lien</button>
           <form method="post" class="inline-form"><?= csrf_field() ?><input type="hidden" name="partner_id" value="<?= (int)$pa['id'] ?>"><button class="btn btn-sm btn-light" name="action" value="partner_toggle"><?= $pa['active'] ? 'Couper' : 'Réactiver' ?></button></form></div>
       <?php endforeach; ?>
       <?php if (!$partners): ?><p class="muted mb0">Aucun partenaire.</p><?php endif; ?>

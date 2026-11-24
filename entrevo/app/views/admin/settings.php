@@ -1,7 +1,7 @@
 <?php
 $s = fn($k) => e(setting($k));
 $c = fn($k) => setting($k) === '1' ? 'checked' : '';
-$tabs = ['general' => '⚙️ Général', 'fees' => '💸 Commission', 'payments' => '💳 Paiements', 'emails' => '📬 E-mails', 'legal' => '📜 Textes légaux'];
+$tabs = ['general' => 'Général', 'fees' => 'Commission', 'payments' => 'Paiements', 'emails' => 'E-mails', 'legal' => 'Textes légaux'];
 $secret = fn($k) => setting($k) ? '•••••• (enregistré, laisser vide pour ne pas changer)' : '';
 ?>
 <nav class="tabs"><?php foreach ($tabs as $k => $l): ?><a class="<?= $tab === $k ? 'on' : '' ?>" href="<?= url('/admin/reglages', ['tab' => $k]) ?>"><?= $l ?></a><?php endforeach; ?></nav>
@@ -20,7 +20,7 @@ $secret = fn($k) => setting($k) ? '•••••• (enregistré, laisser vide
     <label class="check"><input type="checkbox" name="org_approval" value="1" <?= $c('org_approval') ?>> <span>Valider moi-même chaque nouvel organisateur<br><small class="muted">Il peut préparer ses événements, mais pas les publier tant que tu ne l'as pas validé (Organisateurs › À valider).</small></span></label>
   </div>
   <div class="card" style="max-width:820px">
-    <h2>⏱️ Tâche planifiée (recommandé)</h2>
+    <h2>Tâche planifiée (recommandé)</h2>
     <p class="muted" style="font-size:14px">Les tâches de fond (paiements à revérifier, liste d'attente, publications programmées…) tournent toutes seules quand le site a des visites. Pour qu'elles tournent même la nuit, ajoute cette commande dans cPanel › « Tâches Cron », toutes les 5 minutes :</p>
     <input readonly class="mono" onclick="this.select()" value="wget -q -O /dev/null &quot;<?= e(abs_url('/cron', ['cle' => Jobs::cronKey()])) ?>&quot;">
   </div>
@@ -37,11 +37,11 @@ $secret = fn($k) => setting($k) ? '•••••• (enregistré, laisser vide
     <div class="notice mt">Exemple : billet à 20 € → commission de <b><?= e(money(Tickets::computeFees($ex, 2000, 1))) ?></b>.</div>
   </div>
   <div class="card" style="max-width:820px">
-    <h2>🪪 Vérification des organisateurs (KYC)</h2>
+    <h2>Vérification des organisateurs (KYC)</h2>
     <label class="check"><input type="checkbox" name="kyc_required" value="1" <?= $c('kyc_required') ?>> <span>Bloquer les reversements tant que les justificatifs ne sont pas vérifiés<br><small class="muted">Pièce d'identité, Kbis/statuts et RIB, déposés par l'organisateur dans « Vérification du compte ».</small></span></label>
   </div>
   <div class="card" style="max-width:820px">
-    <h2>🧾 Factures de commission</h2>
+    <h2>Factures de commission</h2>
     <p class="muted">Tes informations d'émetteur, imprimées sur chaque facture.</p>
     <div class="grid2">
       <div class="field"><label>Raison sociale</label><input name="invoice_name" value="<?= $s('invoice_name') ?>" placeholder="Entrevo SAS"></div>
@@ -57,7 +57,7 @@ $secret = fn($k) => setting($k) ? '•••••• (enregistré, laisser vide
     <label class="check"><input type="checkbox" name="invoice_auto" value="1" <?= $c('invoice_auto') ?>> Générer et envoyer automatiquement les factures le 1er de chaque mois</label>
   </div>
 <?php elseif ($tab === 'payments'): ?>
-  <div class="notice mb" style="max-width:820px">🔔 Adresses de notification (webhooks) à déclarer chez chaque prestataire, pour que les commandes soient validées même si l'acheteur ferme son navigateur :<br>
+  <div class="notice mb" style="max-width:820px">Adresses de notification (webhooks) à déclarer chez chaque prestataire, pour que les commandes soient validées même si l'acheteur ferme son navigateur :<br>
     Stripe (événement « checkout.session.completed ») : <code><?= e(abs_url('/paiement/webhook/stripe')) ?></code><br>
     PayPal (« CHECKOUT.ORDER.APPROVED » et « PAYMENT.CAPTURE.COMPLETED ») : <code><?= e(abs_url('/paiement/webhook/paypal')) ?></code><br>
     SumUp et Mollie : automatique.</div>
@@ -81,7 +81,7 @@ $secret = fn($k) => setting($k) ? '•••••• (enregistré, laisser vide
     <div class="card"><h2>Mollie</h2>
       <label class="check mb"><input type="checkbox" name="mollie_enabled" value="1" <?= $c('mollie_enabled') ?>> Activer</label>
       <div class="field"><label>Clé API (live_… ou test_…)</label><input name="mollie_api_key" placeholder="<?= e($secret('mollie_api_key')) ?>" autocomplete="off"></div></div>
-    <div class="card"><h2>🧪 Paiement de démonstration</h2>
+    <div class="card"><h2>Paiement de démonstration</h2>
       <label class="check"><input type="checkbox" name="demo_enabled" value="1" <?= $c('demo_enabled') ?>> Activer (aucun argent réel)</label>
       <small class="muted">À couper dès que tu vends pour de vrai !</small></div>
   </div>
@@ -110,7 +110,7 @@ $secret = fn($k) => setting($k) ? '•••••• (enregistré, laisser vide
 </form>
 <div class="mt"></div>
 <?php if ($tab === 'general'): ?>
-<?= soon_card('🧪 Réglages à venir', [
+<?= soon_card('Réglages à venir', [
   'maintenance' => ['Mode maintenance', 'Mettre le site en pause avec une page d\'attente'],
   'connexion-sociale' => ['Connexion Google & Apple', 'Sans mot de passe, pour tout le monde'],
   'langues' => ['Langues de la plateforme', 'Anglais, espagnol, allemand…'],
@@ -118,18 +118,18 @@ $secret = fn($k) => setting($k) ? '•••••• (enregistré, laisser vide
   'contenus' => ['Page d\'accueil personnalisable', 'Mises en avant, bannières, pages libres'],
 ], 'admin') ?>
 <?php elseif ($tab === 'fees'): ?>
-<?= soon_card('🧪 Commissions avancées', [
+<?= soon_card('Commissions avancées', [
   'commission-paliers' => ['Commission par palier ou catégorie', 'Dégressive selon le volume'],
   'formules' => ['Formules organisateurs', 'Gratuit, Pro, Premium avec abonnement'],
 ], 'admin') ?>
 <?php elseif ($tab === 'payments'): ?>
-<?= soon_card('🧪 Paiements à venir', [
+<?= soon_card('Paiements à venir', [
   'litiges' => ['Gestion des litiges', 'Contestations de paiement et preuves automatiques'],
   'fraude' => ['Détection de fraude', 'Alertes sur les achats suspects'],
   'revendeurs' => ['Points de vente physiques', 'Bars, disquaires, offices de tourisme'],
 ], 'admin') ?>
 <?php elseif ($tab === 'emails'): ?>
-<?= soon_card('🧪 E-mails à venir', [
+<?= soon_card('E-mails à venir', [
   'emails-modeles' => ['Modèles d\'e-mails modifiables', 'Textes de confirmation, rappel, remboursement…'],
   'delivrabilite' => ['Délivrabilité', 'Vérification SPF, DKIM, DMARC et rebonds'],
 ], 'admin') ?>

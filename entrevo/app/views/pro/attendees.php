@@ -2,12 +2,12 @@
   <input type="search" name="q" value="<?= e($q) ?>" placeholder="Nom, e-mail, code billet, commande…">
   <select name="rate"><option value="">Tous les tarifs</option><?php foreach ($rates as $r): ?><option value="<?= (int)$r['id'] ?>" <?= $rate === (int)$r['id'] ? 'selected' : '' ?>><?= e($r['name']) ?></option><?php endforeach; ?></select>
   <select name="st">
-    <option value="">Billets valides</option><option value="in" <?= $st === 'in' ? 'selected' : '' ?>>Déjà entrés ✅</option>
+    <option value="">Billets valides</option><option value="in" <?= $st === 'in' ? 'selected' : '' ?>>Déjà entrés</option>
     <option value="out" <?= $st === 'out' ? 'selected' : '' ?>>Pas encore arrivés</option><option value="cancelled" <?= $st === 'cancelled' ? 'selected' : '' ?>>Annulés</option>
   </select>
   <button class="btn btn-sm">Filtrer</button>
   <span class="grow"></span>
-  <a class="btn btn-sm btn-ghost" href="<?= url('/pro/evenements/' . $ev['id'] . '/participants', ['q' => $q, 'rate' => $rate ?: null, 'st' => $st ?: null, 'csv' => 1]) ?>">⬇️ Export Excel (CSV)</a>
+  <a class="btn btn-sm btn-ghost" href="<?= url('/pro/evenements/' . $ev['id'] . '/participants', ['q' => $q, 'rate' => $rate ?: null, 'st' => $st ?: null, 'csv' => 1]) ?>">Export Excel (CSV)</a>
 </form>
 <div class="card">
   <div class="card-head"><h2><?= count($rows) ?> participant<?= count($rows) > 1 ? 's' : '' ?></h2></div>
@@ -24,7 +24,7 @@
         <?php foreach (array_slice($fields, 0, 2) as $f): ?><td><?= e(($f['per_ticket'] ? $ta : $oa)[$f['id']]['value'] ?? '') ?></td><?php endforeach; ?>
       </tr>
     <?php endforeach; ?>
-    <?php if (!$rows): ?><tr><td colspan="7" class="empty">Personne pour l'instant 🦗 Partage le lien de ta billetterie !</td></tr><?php endif; ?>
+    <?php if (!$rows): ?><tr><td colspan="7" class="empty">Personne pour l'instant Partage le lien de ta billetterie !</td></tr><?php endif; ?>
     </tbody>
   </table></div>
 </div>

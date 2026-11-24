@@ -49,7 +49,7 @@ final class Invoices
         $inv = one('SELECT * FROM commission_invoices WHERE id = ?', [$id]);
         $org = one('SELECT * FROM organizers WHERE id = ?', [$inv['organizer_id']]);
         if (!is_email((string)$org['email'])) return;
-        Mailer::send((string)$org['email'], '🧾 Facture ' . $inv['number'] . ' — commissions ' . self::monthLabel($inv['period']),
+        Mailer::send((string)$org['email'], 'Facture ' . $inv['number'] . ' — commissions ' . self::monthLabel($inv['period']),
             '<p>Bonjour,</p><p>Tu trouveras ci-joint la facture des commissions ' . e(setting('platform_name')) . ' pour <b>' . e(self::monthLabel($inv['period'])) . '</b> : <b>' . e(money((int)$inv['amount_ttc'])) . ' TTC</b>.</p>'
             . '<p>Rien à payer : ces commissions ont déjà été déduites de tes reversements.</p><p>Toutes tes factures sont aussi dans Finances.</p>',
             [['data' => self::pdf($inv, $org), 'name' => $inv['number'] . '.pdf']]);

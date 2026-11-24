@@ -6,5 +6,5 @@
   <?php if ($m['team']): ?><div class="vbadge-team"><?= e($m['team']) ?></div><?php endif; ?>
   <div class="vbadge-qr"><?= Qr::svg($m['token'], 220) ?></div>
   <small class="vbadge-foot">À montrer en arrivant et en repartant pour le pointage · <?= e(setting('platform_name')) ?></small>
-  <button class="btn no-print" onclick="window.print()">🖨️ Imprimer</button>
+  <button class="btn no-print" onclick="window.print()">Imprimer</button>
 </div></body></html>

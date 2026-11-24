@@ -63,25 +63,25 @@ function home_dashboard(): string
     // à traiter
     $todo = [];
     $n = (int)val("SELECT COUNT(*) FROM orders WHERE organizer_id = ? AND status = 'paid' AND refund_requested_at IS NOT NULL", [$oid]);
-    if ($n) $todo[] = ['💸', $n . ' demande' . ($n > 1 ? 's' : '') . ' de remboursement', 'L\'acheteur attend ta réponse', '/pro/commandes?st=refund_request', 'hot'];
+    if ($n) $todo[] = ['', $n . ' demande' . ($n > 1 ? 's' : '') . ' de remboursement', 'L\'acheteur attend ta réponse', '/pro/commandes?st=refund_request', 'hot'];
     foreach (all("SELECT id, name FROM events WHERE organizer_id = ? AND status = 'draft' AND starts_at >= NOW() ORDER BY starts_at LIMIT 3", [$oid]) as $d)
-        $todo[] = ['📝', '« ' . $d['name'] . ' » est en brouillon', 'Personne ne peut acheter tant qu\'il n\'est pas publié', '/pro/evenements/' . $d['id'], ''];
+        $todo[] = ['', '« ' . $d['name'] . ' » est en brouillon', 'Personne ne peut acheter tant qu\'il n\'est pas publié', '/pro/evenements/' . $d['id'], ''];
     foreach (all("SELECT id, name, starts_at FROM events WHERE organizer_id = ? AND status = 'published' AND starts_at BETWEEN NOW() AND NOW() + INTERVAL 7 DAY ORDER BY starts_at", [$oid]) as $d) {
-        if (!val("SELECT id FROM users WHERE organizer_id = ? AND role = 'scanner' AND active = 1 LIMIT 1", [$oid])) { $todo[] = ['📷', 'Pas de contrôleur pour « ' . $d['name'] . ' »', 'Début ' . lcfirst(ago_until(strtotime($d['starts_at']))) . ' : crée un compte pour scanner', '/pro/equipe', 'hot']; break; }
+        if (!val("SELECT id FROM users WHERE organizer_id = ? AND role = 'scanner' AND active = 1 LIMIT 1", [$oid])) { $todo[] = ['', 'Pas de contrôleur pour « ' . $d['name'] . ' »', 'Début ' . lcfirst(ago_until(strtotime($d['starts_at']))) . ' : crée un compte pour scanner', '/pro/equipe', 'hot']; break; }
     }
     foreach (all("SELECT e.id, e.name FROM events e WHERE e.organizer_id = ? AND e.status = 'published' AND e.starts_at >= NOW() AND (e.image IS NULL OR e.image = '')", [$oid]) as $d)
-        $todo[] = ['🖼️', '« ' . $d['name'] . ' » n\'a pas d\'affiche', 'Les pages avec visuel vendent nettement mieux', '/pro/evenements/' . $d['id'] . '/modifier', ''];
+        $todo[] = ['', '« ' . $d['name'] . ' » n\'a pas d\'affiche', 'Les pages avec visuel vendent nettement mieux', '/pro/evenements/' . $d['id'] . '/modifier', ''];
     $n = (int)val("SELECT COUNT(*) FROM waitlist w JOIN events e ON e.id = w.event_id WHERE e.organizer_id = ? AND w.status = 'waiting'", [$oid]);
-    if ($n) $todo[] = ['⏳', $n . ' personne' . ($n > 1 ? 's' : '') . ' en liste d\'attente', 'Libère des places ou augmente la jauge', '/pro/evenements', ''];
+    if ($n) $todo[] = ['', $n . ' personne' . ($n > 1 ? 's' : '') . ' en liste d\'attente', 'Libère des places ou augmente la jauge', '/pro/evenements', ''];
     $n = (int)val("SELECT COUNT(*) FROM orders WHERE organizer_id = ? AND status = 'pending' AND created_at < NOW() - INTERVAL 20 MINUTE AND created_at > NOW() - INTERVAL 2 DAY", [$oid]);
-    if ($n) $todo[] = ['🕓', $n . ' paiement' . ($n > 1 ? 's' : '') . ' en attente', 'Paniers non finalisés : on revérifie automatiquement', '/pro/commandes?st=pending', ''];
+    if ($n) $todo[] = ['', $n . ' paiement' . ($n > 1 ? 's' : '') . ' en attente', 'Paniers non finalisés : on revérifie automatiquement', '/pro/commandes?st=pending', ''];
     $n = (int)val("SELECT COUNT(*) FROM tasks WHERE organizer_id = ? AND status <> 'done' AND due_date < CURDATE()", [$oid]);
-    if ($n) $todo[] = ['✅', $n . ' tâche' . ($n > 1 ? 's' : '') . ' en retard', 'Dans ton rétroplanning', '/pro/taches', 'hot'];
+    if ($n) $todo[] = ['', $n . ' tâche' . ($n > 1 ? 's' : '') . ' en retard', 'Dans ton rétroplanning', '/pro/taches', 'hot'];
     foreach (all("SELECT id, title, expires_at FROM documents WHERE organizer_id = ? AND expires_at IS NOT NULL AND expires_at <= CURDATE() + INTERVAL 30 DAY ORDER BY expires_at LIMIT 3", [$oid]) as $d)
-        $todo[] = ['📎', '« ' . $d['title'] . ' » ' . ($d['expires_at'] < date('Y-m-d') ? 'a expiré' : 'expire le ' . date('d/m', strtotime($d['expires_at']))), 'Pense à le renouveler', '/pro/documents', $d['expires_at'] < date('Y-m-d') ? 'hot' : ''];
+        $todo[] = ['', '« ' . $d['title'] . ' » ' . ($d['expires_at'] < date('Y-m-d') ? 'a expiré' : 'expire le ' . date('d/m', strtotime($d['expires_at']))), 'Pense à le renouveler', '/pro/documents', $d['expires_at'] < date('Y-m-d') ? 'hot' : ''];
     if (in_array($org['kyc_status'] ?? 'none', ['none', 'incomplete', 'rejected'], true) && ($balance['balance'] > 0 || Kyc::required()))
-        $todo[] = ['🪪', 'Vérifie ton compte', Kyc::required() ? 'Obligatoire pour recevoir tes reversements' : 'Trois documents à déposer', '/pro/verification', Kyc::required() ? 'hot' : ''];
-    if (!$org['iban'] && $balance['balance'] > 0) $todo[] = ['🏦', 'Renseigne ton IBAN', money($balance['balance']) . ' t\'attendent', '/pro/organisation', 'hot'];
+        $todo[] = ['', 'Vérifie ton compte', Kyc::required() ? 'Obligatoire pour recevoir tes reversements' : 'Trois documents à déposer', '/pro/verification', Kyc::required() ? 'hot' : ''];
+    if (!$org['iban'] && $balance['balance'] > 0) $todo[] = ['', 'Renseigne ton IBAN', money($balance['balance']) . ' t\'attendent', '/pro/organisation', 'hot'];
     // carte de chaleur : ventes par jour de semaine × heure
     $heat = array_fill(0, 7, array_fill(0, 24, 0));
     foreach (all("SELECT WEEKDAY(o.paid_at) d, HOUR(o.paid_at) h, COUNT(*) n FROM orders o WHERE $real AND o.paid_at BETWEEN ? AND ? GROUP BY d, h", [$oid, $per['from'], $per['to']]) as $r) $heat[(int)$r['d']][(int)$r['h']] = (int)$r['n'];
@@ -155,7 +155,7 @@ function audit_page(): string
     $rows = all("SELECT a.*, u.name user_name, e.name ev_name, o.ref FROM audit_log a LEFT JOIN users u ON u.id = a.user_id LEFT JOIN events e ON e.id = a.event_id LEFT JOIN orders o ON o.id = a.order_id
                  WHERE $w ORDER BY a.id DESC LIMIT $per OFFSET " . (($page - 1) * $per), $p);
     $users = all('SELECT DISTINCT u.id, u.name FROM audit_log a JOIN users u ON u.id = a.user_id WHERE a.organizer_id = ? ORDER BY u.name', [$org['id']]);
-    $types = ['event' => '📅 Événements', 'rate' => '🎟️ Tarifs', 'order' => '🧾 Commandes', 'ticket' => '🎫 Billets', 'box' => '💵 Guichet', 'invites' => '🎁 Invitations',
-        'accred' => '🪪 Accréditations', 'message' => '📣 Messages', 'cash' => '🧾 Caisse', 'team' => '👥 Équipe', 'org' => '🏢 Organisation', 'bulk' => '⚡ Actions groupées', 'seatmap' => '💺 Plans', 'staff' => '🙋 Bénévoles'];
+    $types = ['event' => 'Événements', 'rate' => 'Tarifs', 'order' => 'Commandes', 'ticket' => 'Billets', 'box' => 'Guichet', 'invites' => 'Invitations',
+        'accred' => 'Accréditations', 'message' => 'Messages', 'cash' => 'Caisse', 'team' => 'Équipe', 'org' => 'Organisation', 'bulk' => 'Actions groupées', 'seatmap' => 'Plans', 'staff' => 'Bénévoles'];
     return pro_page('Journal d\'activité', 'audit', compact('rows', 'users', 'types', 'who', 'type', 'page', 'pages', 'total'), 'audit');
 }

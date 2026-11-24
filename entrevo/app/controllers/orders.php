@@ -105,7 +105,7 @@ function orders_bulk(): never
     } else {
         $ids = array_values(array_filter(array_map('intval', (array)($_POST['ids'] ?? []))));
     }
-    if (!$ids) back(['error' => 'Coche au moins une commande 😉']);
+    if (!$ids) back(['error' => 'Coche au moins une commande']);
     $in = implode(',', $ids);
     $orders = all("SELECT * FROM orders WHERE organizer_id = ? AND id IN ($in)", [$org['id']]);
     $n = 0; $fail = 0;
@@ -120,21 +120,21 @@ function orders_bulk(): never
                 if ($new !== $tags) { update('orders', ['tags' => $new ? mb_substr(implode(',', $new), 0, 255) : null], 'id = ?', [$o['id']]); $n++; }
             }
             Audit::log('bulk', ($action === 'tag' ? 'Étiquette « ' : 'Retrait de l\'étiquette « ') . $tag . ' » sur ' . $n . ' commande(s)');
-            back(['success' => $action === 'tag' ? "🏷️ Étiquette « $tag » posée sur $n commande(s)." : "Étiquette « $tag » retirée de $n commande(s)."]);
+            back(['success' => $action === 'tag' ? "Étiquette « $tag » posée sur $n commande(s)." : "Étiquette « $tag » retirée de $n commande(s)."]);
         case 'resend':
             foreach ($orders as $o) {
                 if ($o['status'] !== 'paid') continue;
                 try { Mailer::sendOrder((int)$o['id']) ? $n++ : $fail++; } catch (Throwable $e) { $fail++; }
             }
             Audit::log('bulk', "Billets renvoyés : $n commande(s)");
-            back(['success' => "📬 Billets renvoyés pour $n commande(s)." . ($fail ? " $fail envoi(s) impossible(s)." : '')]);
+            back(['success' => "Billets renvoyés pour $n commande(s)." . ($fail ? " $fail envoi(s) impossible(s)." : '')]);
         case 'cancel':
             foreach ($orders as $o) {
                 if ($o['status'] !== 'paid') continue;
                 Tickets::cancelOrder($o, 'cancelled'); $n++;
                 Audit::log('order.cancelled', 'Action groupée, sans remboursement', (int)$o['event_id'], (int)$o['id']);
             }
-            back(['success' => "🚫 $n commande(s) annulée(s), billets désactivés (aucun remboursement)."]);
+            back(['success' => "$n commande(s) annulée(s), billets désactivés (aucun remboursement)."]);
         case 'export':
             $f = orders_read_filters();
             redirect(url('/pro/commandes', array_filter($f) + ['csv' => 1, 'ids' => implode(',', $ids)]));
@@ -175,13 +175,13 @@ function order_action(array $o): never
             try {
                 if (!Mailer::sendOrder($oid)) back(['error' => 'Pas d\'e-mail valide ou pas de billet à envoyer.']);
                 Audit::log('order.resent', (string)val('SELECT email FROM orders WHERE id = ?', [$oid]), $evId, $oid);
-                back(['success' => '📬 Billets renvoyés !']);
+                back(['success' => 'Billets renvoyés !']);
             } catch (Throwable $e) { back(['error' => 'Envoi impossible : ' . $e->getMessage()]); }
         case 'buyer':
             $d = ['first_name' => mb_substr(trim((string)input('first_name')), 0, 80), 'last_name' => mb_substr(trim((string)input('last_name')), 0, 80),
                 'email' => trim((string)input('email')), 'phone' => mb_substr(trim((string)input('phone')), 0, 40) ?: null];
             if ($d['first_name'] === '' || $d['last_name'] === '') back(['error' => 'Prénom et nom obligatoires.']);
-            if ($d['email'] !== '' && !is_email($d['email'])) back(['error' => 'Cet e-mail a l\'air bancal 🤔']);
+            if ($d['email'] !== '' && !is_email($d['email'])) back(['error' => 'Cet e-mail a l\'air bancal']);
             $changes = [];
             $fl = ['first_name' => 'Prénom', 'last_name' => 'Nom', 'email' => 'E-mail', 'phone' => 'Téléphone'];
             foreach ($d as $k => $v) if ((string)$o[$k] !== (string)$v) $changes[] = $fl[$k] . ' : ' . ($o[$k] ?: '—') . ' → ' . ($v ?: '—');
@@ -190,13 +190,13 @@ function order_action(array $o): never
                 if (input('sync_tickets')) q('UPDATE tickets SET first_name = ?, last_name = ?, updated_at = NOW() WHERE order_id = ? AND first_name = ? AND last_name = ?', [$d['first_name'], $d['last_name'], $oid, $o['first_name'], $o['last_name']]);
                 Audit::log('order.updated', implode(' · ', $changes), $evId, $oid);
             }
-            back(['success' => $changes ? '✅ Acheteur mis à jour.' : 'Rien n\'a changé 🙂']);
+            back(['success' => $changes ? 'Acheteur mis à jour.' : 'Rien n\'a changé']);
         case 'meta':
             $tags = array_values(array_unique(array_filter(array_map('clean_tag', explode(',', (string)input('tags'))), 'strlen')));
             $note = mb_substr(trim((string)input('internal_note')), 0, 5000);
             update('orders', ['tags' => $tags ? mb_substr(implode(',', $tags), 0, 255) : null, 'internal_note' => $note !== '' ? $note : null], 'id = ?', [$oid]);
             if ((string)$o['tags'] !== implode(',', $tags) || (string)$o['internal_note'] !== $note) Audit::log('order.updated', 'Étiquettes / note interne', $evId, $oid);
-            back(['success' => '📝 Enregistré.']);
+            back(['success' => 'Enregistré.']);
         case 'holder':
             $t = one('SELECT * FROM tickets WHERE id = ? AND order_id = ?', [(int)input('ticket_id'), $oid]);
             if ($t) {
@@ -204,7 +204,7 @@ function order_action(array $o): never
                 update('tickets', ['first_name' => $fn, 'last_name' => $ln, 'updated_at' => now()], 'id = ?', [$t['id']]);
                 Audit::log('ticket.renamed', $t['code'] . ' : ' . trim($t['first_name'] . ' ' . $t['last_name']) . ' → ' . $fn . ' ' . $ln, $evId, $oid);
             }
-            back(['success' => '✅ Nom modifié.']);
+            back(['success' => 'Nom modifié.']);
         case 'cancel_ticket':
             $t = one("SELECT * FROM tickets WHERE id = ? AND order_id = ? AND status = 'valid'", [(int)input('ticket_id'), $oid]);
             if ($t) {
@@ -246,7 +246,7 @@ function order_partial_refund(array $o): never
     $left = (int)$o['total'] - (int)$o['refunded_amount'];
     $amount = parse_money((string)input('amount'));
     $ticketIds = array_values(array_filter(array_map('intval', (array)($_POST['tickets'] ?? []))));
-    if ($amount <= 0 && !$ticketIds) back(['error' => 'Indique un montant ou coche des billets 😉']);
+    if ($amount <= 0 && !$ticketIds) back(['error' => 'Indique un montant ou coche des billets']);
     if ($amount > $left) back(['error' => 'Tu ne peux pas rembourser plus que ' . money($left) . '.']);
     $msg = '';
     if ($amount > 0) {
@@ -268,5 +268,5 @@ function order_partial_refund(array $o): never
     update('orders', $up, 'id = ?', [$o['id']]);
     $detail = ($amount ? money($amount) : 'Sans montant') . ($cancelled ? ' · billets annulés : ' . implode(', ', array_map(fn($t) => $t['code'], $cancelled)) : '');
     Audit::log('order.partial_refund', $detail, (int)$o['event_id'], (int)$o['id']);
-    back(['success' => '💸 Remboursement partiel enregistré : ' . $detail . ($msg ? ' — ' . rtrim($msg, '.') . '.' : '.')]);
+    back(['success' => 'Remboursement partiel enregistré : ' . $detail . ($msg ? ' — ' . rtrim($msg, '.') . '.' : '.')]);
 }

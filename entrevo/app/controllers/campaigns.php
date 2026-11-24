@@ -67,17 +67,17 @@ function campaign_edit(string $id): string
         $a = (string)input('action');
         if ($editable && in_array($a, ['save', 'test', 'send', 'schedule'], true)) { update('campaigns', campaign_payload(), 'id = ?', [$c['id']]); $c = Campaigns::get((int)$org['id'], (int)$id); }
         switch ($a) {
-            case 'save': back(['success' => '💾 Enregistré.']);
+            case 'save': back(['success' => 'Enregistré.']);
             case 'test':
                 $to = trim((string)input('test_email')) ?: user()['email'];
                 if (!is_email($to)) back(['error' => 'Adresse de test invalide.']);
                 try { Campaigns::sendOne($c + ['subject' => '[TEST] ' . $c['subject']], $org, ['email' => $to, 'first_name' => explode(' ', user()['name'])[0], 'token' => 'test' . token(8)]); }
                 catch (Throwable $e) { back(['error' => 'Envoi impossible : ' . $e->getMessage()]); }
-                back(['success' => '📬 Test envoyé à ' . $to . '. Les liens de suivi ne comptent pas pour le test.']);
+                back(['success' => 'Test envoyé à ' . $to . '. Les liens de suivi ne comptent pas pour le test.']);
             case 'send':
             case 'schedule':
-                if (trim((string)$c['subject']) === '') back(['error' => 'Il manque l\'objet de l\'e-mail ✍️']);
-                if (!Campaigns::blocks($c)) back(['error' => 'Ton e-mail est vide 🙈']);
+                if (trim((string)$c['subject']) === '') back(['error' => 'Il manque l\'objet de l\'e-mail']);
+                if (!Campaigns::blocks($c)) back(['error' => 'Ton e-mail est vide']);
                 $n = count(Campaigns::recipients((int)$org['id'], Campaigns::audience($c)));
                 if (!$n) back(['error' => 'Personne dans cette audience. Élargis-la (ou attends tes premiers inscrits à la newsletter).']);
                 if ($a === 'schedule') {
@@ -85,12 +85,12 @@ function campaign_edit(string $id): string
                     if (!$at || $at < time() + 60) back(['error' => 'Choisis une date d\'envoi dans le futur.']);
                     update('campaigns', ['status' => 'scheduled', 'scheduled_at' => date('Y-m-d H:i:s', $at)], 'id = ?', [$c['id']]);
                     Audit::log('message.sent', 'Campagne programmée : ' . $c['name'] . ' (' . $n . ' destinataires)');
-                    back(['success' => '⏰ Programmée pour le ' . fr_date(date('Y-m-d H:i:s', $at)) . ' (' . $n . ' destinataires environ).']);
+                    back(['success' => 'Programmée pour le ' . fr_date(date('Y-m-d H:i:s', $at)) . ' (' . $n . ' destinataires environ).']);
                 }
                 $n = Campaigns::launch($c);
                 Campaigns::process(Campaigns::BATCH);
                 Audit::log('message.sent', 'Campagne : ' . $c['name'] . ' (' . $n . ' destinataires)');
-                redirect('/pro/campagnes/' . $c['id'], ['success' => '🚀 C\'est parti ! ' . $n . ' e-mails en cours d\'envoi, par petits lots pour ne pas être pris pour du spam.']);
+                redirect('/pro/campagnes/' . $c['id'], ['success' => 'C\'est parti ! ' . $n . ' e-mails en cours d\'envoi, par petits lots pour ne pas être pris pour du spam.']);
             case 'cancel':
                 if ($c['status'] === 'scheduled') update('campaigns', ['status' => 'draft', 'scheduled_at' => null], 'id = ?', [$c['id']]);
                 elseif ($c['status'] === 'sending') update('campaigns', ['status' => 'cancelled'], 'id = ?', [$c['id']]);
@@ -98,11 +98,11 @@ function campaign_edit(string $id): string
             case 'duplicate':
                 $copy = $c; unset($copy['id']);
                 $nid = insert('campaigns', array_merge($copy, ['name' => $c['name'] . ' (copie)', 'status' => 'draft', 'scheduled_at' => null, 'started_at' => null, 'sent_at' => null, 'recipients' => 0, 'created_by' => user()['id'], 'created_at' => now(), 'updated_at' => now()]));
-                redirect('/pro/campagnes/' . $nid, ['success' => '📑 Copie créée.']);
+                redirect('/pro/campagnes/' . $nid, ['success' => 'Copie créée.']);
             case 'delete':
                 if ($c['status'] !== 'draft') back(['error' => 'Seul un brouillon peut être supprimé.']);
                 q('DELETE FROM campaigns WHERE id = ?', [$c['id']]);
-                redirect('/pro/campagnes', ['success' => '🗑️ Brouillon supprimé.']);
+                redirect('/pro/campagnes', ['success' => 'Brouillon supprimé.']);
         }
         back();
     }

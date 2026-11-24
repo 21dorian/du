@@ -110,7 +110,7 @@ final class Tickets
     {
         if (!$rate['active']) return ['ok' => false, 'why' => 'Indisponible'];
         if ($event['status'] !== 'published') return ['ok' => false, 'why' => 'Vente fermée'];
-        if (!empty($event['_presale_locked'])) return ['ok' => false, 'presale' => true, 'why' => 'Prévente privée 🔒'];
+        if (!empty($event['_presale_locked'])) return ['ok' => false, 'presale' => true, 'why' => 'Prévente privée'];
         $now = time();
         if ($rate['sale_start'] && strtotime($rate['sale_start']) > $now) return ['ok' => false, 'why' => 'En vente le ' . fr_date($rate['sale_start'])];
         if ($rate['sale_end'] && strtotime($rate['sale_end']) < $now) return ['ok' => false, 'why' => 'Vente terminée'];
@@ -133,7 +133,7 @@ final class Tickets
             }
         }
         $rem = self::remainingUnits($rate, $event, $session, $exceptWaitlist);
-        if ($rem <= 0) return ['ok' => false, 'why' => 'Complet 🫠'];
+        if ($rem <= 0) return ['ok' => false, 'why' => 'Complet'];
         return ['ok' => true, 'remaining' => $rem];
     }
 
@@ -154,7 +154,7 @@ final class Tickets
         if (!$p) return ['error' => 'Code inconnu.'];
         if ((int)$p['max_uses'] > 0 && (int)$p['used'] >= (int)$p['max_uses']) return ['error' => 'Ce code a déjà été utilisé à fond.'];
         if ($p['valid_until'] && strtotime($p['valid_until']) < time()) return ['error' => 'Ce code a expiré. Trop tard, désolé.'];
-        if (!empty($p['valid_from']) && strtotime($p['valid_from']) > time()) return ['error' => 'Ce code sera valable à partir du ' . fr_date($p['valid_from']) . '. Patience 😉'];
+        if (!empty($p['valid_from']) && strtotime($p['valid_from']) > time()) return ['error' => 'Ce code sera valable à partir du ' . fr_date($p['valid_from']) . '. Patience'];
         $p['rate_list'] = array_filter(array_map('intval', explode(',', (string)$p['rate_ids'])));
         return ['promo' => $p];
     }
@@ -238,7 +238,7 @@ final class Tickets
         $waitlist = $p['waitlist'] ?? null;
         $resale = $p['resale'] ?? null;
         $errors = [];
-        if (self::hasSessions((int)$ev['id']) && !$session) return ['errors' => ['Choisis d\'abord une date 📅']];
+        if (self::hasSessions((int)$ev['id']) && !$session) return ['errors' => ['Choisis d\'abord une date']];
         if ($session && (int)$session['event_id'] !== (int)$ev['id']) return ['errors' => ['Séance inconnue.']];
 
         db()->beginTransaction();
@@ -294,7 +294,7 @@ final class Tickets
                 $seats = [];
                 if ($seatmap && !$resale && $method !== 'import') {
                     $seats = array_values(array_unique(array_map('strval', (array)($seatsWanted[$rate['id']] ?? []))));
-                    if (count($seats) !== $qty * $pack) { $errors[] = $rate['name'] . ' : choisis ' . ($qty * $pack) . ' place(s) sur le plan 💺'; continue; }
+                    if (count($seats) !== $qty * $pack) { $errors[] = $rate['name'] . ' : choisis ' . ($qty * $pack) . ' place(s) sur le plan'; continue; }
                     foreach ($seats as $seat) {
                         $chk = Seating::check($ev, $session, $seat, $rate);
                         if ($chk !== true) { $errors[] = $chk; continue 2; }
@@ -322,7 +322,7 @@ final class Tickets
                 $items[] = ['kind' => 'product', 'rate_id' => 0, 'product_id' => (int)$prod['id'], 'name' => $prod['name'] . ($variant !== '' ? ' (' . $variant . ')' : ''), 'variant' => $variant !== '' ? $variant : null, 'qty' => $qty,
                     'unit_price' => $method === 'invitation' ? 0 : (int)$prod['price'], 'seats' => null, '_pack' => 0];
             }
-            if (!$units && !$errors) $errors[] = 'Prends au moins un billet 🎟️';
+            if (!$units && !$errors) $errors[] = 'Prends au moins un billet';
             if (!$staff && !$partner && !$resale && (int)$ev['max_per_order'] > 0 && $units > (int)$ev['max_per_order']) $errors[] = 'Maximum ' . $ev['max_per_order'] . ' billets par commande.';
             if ($waitlist && $places > (int)$waitlist['qty']) $errors[] = 'Ta place réservée couvre ' . (int)$waitlist['qty'] . ' billet(s).';
             if ($errors) { db()->rollBack(); return ['errors' => array_values(array_unique($errors))]; }
@@ -397,7 +397,7 @@ final class Tickets
             return ['order' => $order];
         } catch (Throwable $e) {
             if (db()->inTransaction()) db()->rollBack();
-            if ($e instanceof PDOException && (int)($e->errorInfo[1] ?? 0) === 1062) return ['errors' => ['Une des places choisies vient d\'être prise par quelqu\'un d\'autre 😬 Choisis-en une autre.']];
+            if ($e instanceof PDOException && (int)($e->errorInfo[1] ?? 0) === 1062) return ['errors' => ['Une des places choisies vient d\'être prise par quelqu\'un d\'autre Choisis-en une autre.']];
             throw $e;
         }
     }

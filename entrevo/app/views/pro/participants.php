@@ -2,11 +2,11 @@
 $qs = array_filter(['q' => $q, 'ev' => $evId ?: null, 'seg' => $seg ?: null], fn($v) => $v !== null && $v !== '');
 $th = function (string $k, string $label, string $cls = '') use ($qs, $sort, $dir) {
     $on = $sort === $k; $d = $on && $dir === 'DESC' ? 'asc' : 'desc';
-    return '<th class="' . $cls . '" aria-sort="' . ($on ? ($dir === 'ASC' ? 'ascending' : 'descending') : 'none') . '"><a class="th-sort' . ($on ? ' on' : '') . '" href="' . e(url('/pro/participants', $qs + ['sort' => $k, 'dir' => $d])) . '">' . e($label) . '<span class="th-arrow">' . ($on ? ($dir === 'ASC' ? '↑' : '↓') : '↕') . '</span></a></th>';
+    return '<th class="' . $cls . '" aria-sort="' . ($on ? ($dir === 'ASC' ? 'ascending' : 'descending') : 'none') . '"><a class="th-sort' . ($on ? ' on' : '') . '" href="' . e(url('/pro/participants', $qs + ['sort' => $k, 'dir' => $d])) . '">' . e($label) . '<span class="th-arrow">' . ($on ? ($dir === 'ASC' ? '↑' : '↓') : '') . '</span></a></th>';
 };
-$segs = ['' => 'Tout le monde', 'fideles' => '💜 Fidèles (2+ événements)', 'gros' => '💎 100 € et plus', 'recents' => '🆕 Achat < 30 jours', 'dormants' => '😴 Pas revenus depuis 6 mois'];
+$segs = ['' => 'Tout le monde', 'fideles' => 'Fidèles (2+ événements)', 'gros' => '100 € et plus', 'recents' => 'Achat < 30 jours', 'dormants' => 'Pas revenus depuis 6 mois'];
 ?>
-<p class="muted">Tous tes acheteurs, tous événements confondus : un contact par adresse e-mail, avec son historique. La base idéale pour tes prochaines campagnes 📣</p>
+<p class="muted">Tous tes acheteurs, tous événements confondus : un contact par adresse e-mail, avec son historique. La base idéale pour tes prochaines campagnes</p>
 <div class="page-head-row">
   <div class="kpi-mini"><span>Contacts</span><b><?= number_format((int)$kpi['contacts'], 0, ',', ' ') ?></b></div>
   <div class="kpi-mini"><span>Fidèles</span><b><?= number_format((int)$kpi['fideles'], 0, ',', ' ') ?></b></div>
@@ -17,13 +17,13 @@ $segs = ['' => 'Tout le monde', 'fideles' => '💜 Fidèles (2+ événements)', 
 <form class="filters card" method="get">
   <?php if ($seg): ?><input type="hidden" name="seg" value="<?= e($seg) ?>"><?php endif; ?>
   <div class="filters-main">
-    <label class="search-field"><span aria-hidden="true">🔎</span><input type="search" name="q" value="<?= e($q) ?>" placeholder="Nom, e-mail, téléphone…" aria-label="Rechercher"></label>
+    <label class="search-field"><span aria-hidden="true"></span><input type="search" name="q" value="<?= e($q) ?>" placeholder="Nom, e-mail, téléphone…" aria-label="Rechercher"></label>
     <select name="ev" aria-label="Événement"><option value="">Venus à n'importe quel événement</option><?php foreach ($events as $e2): ?><option value="<?= (int)$e2['id'] ?>" <?= $evId === (int)$e2['id'] ? 'selected' : '' ?>>Venus à : <?= e($e2['name']) ?></option><?php endforeach; ?></select>
     <button class="btn btn-sm">Filtrer</button>
     <span class="grow"></span>
-    <a class="btn btn-sm btn-ghost" href="<?= url('/pro/participants', $qs + ['csv' => 1]) ?>">⬇️ Exporter (CSV)</a>
-    <button class="btn btn-sm btn-light" form="seg-campaign">✉️ Écrire à ce segment</button>
-    <?= soon_btn('import-contacts', '📥 Importer') ?><?= soon_btn('doublons', '🧹 Doublons') ?><?= soon_btn('emailing-externe', '📮 Vers Mailchimp') ?>
+    <a class="btn btn-sm btn-ghost" href="<?= url('/pro/participants', $qs + ['csv' => 1]) ?>">Exporter (CSV)</a>
+    <button class="btn btn-sm btn-light" form="seg-campaign">Écrire à ce segment</button>
+    <?= soon_btn('import-contacts', 'Importer') ?><?= soon_btn('doublons', 'Doublons') ?><?= soon_btn('emailing-externe', 'Vers Mailchimp') ?>
   </div>
 </form>
 <form id="seg-campaign" method="post" action="<?= url('/pro/campagnes/nouvelle') ?>" hidden><?= csrf_field() ?><input type="hidden" name="modele" value="annonce"><input type="hidden" name="source" value="customers"><input type="hidden" name="seg" value="<?= e($seg) ?>"><input type="hidden" name="ev" value="<?= (int)$evId ?>"></form>
@@ -45,7 +45,7 @@ $segs = ['' => 'Tout le monde', 'fideles' => '💜 Fidèles (2+ événements)', 
         <td class="nowrap"><?= e(short_date($c['last_at'])) ?><br><small class="muted"><?= e(ago($c['last_at'])) ?></small></td>
       </tr>
     <?php endforeach; ?>
-    <?php if (!$list): ?><tr><td colspan="8" class="empty">Personne ne correspond. Dès la première vente, tes contacts arrivent ici 🙌</td></tr><?php endif; ?>
+    <?php if (!$list): ?><tr><td colspan="8" class="empty">Personne ne correspond. Dès la première vente, tes contacts arrivent ici</td></tr><?php endif; ?>
     </tbody>
   </table></div>
   <?php if ($pages > 1): $pq = $qs + ['sort' => $sort, 'dir' => strtolower($dir)]; ?>

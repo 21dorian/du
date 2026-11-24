@@ -192,7 +192,7 @@ $pname = (string)setting('platform_name');
     <?php endif; ?>
     <a class="side-user" href="<?= url('/mon-compte') ?>"><span class="avatar"><?= e(mb_strtoupper(mb_substr($u['name'], 0, 1))) ?></span><span><?= e($u['name']) ?><small><?= e(role_label($u['role'])) ?></small></span></a>
     <div class="side-links">
-      <a href="<?= url('/') ?>" target="_blank">Voir le site ↗</a>
+      <a href="<?= url('/') ?>" target="_blank">Voir le site</a>
       <form method="post" action="<?= url('/deconnexion') ?>"><?= csrf_field() ?><button class="linklike">Déconnexion</button></form>
     </div>
     <small class="ver">v<?= e(app_version()) ?></small>
@@ -206,24 +206,24 @@ $pname = (string)setting('platform_name');
     <div class="probar-actions">
       <?php if ($area === 'pro'): ?>
       <details class="menu"><summary class="btn btn-sm">+ Créer</summary><div class="menu-list">
-        <a href="<?= url('/pro/evenements/nouveau') ?>">📅 Un événement</a>
-        <a href="<?= url('/pro/evenements') ?>">💵 Une vente au guichet</a>
-        <a href="<?= url('/pro/evenements') ?>">🎁 Des invitations</a>
-        <a href="<?= url('/pro/equipe') ?>">👥 Un compte d'équipe</a>
-        <a href="<?= url('/pro/campagnes') ?>">✉️ Une campagne e-mail</a>
+        <a href="<?= url('/pro/evenements/nouveau') ?>">Un événement</a>
+        <a href="<?= url('/pro/evenements') ?>">Une vente au guichet</a>
+        <a href="<?= url('/pro/evenements') ?>">Des invitations</a>
+        <a href="<?= url('/pro/equipe') ?>">Un compte d'équipe</a>
+        <a href="<?= url('/pro/campagnes') ?>">Une campagne e-mail</a>
         <div class="menu-sep">En développement</div>
-        <a class="menu-soon" href="<?= url('/pro/bientot/boutique') ?>">🛍️ Un produit boutique</a>
-        <a class="menu-soon" href="<?= url('/pro/bientot/cartes-cadeaux') ?>">🎁 Une carte cadeau</a>
-        <a class="menu-soon" href="<?= url('/pro/bientot/abonnements') ?>">🎫 Un abonnement</a>
+        <a class="menu-soon" href="<?= url('/pro/bientot/boutique') ?>">Un produit boutique</a>
+        <a class="menu-soon" href="<?= url('/pro/bientot/cartes-cadeaux') ?>">Une carte cadeau</a>
+        <a class="menu-soon" href="<?= url('/pro/bientot/abonnements') ?>">Un abonnement</a>
       </div></details>
       <?php endif; ?>
       <details class="menu notif" id="notif"><summary class="probar-icon" aria-label="Notifications"><svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><path d="M6 16V11a6 6 0 1 1 12 0v5l2 2H4zM10 20a2 2 0 0 0 4 0" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/></svg><b class="notif-count" hidden></b></summary>
         <div class="menu-list notif-list"><p class="muted">Chargement…</p></div></details>
     </div>
   </div>
-  <?php if ($area === 'pro' && $org && $org['status'] === 'pending'): ?><div class="flash warning">⏳ Ton compte est en cours de validation par l'équipe <?= e($pname) ?>. Tu peux tout préparer ; la publication sera possible dès la validation (on te prévient par e-mail).</div><?php endif; ?>
+  <?php if ($area === 'pro' && $org && $org['status'] === 'pending'): ?><div class="flash warning">Ton compte est en cours de validation par l'équipe <?= e($pname) ?>. Tu peux tout préparer ; la publication sera possible dès la validation (on te prévient par e-mail).</div><?php endif; ?>
   <?php if ($area === 'pro' && ($ann = trim((string)setting('announce_text'))) !== '' && (!setting('announce_until') || strtotime((string)setting('announce_until')) >= time())): $annId = substr(md5($ann), 0, 8); ?>
-    <div class="announce <?= e((string)setting('announce_level', 'info')) ?>" data-announce="<?= $annId ?>"><span>📣</span><div class="grow"><?= nl2br(e($ann)) ?></div><button type="button" class="announce-x" aria-label="Masquer l'annonce">✕</button></div>
+    <div class="announce <?= e((string)setting('announce_level', 'info')) ?>" data-announce="<?= $annId ?>"><span></span><div class="grow"><?= nl2br(e($ann)) ?></div><button type="button" class="announce-x" aria-label="Masquer l'annonce">✕</button></div>
   <?php endif; ?>
   <?php if (!empty($crumbs)): ?><div class="crumbs"><?php foreach ($crumbs as $i => [$l, $h]): ?><?= $i ? ' <span>/</span> ' : '' ?><?= $h ? '<a href="' . url($h) . '">' . e($l) . '</a>' : e($l) ?><?php endforeach; ?></div><?php endif; ?>
   <div class="page-head">

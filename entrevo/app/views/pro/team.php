@@ -1,11 +1,11 @@
 <?php if ($created): ?>
-<div class="flash success">✅ Compte prêt ! Transmets ces identifiants (ils ne seront plus affichés) :<br>
+<div class="flash success">Compte prêt ! Transmets ces identifiants (ils ne seront plus affichés) :<br>
   <span class="mono">E-mail : <?= e($created['email']) ?> · Mot de passe : <?= e($created['password']) ?></span><br>
   <?= $created['role'] === 'scanner' ? 'Appli de contrôle : ' . e(abs_url('/scan')) : 'Connexion : ' . e(abs_url('/connexion')) ?></div>
 <?php endif; ?>
 <div class="split-3">
   <div class="card">
-    <h2>👥 Ton équipe</h2>
+    <h2>Ton équipe</h2>
     <div class="table-wrap"><table class="table">
       <thead><tr><th>Nom</th><th>Rôle</th><th>Dernière connexion</th><th></th></tr></thead>
       <tbody>
@@ -23,7 +23,7 @@
       <?php endforeach; ?>
       </tbody>
     </table></div>
-    <p class="muted mt mb0" style="font-size:14px"><b>Responsable</b> : tout, finances comprises · <b>Gestionnaire</b> : événements, ventes, participants · <b>Contrôleur</b> : uniquement l'appli de scan 📷</p>
+    <p class="muted mt mb0" style="font-size:14px"><b>Responsable</b> : tout, finances comprises · <b>Gestionnaire</b> : événements, ventes, participants · <b>Contrôleur</b> : uniquement l'appli de scan</p>
   </div>
   <form class="card" method="post"><?= csrf_field() ?><input type="hidden" name="action" value="add">
     <h2>+ Ajouter quelqu'un</h2>
@@ -34,7 +34,7 @@
     <button class="btn btn-block">Créer le compte</button>
   </form>
 </div>
-<?= soon_card('🔐 Sécurité & droits', [
+<?= soon_card('Sécurité & droits', [
   'roles-perso' => ['Rôles personnalisés', 'Billetterie seulement, compta, lecture seule…'],
   'double-auth' => ['Double authentification', 'Un code en plus du mot de passe'],
 ]) ?>

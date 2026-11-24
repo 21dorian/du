@@ -16,9 +16,9 @@ function kyc_page(): string
         $st = Kyc::refresh((int)$org['id']);
         Audit::log('org.updated', 'Justificatif déposé : ' . Kyc::KINDS[$kind][1]);
         if ($st === 'pending') {
-            try { foreach (array_column(all("SELECT email FROM users WHERE role = 'superadmin' AND active = 1"), 'email') as $to) Mailer::send($to, '🪪 Pièces à vérifier : ' . $org['name'], '<p>« ' . e($org['name']) . ' » a déposé tous ses justificatifs.</p><p><a href="' . e(abs_url('/admin/kyc/' . $org['id'])) . '">Les vérifier</a></p>'); } catch (Throwable $e) { log_line('emails', $e->getMessage()); }
+            try { foreach (array_column(all("SELECT email FROM users WHERE role = 'superadmin' AND active = 1"), 'email') as $to) Mailer::send($to, 'Pièces à vérifier : ' . $org['name'], '<p>« ' . e($org['name']) . ' » a déposé tous ses justificatifs.</p><p><a href="' . e(abs_url('/admin/kyc/' . $org['id'])) . '">Les vérifier</a></p>'); } catch (Throwable $e) { log_line('emails', $e->getMessage()); }
         }
-        back(['success' => $st === 'pending' ? '📨 Tout est déposé ! On vérifie et on te prévient par e-mail.' : '✅ Document reçu.']);
+        back(['success' => $st === 'pending' ? 'Tout est déposé ! On vérifie et on te prévient par e-mail.' : 'Document reçu.']);
     }
     $docs = Kyc::latest((int)$org['id']);
     $history = all('SELECT * FROM org_documents WHERE organizer_id = ? ORDER BY id DESC LIMIT 30', [$org['id']]);
@@ -57,11 +57,11 @@ function admin_kyc_org(string $id): string
         $before = $org['kyc_status'];
         $st = Kyc::refresh((int)$org['id']);
         if ($st !== $before && in_array($st, ['verified', 'rejected'], true)) {
-            $msg = $st === 'verified' ? '<p>Bonne nouvelle : les justificatifs de « ' . e($org['name']) . ' » sont validés ✅ Tes reversements peuvent partir.</p>'
+            $msg = $st === 'verified' ? '<p>Bonne nouvelle : les justificatifs de « ' . e($org['name']) . ' » sont validés Tes reversements peuvent partir.</p>'
                 : '<p>Un de tes justificatifs doit être corrigé' . (input('note') ? ' : « ' . e((string)input('note')) . ' »' : '') . '.</p><p><a href="' . e(abs_url('/pro/verification')) . '">Déposer un nouveau document</a></p>';
-            try { Mailer::send((string)$org['email'], $st === 'verified' ? '✅ Ton compte est vérifié' : '🪪 Un justificatif à corriger', $msg); } catch (Throwable $e) { log_line('emails', $e->getMessage()); }
+            try { Mailer::send((string)$org['email'], $st === 'verified' ? 'Ton compte est vérifié' : 'Un justificatif à corriger', $msg); } catch (Throwable $e) { log_line('emails', $e->getMessage()); }
         }
-        back(['success' => $ok ? '✅ Document validé.' : 'Document refusé, l\'organisateur est prévenu.']);
+        back(['success' => $ok ? 'Document validé.' : 'Document refusé, l\'organisateur est prévenu.']);
     }
     $docs = Kyc::latest((int)$org['id']);
     $history = all('SELECT d.*, u.name reviewer FROM org_documents d LEFT JOIN users u ON u.id = d.reviewed_by WHERE d.organizer_id = ? ORDER BY d.id DESC', [$org['id']]);

@@ -1,6 +1,6 @@
 <div class="checkout">
   <form class="card" method="post"><?= csrf_field() ?>
-    <span class="eyebrow">🔁 Bourse aux billets officielle</span>
+    <span class="eyebrow">Bourse aux billets officielle</span>
     <h1><?= e($ev['name']) ?></h1>
     <?php if ($errors): ?><div class="flash error"><?= implode('<br>', array_map('e', $errors)) ?></div><?php endif; ?>
     <p class="muted">Ce billet est revendu par un autre spectateur au prix d'origine. Après ton paiement, son QR code est annulé et un <b>nouveau billet à ton nom</b> t'est envoyé. 100 % légal, 0 % arnaque.</p>
@@ -14,7 +14,7 @@
   </form>
   <aside class="card">
     <h3><?= e($x['rate_name']) ?></h3>
-    <?php if ($x['seat']): ?><p class="ticket-seat">💺 <?= e(Seating::label($x['seat'], Seating::map($ev))) ?></p><?php endif; ?>
+    <?php if ($x['seat']): ?><p class="ticket-seat"><?= e(Seating::label($x['seat'], Seating::map($ev))) ?></p><?php endif; ?>
     <div class="summary-line"><span>Billet (prix d'origine)</span><span><?= e(money((int)$x['price'])) ?></span></div>
     <?php if ($fee): ?><div class="summary-line"><span>Frais de service</span><span><?= e(money($fee)) ?></span></div><?php endif; ?>
     <div class="summary-line total"><span>Total</span><span><?= e(money((int)$x['price'] + $fee)) ?></span></div>

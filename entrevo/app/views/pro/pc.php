@@ -12,7 +12,7 @@
   <div class="pc-title"><span class="live-dot">live</span><b><?= e($ev['name']) ?></b><small id="pc-at"><?= e($snap['at']) ?></small></div>
   <div class="pc-head-actions">
     <a class="pc-btn" href="<?= url('/pro/evenements/' . $ev['id'] . '/controle') ?>">← Contrôle</a>
-    <button class="pc-btn" type="button" id="pc-full">⛶ Plein écran</button>
+    <button class="pc-btn" type="button" id="pc-full">Plein écran</button>
   </div>
 </header>
 <main class="pc-grid">
@@ -27,12 +27,12 @@
   <section class="pc-card pc-flux"><h2>Entrées par 5 minutes (2 h)</h2><div class="pc-cols" id="flux"></div></section>
   <section class="pc-card"><h2>Refus récents</h2><div id="refusals" class="pc-list"></div></section>
   <section class="pc-card"><h2>Téléphones de contrôle</h2><div id="devices" class="pc-list"></div></section>
-  <section class="pc-card pc-log"><h2>📋 Main courante <span id="inc-open" class="pc-badge"></span> <a class="pc-link" href="<?= url('/pro/evenements/' . $ev['id'] . '/pc/main-courante.csv') ?>">Export CSV</a></h2>
+  <section class="pc-card pc-log"><h2>Main courante <span id="inc-open" class="pc-badge"></span> <a class="pc-link" href="<?= url('/pro/evenements/' . $ev['id'] . '/pc/main-courante.csv') ?>">Export CSV</a></h2>
     <form id="pc-inc" class="pc-form">
       <input name="title" maxlength="190" required placeholder="Ex. : Malaise devant la scène, objet perdu, porte B saturée…">
       <div class="pc-form-row">
         <select name="category"><?php foreach (PC_CATEGORIES as $k => $l): ?><option value="<?= $k ?>"><?= $l ?></option><?php endforeach; ?></select>
-        <select name="level"><option value="info">Info</option><option value="warn">⚠️ Attention</option><option value="alert">🚨 Urgent</option></select>
+        <select name="level"><option value="info">Info</option><option value="warn">Attention</option><option value="alert">Urgent</option></select>
         <input name="zone" list="pc-zones" placeholder="Zone" maxlength="120"><datalist id="pc-zones"><?php foreach (all('SELECT name FROM access_points WHERE event_id = ?', [$ev['id']]) as $z): ?><option value="<?= e($z['name']) ?>"><?php endforeach; ?></datalist>
       </div>
       <textarea name="note" rows="2" maxlength="2000" placeholder="Détails, personnes prévenues, actions… (facultatif)"></textarea>
@@ -42,7 +42,7 @@
   </section>
   <section class="pc-card"><h2>Message aux contrôleurs</h2>
     <form id="pc-msg" class="pc-form"><textarea name="body" rows="2" maxlength="280" placeholder="Ex. : Porte B fermée, tout le monde par la A" required></textarea>
-      <div class="pc-form-row"><select name="level"><option value="info">ℹ️ Info</option><option value="warn">⚠️ Attention</option><option value="alert">🚨 Urgent</option></select><button class="pc-btn primary">Envoyer</button></div></form>
+      <div class="pc-form-row"><select name="level"><option value="info">Info</option><option value="warn">Attention</option><option value="alert">Urgent</option></select><button class="pc-btn primary">Envoyer</button></div></form>
     <div id="messages" class="pc-list"></div>
   </section>
 </main>
@@ -72,9 +72,9 @@
     d.flux.forEach(function (b, k) { var c = el('div', 'pc-col'); var bar = el('i'); bar.style.height = Math.max(2, Math.round(b.n / mx * 100)) + '%'; bar.title = b.t + ' : ' + b.n + ' entrée(s)'; c.appendChild(bar); c.appendChild(el('small', '', k % 4 === 0 ? b.t : '')); f.appendChild(c); });
     var r = $('refusals'); r.textContent = '';
     d.refusals.forEach(function (x) { var it = el('div', 'pc-item'); it.appendChild(el('span', 'pc-time', x.at)); it.appendChild(el('span', 'pc-grow', x.label + ' · ' + x.who)); it.appendChild(el('small', '', x.ap)); r.appendChild(it); });
-    if (!d.refusals.length) r.appendChild(el('p', 'pc-muted', 'Aucun refus 👌'));
+    if (!d.refusals.length) r.appendChild(el('p', 'pc-muted', 'Aucun refus'));
     var dv = $('devices'); dv.textContent = '';
-    d.devices.forEach(function (x) { var it = el('div', 'pc-item'); it.appendChild(el('span', 'pc-dot' + (x.online ? ' on' : ''))); it.appendChild(el('span', 'pc-grow', x.name + ' · ' + x.ap + (x.dir === 'out' ? ' (sortie)' : ''))); it.appendChild(el('small', x.battery !== null && x.battery <= 20 ? 'pc-low' : '', (x.pending ? '⏳ ' + x.pending + ' · ' : '') + (x.battery !== null ? '🔋 ' + x.battery + ' %' : ''))); dv.appendChild(it); });
+    d.devices.forEach(function (x) { var it = el('div', 'pc-item'); it.appendChild(el('span', 'pc-dot' + (x.online ? ' on' : ''))); it.appendChild(el('span', 'pc-grow', x.name + ' · ' + x.ap + (x.dir === 'out' ? ' (sortie)' : ''))); it.appendChild(el('small', x.battery !== null && x.battery <= 20 ? 'pc-low' : '', (x.pending ? '' + x.pending + ' · ' : '') + (x.battery !== null ? '' + x.battery + ' %' : ''))); dv.appendChild(it); });
     if (!d.devices.length) dv.appendChild(el('p', 'pc-muted', 'Aucun téléphone connecté.'));
     var il = $('incidents'); il.textContent = '';
     $('inc-open').textContent = d.incidents_open ? d.incidents_open + ' en cours' : '';
@@ -88,11 +88,11 @@
       if (x.note) it.appendChild(el('p', 'pc-inc-note', x.note));
       il.appendChild(it);
     });
-    if (!(d.incidents || []).length) il.appendChild(el('p', 'pc-muted', 'Rien à signaler pour l\'instant 👌'));
+    if (!(d.incidents || []).length) il.appendChild(el('p', 'pc-muted', 'Rien à signaler pour l\'instant'));
     var m = $('messages'); m.textContent = '';
     (d.messages || []).forEach(function (x) { var it = el('div', 'pc-item ' + x.level); it.appendChild(el('span', 'pc-time', x.at)); it.appendChild(el('span', 'pc-grow', x.body)); m.appendChild(it); });
   }
-  function load() { fetch(url, { credentials: 'same-origin' }).then(function (r) { return r.json(); }).then(render).catch(function () { $('pc-at').textContent = '📵 connexion perdue, nouvelle tentative…'; }); }
+  function load() { fetch(url, { credentials: 'same-origin' }).then(function (r) { return r.json(); }).then(render).catch(function () { $('pc-at').textContent = 'connexion perdue, nouvelle tentative…'; }); }
   load(); setInterval(load, 5000);
   $('pc-inc').addEventListener('submit', function (e) {
     e.preventDefault(); var fd = new FormData(e.target); fd.append('action', 'incident'); fd.append('_csrf', body.dataset.csrf);

@@ -78,7 +78,7 @@ final class Seating
         if (!$seat || $seat['off']) return 'La place ' . $key . ' n\'existe pas.';
         if ($rate['seat_category'] && $seat['cat'] !== $rate['seat_category']) return 'La place ' . self::label($key, $map) . ' n\'est pas dans la catégorie du tarif « ' . $rate['name'] . ' ».';
         $taken = self::taken($ev, $session ? (int)$session['id'] : null);
-        if (isset($taken[$key])) return 'La place ' . self::label($key, $map) . ' vient d\'être prise 😬';
+        if (isset($taken[$key])) return 'La place ' . self::label($key, $map) . ' vient d\'être prise';
         return true;
     }
 
