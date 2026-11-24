@@ -19,7 +19,8 @@ $presence = $stats['sold'] ? round($stats['checked'] / $stats['sold'] * 100) : 0
   </div>
 </div>
 <div class="stat-grid">
-  <div class="stat"><div class="stat-top"><small>💶 Recettes totales</small><?= Viz::sparkline($spark['revenue']) ?></div><b><?= e(money($stats['revenue'])) ?></b><div class="stat-sub">7 j : <?= e(money($cur['revenue'])) ?> · <?= Viz::delta($cur['revenue'], $prev['revenue'], 'vs 7 j préc.') ?></div></div>
+  <div class="stat"><div class="stat-top"><small>💶 Recettes totales</small><?= Viz::sparkline($spark['revenue']) ?></div><b><?= e(money($stats['revenue'])) ?></b><div class="stat-sub">7 j : <?= e(money($cur['revenue'])) ?> · <?= Viz::delta($cur['revenue'], $prev['revenue'], 'vs 7 j préc.') ?></div>
+    <?php if ((int)($ev['revenue_goal'] ?? 0) > 0): $gp = min(100, round($stats['revenue'] / (int)$ev['revenue_goal'] * 100)); ?><div class="goal-mini" title="Objectif : <?= e(money((int)$ev['revenue_goal'])) ?>"><div class="goal-bar"><i style="width:<?= $gp ?>%"></i></div><small>🎯 <?= $gp ?> % de l'objectif (<?= e(money((int)$ev['revenue_goal'])) ?>)</small></div><?php endif; ?></div>
   <div class="stat"><div class="stat-top"><small>🎟️ Billets</small><?= Viz::sparkline($spark['orders']) ?></div><b><?= $stats['sold'] ?></b><div class="stat-sub">7 j : <?= $cur['tickets'] ?> · <?= Viz::delta($cur['tickets'], $prev['tickets'], 'vs 7 j préc.') ?></div></div>
   <div class="stat"><div class="stat-top"><small>🎯 Conversion</small></div><b><?= $fun['rate'] === null ? '—' : e(number_format($fun['rate'], 1, ',', ' ')) . ' %' ?></b><div class="stat-sub"><?= number_format($fun['visitors'], 0, ',', ' ') ?> visiteurs · <?= (int)$fun['abandoned'] ?> paniers abandonnés</div></div>
   <div class="stat"><div class="stat-top"><small>✅ Présence</small></div><b><?= $presence ?> %</b><div class="stat-sub"><?= $stats['checked'] ?> entrés · <?= $stats['inside'] ?> sur place</div></div>

@@ -27,6 +27,8 @@ final class Jobs
             'payments' => fn() => (time() - (int)setting('jobs_pay', 0) >= 180 || $force) ? (set_setting('jobs_pay', (string)time()) ?? Payments::recheckPending()) : 0,
             'waitlist' => fn() => class_exists('Waitlist') ? Waitlist::process() : 0,
             'campaigns' => fn() => class_exists('Campaigns') ? Campaigns::process() : 0,
+            'recap' => fn() => class_exists('Recap') ? Recap::run() : 0,
+            'alerts' => fn() => class_exists('Recap') ? Recap::thresholds() : 0,
             'staff' => fn() => class_exists('Staff') ? Staff::reminders() : 0,
             'queue' => fn() => q('DELETE FROM queue_entries WHERE last_seen < NOW() - INTERVAL 2 HOUR')->rowCount(),
         ];

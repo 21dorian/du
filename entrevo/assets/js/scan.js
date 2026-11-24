@@ -15,6 +15,9 @@
   var DEVICE = (function () { var d = store.get('device'); if (!d) { d = 'app-' + Math.random().toString(36).slice(2, 10); store.set('device', d); } return d; })();
 
   var cfg = store.get('cfg', { eventId: null, apId: null, dir: 'in', sound: true, mine: {} });
+  if (cfg.awake === undefined) cfg.awake = true;
+  if (!cfg.msgSeen) cfg.msgSeen = {};
+  var hist = [], live = null;
   var me = null, data = null, queue = [], online = navigator.onLine, busy = false, lastCode = '', lastAt = 0, lastScan = null, conflicts = 0;
 
   function saveCfg() { store.set('cfg', cfg); }
@@ -61,9 +64,9 @@
   // ---------- Écrans ----------
   function show(id) {
     ['login', 'events', 'setup', 'scan'].forEach(function (s) { $('s-' + s).hidden = s !== id; });
-    if (id === 'scan') startCamera(); else stopCamera();
+    if (id === 'scan') startCamera(); else { stopCamera(); wake(false); }
   }
-  function overlay(id, open) { $('s-' + id).hidden = !open; if (id === 'search' && open) { $('search-input').value = ''; renderSearch(); setTimeout(function () { $('search-input').focus(); }, 50); } }
+  function overlay(id, open) { $('s-' + id).hidden = !open; if (id === 'search' && open) { $('search-input').value = ''; renderSearch(); setTimeout(function () { $('search-input').focus(); }, 50); } if (id === 'history' && open) renderHistory(); if (id === 'stats' && open) { renderStats(); ping(); } }
   document.addEventListener('click', function (e) {
     var go = e.target.closest('[data-go]'), cl = e.target.closest('[data-close]');
     if (go) { var g = go.dataset.go; overlay('menu', false); if (g === 'menu') { updateNet(); overlay('menu', true); } else if (g === 'events') loadEvents(); else if (g === 'setup') openSetup(cfg.eventId); }
@@ -141,7 +144,8 @@
   function merge(j) {
     if (!data || j.full || !data.tickets) data = { event: j.event, aps: j.access_points, rates: j.rates, tickets: {}, server_time: j.server_time, stats: j.stats };
     data.event = j.event; data.aps = j.access_points; data.rates = j.rates; data.server_time = j.server_time; data.stats = j.stats;
-    data.sessions = j.sessions || []; data.pops = j.populations || {};
+    data.sessions = j.sessions || []; data.pops = j.populations || {}; data.rules = j.rules || {};
+    if (j.message !== undefined) showMessage(j.message);
     j.tickets.forEach(function (t) {
       // si un passage local n'est pas encore envoyé, on garde l'état local du billet
       var pendingLocal = queue.some(function (q) { return q.code === t[0]; });
@@ -193,7 +197,11 @@
     $('scan-ev').textContent = data.event.name;
     var sess = (data.sessions || []).filter(function (x) { return x.id === cfg.sessionId; })[0];
     $('scan-ap').textContent = (ap ? ap.name : 'Entrée générale') + (sess ? ' · ' + sess.label : '');
-    $('dir-pill').textContent = cfg.dir === 'out' ? '⬆️ Sortie' : '⬇️ Entrée';
+    renderDir();
+    hist = store.get('hist:' + data.event.id, []);
+    if (data.message) showMessage(data.message);
+    wake(true);
+    setTimeout(ping, 500);
     resetResult();
     renderCounters();
     updateNet();
@@ -314,7 +322,7 @@
       applyLocal(code, local.result);
       queue.push({ uuid: id, code: code, ap: cfg.apId, session: cfg.sessionId || null, direction: cfg.dir, at: at, device: DEVICE, local: local.result });
       saveQueue();
-      finish({ result: local.result, ticket: local.t ? { name: local.t.n, rate: data.rates[local.t.r] || local.t.rn || '', code: code, seat: local.t.st } : null,
+      finish({ result: local.result, ticket: local.t ? { name: local.t.n, rate: data.rates[local.t.r] || local.t.rn || '', rate_id: local.t.r, code: code, seat: local.t.st } : null,
         info: { last_at: local.t && (local.t.l || local.t.c), population: local.t && local.t.p && data.pops[local.t.p] ? data.pops[local.t.p].name : undefined } }, id, true);
     };
 
@@ -351,34 +359,43 @@
     if (r.result === 'invalid' && wasOffline) info.push('Pas dans la liste du téléphone (billet acheté à l\'instant ?)');
     if (wasOffline) info.push('📵 hors ligne');
     lastScan = (r.result === 'ok' || r.result === 'exit') ? { uuid: id, code: r.ticket ? r.ticket.code : '', result: r.result } : null;
-    toastResult(level, LABELS[r.result] || r.label || r.result, name || (r.code || ''), info.join(' · '));
+    var rule = r.result === 'ok' && r.ticket && data.rules ? data.rules[r.ticket.rate_id] : null;
+    toastResult(level, LABELS[r.result] || r.label || r.result, name || (r.code || ''), info.join(' · '), rule);
+    hist.unshift({ uuid: id, code: r.ticket ? r.ticket.code : (r.code || ''), name: name, label: LABELS[r.result] || r.label || r.result, level: level, result: r.result, at: nowSql().slice(11, 19), off: wasOffline ? 1 : 0 });
+    if (hist.length > 150) hist.length = 150;
+    store.set('hist:' + data.event.id, hist);
     renderCounters();
   }
 
   var resultTimer = null;
-  function toastResult(level, label, name, info) {
+  function toastResult(level, label, name, info, rule) {
     var box = $('result');
-    box.className = 'result ' + level;
+    box.className = 'result ' + level + (rule ? ' has-rule' : '');
     $('r-label').textContent = label;
     $('r-name').textContent = name || '';
     $('r-info').textContent = info || '';
+    $('r-rule').hidden = !rule;
+    if (rule) { $('r-rule-color').style.background = rule.color || 'transparent'; $('r-rule-color').hidden = !rule.color; $('r-rule-text').textContent = rule.note || 'Bracelet de cette couleur'; }
     $('r-undo').hidden = !lastScan;
     var f = $('flash'); f.className = 'flash-screen ' + level + ' show';
     setTimeout(function () { f.className = 'flash-screen ' + level; }, 60);
     feedback(level);
     clearTimeout(resultTimer);
-    resultTimer = setTimeout(function () { if (box.className.indexOf('idle') < 0) box.className = 'result ' + level + ' faded'; }, 4000);
+    resultTimer = setTimeout(function () { if (box.className.indexOf('idle') < 0) box.className = 'result ' + level + ' faded' + (rule ? ' has-rule' : ''); }, rule ? 9000 : 4000);
   }
   function resetResult() {
     $('result').className = 'result idle';
     $('r-label').textContent = 'Vise un QR code';
     $('r-name').textContent = 'Ou tape le code en dessous 👇';
-    $('r-info').textContent = ''; $('r-undo').hidden = true;
+    $('r-info').textContent = ''; $('r-undo').hidden = true; $('r-rule').hidden = true;
   }
 
   $('r-undo').onclick = function () {
     if (!lastScan) return;
     var s = lastScan; lastScan = null; $('r-undo').hidden = true;
+    undo(s);
+  };
+  function undo(s, done) {
     var idx = queue.map(function (q) { return q.uuid; }).indexOf(s.uuid);
     var revert = function () {
       var t = data.tickets[s.code];
@@ -386,12 +403,14 @@
       if (t && s.result === 'exit') t.i = 1;
       if (s.result === 'ok') { cfg.mine[data.event.id] = Math.max(0, (cfg.mine[data.event.id] || 1) - 1); saveCfg(); }
       saveData(); renderCounters();
+      hist.forEach(function (h) { if (h.uuid === s.uuid) h.undone = 1; }); store.set('hist:' + data.event.id, hist);
       toastResult('warn', '↩️ Passage annulé', t ? t.n : s.code, '');
+      if (done) done(true);
     };
     if (idx >= 0) { queue.splice(idx, 1); saveQueue(); revert(); return; }
     api('POST', '/api/scan/event/' + data.event.id + '/undo', { uuid: s.uuid }, 4000).then(function (j) { if (j.stats) data.stats = j.stats; revert(); })
-      .catch(function () { toastResult('error', '😬 Annulation impossible', 'Pas de réseau', 'Réessaie quand le réseau revient.'); });
-  };
+      .catch(function () { toastResult('error', '😬 Annulation impossible', 'Pas de réseau', 'Réessaie quand le réseau revient.'); if (done) done(false); });
+  }
 
   // ---------- Compteurs ----------
   function renderCounters() {
@@ -476,6 +495,98 @@
     cfg.running = false; saveCfg(); store.del('me');
   });
   document.addEventListener('visibilitychange', function () { if (document.hidden) stopCamera(); else if (!$('s-scan').hidden) startCamera(); });
+
+  // ---------- Sens au toucher ----------
+  function renderDir() {
+    $('dir-pill').textContent = cfg.dir === 'out' ? '⬆️ Sortie' : '⬇️ Entrée';
+    $('dir-pill').classList.toggle('out', cfg.dir === 'out');
+    document.querySelectorAll('.seg button').forEach(function (b) { b.classList.toggle('on', b.dataset.dir === cfg.dir); });
+  }
+  $('dir-pill').onclick = function () { cfg.dir = cfg.dir === 'out' ? 'in' : 'out'; saveCfg(); renderDir(); vibrate(30); resetResult(); };
+
+  // ---------- Historique ----------
+  function renderHistory() {
+    var list = $('history-list'); list.textContent = '';
+    if (!hist.length) { var p = document.createElement('p'); p.className = 'muted'; p.textContent = 'Aucun passage sur ce téléphone pour l\u2019instant.'; list.appendChild(p); return; }
+    hist.forEach(function (h) {
+      var div = document.createElement('div'); div.className = 'search-item hist ' + h.level + (h.undone ? ' undone' : '');
+      var txt = document.createElement('div');
+      var b = document.createElement('b'); b.textContent = h.name || h.code; txt.appendChild(b);
+      var sm = document.createElement('small'); sm.textContent = h.at.slice(0, 5) + ' · ' + h.label + (h.off ? ' · 📵' : '') + (h.undone ? ' · annulé' : ''); txt.appendChild(sm);
+      div.appendChild(txt);
+      if (!h.undone && (h.result === 'ok' || h.result === 'exit')) {
+        var bt = document.createElement('button'); bt.className = 'btn btn-sm btn-ghost'; bt.textContent = 'Annuler';
+        bt.onclick = function () { if (!confirm('Annuler ce passage de ' + (h.name || h.code) + ' ?')) return; undo({ uuid: h.uuid, code: h.code, result: h.result }, function () { renderHistory(); }); };
+        div.appendChild(bt);
+      }
+      list.appendChild(div);
+    });
+  }
+  $('m-history').onclick = function () { overlay('menu', false); overlay('history', true); };
+
+  // ---------- Message du PC ----------
+  function showMessage(m) {
+    if (!m || !data) return;
+    var seen = cfg.msgSeen[data.event.id] || 0;
+    if (m.id <= seen) return;
+    $('pc-msg-text').textContent = m.body; $('pc-msg-at').textContent = m.at || '';
+    var box = $('pc-msg'); box.hidden = false; box.className = 'pc-msg ' + (m.level || 'info');
+    box.dataset.id = m.id;
+    beep(880, 0.1); beep(1100, 0.1, 0.14); beep(1320, 0.14, 0.28); vibrate([100, 60, 100, 60, 200]);
+  }
+  $('pc-msg-ok').onclick = function () { var box = $('pc-msg'); cfg.msgSeen[data.event.id] = parseInt(box.dataset.id, 10) || 0; saveCfg(); box.hidden = true; };
+
+  // ---------- Signal de vie + stats ----------
+  var battery = null;
+  try { if (navigator.getBattery) navigator.getBattery().then(function (b) { battery = b; }); } catch (e) { /* rien */ }
+  function ping() {
+    if (!data || !online) return;
+    var ap = currentAp();
+    api('POST', '/api/scan/event/' + data.event.id + '/ping', { device: DEVICE, ap: ap ? ap.name : '', dir: cfg.dir, pending: queue.length,
+      battery: battery ? Math.round(battery.level * 100) : null, scans: cfg.mine[data.event.id] || 0 }, 6000).then(function (j) {
+      live = j; if (j.stats) { data.stats = j.stats; }
+      if (j.message) showMessage(j.message);
+      renderCounters(); if (!$('s-stats').hidden) renderStats();
+    }).catch(function () { /* hors ligne */ });
+  }
+  setInterval(function () { if (data && !$('s-scan').hidden) ping(); }, 30000);
+  function renderStats() {
+    var box = $('stats-body'); box.textContent = '';
+    var add = function (tag, cls, text) { var n = document.createElement(tag); if (cls) n.className = cls; if (text !== undefined) n.textContent = text; box.appendChild(n); return n; };
+    var st = (live && live.stats) || (data && data.stats) || { sold: 0, checked: 0, inside: 0 };
+    var big = add('div', 'stats-big');
+    [['Entrés', st.checked], ['Sur place', st.inside], ['Billets', st.sold]].forEach(function (x) { var d = document.createElement('div'); var b = document.createElement('b'); b.textContent = x[1]; var s2 = document.createElement('small'); s2.textContent = x[0]; d.appendChild(b); d.appendChild(s2); big.appendChild(d); });
+    var pct = st.sold ? Math.round(st.checked / st.sold * 100) : 0;
+    var bar = add('div', 'stats-bar'); var bi = document.createElement('i'); bi.style.width = pct + '%'; bar.appendChild(bi);
+    add('p', 'muted', pct + ' % des billets sont passés');
+    if (!live) { add('p', 'muted', online ? 'Chargement…' : '📵 Hors ligne : chiffres de ce téléphone uniquement.'); return; }
+    add('h2', '', '🚪 Par porte');
+    if (!live.per_ap.length) add('p', 'muted', 'Pas encore de passage.');
+    var mx = 1; live.per_ap.forEach(function (a) { mx = Math.max(mx, a.in); });
+    live.per_ap.forEach(function (a) {
+      var row = add('div', 'stats-row'); var l = document.createElement('span'); l.textContent = a.name; row.appendChild(l);
+      var b = document.createElement('span'); b.className = 'stats-hbar'; var i = document.createElement('i'); i.style.width = Math.round(a.in / mx * 100) + '%'; b.appendChild(i); row.appendChild(b);
+      var v = document.createElement('b'); v.textContent = a.in + (a.out ? ' · ↑' + a.out : ''); row.appendChild(v);
+    });
+    add('h2', '', '⏱️ Entrées par heure');
+    if (!live.per_hour.length) add('p', 'muted', 'Pas encore d\u2019entrée ces 6 dernières heures.');
+    var hx = 1; live.per_hour.forEach(function (h) { hx = Math.max(hx, h.n); });
+    var cols = add('div', 'stats-cols');
+    live.per_hour.forEach(function (h) { var c = document.createElement('div'); var bb = document.createElement('i'); bb.style.height = Math.max(4, Math.round(h.n / hx * 100)) + '%'; var lb = document.createElement('small'); lb.textContent = h.h; var nb = document.createElement('b'); nb.textContent = h.n; c.appendChild(nb); c.appendChild(bb); c.appendChild(lb); cols.appendChild(c); });
+  }
+  $('m-stats').onclick = function () { overlay('menu', false); overlay('stats', true); };
+
+  // ---------- Écran toujours allumé ----------
+  var lock = null;
+  function wake(on) {
+    if (!('wakeLock' in navigator)) return;
+    if (on && cfg.awake && !lock && !document.hidden) navigator.wakeLock.request('screen').then(function (l) { lock = l; l.addEventListener('release', function () { lock = null; }); }).catch(function () { lock = null; });
+    if (!on && lock) { lock.release().catch(function () {}); lock = null; }
+  }
+  function renderAwake() { $('m-awake-info').textContent = !('wakeLock' in navigator) ? 'Pas disponible sur ce navigateur' : (cfg.awake ? 'Activé pendant le scan' : 'Désactivé (l\u2019écran se met en veille)'); }
+  $('m-awake').onclick = function () { cfg.awake = !cfg.awake; saveCfg(); renderAwake(); wake(cfg.awake && !$('s-scan').hidden); };
+  document.addEventListener('visibilitychange', function () { if (!document.hidden && !$('s-scan').hidden) wake(true); });
+  renderAwake();
 
   boot();
 })();

@@ -86,7 +86,12 @@
 
   // Rafraîchissement automatique (contrôle en direct)
   var auto = document.querySelector('[data-autorefresh]');
-  if (auto) setTimeout(function () { location.reload(); }, parseInt(auto.dataset.autorefresh, 10) * 1000);
+  if (auto) {
+    // rechargement auto, sauf si l'utilisateur est en train d'écrire quelque chose
+    var every = parseInt(auto.dataset.autorefresh, 10) * 1000, typing = function () { var a = document.activeElement; return a && /INPUT|TEXTAREA|SELECT/.test(a.tagName) || Array.prototype.some.call(document.querySelectorAll('textarea'), function (t) { return t.value.trim() !== ''; }); };
+    var tick = function () { if (typing() || document.hidden) setTimeout(tick, 5000); else location.reload(); };
+    setTimeout(tick, every);
+  }
 
   // ---------- Relief côté acheteur (1.2) ----------
   var calm = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;

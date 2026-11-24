@@ -58,7 +58,9 @@
     <button class="icon-btn" data-go="setup" aria-label="Changer de porte">←</button>
     <div class="head-title"><b id="scan-ev"></b><small id="scan-ap"></small></div>
     <span class="net" id="net" title="Réseau"><i></i><em id="pending"></em></span>
+    <button class="icon-btn" data-go="menu" aria-label="Menu">☰</button>
   </header>
+  <div class="pc-msg" id="pc-msg" hidden role="alert"><span class="pc-msg-tag">📢 PC <small id="pc-msg-at"></small></span><span class="pc-msg-text" id="pc-msg-text"></span><button type="button" id="pc-msg-ok">OK</button></div>
   <div class="cam" id="cam">
     <video id="video" playsinline muted></video>
     <canvas id="canvas" hidden></canvas>
@@ -69,12 +71,13 @@
       <small class="muted" id="cam-msg"></small>
     </div>
     <button class="icon-btn torch" id="torch" hidden aria-label="Lampe">🔦</button>
-    <span class="dir-pill" id="dir-pill">Entrée</span>
+    <button type="button" class="dir-pill" id="dir-pill" aria-label="Changer le sens (entrée / sortie)">Entrée</button>
   </div>
   <div class="result idle" id="result">
     <div class="result-label" id="r-label">Vise un QR code</div>
     <div class="result-name" id="r-name">Ou tape le code en dessous 👇</div>
     <div class="result-info" id="r-info"></div>
+    <div class="result-rule" id="r-rule" hidden><i id="r-rule-color"></i><b id="r-rule-text"></b></div>
     <button class="linklike result-undo" id="r-undo" hidden>Annuler ce passage</button>
   </div>
   <form class="manual" id="manual" autocomplete="off">
@@ -99,12 +102,27 @@
   </div>
 </section>
 
+<!-- Historique de l'appareil -->
+<section class="screen overlay" id="s-history" hidden>
+  <header class="scan-head"><button class="icon-btn" data-close="history" aria-label="Fermer">✕</button><b class="head-title">Mes derniers passages</b><span></span></header>
+  <div class="scan-pad"><p class="muted" style="margin-top:0">Les 150 derniers passages scannés sur ce téléphone. Une erreur ? Annule-la ici.</p><div id="history-list" class="search-list"></div></div>
+</section>
+
+<!-- Stats en direct -->
+<section class="screen overlay" id="s-stats" hidden>
+  <header class="scan-head"><button class="icon-btn" data-close="stats" aria-label="Fermer">✕</button><b class="head-title">En direct</b><span></span></header>
+  <div class="scan-pad" id="stats-body"><p class="muted">Chargement…</p></div>
+</section>
+
 <!-- Menu -->
 <section class="screen overlay" id="s-menu" hidden>
   <header class="scan-head"><button class="icon-btn" data-close="menu" aria-label="Fermer">✕</button><b class="head-title">Menu</b><span></span></header>
   <div class="scan-pad pick-list">
+    <button class="pick" id="m-history"><b>🕓 Mes derniers passages</b><small>Voir et annuler une erreur</small></button>
+    <button class="pick" id="m-stats"><b>📊 Stats en direct</b><small>Par porte et par heure</small></button>
     <button class="pick" id="m-sync"><b>🔄 Synchroniser maintenant</b><small id="m-sync-info"></small></button>
     <button class="pick" id="m-sound"><b>🔊 Son</b><small id="m-sound-info"></small></button>
+    <button class="pick" id="m-awake"><b>💡 Écran toujours allumé</b><small id="m-awake-info"></small></button>
     <button class="pick" data-go="events"><b>📅 Changer d'événement</b></button>
     <a class="pick" href="<?= url('/') ?>"><b>🏠 Retour au site</b></a>
     <form method="post" action="<?= url('/deconnexion') ?>" id="logout-form"><input type="hidden" name="_csrf" value="<?= e($u ? csrf_token() : '') ?>"><button class="pick" style="width:100%"><b>👋 Me déconnecter</b><small>Les passages pas encore envoyés seront perdus : synchronise avant.</small></button></form>

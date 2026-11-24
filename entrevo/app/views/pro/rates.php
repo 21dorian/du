@@ -1,7 +1,7 @@
 <?php
 $form = function (?array $r) use ($org, $sessions, $seatCats) {
     $p = $r ?? ['id' => 0, 'name' => '', 'description' => '', 'price' => 0, 'quota' => 0, 'max_per_order' => 0, 'sale_start' => null, 'sale_end' => null, 'hidden' => 0, 'active' => 1, 'sort' => 0,
-        'price_mode' => 'fixed', 'pack_size' => 1, 'max_entries' => 1, 'per_day' => 0, 'session_ids' => '', 'seat_category' => ''];
+        'price_mode' => 'fixed', 'pack_size' => 1, 'max_entries' => 1, 'per_day' => 0, 'session_ids' => '', 'seat_category' => '', 'scan_note' => '', 'scan_color' => ''];
     $selS = array_map('intval', array_filter(explode(',', (string)$p['session_ids'])));
     ob_start(); ?>
     <form method="post"><?= csrf_field() ?><input type="hidden" name="rate_id" value="<?= (int)$p['id'] ?>">
@@ -19,6 +19,11 @@ $form = function (?array $r) use ($org, $sessions, $seatCats) {
         <?php foreach ($sessions as $x): ?><label class="check" style="font-weight:400"><input type="checkbox" name="session_ids[]" value="<?= (int)$x['id'] ?>" <?= in_array((int)$x['id'], $selS, true) ? 'checked' : '' ?>> <?= e(short_date($x['starts_at'])) ?></label><?php endforeach; ?></div><small>Aucune cochée = toutes les dates.</small></div><?php endif; ?>
       <?php if ($seatCats): ?><div class="field"><label>Catégorie de place (plan de salle)</label><select name="seat_category"><option value="">Toutes les places</option><?php foreach ($seatCats as $c): ?><option value="<?= e($c['id']) ?>" <?= $p['seat_category'] === $c['id'] ? 'selected' : '' ?>><?= e($c['name']) ?></option><?php endforeach; ?></select></div><?php endif; ?>
       <div class="field"><label>Description</label><input name="description" value="<?= e($p['description']) ?>" placeholder="Ex. : sur présentation d'un justificatif"></div>
+      <div class="grid3 scan-rule">
+        <div class="field" style="grid-column:span 2"><label>📷 Consigne affichée au contrôle</label><input name="scan_note" value="<?= e((string)($p['scan_note'] ?? '')) ?>" maxlength="160" placeholder="Ex. : Vérifier la carte étudiant · Remettre le bracelet VIP"><small>S'affiche en grand sur l'appli de scan quand ce billet passe.</small></div>
+        <div class="field"><label>Couleur de bracelet</label><div class="color-pick"><?php foreach (['' => 'Aucune', '#e5372b' => 'Rouge', '#f08c00' => 'Orange', '#f5c400' => 'Jaune', '#1f9d55' => 'Vert', '#0032fa' => 'Bleu', '#7c3aed' => 'Violet', '#0f0f14' => 'Noir'] as $hex => $nm): ?>
+          <label title="<?= $nm ?>"><input type="radio" name="scan_color" value="<?= $hex ?>" <?= (string)($p['scan_color'] ?? '') === $hex ? 'checked' : '' ?>><span style="<?= $hex ? 'background:' . $hex : '' ?>" class="<?= $hex ? '' : 'none' ?>" aria-label="<?= $nm ?>"></span></label><?php endforeach; ?></div><small>Le scanner affiche un bandeau de cette couleur.</small></div>
+      </div>
       <div class="grid4">
         <div class="field"><label>Quota</label><input type="number" name="quota" min="0" value="<?= (int)$p['quota'] ?>"><small>0 = illimité</small></div>
         <div class="field"><label>Max. par commande</label><input type="number" name="max_per_order" min="0" value="<?= (int)$p['max_per_order'] ?>"><small>0 = selon l'événement</small></div>

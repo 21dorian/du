@@ -50,6 +50,13 @@
       </div>
     </div>
   </div>
+  <div class="card" id="notifications">
+    <h2>🔔 Notifications par e-mail</h2>
+    <div class="field"><label for="recap">Récap des ventes</label>
+      <select id="recap" name="recap"><option value="">Jamais</option><option value="daily" <?= $org['recap'] === 'daily' ? 'selected' : '' ?>>☀️ Chaque matin (ventes de la veille)</option><option value="weekly" <?= $org['recap'] === 'weekly' ? 'selected' : '' ?>>📊 Chaque lundi (ventes de la semaine)</option></select>
+      <small>Envoyé à <?= e($org['email']) ?> et aux responsables du compte. Les alertes de remplissage (50 %, 80 %, complet) partent toujours.</small></div>
+    <button class="btn btn-sm btn-light" name="action" value="recap_test">📨 M'envoyer un exemple maintenant</button>
+  </div>
   <div class="card">
     <h2>Qui paie les frais ? 💸</h2>
     <p class="muted">Commission : <b><?= e(rtrim(rtrim(number_format($pct, 2, ',', ''), '0'), ',')) ?> % + <?= e(money($fixed)) ?></b> par billet payant. Billets gratuits : 0 €.</p>

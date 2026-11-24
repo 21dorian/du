@@ -27,6 +27,24 @@
   </div>
   <div>
     <div class="card">
+      <h2>📢 Message aux contrôleurs</h2>
+      <form method="post" class="stack"><?= csrf_field() ?><input type="hidden" name="action" value="scan_message">
+        <textarea name="body" rows="2" maxlength="280" placeholder="Ex. : Porte B fermée, tout le monde par la porte A" required></textarea>
+        <div class="row" style="gap:8px"><select name="level" style="width:auto"><option value="info">ℹ️ Info</option><option value="warn">⚠️ Attention</option><option value="alert">🚨 Urgent</option></select><button class="btn btn-sm">Envoyer aux téléphones</button></div>
+      </form>
+      <?php foreach ($messages as $m): ?><div class="list-item" style="display:block"><small class="muted"><?= e(date('H:i', strtotime($m['created_at']))) ?> · <?= e((string)$m['user_name']) ?></small><br><?= e($m['body']) ?></div><?php endforeach; ?>
+    </div>
+    <div class="card">
+      <h2>📱 Téléphones de contrôle</h2>
+      <?php foreach ($devices as $d): $on = strtotime($d['last_seen']) > time() - 90; ?>
+        <div class="device"><span class="dev-dot <?= $on ? 'on' : '' ?>" title="<?= $on ? 'Connecté' : 'Vu ' . e(ago($d['last_seen'])) ?>"></span>
+          <span class="grow"><b><?= e($d['user_name'] ?: 'Contrôleur') ?></b><small><?= e($d['ap_name'] ?: 'Porte ?') ?> · <?= $d['direction'] === 'out' ? '⬆️ sortie' : '⬇️ entrée' ?> · <?= (int)$d['scans'] ?> scan(s)<?= $on ? '' : ' · vu ' . e(ago($d['last_seen'])) ?></small></span>
+          <?php if ((int)$d['pending']): ?><span class="badge orange" title="Passages scannés hors ligne pas encore envoyés">⏳ <?= (int)$d['pending'] ?></span><?php endif; ?>
+          <?php if ($d['battery'] !== null): ?><span class="batt <?= (int)$d['battery'] <= 20 ? 'low' : '' ?>" title="Batterie">🔋 <?= (int)$d['battery'] ?> %</span><?php endif; ?></div>
+      <?php endforeach; ?>
+      <?php if (!$devices): ?><p class="muted">Aucun téléphone connecté. Les contrôleurs ouvrent <b><?= e(abs_url('/scan')) ?></b>.</p><?php endif; ?>
+    </div>
+    <div class="card">
       <h2>Par point d'accès</h2>
       <?php foreach ($aps as $a): ?><div class="list-item"><b class="grow"><?= e($a['name']) ?></b><span><?= (int)$a['entries'] ?> entrées<?= $a['exits'] ? ' · ' . (int)$a['exits'] . ' sorties' : '' ?><?= $a['refused'] ? ' · <span style="color:var(--red)">' . (int)$a['refused'] . ' refus</span>' : '' ?></span></div><?php endforeach; ?>
     </div>

@@ -85,12 +85,15 @@ function api_data(string $id): never
     $aps = array_map(fn($a) => ['id' => (int)$a['id'], 'name' => $a['name'], 'active' => (int)$a['active'],
         'rates' => array_values(array_filter(array_map('intval', explode(',', (string)$a['rate_ids']))))],
         all('SELECT * FROM access_points WHERE event_id = ? ORDER BY id', [$ev['id']]));
-    $rates = [];
-    foreach (all('SELECT id, name FROM rates WHERE event_id = ?', [$ev['id']]) as $r) $rates[(int)$r['id']] = $r['name'];
+    $rates = []; $rules = [];
+    foreach (all('SELECT id, name, scan_note, scan_color FROM rates WHERE event_id = ?', [$ev['id']]) as $r) {
+        $rates[(int)$r['id']] = $r['name'];
+        if ($r['scan_note'] || $r['scan_color']) $rules[(int)$r['id']] = ['note' => (string)$r['scan_note'], 'color' => (string)$r['scan_color']];
+    }
     json_out([
         'event' => ['id' => (int)$ev['id'], 'name' => $ev['name'], 'date' => fr_date($ev['starts_at']), 'reentry' => (int)$ev['allow_reentry']],
         'access_points' => $aps, 'rates' => $rates, 'tickets' => $tickets, 'full' => $since === '', 'sessions' => $sessions, 'populations' => $pops,
-        'server_time' => date('Y-m-d H:i:s'), 'stats' => scan_stats((int)$ev['id']),
+        'server_time' => date('Y-m-d H:i:s'), 'stats' => scan_stats((int)$ev['id']), 'rules' => (object)$rules, 'message' => scan_last_message((int)$ev['id']),
     ]);
 }
 
@@ -139,6 +142,33 @@ function api_undo(string $id): never
     $s = one('SELECT id FROM scans WHERE uuid = ? AND event_id = ?', [(string)($b['uuid'] ?? ''), $ev['id']]);
     $ok = $s && Tickets::undoScan((int)$s['id'], (int)$ev['id']);
     json_out(['ok' => $ok, 'stats' => scan_stats((int)$ev['id'])]);
+}
+
+/** Dernier message du PC (organisateur → contrôleurs), valable 3 heures. */
+function scan_last_message(int $eventId): ?array
+{
+    $m = one('SELECT id, body, level, created_at FROM scan_messages WHERE event_id = ? AND created_at >= NOW() - INTERVAL 3 HOUR ORDER BY id DESC LIMIT 1', [$eventId]);
+    return $m ? ['id' => (int)$m['id'], 'body' => $m['body'], 'level' => $m['level'], 'at' => substr($m['created_at'], 11, 5)] : null;
+}
+
+/** Signal de vie de l'appareil (toutes les 30 s) : état, file d'attente, batterie. Renvoie stats, message du PC et répartition. */
+function api_ping(string $id): never
+{
+    $ev = scan_event($id);
+    $b = json_body();
+    $dev = preg_replace('~[^A-Za-z0-9_-]~', '', (string)($b['device'] ?? ''));
+    if ($dev !== '') {
+        q('INSERT INTO scan_devices (device, event_id, user_id, ap_name, direction, pending, battery, scans, last_seen) VALUES (?, ?, ?, ?, ?, ?, ?, ?, NOW())
+           ON DUPLICATE KEY UPDATE user_id = VALUES(user_id), ap_name = VALUES(ap_name), direction = VALUES(direction), pending = VALUES(pending), battery = VALUES(battery), scans = VALUES(scans), last_seen = NOW()',
+            [mb_substr($dev, 0, 40), $ev['id'], user()['id'], mb_substr((string)($b['ap'] ?? ''), 0, 120) ?: null, ($b['dir'] ?? '') === 'out' ? 'out' : 'in',
+             max(0, (int)($b['pending'] ?? 0)), isset($b['battery']) && $b['battery'] !== null ? max(0, min(100, (int)$b['battery'])) : null, max(0, (int)($b['scans'] ?? 0))]);
+    }
+    $perAp = all("SELECT COALESCE(a.name, 'Sans porte') name, SUM(s.direction = 'in') n_in, SUM(s.direction = 'out') n_out FROM scans s LEFT JOIN access_points a ON a.id = s.access_point_id
+        WHERE s.event_id = ? AND s.result IN ('ok','exit') AND s.undone = 0 AND s.scanned_at >= NOW() - INTERVAL 18 HOUR GROUP BY name ORDER BY n_in DESC", [$ev['id']]);
+    $perHour = all("SELECT DATE_FORMAT(scanned_at, '%H') h, COUNT(*) n FROM scans WHERE event_id = ? AND result = 'ok' AND undone = 0 AND scanned_at >= NOW() - INTERVAL 6 HOUR GROUP BY h ORDER BY MIN(scanned_at)", [$ev['id']]);
+    json_out(['stats' => scan_stats((int)$ev['id']), 'message' => scan_last_message((int)$ev['id']),
+        'per_ap' => array_map(fn($r) => ['name' => $r['name'], 'in' => (int)$r['n_in'], 'out' => (int)$r['n_out']], $perAp),
+        'per_hour' => array_map(fn($r) => ['h' => $r['h'] . 'h', 'n' => (int)$r['n']], $perHour)]);
 }
 
 function health(): never

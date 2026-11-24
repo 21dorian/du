@@ -117,5 +117,6 @@ return [
     ['POST', '/api/scan/event/{id}/sync', 'scan@api_sync'],
     ['GET', '/api/scan/event/{id}/stats', 'scan@api_stats'],
     ['POST', '/api/scan/event/{id}/undo', 'scan@api_undo'],
+    ['POST', '/api/scan/event/{id}/ping', 'scan@api_ping'],
     ['GET', '/sante', 'scan@health'],
 ];

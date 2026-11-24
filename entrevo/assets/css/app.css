@@ -1071,3 +1071,49 @@ th.num .th-sort{justify-content:flex-end}
 .camp-send{border:2px solid var(--primary)}
 .sent-preview{width:100%;height:640px;border:0;border-radius:14px;background:#f0f5fa}
 @media (max-width:1100px){.camp-layout{grid-template-columns:1fr}.camp-preview{position:static}.preview-frame iframe{height:520px}}
+/* liste des événements 1.4 */
+.pill-tabs a small{opacity:.6;margin-left:4px;font-weight:700}
+.seg-mini a{display:inline-block;padding:6px 10px;font:600 13px var(--font);color:var(--muted);text-decoration:none}
+.seg-mini a.on{background:#0f0f14;color:#fff}
+.evg{display:grid;grid-template-columns:repeat(auto-fill,minmax(270px,1fr));gap:16px;margin-bottom:18px}
+.evg-card{display:flex;flex-direction:column;border-radius:20px;background:var(--surface);border:1px solid var(--line);overflow:hidden;transition:box-shadow .15s,transform .15s}
+.evg-card:hover{box-shadow:0 14px 32px rgba(15,15,20,.08);transform:translateY(-2px)}
+.evg-img{position:relative;display:block;aspect-ratio:16/10;background:var(--surface-2);overflow:hidden}
+.evg-img img{width:100%;height:100%;object-fit:cover}
+.evg-noimg{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;font-size:30px;color:var(--muted)}
+.evg-noimg small{font-size:12px}
+.evg-date{position:absolute;left:12px;top:12px;display:flex;flex-direction:column;align-items:center;min-width:48px;padding:5px 6px;border-radius:12px;background:#fff;color:#0f0f14;font:700 11px var(--mono);text-transform:uppercase;line-height:1.1;box-shadow:0 4px 12px rgba(0,0,0,.12)}
+.evg-date b{font:800 22px var(--display)}
+.evg-status{position:absolute;right:12px;top:12px}
+.evg-status .badge{background:#fff}
+.evg-count{position:absolute;left:12px;bottom:12px;padding:4px 10px;border-radius:999px;background:rgba(15,15,20,.85);color:#fff;font:700 12px var(--font)}
+.evg-body{display:flex;flex-direction:column;gap:6px;padding:14px 16px;flex:1}
+.evg-title{font-weight:800;font-size:17px;color:var(--ink);text-decoration:none;line-height:1.25}
+.evg-fill{display:grid;gap:5px;margin-top:4px;font-size:13px;color:var(--muted)}
+.evg-kpis{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-top:6px;padding-top:10px;border-top:1px solid var(--line)}
+.evg-kpis span{display:flex;flex-direction:column}
+.evg-kpis small{font:700 10px var(--mono);text-transform:uppercase;letter-spacing:.04em;color:var(--muted)}
+.evg-kpis b{font-size:15px}
+.evg-actions{display:flex;gap:6px;align-items:center;padding:10px 16px 14px}
+.evg-actions .btn{flex:1;justify-content:center}
+.icon-act{width:34px;height:34px;display:inline-flex;align-items:center;justify-content:center;border-radius:10px;border:1px solid var(--line);background:var(--surface);color:var(--ink);text-decoration:none;cursor:pointer;font-size:15px}
+.icon-act:hover{border-color:var(--primary);background:var(--primary-soft)}
+.evg-new{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;min-height:280px;border-radius:20px;border:2px dashed var(--line);color:var(--muted);text-decoration:none}
+.evg-new span{font-size:30px}
+.evg-new b{color:var(--ink)}
+.evg-new:hover{border-color:var(--primary);color:var(--primary)}
+.color-pick{display:flex;flex-wrap:wrap;gap:6px;padding-top:4px}
+.color-pick label{cursor:pointer}
+.color-pick input{position:absolute;opacity:0;pointer-events:none}
+.color-pick span{display:block;width:26px;height:26px;border-radius:50%;border:2px solid #fff;box-shadow:0 0 0 1px var(--line)}
+.color-pick span.none{background:repeating-linear-gradient(45deg,#fff 0 4px,#e1e7ef 4px 8px)}
+.color-pick input:checked+span{box-shadow:0 0 0 2px var(--ink)}
+.color-pick input:focus-visible+span{outline:2px solid var(--primary);outline-offset:2px}
+.goal-mini{margin-top:8px;display:grid;gap:4px}.goal-mini .goal-bar{height:6px}.goal-mini small{color:var(--muted);font-size:12px}
+.device{display:flex;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid var(--line)}
+.device:last-child{border-bottom:0}
+.device small{display:block;color:var(--muted);font-size:12.5px}
+.dev-dot{flex:none;width:10px;height:10px;border-radius:50%;background:var(--line)}
+.dev-dot.on{background:var(--green);box-shadow:0 0 0 3px var(--green-bg)}
+.batt{font-size:12.5px;white-space:nowrap}
+.batt.low{color:var(--red);font-weight:700}

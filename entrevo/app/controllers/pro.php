@@ -50,14 +50,35 @@ function dashboard(): string
 function events(): string
 {
     $org = require_org();
-    $filter = (string)input('f', 'avenir');
-    $where = $filter === 'passes' ? 'COALESCE(ends_at, starts_at) < NOW() - INTERVAL 6 HOUR' : 'COALESCE(ends_at, starts_at) >= NOW() - INTERVAL 6 HOUR';
+    $oid = (int)$org['id'];
+    $tabs = ['avenir' => 'À venir', 'vente' => 'En vente', 'brouillons' => 'Brouillons', 'passes' => 'Passés', 'tous' => 'Tous'];
+    $filter = array_key_exists((string)input('f'), $tabs) ? (string)input('f') : 'avenir';
+    $conds = [
+        'avenir' => 'COALESCE(e.ends_at, e.starts_at) >= NOW() - INTERVAL 6 HOUR',
+        'vente' => "e.status = 'published' AND COALESCE(e.ends_at, e.starts_at) >= NOW() - INTERVAL 6 HOUR",
+        'brouillons' => "e.status = 'draft'",
+        'passes' => 'COALESCE(e.ends_at, e.starts_at) < NOW() - INTERVAL 6 HOUR',
+        'tous' => '1',
+    ];
+    $counts = [];
+    foreach ($conds as $k => $c) $counts[$k] = (int)val("SELECT COUNT(*) FROM events e WHERE e.organizer_id = ? AND $c", [$oid]);
+    $q = trim((string)input('q'));
+    $w = 'e.organizer_id = ? AND ' . $conds[$filter]; $p = [$oid];
+    if ($q !== '') { $w .= ' AND (e.name LIKE ? OR e.venue LIKE ? OR e.city LIKE ?)'; array_push($p, '%' . $q . '%', '%' . $q . '%', '%' . $q . '%'); }
+    $sorts = ['date' => 'e.starts_at', 'ventes' => 'sold', 'recettes' => 'revenue', 'nom' => 'e.name'];
+    $sort = array_key_exists((string)input('tri'), $sorts) ? (string)input('tri') : 'date';
+    $dir = $sort === 'date' ? ($filter === 'passes' || $filter === 'tous' ? 'DESC' : 'ASC') : ($sort === 'nom' ? 'ASC' : 'DESC');
     $list = all("SELECT e.*,
         (SELECT COUNT(*) FROM tickets t WHERE t.event_id = e.id AND t.status = 'valid') sold,
         (SELECT COUNT(*) FROM tickets t WHERE t.event_id = e.id AND t.status = 'valid' AND t.entries > 0) checked,
-        (SELECT COALESCE(SUM(total),0) FROM orders o WHERE o.event_id = e.id AND o.status = 'paid') revenue
-        FROM events e WHERE organizer_id = ? AND $where ORDER BY starts_at " . ($filter === 'passes' ? 'DESC' : 'ASC'), [$org['id']]);
-    return pro_page('Événements', 'events', ['list' => $list, 'filter' => $filter], 'events',
+        (SELECT COALESCE(SUM(total),0) FROM orders o WHERE o.event_id = e.id AND o.status = 'paid') revenue,
+        (SELECT COUNT(*) FROM tickets t JOIN orders o ON o.id = t.order_id WHERE t.event_id = e.id AND t.status = 'valid' AND o.status = 'paid' AND o.paid_at >= NOW() - INTERVAL 7 DAY) week,
+        (SELECT COALESCE(SUM(capacity),0) FROM sessions s WHERE s.event_id = e.id AND s.active = 1) sess_cap,
+        (SELECT COUNT(*) FROM sessions s WHERE s.event_id = e.id AND s.active = 1) sess_n
+        FROM events e WHERE $w ORDER BY " . $sorts[$sort] . " $dir LIMIT 300", $p);
+    $view = (string)(input('vue') ?: ($_COOKIE['ev_view'] ?? 'cartes')) === 'liste' ? 'liste' : 'cartes';
+    if (input('vue')) setcookie('ev_view', $view, ['expires' => time() + 31536000, 'path' => (base_path() ?: '') . '/', 'samesite' => 'Lax']);
+    return pro_page('Événements', 'events', compact('list', 'filter', 'tabs', 'counts', 'q', 'sort', 'view'), 'events',
         ['actions' => '<a class="btn" href="' . url('/pro/evenements/nouveau') . '">+ Nouvel événement</a>']);
 }
 
@@ -209,6 +230,8 @@ function rates(string $id): string
             'active' => checked('active'),
             'sort' => (int)input('sort'),
             'price_mode' => input('price_mode') === 'free' ? 'free' : 'fixed',
+            'scan_note' => mb_substr(trim((string)input('scan_note')), 0, 160) ?: null,
+            'scan_color' => preg_match('~^#[0-9a-fA-F]{6}$~', (string)input('scan_color')) ? strtolower((string)input('scan_color')) : null,
             'pack_size' => max(1, min(50, (int)input('pack_size', 1))),
             'max_entries' => max(1, min(100, (int)input('max_entries', 1))),
             'per_day' => checked('per_day'),
@@ -396,6 +419,15 @@ function live_control(string $id): string
         if ($t) { $r = Tickets::scan(['event' => $ev, 'code' => $t['code'], 'direction' => 'in', 'user' => user(), 'device' => 'admin']); back([$r['level'] === 'ok' ? 'success' : 'warning' => $r['label'] . ' : ' . ($r['ticket']['name'] ?? '')]); }
         back();
     }
+    if (is_post() && input('action') === 'scan_message') {
+        $body = mb_substr(trim((string)input('body')), 0, 280);
+        if ($body === '') back(['error' => 'Le message est vide.']);
+        insert('scan_messages', ['event_id' => $ev['id'], 'body' => $body, 'level' => in_array(input('level'), ['info', 'warn', 'alert'], true) ? (string)input('level') : 'info', 'user_id' => user()['id'], 'created_at' => now()]);
+        Audit::log('message.sent', 'Message aux contrôleurs : ' . $body, (int)$ev['id']);
+        back(['success' => '📢 Message envoyé aux téléphones de contrôle (il s\'affiche d\'ici 30 secondes).']);
+    }
+    $devices = all('SELECT d.*, u.name user_name FROM scan_devices d LEFT JOIN users u ON u.id = d.user_id WHERE d.event_id = ? AND d.last_seen >= NOW() - INTERVAL 12 HOUR ORDER BY d.last_seen DESC', [$ev['id']]);
+    $messages = all('SELECT m.*, u.name user_name FROM scan_messages m LEFT JOIN users u ON u.id = m.user_id WHERE m.event_id = ? ORDER BY m.id DESC LIMIT 5', [$ev['id']]);
     $stats = Tickets::stats((int)$ev['id']);
     $aps = all("SELECT a.name, SUM(s.result = 'ok' AND s.undone = 0) entries, SUM(s.result = 'exit' AND s.undone = 0) exits, SUM(s.result NOT IN ('ok','exit')) refused
                 FROM access_points a LEFT JOIN scans s ON s.access_point_id = a.id WHERE a.event_id = ? GROUP BY a.id ORDER BY a.id", [$ev['id']]);
@@ -403,7 +435,7 @@ function live_control(string $id): string
                   LEFT JOIN tickets t ON t.id = s.ticket_id LEFT JOIN access_points a ON a.id = s.access_point_id LEFT JOIN users u ON u.id = s.user_id
                   WHERE s.event_id = ? ORDER BY s.scanned_at DESC, s.id DESC LIMIT 40", [$ev['id']]);
     $perHour = all("SELECT DATE_FORMAT(scanned_at, '%H:00') h, COUNT(*) n FROM scans WHERE event_id = ? AND result = 'ok' AND undone = 0 AND scanned_at >= NOW() - INTERVAL 12 HOUR GROUP BY h ORDER BY MIN(scanned_at)", [$ev['id']]);
-    return ev_page($ev, 'live', 'Contrôle en direct', 'live_control', compact('stats', 'aps', 'scans', 'perHour'));
+    return ev_page($ev, 'live', 'Contrôle en direct', 'live_control', compact('stats', 'aps', 'scans', 'perHour', 'devices', 'messages'));
 }
 
 // Commandes : voir app/controllers/orders.php
@@ -463,6 +495,12 @@ function organization(): string
         $hook = trim((string)input('webhook_url'));
         $data['webhook_url'] = $hook !== '' && preg_match('~^https://~', $hook) ? mb_substr($hook, 0, 255) : null;
         if ($data['webhook_url'] && !$org['webhook_secret']) $data['webhook_secret'] = token(24);
+        $data['recap'] = in_array(input('recap'), ['daily', 'weekly'], true) ? (string)input('recap') : null;
+        if (input('action') === 'recap_test') {
+            update('organizers', ['recap' => $data['recap']], 'id = ?', [$org['id']]);
+            try { $ok = Recap::send(['recap' => $data['recap'] ?: 'daily'] + $org, user()['email']); } catch (Throwable $e) { back(['error' => 'Envoi impossible : ' . $e->getMessage()]); }
+            back([$ok ? 'success' : 'warning' => $ok ? '📬 Exemple envoyé à ' . user()['email'] . '.' : 'Rien à raconter pour l\'instant : publie un événement d\'abord 😉']);
+        }
         if (input('action') === 'api_key') { update('organizers', ['api_key' => 'ev_' . token(28)], 'id = ?', [$org['id']]); redirect('/pro/organisation', ['success' => '🔑 Nouvelle clé API générée (l\'ancienne ne marche plus).']); }
         try { $logo = upload_image('logo'); if ($logo) $data['logo'] = $logo; } catch (RuntimeException $e) { back(['error' => $e->getMessage()]); }
         if (!$data['name'] || !is_email((string)$data['email'])) back(['error' => 'Nom et e-mail de contact obligatoires.']);
