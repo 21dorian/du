@@ -20,6 +20,13 @@ function public_event(string $slug, bool $gates = true): array
         // file d'attente virtuelle
         if ($ev['queue_enabled'] && !Queue::admitted($ev)) redirect('/file/' . $ev['slug']);
     }
+    // prévente privée : achat réservé aux personnes autorisées jusqu'à l'ouverture au public
+    if (Buyers::presaleActive($ev) && !$isOwner && empty($_SESSION['presale'][$ev['id']])) $ev['_presale_locked'] = true;
+    // invitation d'un ami : on retient qui a partagé le lien
+    if (!empty($_GET['ami']) && preg_match('~^E[A-Z0-9]{7}$~', (string)$_GET['ami'])) {
+        $rid = val("SELECT id FROM orders WHERE ref = ? AND event_id = ? AND status = 'paid'", [(string)$_GET['ami'], $ev['id']]);
+        if ($rid) $_SESSION['ami'][$ev['id']] = (int)$rid;
+    }
     return [$ev, $org];
 }
 
@@ -233,11 +240,13 @@ function cart_summary(array $ev, array $org, array $cart): array
     $promo = $cart['promo'] ? (Tickets::findPromo((int)$ev['id'], $cart['promo'])['promo'] ?? null) : null;
     $subtotal = array_sum(array_map(fn($l) => $l['qty'] * $l['unit_price'], $lines));
     $discount = Tickets::discount($promo, $lines);
+    $group = empty($cart['partner']) ? Tickets::groupDiscount($ev, $lines) : ['amount' => 0, 'pct' => 0, 'count' => 0, 'next' => null];
+    $discount = min($subtotal, $discount + $group['amount']);
     $paidUnits = array_sum(array_map(fn($l) => $l['kind'] === 'rate' && $l['unit_price'] > 0 ? $l['qty'] : 0, $lines));
     $fees = Tickets::computeFees($org, $subtotal - $discount, $paidUnits);
     $buyerFees = $org['fee_mode'] === 'buyer' ? $fees : 0;
     $donation = (int)($cart['donation'] ?? 0);
-    return ['lines' => $lines, 'promo' => $promo, 'subtotal' => $subtotal, 'discount' => $discount, 'fees' => $buyerFees, 'donation' => $donation,
+    return ['lines' => $lines, 'promo' => $promo, 'subtotal' => $subtotal, 'discount' => $discount, 'group' => $group, 'fees' => $buyerFees, 'donation' => $donation,
         'total' => $subtotal - $discount + $buyerFees + $donation, 'places' => array_sum(array_map(fn($l) => $l['qty'] * $l['pack'], $lines))];
 }
 
@@ -307,6 +316,8 @@ function place_order(array $ev, array $org, array $cart, ?array $session, array 
         }
     }
     if (setting('cgv') && empty($_POST['cgv'])) $errors[] = 'Coche les conditions de vente, on sait que tu les as lues 😉';
+    $ageErr = Buyers::checkAge($ev, $session, array_keys($cart['q']), (string)input('birth_date') ?: null, !empty($_POST['age_ok']));
+    if ($ageErr) $errors[] = $ageErr;
     if ($errors) return ['errors' => $errors];
     $r = Tickets::createOrder([
         'event' => $ev, 'org' => $org, 'session' => $session, 'quantities' => $cart['q'], 'prices' => $cart['prices'], 'products' => $cart['products'],
@@ -316,7 +327,10 @@ function place_order(array $ev, array $org, array $cart, ?array $session, array 
     ]);
     if (!empty($r['errors'])) return ['errors' => $r['errors']];
     $o = $r['order'];
+    if (input('birth_date') && Buyers::requiredAge($ev, array_keys($cart['q']))) update('orders', ['birth_date' => (string)input('birth_date')], 'id = ?', [$o['id']]);
     if (!empty($_POST['optin'])) { update('orders', ['marketing_optin' => 1], 'id = ?', [$o['id']]); q('DELETE FROM email_unsubscribes WHERE organizer_id = ? AND email = ?', [$org['id'], strtolower((string)$o['email'])]); }
+    if (!empty($_SESSION['ami'][$ev['id']]) && strtolower((string)val('SELECT email FROM orders WHERE id = ?', [$_SESSION['ami'][$ev['id']]])) !== strtolower((string)$o['email'])) update('orders', ['referrer_order_id' => (int)$_SESSION['ami'][$ev['id']]], 'id = ?', [$o['id']]);
+    if (!empty($_SESSION['presale'][$ev['id']])) q('UPDATE presale_access SET used_at = COALESCE(used_at, NOW()) WHERE event_id = ? AND email = ?', [$ev['id'], $_SESSION['presale'][$ev['id']]]);
     if (!empty($_SESSION['recover'][$ev['id']])) { update('orders', ['recovered_from' => (int)$_SESSION['recover'][$ev['id']]], 'id = ?', [$o['id']]); unset($_SESSION['recover'][$ev['id']]); }
     $_SESSION['orders'][] = $o['ref'];
     $_SESSION['buyer'] = $buyer;

@@ -77,7 +77,7 @@ $valid = array_filter($tickets, fn($t) => $t['status'] === 'valid');
         <?php if ($o['cancelled_at']): ?><li><span class="tl-dot red"></span><div><b><?= $o['status'] === 'refunded' ? '💸 Remboursée' : '🚫 Annulée' ?></b><br><small class="muted"><?= e(short_date($o['cancelled_at'])) ?></small></div></li><?php endif; ?>
         <?php if ($o['refund_requested_at']): ?><li><span class="tl-dot orange"></span><div><b>💬 Remboursement demandé par l'acheteur</b><br><small class="muted"><?= e(short_date($o['refund_requested_at'])) ?></small></div></li><?php endif; ?>
         <?php if ($o['paid_at']): ?><li><span class="tl-dot green"></span><div><b>✅ Paiement validé</b> · <?= e(money((int)$o['total'])) ?><br><small class="muted"><?= e(short_date($o['paid_at'])) ?></small></div></li><?php endif; ?>
-        <li><span class="tl-dot"></span><div><b>🛒 Commande créée</b><?= $o['utm_source'] ?? '' ? ' · via ' . e($o['utm_source']) : '' ?><br><small class="muted"><?= e(short_date($o['created_at'])) ?></small></div></li>
+        <li><span class="tl-dot"></span><div><b>🛒 Commande créée</b><?= $o['utm_source'] ?? '' ? ' · via ' . e($o['utm_source']) : '' ?><?php if (!empty($o['referrer_order_id'])): $rf = one('SELECT ref, first_name, last_name FROM orders WHERE id = ?', [$o['referrer_order_id']]); if ($rf): ?> · 👯 invité par <a href="<?= url('/pro/commandes', ['q' => $rf['ref']]) ?>"><?= e(trim($rf['first_name'] . ' ' . $rf['last_name'])) ?></a><?php endif; endif; ?><?= (int)($o['group_discount'] ?? 0) ? ' · 👥 tarif groupe −' . e(money((int)$o['group_discount'])) : '' ?><?= (int)($o['exchanges'] ?? 0) ? ' · 📅 date changée ' . (int)$o['exchanges'] . ' fois' : '' ?><?= !empty($o['birth_date']) ? ' · 🎂 ' . e(date('d/m/Y', strtotime((string)$o['birth_date']))) : '' ?><br><small class="muted"><?= e(short_date($o['created_at'])) ?></small></div></li>
       </ol>
     </div>
   </div>
@@ -132,7 +132,7 @@ $valid = array_filter($tickets, fn($t) => $t['status'] === 'valid');
         <?php endif; ?>
         <button class="btn btn-block btn-light" name="action" value="cancel" data-confirm="Annuler la commande SANS remboursement ? Les billets seront refusés à l'entrée.">Annuler sans rembourser</button>
       </form>
-      <div class="soon-row"><?= soon_btn('echange-date', '📅 Changer de date') ?><?= soon_btn('factures', '🧾 Facture pro') ?><?= soon_btn('sms', '💬 Envoyer par SMS') ?></div>
+      <div class="soon-row"><?= soon_btn('factures', '🧾 Facture pro') ?><?= soon_btn('sms', '💬 Envoyer par SMS') ?></div>
     </div>
     <?php endif; ?>
   </div>

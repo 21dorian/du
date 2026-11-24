@@ -40,6 +40,7 @@ $input = 'custom_field_html';?>
     <div class="card">
       <label class="check"><input type="checkbox" name="optin" value="1" <?= !empty($_POST['optin']) ? 'checked' : '' ?>> <span>📬 Je veux recevoir les prochains événements de <b><?= e($org['name']) ?></b> par e-mail (désinscription en un clic).</span></label>
       <div style="height:10px"></div>
+      <?= Buyers::ageFieldsHtml(Buyers::requiredAge($ev, array_values(array_map(fn($l) => $l['rate_id'], array_filter($sum['lines'], fn($l) => $l['kind'] === 'rate'))))) ?>
       <?php if (setting('cgv')): ?>
         <label class="check"><input type="checkbox" name="cgv" value="1" required> J'ai lu et j'accepte les <a href="<?= url('/cgv') ?>" target="_blank">conditions générales de vente</a> (oui, vraiment lu 😇).</label>
         <div style="height:14px"></div>
@@ -57,7 +58,8 @@ $input = 'custom_field_html';?>
         <div class="summary-line"><span><?= (int)$l['qty'] ?> × <?= $l['kind'] === 'product' ? '✨ ' : '' ?><?= e($l['name']) ?><?= $l['pack'] > 1 ? ' (pack ' . $l['pack'] . ')' : '' ?></span><span><?= e(money($l['qty'] * $l['unit_price'])) ?></span></div>
       <?php endforeach; ?>
       <?php if ($sum['donation']): ?><div class="summary-line"><span>💛 Don</span><span><?= e(money($sum['donation'])) ?></span></div><?php endif; ?>
-      <?php if ($sum['discount']): ?><div class="summary-line" style="color:var(--green)"><span>Code <?= e($sum['promo']['code']) ?></span><span>−<?= e(money($sum['discount'])) ?></span></div><?php endif; ?>
+      <?php $gd = (int)($sum['group']['amount'] ?? 0); if ($gd): ?><div class="summary-line" style="color:var(--green)"><span>👥 Tarif groupe (−<?= (int)$sum['group']['pct'] ?> %)</span><span>−<?= e(money($gd)) ?></span></div><?php endif; ?>
+      <?php if ($sum['discount'] - $gd > 0): ?><div class="summary-line" style="color:var(--green)"><span>Code <?= e($sum['promo']['code'] ?? '') ?></span><span>−<?= e(money($sum['discount'] - $gd)) ?></span></div><?php endif; ?>
       <?php if ($sum['fees']): ?><div class="summary-line"><span>Frais de service</span><span><?= e(money($sum['fees'])) ?></span></div><?php endif; ?>
       <div class="summary-line total"><span>Total</span><span><?= e(money($sum['total'])) ?></span></div>
       <a href="<?= url('/e/' . $ev['slug'], $session ? ['seance' => $session['id']] : []) ?>" style="font-size:14px">← Je change d'avis</a>

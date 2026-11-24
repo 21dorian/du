@@ -86,9 +86,11 @@ function api_data(string $id): never
         'rates' => array_values(array_filter(array_map('intval', explode(',', (string)$a['rate_ids']))))],
         all('SELECT * FROM access_points WHERE event_id = ? ORDER BY id', [$ev['id']]));
     $rates = []; $rules = [];
-    foreach (all('SELECT id, name, scan_note, scan_color FROM rates WHERE event_id = ?', [$ev['id']]) as $r) {
+    foreach (all('SELECT id, name, scan_note, scan_color, min_age FROM rates WHERE event_id = ?', [$ev['id']]) as $r) {
         $rates[(int)$r['id']] = $r['name'];
-        if ($r['scan_note'] || $r['scan_color']) $rules[(int)$r['id']] = ['note' => (string)$r['scan_note'], 'color' => (string)$r['scan_color']];
+        $age = max((int)($ev['min_age'] ?? 0), (int)($r['min_age'] ?? 0));
+        $note = trim(($age ? '🔞 ' . $age . ' ans et + : vérifier l\'âge. ' : '') . (string)$r['scan_note']);
+        if ($note !== '' || $r['scan_color']) $rules[(int)$r['id']] = ['note' => $note, 'color' => (string)$r['scan_color']];
     }
     json_out([
         'event' => ['id' => (int)$ev['id'], 'name' => $ev['name'], 'date' => fr_date($ev['starts_at']), 'reentry' => (int)$ev['allow_reentry']],

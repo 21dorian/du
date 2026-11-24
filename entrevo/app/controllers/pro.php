@@ -116,6 +116,18 @@ function event_form(?string $id = null): string
             'queue_rate' => max(5, min(2000, (int)input('queue_rate', 50))),
             'ticket_color' => preg_match('~^#[0-9a-fA-F]{6}$~', (string)input('ticket_color')) ? (string)input('ticket_color') : null,
             'email_message' => trim((string)input('email_message')) ?: null,
+            'exchange_enabled' => checked('exchange_enabled'),
+            'exchange_hours' => max(0, min(720, (int)input('exchange_hours', 24))),
+            'min_age' => in_array((int)input('min_age'), [12, 16, 18, 21], true) ? (int)input('min_age') : null,
+            'presale_until' => dt_from_input(input('presale_until')),
+            'presale_past' => checked('presale_past'),
+            'presale_list' => implode("\n", array_values(array_unique(array_filter(array_map(fn($x) => strtolower(trim($x)), preg_split('~[\s,;]+~', (string)input('presale_list'))), 'is_email')))) ?: null,
+            'group_tiers' => (function () {
+                $t = [];
+                foreach ((array)($_POST['tier_min'] ?? []) as $k => $m) { $m = (int)$m; $pc = (int)($_POST['tier_pct'][$k] ?? 0); if ($m >= 2 && $pc >= 1 && $pc <= 90) $t[$m] = ['min' => $m, 'pct' => $pc]; }
+                ksort($t);
+                return $t ? json_encode(array_values($t)) : null;
+            })(),
         ];
         $newSlug = slugify((string)input('slug'));
         if ($ev && input('slug') !== null && trim((string)input('slug')) !== '' && $newSlug !== $ev['slug']) {
@@ -240,6 +252,7 @@ function rates(string $id): string
             'per_day' => checked('per_day'),
             'session_ids' => implode(',', array_map('intval', (array)($_POST['session_ids'] ?? []))) ?: null,
             'seat_category' => trim((string)input('seat_category')) ?: null,
+            'min_age' => in_array((int)input('min_age'), [12, 16, 18, 21], true) ? (int)input('min_age') : null,
             'after_rate_id' => ((int)input('after_rate_id') && (int)input('after_rate_id') !== $rid && val('SELECT id FROM rates WHERE id = ? AND event_id = ?', [(int)input('after_rate_id'), $ev['id']])) ? (int)input('after_rate_id') : null,
         ];
         if ($data['name'] === '') back(['error' => 'Donne un nom à ce tarif.']);

@@ -19,7 +19,7 @@
     <h3><?= e($ev['name']) ?></h3>
     <p class="muted" style="font-size:14px">Commande <?= e($o['ref']) ?> · <?= e($o['first_name'] . ' ' . $o['last_name']) ?></p>
     <?php foreach ($items as $i): ?><div class="summary-line"><span><?= (int)$i['qty'] ?> × <?= e($i['name']) ?></span><span><?= e(money($i['qty'] * $i['unit_price'])) ?></span></div><?php endforeach; ?>
-    <?php if ($o['discount']): ?><div class="summary-line" style="color:var(--green)"><span>Réduction</span><span>−<?= e(money((int)$o['discount'])) ?></span></div><?php endif; ?>
+    <?php if ($o['discount']): ?><div class="summary-line" style="color:var(--green)"><span><?= (int)($o['group_discount'] ?? 0) >= (int)$o['discount'] ? '👥 Tarif groupe' : 'Réduction' ?></span><span>−<?= e(money((int)$o['discount'])) ?></span></div><?php endif; ?>
     <?php if ($o['fee_mode'] === 'buyer' && $o['fees']): ?><div class="summary-line"><span>Frais de service</span><span><?= e(money((int)$o['fees'])) ?></span></div><?php endif; ?>
     <div class="summary-line total"><span>Total</span><span><?= e(money((int)$o['total'])) ?></span></div>
     <div class="dw-timer" data-expires="<?= e(date('c', strtotime((string)$o['expires_at']))) ?>">⏱️ Places gardées <b data-left><?= e(date('H\hi', strtotime($o['expires_at']))) ?></b></div>

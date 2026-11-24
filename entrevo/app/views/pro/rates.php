@@ -1,7 +1,7 @@
 <?php
 $form = function (?array $r) use ($org, $sessions, $seatCats, $rates) {
     $p = $r ?? ['id' => 0, 'name' => '', 'description' => '', 'price' => 0, 'quota' => 0, 'max_per_order' => 0, 'sale_start' => null, 'sale_end' => null, 'hidden' => 0, 'active' => 1, 'sort' => 0,
-        'price_mode' => 'fixed', 'pack_size' => 1, 'max_entries' => 1, 'per_day' => 0, 'session_ids' => '', 'seat_category' => '', 'scan_note' => '', 'scan_color' => '', 'vat_rate' => null, 'after_rate_id' => null];
+        'price_mode' => 'fixed', 'pack_size' => 1, 'max_entries' => 1, 'per_day' => 0, 'session_ids' => '', 'seat_category' => '', 'scan_note' => '', 'scan_color' => '', 'vat_rate' => null, 'after_rate_id' => null, 'min_age' => null];
     $selS = array_map('intval', array_filter(explode(',', (string)$p['session_ids'])));
     ob_start(); ?>
     <form method="post"><?= csrf_field() ?><input type="hidden" name="rate_id" value="<?= (int)$p['id'] ?>">
@@ -19,6 +19,7 @@ $form = function (?array $r) use ($org, $sessions, $seatCats, $rates) {
         <?php foreach ($sessions as $x): ?><label class="check" style="font-weight:400"><input type="checkbox" name="session_ids[]" value="<?= (int)$x['id'] ?>" <?= in_array((int)$x['id'], $selS, true) ? 'checked' : '' ?>> <?= e(short_date($x['starts_at'])) ?></label><?php endforeach; ?></div><small>Aucune cochée = toutes les dates.</small></div><?php endif; ?>
       <?php if ($seatCats): ?><div class="field"><label>Catégorie de place (plan de salle)</label><select name="seat_category"><option value="">Toutes les places</option><?php foreach ($seatCats as $c): ?><option value="<?= e($c['id']) ?>" <?= $p['seat_category'] === $c['id'] ? 'selected' : '' ?>><?= e($c['name']) ?></option><?php endforeach; ?></select></div><?php endif; ?>
       <div class="field"><label>Description</label><input name="description" value="<?= e($p['description']) ?>" placeholder="Ex. : sur présentation d'un justificatif"></div>
+      <div class="field" style="max-width:320px"><label>🔞 Âge minimum pour ce tarif</label><select name="min_age"><?php foreach (['' => 'Comme l\'événement', '12' => '12 ans et +', '16' => '16 ans et +', '18' => '18 ans et +', '21' => '21 ans et +'] as $k => $l): ?><option value="<?= $k ?>" <?= (string)($p['min_age'] ?? '') === (string)$k ? 'selected' : '' ?>><?= $l ?></option><?php endforeach; ?></select></div>
       <div class="field" style="max-width:320px"><label>TVA de ce tarif</label><select name="vat_rate"><?php foreach (Vat::RATES as $k => $l): ?><option value="<?= e((string)$k) ?>" <?= ($p['vat_rate'] === null ? $k === '' : ($k !== '' && (float)$p['vat_rate'] === (float)$k)) ? 'selected' : '' ?>><?= e($l) ?><?= $k === '' ? ' (' . e(Vat::label($org['vat_rate'] !== null ? (float)$org['vat_rate'] : null)) . ')' : '' ?></option><?php endforeach; ?></select></div>
       <div class="grid3 scan-rule">
         <div class="field" style="grid-column:span 2"><label>📷 Consigne affichée au contrôle</label><input name="scan_note" value="<?= e((string)($p['scan_note'] ?? '')) ?>" maxlength="160" placeholder="Ex. : Vérifier la carte étudiant · Remettre le bracelet VIP"><small>S'affiche en grand sur l'appli de scan quand ce billet passe.</small></div>
@@ -65,9 +66,7 @@ $form = function (?array $r) use ($org, $sessions, $seatCats, $rates) {
 <?php endforeach; ?>
 <details class="box" <?= !$rates ? 'open' : '' ?>><summary style="color:var(--primary)">+ Ajouter un tarif</summary><?= $form(null) ?></details>
 <?= soon_card('💡 Plus de possibilités pour tes tarifs', [
-  'early-bird' => ['Early bird automatique', 'Passe au tarif suivant à une date ou après X billets'],
   'prix-dynamique' => ['Tarification dynamique', 'Le prix suit la demande, entre un plancher et un plafond'],
-  'tarif-groupe' => ['Tarif dégressif par quantité', '5 billets et plus = prix réduit'],
   'paiement-plusieurs-fois' => ['Paiement en 3 fois', 'Pour les pass et les formules VIP'],
   'abonnements' => ['Inclus dans un abonnement', 'Le tarif est accessible aux abonnés de la saison'],
 ]) ?>

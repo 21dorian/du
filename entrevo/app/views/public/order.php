@@ -13,7 +13,7 @@
     <div class="row no-print" style="justify-content:center;margin-top:10px">
       <details class="cal-menu"><summary class="btn btn-sm btn-light">📅 Ajouter à mon agenda</summary><div class="cal-pop"><a href="<?= e(Buyers::googleUrl($ev, $session)) ?>" target="_blank" rel="noopener">Google Agenda</a><a href="<?= e(Buyers::icsUrl($ev, $session)) ?>">Apple / Outlook (.ics)</a></div></details>
     </div>
-    <div class="soon-row center-row no-print"><?= pub_soon('wallet', '📲 Ajouter au Wallet') ?><?= pub_soon('echange', '📅 Changer de date') ?><?= pub_soon('covoiturage', '🚗 Covoiturage') ?></div>
+    <div class="soon-row center-row no-print"><?= pub_soon('wallet', '📲 Ajouter au Wallet') ?><?= pub_soon('covoiturage', '🚗 Covoiturage') ?></div>
   </div>
 <?php elseif ($o['status'] === 'pending'): ?>
   <div class="card center auth-box">
@@ -29,6 +29,35 @@
 
 <?php if ($tickets): $n = count($tickets); $start = $session['starts_at'] ?? $ev['starts_at']; ?>
 <div style="max-width:860px;margin:0 auto">
+  <?php if ($paid && strtotime((string)($ev['ends_at'] ?: $ev['starts_at'])) > time()): $inv = Buyers::inviteUrl($ev, $o); $nRef = Buyers::referralCount((int)$o['id']);
+    $msg = 'Je vais à « ' . $ev['name'] . ' » le ' . fr_date((string)$start, false) . ', tu viens ? 🎉 ' . $inv; ?>
+  <div class="card invite-box no-print">
+    <div class="invite-head"><div><b>👯 Plus on est de fous…</b><span class="muted">Envoie ton lien à tes potes pour qu'ils prennent leur place.<?= $nRef ? ' <b class="invite-count">🎉 ' . $nRef . ' ami' . ($nRef > 1 ? 's ont' : ' a') . ' déjà pris sa place grâce à toi !</b>' : '' ?></span></div></div>
+    <div class="invite-actions">
+      <a class="btn btn-sm invite-wa" href="https://wa.me/?text=<?= e(rawurlencode($msg)) ?>" target="_blank" rel="noopener">WhatsApp</a>
+      <a class="btn btn-sm btn-light" href="sms:?&amp;body=<?= e(rawurlencode($msg)) ?>">SMS</a>
+      <a class="btn btn-sm btn-light" href="mailto:?subject=<?= e(rawurlencode('On y va ? ' . $ev['name'])) ?>&amp;body=<?= e(rawurlencode($msg)) ?>">E-mail</a>
+      <button type="button" class="btn btn-sm btn-light" data-share data-url="<?= e($inv) ?>" data-text="<?= e($msg) ?>">Partager…</button>
+      <div class="invite-link"><input readonly value="<?= e($inv) ?>" aria-label="Ton lien d'invitation"><button type="button" class="btn btn-sm btn-light" data-copy="<?= e($inv) ?>">Copier</button></div>
+    </div>
+  </div>
+  <?php endif; ?>
+  <?php $ex = Buyers::exchangeOptions($o, $ev); if ($ex['why'] || $ex['list']): ?>
+  <details class="card exchange-box no-print">
+    <summary><b>📅 Changer de date</b> <span class="muted"><?= $ex['why'] ? e($ex['why']) : 'Un empêchement ? Déplace tes ' . (int)$ex['count'] . ' billet' . ($ex['count'] > 1 ? 's' : '') . ' sur une autre date, sans frais.' ?></span></summary>
+    <?php if ($ex['list']): ?>
+    <form method="post" action="<?= url('/commande/' . $o['ref'] . '/date', ['t' => $o['token']]) ?>" class="exchange-form"><?= csrf_field() ?>
+      <div class="exchange-list">
+        <?php foreach ($ex['list'] as $x): ?>
+          <label class="exchange-opt <?= $x['ok'] ? '' : 'off' ?>"><input type="radio" name="session_id" value="<?= (int)$x['id'] ?>" <?= $x['ok'] ? '' : 'disabled' ?> required>
+            <span><b><?= e(fr_date((string)$x['starts_at'])) ?></b><?= !empty($x['label']) ? '<small>' . e($x['label']) . '</small>' : '' ?></span><span class="exchange-tag"><?= $x['ok'] ? 'Disponible' : 'Complet' ?></span></label>
+        <?php endforeach; ?>
+      </div>
+      <button class="btn btn-sm" data-confirm="Déplacer toute ta commande sur cette date ? Tes QR codes restent les mêmes.">Changer de date</button>
+    </form>
+    <?php endif; ?>
+  </details>
+  <?php endif; ?>
   <?php $valid = array_values(array_filter($tickets, fn($t) => $t['status'] === 'valid' && (int)$t['entries'] === 0 && !$t['holder_email']));
   $canName = $o['status'] === 'paid' && $valid && strtotime((string)($ev['ends_at'] ?: $ev['starts_at'])) > time();
   $allBuyer = $canName && count($valid) > 1 && !array_filter($valid, fn($t) => $t['first_name'] !== $o['first_name'] || $t['last_name'] !== $o['last_name']); ?>

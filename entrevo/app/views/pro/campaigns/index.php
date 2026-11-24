@@ -53,6 +53,16 @@
     <noscript><button class="btn btn-sm">Enregistrer</button></noscript>
   </form>
 </div>
+<?php $rf = $auto['referral']; ?>
+<div class="card">
+  <div class="card-head"><h2>👯 Bouche-à-oreille</h2><small class="muted">Après l'achat, chaque acheteur reçoit un lien perso à partager · 90 derniers jours</small></div>
+  <div class="page-head-row" style="margin:0 0 10px">
+    <div class="kpi-mini"><span>🎟️ Ventes via un ami</span><b><?= (int)$rf['sales'] ?></b></div>
+    <div class="kpi-mini"><span>💶 Chiffre d'affaires</span><b><?= e(money($rf['revenue'])) ?></b></div>
+  </div>
+  <?php if ($rf['top']): ?><p class="mb0"><b>Meilleurs ambassadeurs :</b> <?= implode(' · ', array_map(fn($t) => e(trim($t['first_name'] . ' ' . mb_substr((string)$t['last_name'], 0, 1) . '.')) . ' <span class="muted">(' . (int)$t['n'] . ', ' . e($t['ev_name']) . ')</span>', $rf['top'])) ?></p>
+  <?php else: ?><p class="muted mb0">Pas encore de vente par invitation. Le lien est dans la page de commande et l'e-mail de confirmation.</p><?php endif; ?>
+</div>
 <?= soon_card('🤖 Bientôt : encore plus d\'automatique', [
   'codes-auto' => ['Codes promo automatiques', 'Anniversaire, fidélité, retour après longtemps'],
   'sms' => ['Campagnes SMS', 'Le canal le plus lu, en complément des e-mails'],

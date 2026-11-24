@@ -79,6 +79,19 @@ Couleurs : **vert** = entre, **orange** = déjà entré / pas entré (sortie), *
 
 ---
 
+## Nouveautés 1.9 ✨
+
+**Pour les acheteurs**
+- **📅 Changer de date** : sur un événement à plusieurs dates, l'acheteur déplace toute sa commande sur une autre date depuis sa page de commande, s'il reste de la place pour chacun de ses tarifs. Les QR codes restent les mêmes et les billets sont renvoyés par e-mail. À activer dans la fiche de l'événement (avec un délai : jusqu'à X heures avant la date d'origine). Indisponible si un billet a déjà servi, a été donné ou est en revente, et pour les événements avec plan de salle.
+- **👯 Inviter des amis** : après l'achat, un encadré « Plus on est de fous… » (et une ligne dans l'e-mail de confirmation) donne un lien perso à partager : WhatsApp, SMS, e-mail, partage du téléphone ou copier. Les ventes passées par ce lien sont comptées ; l'acheteur voit combien d'amis ont pris leur place grâce à lui.
+
+**Pour les organisateurs** (fiche de l'événement)
+- **👥 Tarif dégressif** : jusqu'à 3 paliers (ex. −10 % dès 4 billets, −15 % dès 8). La remise s'applique à tous les billets payants de la commande, s'affiche en direct dans le tiroir (« plus que 1 billet pour −10 % ») et dans le récap. Cumulable avec un code promo, pas avec les partenaires ni la revente.
+- **🔒 Préventes privées** : une date d'ouverture au grand public ; avant, seules les personnes autorisées (liste d'e-mails et/ou anciens participants) peuvent acheter. Elles entrent leur e-mail sur la page et reçoivent un lien d'accès personnel. Compte des liens envoyés et utilisés dans la fiche.
+- **🔞 Restriction d'âge** : âge minimum par événement ou par tarif. Date de naissance et confirmation demandées à l'achat (refus si trop jeune), mention sur la page et sur le billet PDF, rappel « vérifier l'âge » sur l'appli de scan.
+- Campagnes : nouvel encadré **Bouche-à-oreille** (ventes et chiffre d'affaires venus des invitations, meilleurs ambassadeurs). Le détail d'une commande indique « invité par », la remise de groupe, les changements de date et la date de naissance.
+- Sur téléphone, la barre d'étapes de la page de confirmation ne déborde plus.
+
 ## Nouveautés 1.8 ✨
 
 **Pour les acheteurs**

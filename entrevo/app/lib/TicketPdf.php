@@ -140,6 +140,15 @@ final class TicketPdf
             $pdf->RoundedRect($bx, $fy, $rw, 8, 4, 'F');
             $pdf->SetXY($bx, $fy);
             $pdf->Cell($rw, 8, self::fit($pdf, $rate, $rw - 6), 0, 0, 'C');
+            static $rateAge = [];
+            $rateAge[$t['rate_id']] ??= (int)val('SELECT min_age FROM rates WHERE id = ?', [$t['rate_id']]);
+            $age = max((int)($event['min_age'] ?? 0), $rateAge[$t['rate_id']]);
+            if ($age && $rw + 34 <= $bw) {
+                $pdf->SetFillColor(253, 232, 230); $pdf->SetTextColor(196, 40, 28);
+                $pdf->RoundedRect($bx + $rw + 3, $fy, 30, 8, 4, 'F');
+                $pdf->SetXY($bx + $rw + 3, $fy);
+                $pdf->Cell(30, 8, self::t($age . ' ANS ET +'), 0, 0, 'C');
+            }
             $fy += 14;
             $half = ($bw - 4) / 2;
             if (!empty($t['seat'])) { self::field($pdf, $bx, $fy, $bw, 'PLACE', Seating::label($t['seat'], $map), 15); $fy += 15; }

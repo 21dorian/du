@@ -21,7 +21,8 @@ function campaigns_index(): string
     $auto = ['org' => current_org(), 'recovery' => Buyers::recoveryStats($oid),
         'reminders' => (int)val('SELECT COUNT(*) FROM orders WHERE organizer_id = ? AND reminder_sent_at >= NOW() - INTERVAL 90 DAY', [$oid]),
         'reviews_sent' => (int)val('SELECT COUNT(*) FROM orders WHERE organizer_id = ? AND review_sent_at >= NOW() - INTERVAL 90 DAY', [$oid]),
-        'reviews' => (int)val('SELECT COUNT(*) FROM reviews WHERE organizer_id = ? AND created_at >= NOW() - INTERVAL 90 DAY', [$oid])];
+        'reviews' => (int)val('SELECT COUNT(*) FROM reviews WHERE organizer_id = ? AND created_at >= NOW() - INTERVAL 90 DAY', [$oid]),
+        'referral' => Buyers::referralStats($oid)];
     return pro_page('Campagnes e-mail', 'campaigns/index', compact('list', 'counts', 'tot', 'templates', 'auto'), 'campagnes');
 }
 

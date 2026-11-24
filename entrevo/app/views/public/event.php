@@ -26,6 +26,8 @@ $fromPrice = $onSalePrices ? min($onSalePrices) : null;
     <div class="event-pills">
       <?php if ($showCountdown): ?><span class="pill pill-dark" data-countdown="<?= e(date('c', $startTs)) ?>">⏳ <span data-cd-text><?= e(ago_until($startTs)) ?></span></span><?php endif; ?>
       <?php if ($scarce): ?><span class="pill pill-hot">🔥 Plus que <?= (int)$capLeft ?> place<?= $capLeft > 1 ? 's' : '' ?></span><?php elseif ($capLeft === 0 && $capTotal > 0): ?><span class="pill">😢 Complet</span><?php endif; ?>
+      <?php if (!empty($ev['min_age'])): ?><span class="pill pill-age">🔞 <?= (int)$ev['min_age'] ?> ans et +</span><?php endif; ?>
+      <?php $tiersP = Tickets::tiers($ev); if ($tiersP && $anyOnSale): ?><span class="pill pill-soft">👥 <?= count($tiersP) > 1 ? 'Jusqu\'à ' : '' ?>−<?= (int)end($tiersP)['pct'] ?> % en groupe</span><?php endif; ?>
       <?php if ($fromPrice !== null): ?><span class="pill pill-soft"><?= $fromPrice === 0 ? '🎁 Gratuit' : '🎟️ Dès ' . e(money($fromPrice)) ?></span><?php endif; ?>
     </div>
     <dl class="event-facts">
@@ -40,7 +42,7 @@ $fromPrice = $onSalePrices ? min($onSalePrices) : null;
     </dl>
     <?php if (!empty($ev['volunteer_recruit'])): ?><a class="vol-cta" href="<?= url('/e/' . $ev['slug'] . '/benevoles') ?>">🙋 On cherche des bénévoles : rejoins l'équipe →</a><?php endif; ?>
     <a class="btn btn-lg" href="#billets" <?= $useDrawer ? 'data-dw-open' : '' ?>><?= $sessions && !$session ? 'Choisir ma date 📅' : 'Je réserve 🎟️' ?></a>
-    <div class="ev-actions"><?= pub_soon('favoris', '❤️ Favori') ?><details class="cal-menu"><summary class="soon-chip">📅 Agenda</summary><div class="cal-pop"><a href="<?= e(Buyers::googleUrl($ev, $session ?? null)) ?>" target="_blank" rel="noopener">Google Agenda</a><a href="<?= e(Buyers::icsUrl($ev, $session ?? null)) ?>">Apple / Outlook (.ics)</a></div></details><?= pub_soon('inviter-amis', '👥 Inviter des amis') ?><?= pub_soon('covoiturage', '🚗 Covoiturage') ?></div>
+    <div class="ev-actions"><?= pub_soon('favoris', '❤️ Favori') ?><details class="cal-menu"><summary class="soon-chip">📅 Agenda</summary><div class="cal-pop"><a href="<?= e(Buyers::googleUrl($ev, $session ?? null)) ?>" target="_blank" rel="noopener">Google Agenda</a><a href="<?= e(Buyers::icsUrl($ev, $session ?? null)) ?>">Apple / Outlook (.ics)</a></div></details><?= pub_soon('covoiturage', '🚗 Covoiturage') ?></div>
   </div>
 </div>
 
@@ -72,6 +74,15 @@ $fromPrice = $onSalePrices ? min($onSalePrices) : null;
   </div>
 
   <aside class="buy-box" id="billets">
+    <?php if (!empty($ev['_presale_locked'])): $open = strtotime((string)$ev['presale_until']); ?>
+      <div class="presale-box">
+        <span class="bl-eyebrow">🔒 Prévente privée</span>
+        <h2>Les billets sont réservés aux invités jusqu'au <?= e(fr_date((string)$ev['presale_until'])) ?></h2>
+        <p class="presale-cd" data-countdown="<?= e(date('c', $open)) ?>" data-cd-end="C'est ouvert ! Recharge la page.">Ouverture au public · <span data-cd-text><?= e(ago_until($open)) ?></span></p>
+        <p>Tu es <?= !empty($ev['presale_past']) ? 'un·e habitué·e' : 'sur la liste' ?> ? Entre ton e-mail, on t'envoie ton lien d'accès.</p>
+        <form method="post" action="<?= url('/e/' . $ev['slug'] . '/prevente') ?>" class="presale-form"><?= csrf_field() ?><input type="email" name="email" required placeholder="ton@email.fr" aria-label="Ton e-mail" autocomplete="email"><button class="btn">Recevoir mon accès</button></form>
+      </div>
+    <?php endif; ?>
     <?php if ($useDrawer): $onSale = array_values(array_filter($rates, fn($r) => $r['sale']['ok'])); ?>
       <div class="buy-launch" hidden>
         <div class="bl-top"><span class="bl-eyebrow">🎟️ Billetterie ouverte</span><b><?= $fromPrice === 0 ? 'Gratuit' : 'Dès ' . e(money((int)$fromPrice)) ?></b><?php if ($session): ?><small><?= e(fr_date($session['starts_at'])) ?></small><?php endif; ?></div>
@@ -85,7 +96,7 @@ $fromPrice = $onSalePrices ? min($onSalePrices) : null;
       <div class="tickets-box"><div class="tickets-box-head"><h2>🎟️ Billets</h2></div><div class="rate"><span class="muted">👈 Choisis d'abord une date dans la liste.</span></div></div>
     <?php else: ?>
     <?php [$fpct, $ffix] = Tickets::feeRates($org); ?>
-    <form class="tickets-box" method="post" id="buy" action="<?= url($base) ?>" data-seatmap="<?= $seatmap ? url($base . '/plan') : '' ?>" data-fee-pct="<?= $org['fee_mode'] === 'buyer' ? e((string)$fpct) : '0' ?>" data-fee-fixed="<?= $org['fee_mode'] === 'buyer' ? (int)$ffix : 0 ?>"><?= csrf_field() ?>
+    <form class="tickets-box" method="post" id="buy" action="<?= url($base) ?>" data-seatmap="<?= $seatmap ? url($base . '/plan') : '' ?>" data-fee-pct="<?= $org['fee_mode'] === 'buyer' ? e((string)$fpct) : '0' ?>" data-fee-fixed="<?= $org['fee_mode'] === 'buyer' ? (int)$ffix : 0 ?>" data-tiers="<?= e(json_encode(empty($cart['partner']) ? Tickets::tiers($ev) : [])) ?>"><?= csrf_field() ?>
       <div class="tickets-box-head"><h2>🎟️ Billets</h2><small><?= $session ? e(fr_date($session['starts_at'])) : ($org['fee_mode'] === 'buyer' ? 'Frais inclus dans le total' : 'Prix tout compris') ?></small></div>
       <?php if ($cart['waitlist']): ?><div class="applied-code"><span>⏳ Place réservée pour toi (liste d'attente)</span></div><?php endif; ?>
       <?php if (!$rates): ?><div class="rate"><span class="muted">Pas encore de billets. Patience… 🍿</span></div><?php endif; ?>
@@ -98,6 +109,7 @@ $fromPrice = $onSalePrices ? min($onSalePrices) : null;
             <b><?= e($r['name']) ?></b>
             <?php if ($r['description']): ?><small><?= e($r['description']) ?></small><?php endif; ?>
             <?php if ($pack > 1): ?><small>👥 Pack de <?= $pack ?> billets</small><?php endif; ?>
+            <?php if ((int)($r['min_age'] ?? 0) > (int)($ev['min_age'] ?? 0)): ?><small>🔞 Réservé aux <?= (int)$r['min_age'] ?> ans et +</small><?php endif; ?>
             <?php if ((int)$r['max_entries'] > 1 || $r['per_day']): ?><small>🔁 <?= $r['per_day'] ? '1 entrée par jour' : (int)$r['max_entries'] . ' entrées' ?></small><?php endif; ?>
             <?php $isEarly = $r['sale']['ok'] && (bool)array_filter($rates, fn($x) => (int)($x['after_rate_id'] ?? 0) === (int)$r['id']);
                   $endSoon = $r['sale']['ok'] && $r['sale_end'] && strtotime($r['sale_end']) - time() < 7 * 86400; ?>
@@ -201,7 +213,7 @@ $fromPrice = $onSalePrices ? min($onSalePrices) : null;
     <ol class="dw-steps"><li data-step="1">Billets</li><li data-step="2">Toi</li><li data-step="3">Récap</li><li data-step="4">Paiement</li></ol>
   </header>
   <div class="dw-body">
-    <section class="dw-panel" data-panel="1"><h3 class="dw-h">Choisis tes billets</h3><div data-slot="rates"></div></section>
+    <section class="dw-panel" data-panel="1"><h3 class="dw-h">Choisis tes billets</h3><?php $tiers = Tickets::tiers($ev); if ($tiers): ?><div class="tier-box"><b>👥 Tarif groupe</b> <?= e(implode(' · ', array_map(fn($t) => '−' . $t['pct'] . ' % dès ' . $t['min'] . ' billets', $tiers))) ?><p class="tier-hint" data-tier-hint hidden></p></div><?php endif; ?><div data-slot="rates"></div></section>
     <section class="dw-panel" data-panel="2" hidden>
       <h3 class="dw-h">C'est pour qui ?</h3>
       <form id="dw-buyer" novalidate>

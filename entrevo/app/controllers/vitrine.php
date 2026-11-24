@@ -5,7 +5,7 @@ declare(strict_types=1);
 
 function public_soon(string $key): string
 {
-    $live = ['agenda' => '/mes-billets', 'transfert' => '/mes-billets', 'filtres-date' => '/?quand=week-end#quand', 'avis-public' => '/'];
+    $live = ['agenda' => '/mes-billets', 'transfert' => '/mes-billets', 'filtres-date' => '/?quand=week-end#quand', 'avis-public' => '/', 'echange' => '/mes-billets', 'inviter-amis' => '/mes-billets'];
     if (isset($live[$key])) redirect($live[$key], ['info' => '🎉 Bonne nouvelle : c\'est disponible !']);
     $f = Features::getPublic($key) ?? (($g = Features::get($key)) && $g['status'] === 'soon' ? $g : null);
     if (!$f) abort(404);

@@ -103,6 +103,7 @@ final class Mailer
             . ($products ? '<p style="margin-top:14px">✨ Avec ta commande : ' . e(implode(', ', array_map(fn($i) => $i['qty'] . ' × ' . $i['name'], $products))) . ' (à retirer sur place).</p>' : '')
             . (!empty($ev['email_message']) ? '<div style="margin:18px 0;padding:14px 16px;background:#f6f4ef;border-left:4px solid #0032fa;white-space:pre-line">' . e($ev['email_message']) . '</div>' : '')
             . (class_exists('Buyers') ? Buyers::calendarLinks($ev, $session) : '')
+            . (class_exists('Buyers') ? '<p style="font-size:14px">👯 Tes potes viennent aussi ? Envoie-leur ce lien : <a href="' . e(Buyers::inviteUrl($ev, $o)) . '">' . e(Buyers::inviteUrl($ev, $o)) . '</a></p>' : '')
             . '<p style="margin-top:22px"><a href="' . e($link) . '" style="background:' . e(setting('primary_color', '#0032fa')) . ';color:#fff;padding:12px 18px;border-radius:8px;text-decoration:none;display:inline-block">Voir mes billets</a></p>'
             . '<p style="color:#777;font-size:13px">Une question sur l\'événement ? Écris à l\'organisateur : ' . e($org['name']) . ($org['email'] ? ' — ' . e($org['email']) : '') . '</p>';
         $pdf = TicketPdf::build($o, $ev, $org, $tickets);

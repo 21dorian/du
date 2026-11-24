@@ -110,6 +110,7 @@ final class Tickets
     {
         if (!$rate['active']) return ['ok' => false, 'why' => 'Indisponible'];
         if ($event['status'] !== 'published') return ['ok' => false, 'why' => 'Vente fermée'];
+        if (!empty($event['_presale_locked'])) return ['ok' => false, 'presale' => true, 'why' => 'Prévente privée 🔒'];
         $now = time();
         if ($rate['sale_start'] && strtotime($rate['sale_start']) > $now) return ['ok' => false, 'why' => 'En vente le ' . fr_date($rate['sale_start'])];
         if ($rate['sale_end'] && strtotime($rate['sale_end']) < $now) return ['ok' => false, 'why' => 'Vente terminée'];
@@ -155,6 +156,28 @@ final class Tickets
         if ($p['valid_until'] && strtotime($p['valid_until']) < time()) return ['error' => 'Ce code a expiré. Trop tard, désolé.'];
         $p['rate_list'] = array_filter(array_map('intval', explode(',', (string)$p['rate_ids'])));
         return ['promo' => $p];
+    }
+
+    /** Paliers du tarif dégressif : [['min' => 5, 'pct' => 10], …] triés par quantité. */
+    public static function tiers(array $ev): array
+    {
+        $t = json_decode((string)($ev['group_tiers'] ?? ''), true);
+        if (!is_array($t)) return [];
+        $t = array_values(array_filter(array_map(fn($x) => ['min' => (int)($x['min'] ?? 0), 'pct' => (int)($x['pct'] ?? 0)], $t), fn($x) => $x['min'] >= 2 && $x['pct'] > 0 && $x['pct'] <= 90));
+        usort($t, fn($a, $b) => $a['min'] <=> $b['min']);
+        return $t;
+    }
+
+    /** Remise de groupe : pourcentage du montant des billets payants selon le nombre de billets. */
+    public static function groupDiscount(array $ev, array $items): array
+    {
+        $tiers = self::tiers($ev);
+        $paid = array_filter($items, fn($i) => ($i['kind'] ?? 'rate') === 'rate' && $i['unit_price'] > 0);
+        $count = array_sum(array_map(fn($i) => $i['qty'] * max(1, (int)($i['_pack'] ?? $i['pack'] ?? 1)), $paid));
+        $base = array_sum(array_map(fn($i) => $i['unit_price'] * $i['qty'], $paid));
+        $cur = null; $next = null;
+        foreach ($tiers as $t) { if ($count >= $t['min']) $cur = $t; elseif (!$next) $next = $t; }
+        return ['amount' => $cur ? (int)round($base * $cur['pct'] / 100) : 0, 'pct' => $cur['pct'] ?? 0, 'count' => $count, 'next' => $next];
     }
 
     public static function discount(?array $promo, array $items): int
@@ -298,6 +321,8 @@ final class Tickets
 
             $subtotal = array_sum(array_map(fn($i) => $i['unit_price'] * $i['qty'], $items));
             $discount = self::discount($promo, $items);
+            $group = ($method === 'online' && !$partner && !$resale) ? self::groupDiscount($ev, $items)['amount'] : 0;
+            $discount = min($subtotal, $discount + $group);
             $net = $subtotal - $discount;
             $paidUnits = array_sum(array_map(fn($i) => $i['kind'] === 'rate' && $i['unit_price'] > 0 ? $i['qty'] : 0, $items));
             $donation = $method === 'online' && !$resale && !empty($ev['donation_enabled']) ? max(0, min(1000000, (int)($p['donation'] ?? 0))) : 0;
@@ -324,6 +349,7 @@ final class Tickets
                 'phone' => mb_substr((string)($buyer['phone'] ?? ''), 0, 40),
                 'subtotal' => $subtotal,
                 'discount' => $discount,
+                'group_discount' => $group,
                 'fees' => $online ? $fees : 0,
                 'donation' => $donation,
                 'total' => $total,

@@ -8,7 +8,9 @@ require_once APP . '/controllers/public.php';
 function drawer_fmt(array $sum): array
 {
     return ['lines' => array_map(fn($l) => ['name' => $l['name'], 'qty' => $l['qty'], 'kind' => $l['kind'], 'total' => money($l['qty'] * $l['unit_price'])], $sum['lines']),
-        'subtotal' => money($sum['subtotal']), 'discount' => $sum['discount'] ? money($sum['discount']) : null, 'fees' => $sum['fees'] ? money($sum['fees']) : null,
+        'subtotal' => money($sum['subtotal']), 'discount' => $sum['discount'] - (int)($sum['group']['amount'] ?? 0) > 0 ? money($sum['discount'] - (int)$sum['group']['amount']) : null,
+        'group' => !empty($sum['group']['amount']) ? ['pct' => $sum['group']['pct'], 'amount' => money($sum['group']['amount'])] : null,
+        'group_next' => !empty($sum['group']['next']) ? ['missing' => $sum['group']['next']['min'] - $sum['group']['count'], 'pct' => $sum['group']['next']['pct']] : null, 'fees' => $sum['fees'] ? money($sum['fees']) : null,
         'donation' => $sum['donation'] ? money($sum['donation']) : null, 'total' => money($sum['total']), 'total_cents' => $sum['total'], 'places' => $sum['places'],
         'promo' => $sum['promo']['code'] ?? null];
 }
@@ -36,6 +38,7 @@ function drawer_fields_html(array $ev, array $sum): string
             $blocks .= '</div>';
         }
     }
+    $h .= Buyers::ageFieldsHtml(Buyers::requiredAge($ev, array_values(array_map(fn($l) => $l['rate_id'], array_filter($sum['lines'], fn($l) => $l['kind'] === 'rate')))));
     if ($total > 1 || $required) {
         $h .= '<details class="dw-names"' . ($required ? ' open' : '') . '><summary>' . ($required ? '📝 Infos pour chaque billet (demandées par l\'organisateur)' : '👯 Mettre les noms des participants maintenant <small>(facultatif)</small>') . '</summary>'
             . ($required ? '' : '<p class="muted">Sinon tes billets seront à ton nom : tu pourras les renommer après l\'achat, depuis l\'e-mail de confirmation.</p>') . $blocks . '</details>';

@@ -261,4 +261,144 @@ final class Buyers
         $full = (int)round($avg);
         return str_repeat('★', $full) . str_repeat('☆', 5 - $full);
     }
+
+    // ---------- 1.9 : préventes privées ----------
+
+    public static function presaleActive(array $ev): bool
+    {
+        return !empty($ev['presale_until']) && strtotime((string)$ev['presale_until']) > time();
+    }
+
+    public static function presaleAllowed(array $ev, string $email): ?string
+    {
+        $email = strtolower(trim($email));
+        if (!is_email($email)) return null;
+        $list = array_filter(array_map('trim', preg_split('~[\s,;]+~', strtolower((string)$ev['presale_list']))));
+        if (in_array($email, $list, true)) return 'liste';
+        if (!empty($ev['presale_past']) && val("SELECT 1 FROM orders WHERE organizer_id = ? AND LOWER(email) = ? AND status = 'paid' AND event_id <> ? LIMIT 1", [$ev['organizer_id'], $email, $ev['id']])) return 'ancien';
+        return null;
+    }
+
+    public static function presaleSig(int $evId, string $email): string
+    {
+        return substr(hash_hmac('sha256', 'prevente|' . $evId . '|' . strtolower($email), (string)config('secret', 'entrevo')), 0, 20);
+    }
+
+    public static function sendPresaleLink(array $ev, string $email, string $reason): void
+    {
+        $email = strtolower($email);
+        q('INSERT INTO presale_access (event_id, email, reason, created_at) VALUES (?, ?, ?, NOW()) ON DUPLICATE KEY UPDATE reason = VALUES(reason)', [$ev['id'], $email, $reason]);
+        $tok = rtrim(strtr(base64_encode($email . '|' . self::presaleSig((int)$ev['id'], $email)), '+/', '-_'), '=');
+        $org = one('SELECT * FROM organizers WHERE id = ?', [$ev['organizer_id']]);
+        Mailer::send($email, '🔑 Ton accès à la prévente : ' . $ev['name'],
+            '<p>Salut 👋</p><p>Tu fais partie des privilégiés : tu peux prendre tes places pour <b>' . e($ev['name']) . '</b> avant tout le monde (ouverture au public le ' . e(fr_date((string)$ev['presale_until'])) . ').</p>'
+            . '<p><a href="' . e(abs_url('/e/' . $ev['slug'] . '/prevente/' . $tok)) . '" style="background:' . e(setting('primary_color', '#0032fa')) . ';color:#fff;padding:12px 18px;border-radius:8px;text-decoration:none;display:inline-block">J\'accède à la prévente</a></p>'
+            . '<p style="color:#777;font-size:13px">Ce lien est personnel. Il fonctionne jusqu\'à l\'ouverture au public.</p>', [], $org['email'] ?? null);
+    }
+
+    // ---------- 1.9 : restriction d'âge ----------
+
+    /** Âge minimum exigé pour ces tarifs (le plus élevé entre l'événement et les tarifs). */
+    public static function requiredAge(array $ev, array $rateIds): int
+    {
+        $age = (int)($ev['min_age'] ?? 0);
+        if ($rateIds) $age = max($age, (int)val('SELECT MAX(min_age) FROM rates WHERE event_id = ? AND id IN (' . implode(',', array_map('intval', $rateIds)) . ')', [$ev['id']]));
+        return $age;
+    }
+
+    public static function ageAt(string $birth, string $at): int
+    {
+        $b = new DateTime($birth); $a = new DateTime($at);
+        return (int)$b->diff($a)->y * ($a >= $b ? 1 : -1);
+    }
+
+    public static function ageFieldsHtml(int $age): string
+    {
+        if (!$age) return '';
+        return '<div class="age-box"><b>🔞 Réservé aux ' . $age . ' ans et plus</b>'
+            . '<div class="field"><label>Ta date de naissance *</label><input type="date" name="birth_date" required max="' . date('Y-m-d') . '" autocomplete="bday"></div>'
+            . '<label class="check"><input type="checkbox" name="age_ok" value="1" required> <span>Je confirme que chaque participant aura au moins ' . $age . ' ans le jour J (pièce d\'identité demandée à l\'entrée).</span></label></div>';
+    }
+
+    /** Contrôle à la commande : renvoie un message d'erreur ou null. */
+    public static function checkAge(array $ev, ?array $session, array $rateIds, ?string $birth, bool $confirmed): ?string
+    {
+        $age = self::requiredAge($ev, $rateIds);
+        if (!$age) return null;
+        if (!$birth || !preg_match('~^\d{4}-\d{2}-\d{2}$~', $birth) || strtotime($birth) === false || strtotime($birth) > time()) return 'Indique ta date de naissance (événement réservé aux ' . $age . ' ans et +).';
+        if (self::ageAt($birth, (string)($session['starts_at'] ?? $ev['starts_at'])) < $age) return 'Désolé, cet événement est réservé aux ' . $age . ' ans et plus 🔞';
+        if (!$confirmed) return 'Confirme que chaque participant a au moins ' . $age . ' ans.';
+        return null;
+    }
+
+    // ---------- 1.9 : changer de date ----------
+
+    /** Dates vers lesquelles cette commande peut être déplacée (avec la raison si non). */
+    public static function exchangeOptions(array $o, array $ev): array
+    {
+        if (empty($ev['exchange_enabled']) || $o['status'] !== 'paid' || !$o['session_id']) return ['why' => null, 'list' => []];
+        if (Seating::map($ev)) return ['why' => null, 'list' => []];
+        $cur = one('SELECT * FROM sessions WHERE id = ?', [$o['session_id']]);
+        if (!$cur) return ['why' => null, 'list' => []];
+        if (strtotime((string)$cur['starts_at']) - time() < (int)$ev['exchange_hours'] * 3600) return ['why' => 'Le changement de date n\'est plus possible à moins de ' . (int)$ev['exchange_hours'] . ' h de ta date.', 'list' => []];
+        $tickets = all("SELECT * FROM tickets WHERE order_id = ? AND status = 'valid'", [$o['id']]);
+        if (!$tickets) return ['why' => null, 'list' => []];
+        if (array_filter($tickets, fn($t) => (int)$t['entries'] > 0)) return ['why' => 'Un billet de cette commande a déjà servi.', 'list' => []];
+        if (array_filter($tickets, fn($t) => $t['holder_email'] || $t['resale_status'] === 'listed')) return ['why' => 'Un billet a été donné ou mis en revente : le changement de date n\'est plus possible.', 'list' => []];
+        $need = [];
+        foreach ($tickets as $t) $need[(int)$t['rate_id']] = ($need[(int)$t['rate_id']] ?? 0) + 1;
+        $list = [];
+        foreach (Tickets::sessions((int)$ev['id']) as $s) {
+            if ((int)$s['id'] === (int)$cur['id'] || strtotime((string)$s['starts_at']) < time() + 3600) continue;
+            $ok = true;
+            foreach ($need as $rid => $n) {
+                $r = one('SELECT * FROM rates WHERE id = ?', [$rid]);
+                $only = $r ? Tickets::rateSessions($r) : [];
+                if (!$r || ($only && !in_array((int)$s['id'], $only, true)) || Tickets::remaining($r, $ev, $s) < $n) { $ok = false; break; }
+            }
+            $list[] = $s + ['ok' => $ok];
+        }
+        return ['why' => null, 'list' => $list, 'current' => $cur, 'count' => count($tickets)];
+    }
+
+    public static function exchange(array $o, array $ev, int $sessionId): ?string
+    {
+        $opt = self::exchangeOptions($o, $ev);
+        if ($opt['why']) return $opt['why'];
+        $target = array_values(array_filter($opt['list'], fn($s) => (int)$s['id'] === $sessionId && $s['ok']))[0] ?? null;
+        if (!$target) return 'Cette date n\'est pas disponible (complète ou passée).';
+        db()->beginTransaction();
+        try {
+            q('SELECT id FROM events WHERE id = ? FOR UPDATE', [$ev['id']]);
+            // revérifie sous verrou
+            $again = array_values(array_filter(self::exchangeOptions($o, $ev)['list'], fn($s) => (int)$s['id'] === $sessionId && $s['ok']));
+            if (!$again) { db()->rollBack(); return 'Oups, cette date vient de se remplir 😬'; }
+            update('orders', ['session_id' => $sessionId, 'exchanges' => (int)$o['exchanges'] + 1], 'id = ?', [$o['id']]);
+            q("UPDATE tickets SET session_id = ?, updated_at = NOW() WHERE order_id = ? AND status = 'valid'", [$sessionId, $o['id']]);
+            db()->commit();
+        } catch (Throwable $e) { if (db()->inTransaction()) db()->rollBack(); throw $e; }
+        try { Audit::log('order.exchanged', 'Date changée : ' . fr_date((string)$opt['current']['starts_at']) . ' → ' . fr_date((string)$target['starts_at']), (int)$ev['id'], (int)$o['id'], (int)$o['organizer_id']); } catch (Throwable $e) { /* journal facultatif */ }
+        Mailer::sendOrderSafe((int)$o['id']);
+        return null;
+    }
+
+    // ---------- 1.9 : inviter des amis ----------
+
+    public static function inviteUrl(array $ev, array $o): string
+    {
+        return abs_url('/e/' . $ev['slug'], ['ami' => $o['ref']]);
+    }
+
+    public static function referralCount(int $orderId): int
+    {
+        return (int)val("SELECT COUNT(*) FROM orders WHERE referrer_order_id = ? AND status = 'paid'", [$orderId]);
+    }
+
+    public static function referralStats(int $orgId, int $days = 90): array
+    {
+        $r = one("SELECT COUNT(*) n, COALESCE(SUM(total), 0) revenue FROM orders WHERE organizer_id = ? AND status = 'paid' AND referrer_order_id IS NOT NULL AND created_at >= NOW() - INTERVAL $days DAY", [$orgId]);
+        $top = all("SELECT o2.first_name, o2.last_name, e.name ev_name, COUNT(*) n FROM orders o JOIN orders o2 ON o2.id = o.referrer_order_id JOIN events e ON e.id = o.event_id
+            WHERE o.organizer_id = ? AND o.status = 'paid' AND o.created_at >= NOW() - INTERVAL $days DAY GROUP BY o.referrer_order_id ORDER BY n DESC LIMIT 5", [$orgId]);
+        return ['sales' => (int)$r['n'], 'revenue' => (int)$r['revenue'], 'top' => $top];
+    }
 }

@@ -18,6 +18,14 @@
         net += n * price;
         if (q.dataset.unit && price > 0) paid += n;
       });
+      // tarif dégressif : remise selon le nombre de billets payants
+      var tiers = []; try { tiers = JSON.parse(buy.dataset.tiers || '[]'); } catch (e) { tiers = []; }
+      var nbPaid = 0; buy.querySelectorAll('.qty[data-unit]').forEach(function (q) { var n = parseInt(q.querySelector('input').value, 10) || 0; if (parseInt(q.dataset.base, 10) > 0 || q.dataset.freeprice) nbPaid += n * (parseInt(q.dataset.pack || '1', 10) || 1); });
+      var tier = null; tiers.forEach(function (t) { if (nbPaid >= t.min) tier = t; });
+      if (tier && !legacy) net -= Math.round(net * tier.pct / 100);
+      var nx = null; tiers.forEach(function (t) { if (!nx && nbPaid < t.min) nx = t; });
+      var tierHint = tier ? '👥 Tarif groupe : −' + tier.pct + ' % appliqué' + (nx ? ' · encore ' + (nx.min - nbPaid) + ' billet' + (nx.min - nbPaid > 1 ? 's' : '') + ' pour −' + nx.pct + ' %' : '') : (nx && nbPaid > 0 ? '👥 Plus que ' + (nx.min - nbPaid) + ' billet' + (nx.min - nbPaid > 1 ? 's' : '') + ' pour −' + nx.pct + ' % sur tout le groupe' : '');
+      var hintEl = document.querySelector('p[data-tier-hint]'); if (hintEl) { hintEl.textContent = tierHint; hintEl.hidden = !tierHint; }
       if (!legacy) total += net + (net > 0 ? Math.round(net * pct / 100) + fixed * paid : 0);
       var don = document.getElementById('donation');
       if (don) total += Math.round((parseFloat(String(don.value).replace(',', '.')) || 0) * 100);
@@ -60,6 +68,15 @@
       navigator.clipboard.writeText(b.dataset.copy).then(function () {
         var t = b.textContent; b.textContent = 'Copié ✓'; setTimeout(function () { b.textContent = t; }, 1500);
       });
+    });
+  });
+
+  // Partage natif (téléphone) ; sinon copie du lien
+  document.querySelectorAll('[data-share]').forEach(function (b) {
+    if (!navigator.share && !navigator.clipboard) { b.hidden = true; return; }
+    b.addEventListener('click', function () {
+      if (navigator.share) { navigator.share({ text: b.dataset.text, url: b.dataset.url }).catch(function () { /* annulé */ }); return; }
+      navigator.clipboard.writeText(b.dataset.text).then(function () { var t = b.textContent; b.textContent = 'Message copié ✓'; setTimeout(function () { b.textContent = t; }, 1500); });
     });
   });
 

@@ -55,17 +55,36 @@
         <div class="field"><label>Publication programmée</label><input type="datetime-local" name="publish_at" value="<?= e(dt_input($ev['publish_at'] ?? null)) ?>"><small>Reste en brouillon puis se publie tout seul à cette heure-là.</small></div>
         <label class="check"><input type="checkbox" name="queue_enabled" value="1" <?= !empty($ev['queue_enabled']) ? 'checked' : '' ?>> 🚦 File d'attente virtuelle (grosse ouverture des ventes)</label>
         <div class="field mt" data-show-if="queue_enabled=1"><label>Personnes admises par minute</label><input type="number" name="queue_rate" min="5" value="<?= (int)($ev['queue_rate'] ?? 50) ?>"></div>
+        <div class="field mt"><label>🔞 Âge minimum</label><select name="min_age"><?php foreach (['' => 'Tout public', '12' => '12 ans et +', '16' => '16 ans et +', '18' => '18 ans et +', '21' => '21 ans et +'] as $k => $l): ?><option value="<?= $k ?>" <?= (string)($ev['min_age'] ?? '') === (string)$k ? 'selected' : '' ?>><?= $l ?></option><?php endforeach; ?></select><small>Date de naissance demandée à l'achat, mention sur la page et le billet, rappel « vérifier l'âge » au scan. Réglable aussi par tarif.</small></div>
+      </div>
+      <div class="card">
+        <h2>🔒 Prévente privée</h2>
+        <p class="muted mt0">Avant une date d'ouverture, seules les personnes autorisées peuvent acheter : elles reçoivent un lien d'accès par e-mail.</p>
+        <div class="field"><label>Ouverture au grand public</label><input type="datetime-local" name="presale_until" value="<?= e(dt_input($ev['presale_until'] ?? null)) ?>"><small>Vide = pas de prévente. Avant cette date, la page affiche « Prévente privée ».</small></div>
+        <label class="check mb"><input type="checkbox" name="presale_past" value="1" <?= ($ev['presale_past'] ?? 1) ? 'checked' : '' ?>> Autoriser tes anciens participants (déjà acheté chez toi)</label>
+        <div class="field mb0"><label>Liste d'e-mails autorisés</label><textarea name="presale_list" rows="4" placeholder="Une adresse par ligne (abonnés, membres, bénévoles…)"><?= e($ev['presale_list'] ?? '') ?></textarea>
+          <?php if (!empty($ev['id'])): $pa = one('SELECT COUNT(*) n, SUM(used_at IS NOT NULL) used FROM presale_access WHERE event_id = ?', [$ev['id']]); ?><small><?= count(array_filter(preg_split('~[\s,;]+~', (string)($ev['presale_list'] ?? '')), 'is_email')) ?> adresse(s) dans la liste · <?= (int)$pa['n'] ?> lien(s) d'accès envoyé(s) · <?= (int)$pa['used'] ?> utilisé(s)</small><?php endif; ?></div>
       </div>
       <div class="card">
         <h2>🛒 Options de vente</h2>
         <label class="check mb"><input type="checkbox" name="waitlist_enabled" value="1" <?= ($ev['waitlist_enabled'] ?? 1) ? 'checked' : '' ?>> ⏳ Liste d'attente quand c'est complet</label>
         <label class="check mb"><input type="checkbox" name="transfer_enabled" value="1" <?= ($ev['transfer_enabled'] ?? 1) ? 'checked' : '' ?>> 🎁 Les acheteurs peuvent donner leur billet à un ami</label>
+        <label class="check mb"><input type="checkbox" name="exchange_enabled" value="1" <?= !empty($ev['exchange_enabled']) ? 'checked' : '' ?>> 📅 Les acheteurs peuvent changer de date eux-mêmes (événement à plusieurs dates)</label>
+        <div class="field" data-show-if="exchange_enabled=1"><label>Jusqu'à combien d'heures avant la date d'origine ?</label><div class="input-suffix"><input type="number" name="exchange_hours" min="0" max="720" value="<?= (int)($ev['exchange_hours'] ?? 24) ?>"><span>h</span></div></div>
         <label class="check mb"><input type="checkbox" name="resale_enabled" value="1" <?= !empty($ev['resale_enabled']) ? 'checked' : '' ?>> 🔁 Bourse aux billets officielle</label>
         <div class="field" data-show-if="resale_enabled=1"><label>Frais de revente payés par le vendeur</label><div class="input-suffix"><input name="resale_fee_percent" value="<?= e($ev['resale_fee_percent'] ?? '5') ?>" inputmode="decimal"><span>%</span></div></div>
         <label class="check mb"><input type="checkbox" name="refund_request_enabled" value="1" <?= !empty($ev['refund_request_enabled']) ? 'checked' : '' ?>> 💸 Les acheteurs peuvent demander un remboursement</label>
         <div class="field" data-show-if="refund_request_enabled=1"><label>Jusqu'au</label><input type="datetime-local" name="refund_deadline" value="<?= e(dt_input($ev['refund_deadline'] ?? null)) ?>"></div>
         <label class="check mb"><input type="checkbox" name="donation_enabled" value="1" <?= !empty($ev['donation_enabled']) ? 'checked' : '' ?>> 💛 Proposer un don à la commande</label>
         <div class="field" data-show-if="donation_enabled=1"><label>Phrase d'appel au don</label><input name="donation_label" value="<?= e($ev['donation_label'] ?? '') ?>" placeholder="Un petit don pour soutenir l'asso ?"></div>
+      </div>
+      <div class="card">
+        <h2>👥 Tarif dégressif</h2>
+        <p class="muted mt0">Plus on prend de billets dans une même commande, moins c'est cher. La remise s'applique à tous les billets payants de la commande.</p>
+        <?php $tiers = Tickets::tiers($ev); for ($k = 0; $k < 3; $k++): $t = $tiers[$k] ?? ['min' => '', 'pct' => '']; ?>
+          <div class="tier-row"><span>Dès</span><input type="number" name="tier_min[]" min="2" max="500" value="<?= e((string)$t['min']) ?>" placeholder="<?= [5, 10, 20][$k] ?>" aria-label="Nombre de billets"><span>billets :</span><div class="input-suffix"><input type="number" name="tier_pct[]" min="1" max="90" value="<?= e((string)$t['pct']) ?>" placeholder="<?= [10, 15, 20][$k] ?>" aria-label="Remise"><span>%</span></div><span>de remise</span></div>
+        <?php endfor; ?>
+        <small class="muted">Laisse vide pour ne pas en proposer. Non cumulable avec les partenaires et la revente ; cumulable avec un code promo.</small>
       </div>
       <div class="card">
         <h2>🎨 Billet & e-mail</h2>
@@ -80,11 +99,8 @@
         <textarea name="ticket_info" rows="4" placeholder="Ex. : Ouverture des portes 19 h. Pièce d'identité demandée."><?= e($ev['ticket_info'] ?? '') ?></textarea>
       </div>
       <?= soon_card('🧪 Options avancées', [
-        'vente-privee' => ['Préventes privées', 'Vente réservée à une liste (abonnés, anciens) avant l\'ouverture au public'],
         'billet-nominatif-id' => ['Contrôle d\'identité', 'Billet strictement nominatif, vérifié avec la pièce d\'identité'],
-        'restriction-age' => ['Âge minimum', 'Rappelé à l\'achat et signalé au scan'],
         'places-pmr' => ['Places PMR & accompagnateurs', 'Quota dédié et billet accompagnateur offert'],
-        'echange-date' => ['Échange de date par l\'acheteur', 'Pour les événements à plusieurs dates'],
         'assurance-annulation' => ['Assurance annulation', 'Proposée à l\'acheteur au moment du paiement'],
         'multilingue' => ['Page en plusieurs langues', 'Anglais, espagnol, allemand…'],
       ]) ?>

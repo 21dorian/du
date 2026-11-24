@@ -96,6 +96,7 @@
     var add = function (cls, a, b) { var r = document.createElement('div'); r.className = 'dw-line ' + (cls || ''); var x = document.createElement('span'); x.textContent = a; var y = document.createElement('span'); y.textContent = b; r.appendChild(x); r.appendChild(y); t.appendChild(r); };
     var hd = document.createElement('div'); hd.className = 'dw-ticket-head'; hd.textContent = '🎟️ Ton récap'; t.appendChild(hd);
     summary.lines.forEach(function (l) { add('', l.qty + ' × ' + l.name, l.total); });
+    if (summary.group) add('good', '👥 Tarif groupe (−' + summary.group.pct + ' %)', '−' + summary.group.amount);
     if (summary.discount) add('good', 'Réduction' + (summary.promo ? ' (' + summary.promo + ')' : ''), '−' + summary.discount);
     if (summary.fees) add('muted', 'Frais de service', summary.fees);
     if (summary.donation) add('', '💛 Don', summary.donation);
