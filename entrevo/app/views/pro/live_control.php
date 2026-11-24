@@ -9,19 +9,18 @@
   <div class="card">
     <div class="card-head"><h2>📡 Derniers passages</h2><small>Mise à jour toute seule toutes les 20 s</small></div>
     <div class="table-wrap"><table class="table">
-      <thead><tr><th>Heure</th><th>Résultat</th><th>Participant</th><th>Accès</th><th>Par</th><th></th></tr></thead>
+      <thead><tr><th>Heure</th><th>Résultat</th><th>Participant</th><th>Accès</th><th></th></tr></thead>
       <tbody>
       <?php foreach ($scans as $s): $ok = in_array($s['result'], ['ok', 'exit'], true); ?>
         <tr style="<?= $s['undone'] ? 'opacity:.4;text-decoration:line-through' : '' ?>">
           <td class="nowrap"><?= e(date('H:i:s', strtotime($s['scanned_at']))) ?><?= $s['offline'] ? ' <span class="badge grey" title="Scanné hors ligne puis synchronisé">hors ligne</span>' : '' ?></td>
           <td><span class="badge <?= $ok ? 'green' : (in_array($s['result'], ['already', 'not_inside'], true) ? 'orange' : 'red') ?>"><?= e(Tickets::LABELS[$s['result']] ?? $s['result']) ?></span></td>
           <td><?= $s['first_name'] !== null ? e($s['first_name'] . ' ' . $s['last_name']) . '<br><small>' . e($s['rate_name']) . '</small>' : '<span class="mono" style="font-size:12.5px">' . e($s['code']) . '</span>' ?></td>
-          <td><?= e($s['ap_name'] ?: 'Général') ?><?= $s['direction'] === 'out' ? ' ↩' : '' ?></td>
-          <td><small><?= e($s['user_name'] ?? '') ?></small></td>
+          <td><?= e($s['ap_name'] ?: 'Général') ?><?= $s['direction'] === 'out' ? ' ↩' : '' ?><br><small class="muted"><?= e($s['user_name'] ?? '') ?></small></td>
           <td class="right"><?php if ($ok && !$s['undone']): ?><form method="post" class="inline-form"><?= csrf_field() ?><input type="hidden" name="scan_id" value="<?= (int)$s['id'] ?>"><button class="btn btn-sm btn-light" name="action" value="undo" data-confirm="Annuler ce passage ? (erreur de scan)">Annuler</button></form><?php endif; ?></td>
         </tr>
       <?php endforeach; ?>
-      <?php if (!$scans): ?><tr><td colspan="6" class="empty">Aucun scan pour l'instant. Les portes sont fermées ? 🚪</td></tr><?php endif; ?>
+      <?php if (!$scans): ?><tr><td colspan="5" class="empty">Aucun scan pour l'instant. Les portes sont fermées ? 🚪</td></tr><?php endif; ?>
       </tbody>
     </table></div>
   </div>

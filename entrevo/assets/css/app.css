@@ -1132,3 +1132,5 @@ th.num .th-sort{justify-content:flex-end}
 .check-row small{display:block;color:var(--muted);font-size:13px;word-break:break-word}
 .check-row small.fix{color:var(--ink-2);margin-top:2px}
 .log-line{margin:0 0 8px;padding:8px 10px;border-radius:10px;background:#0f0f14;color:#e1e7ef;font:12px/1.45 var(--mono);white-space:pre-wrap;word-break:break-word;max-height:160px;overflow:auto}
+.notif-count[hidden]{display:none}
+.evg-img img{object-position:center 30%}

@@ -38,7 +38,7 @@ $cap = fn($ev) => (int)$ev['capacity'] ?: (int)$ev['sess_cap'];
           <span><b><?= (int)$ev['sold'] ?></b><?= $c ? ' / ' . $c : '' ?> billets<?= $pct !== null ? ' · ' . $pct . ' %' : '' ?></span></div>
         <div class="evg-kpis">
           <span><small>Recettes</small><b><?= e(money((int)$ev['revenue'])) ?></b></span>
-          <span><small>7 derniers jours</small><b><?= (int)$ev['week'] ? '+' . (int)$ev['week'] : '0' ?></b></span>
+          <span><small>7 jours</small><b><?= (int)$ev['week'] ? '+' . (int)$ev['week'] : '0' ?></b></span>
           <span><small><?= $past ? 'Venus' : ($goal ? 'Objectif' : 'Entrés') ?></small><b><?= $past || !$goal ? (int)$ev['checked'] : min(999, round($ev['revenue'] / max(1, $goal) * 100)) . ' %' ?></b></span>
         </div>
       </div>
