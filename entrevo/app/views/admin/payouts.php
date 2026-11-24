@@ -22,7 +22,8 @@
         <td class="cb"><input type="checkbox" name="ids[]" value="<?= (int)$o['id'] ?>" aria-label="Sélectionner <?= e($o['name']) ?>"></td>
         <td><a href="<?= url('/admin/organisateurs/' . $o['id']) ?>"><b><?= e($o['name']) ?></b></a><br><small class="muted"><?= e($o['legal_name'] ?: $o['email']) ?></small></td>
         <td><?php if ($o['iban_ok']): ?><span class="mono" style="font-size:13px"><?= e(substr(preg_replace('~\s+~', '', (string)$o['iban']), 0, 4) . ' •••• ' . substr(preg_replace('~\s+~', '', (string)$o['iban']), -4)) ?></span> <span class="badge green">OK</span>
-          <?php else: ?><span class="badge red"><?= $o['iban'] ? 'Invalide' : 'Manquant' ?></span><?php endif; ?></td>
+          <?php else: ?><span class="badge red"><?= $o['iban'] ? 'Invalide' : 'Manquant' ?></span><?php endif; ?>
+          <?php if (!$o['kyc_ok']): ?><br><a class="badge orange" href="<?= url('/admin/kyc/' . $o['id']) ?>">KYC : <?= e(Kyc::STATUS[$o['kyc_status']][0] ?? '') ?></a><?php endif; ?></td>
         <td class="nowrap"><small><?= $o['last_payout'] ? e(short_date($o['last_payout'])) : '<span class="muted">jamais</span>' ?></small></td>
         <td class="num"><b><?= e(money((int)$o['balance'])) ?></b></td>
         <td class="num"><div class="input-suffix" style="width:120px;margin-left:auto"><input name="amount[<?= (int)$o['id'] ?>]" value="<?= e(money_input((int)$o['balance'])) ?>" inputmode="decimal" aria-label="Montant pour <?= e($o['name']) ?>"><span>€</span></div></td>
@@ -52,7 +53,5 @@
   </div>
 </div>
 <?= soon_card('🧪 Reversements à venir', [
-  'kyc' => ['Blocage tant que le KYC n\'est pas validé', 'Pièces justificatives contrôlées avant le premier virement'],
   'litiges' => ['Retenue pour litiges', 'Une réserve gardée sur le solde en cas de contestation'],
-  'factures-commission' => ['Facture de commission jointe', 'Envoyée avec chaque reversement'],
 ], 'admin') ?>

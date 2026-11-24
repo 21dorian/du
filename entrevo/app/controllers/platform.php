@@ -77,6 +77,7 @@ function payouts_due(): array
         $b = Tickets::balance((int)$o['id']);
         if ($b['balance'] <= 0) continue;
         $o['balance'] = $b['balance']; $o['iban_ok'] = iban_valid($o['iban']);
+        $o['kyc_ok'] = !Kyc::required() || ($o['kyc_status'] ?? '') === 'verified';
         $out[] = $o;
     }
     usort($out, fn($a, $b) => $b['balance'] <=> $a['balance']);
@@ -139,11 +140,12 @@ function payouts_page(): string
                 $o = $due[$id];
                 $amount = min((int)$o['balance'], max(0, parse_money((string)($_POST['amount'][$id] ?? ''))) ?: (int)$o['balance']);
                 if ($amount <= 0) continue;
-                if ($a === 'sepa' && !$o['iban_ok']) { $skipped[] = $o['name']; continue; }
+                if ($a === 'sepa' && !$o['iban_ok']) { $skipped[] = $o['name'] . ' (IBAN)'; continue; }
+                if (!$o['kyc_ok']) { $skipped[] = $o['name'] . ' (KYC non vérifié)'; continue; }
                 $lines[] = ['org' => $o, 'amount' => $amount, 'iban' => strtoupper(preg_replace('~\s+~', '', (string)$o['iban'])), 'bic' => (string)$o['bic'],
                     'name' => $o['legal_name'] ?: $o['name'], 'label' => setting('platform_name') . ' reversement ' . date('m/Y') . ' ' . $o['name']];
             }
-            if (!$lines) back(['error' => 'Rien à reverser dans la sélection' . ($skipped ? ' (IBAN manquant ou invalide : ' . implode(', ', $skipped) . ')' : '') . '.']);
+            if (!$lines) back(['error' => 'Rien à reverser dans la sélection' . ($skipped ? ' (bloqués : ' . implode(', ', $skipped) . ')' : '') . '.']);
             if ($a === 'sepa' && (!iban_valid((string)setting('sepa_iban')) || trim((string)setting('sepa_name')) === '')) back(['error' => 'Renseigne d\'abord le compte émetteur (nom et IBAN de la plateforme) en bas de la page.']);
             $batch = 'ENT' . date('ymdHis');
             if ($a === 'mark' || input('record')) {

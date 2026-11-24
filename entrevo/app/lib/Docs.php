@@ -160,6 +160,12 @@ final class Docs
         $pdf->SetFont('Helvetica', 'B', 12);
         $pdf->Cell(160, 9, self::t('Total payé'), 0, 0, 'R'); $pdf->Cell(30, 9, self::t(money((int)$o['total'])), 0, 1, 'R');
         if ((int)$o['refunded_amount']) { $pdf->SetFont('Helvetica', '', 10); $pdf->Cell(160, 6, self::t('Remboursé'), 0, 0, 'R'); $pdf->Cell(30, 6, self::t('-' . money((int)$o['refunded_amount'])), 0, 1, 'R'); }
+        $vat = array_filter(Vat::breakdown($o, $items, $org, Vat::rateMap((int)$o['event_id'])), fn($k) => $k !== 'don', ARRAY_FILTER_USE_KEY);
+        if ($vat && array_keys($vat) !== ['none']) {
+            $pdf->Ln(3); $pdf->SetFont('Helvetica', 'B', 9); $pdf->Cell(0, 6, self::t('Détail de la TVA (billets et options)'), 0, 1);
+            $pdf->SetFont('Helvetica', '', 9);
+            foreach ($vat as $k => $v) $pdf->Cell(0, 5, self::t(($k === 'none' ? 'Non soumis' : 'TVA ' . Vat::label((float)$k)) . ' : ' . money($v['ht']) . ' HT + ' . money($v['vat']) . ' de TVA = ' . money($v['ttc']) . ' TTC'), 0, 1);
+        }
         $pdf->Ln(8);
         $pdf->SetFont('Helvetica', '', 8.5);
         $pdf->SetTextColor(110, 110, 110);

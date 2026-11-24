@@ -232,6 +232,7 @@ function rates(string $id): string
             'sort' => (int)input('sort'),
             'price_mode' => input('price_mode') === 'free' ? 'free' : 'fixed',
             'scan_note' => mb_substr(trim((string)input('scan_note')), 0, 160) ?: null,
+            'vat_rate' => in_array((string)input('vat_rate'), ['0', '2.1', '5.5', '10', '20'], true) ? (string)input('vat_rate') : null,
             'scan_color' => preg_match('~^#[0-9a-fA-F]{6}$~', (string)input('scan_color')) ? strtolower((string)input('scan_color')) : null,
             'pack_size' => max(1, min(50, (int)input('pack_size', 1))),
             'max_entries' => max(1, min(100, (int)input('max_entries', 1))),
@@ -497,6 +498,7 @@ function organization(): string
         $data['webhook_url'] = $hook !== '' && preg_match('~^https://~', $hook) ? mb_substr($hook, 0, 255) : null;
         if ($data['webhook_url'] && !$org['webhook_secret']) $data['webhook_secret'] = token(24);
         $data['recap'] = in_array(input('recap'), ['daily', 'weekly'], true) ? (string)input('recap') : null;
+        $data['vat_rate'] = in_array((string)input('vat_rate'), ['0', '2.1', '5.5', '10', '20'], true) ? (string)input('vat_rate') : null;
         if (input('action') === 'recap_test') {
             update('organizers', ['recap' => $data['recap']], 'id = ?', [$org['id']]);
             try { $ok = Recap::send(['recap' => $data['recap'] ?: 'daily'] + $org, user()['email']); } catch (Throwable $e) { back(['error' => 'Envoi impossible : ' . $e->getMessage()]); }
@@ -528,5 +530,60 @@ function finances(): string
         WHERE e.organizer_id = ? GROUP BY e.id ORDER BY e.starts_at DESC", [$org['id']]);
     $demo = (int)val("SELECT COUNT(*) FROM orders WHERE organizer_id = ? AND status = 'paid' AND provider = 'demo'", [$org['id']]);
     [$pct, $fixed] = Tickets::feeRates($org);
-    return pro_page('Finances', 'finances', compact('org', 'balance', 'payouts', 'byEvent', 'demo', 'pct', 'fixed'), 'finances');
+    $invoices = all('SELECT * FROM commission_invoices WHERE organizer_id = ? ORDER BY period DESC LIMIT 24', [$org['id']]);
+    // TVA collectée par mois (12 derniers mois)
+    $vatMonths = [];
+    foreach (Vat::orders($org, date('Y-m-01 00:00:00', strtotime('-11 months')), date('Y-m-d 23:59:59')) as $o) {
+        $m = substr((string)($o['paid_at'] ?: $o['created_at']), 0, 7);
+        foreach ($o['vat'] as $k => $v) { if ($k === 'don') continue; $vatMonths[$m][$k]['ttc'] = ($vatMonths[$m][$k]['ttc'] ?? 0) + $v['ttc']; $vatMonths[$m][$k]['vat'] = ($vatMonths[$m][$k]['vat'] ?? 0) + $v['vat']; $vatMonths[$m][$k]['ht'] = ($vatMonths[$m][$k]['ht'] ?? 0) + $v['ht']; }
+    }
+    krsort($vatMonths);
+    return pro_page('Finances', 'finances', compact('org', 'balance', 'payouts', 'byEvent', 'demo', 'pct', 'fixed', 'invoices', 'vatMonths'), 'finances');
+}
+
+/** Export comptable : détail des ventes (CSV) ou écritures au format FEC. */
+function finances_export(): never
+{
+    $org = require_org(['owner']);
+    $from = preg_match('~^\d{4}-\d{2}-\d{2}$~', (string)input('du')) ? (string)input('du') : date('Y-01-01');
+    $to = preg_match('~^\d{4}-\d{2}-\d{2}$~', (string)input('au')) ? (string)input('au') : date('Y-m-d');
+    $orders = Vat::orders($org, $from . ' 00:00:00', $to . ' 23:59:59');
+    $amt = fn(int $c) => number_format($c / 100, 2, ',', '');
+    if (input('format') === 'fec') {
+        // Format FEC (article A47 A-1 du LPF), séparateur tabulation. Comptes par défaut, à adapter par ton comptable.
+        $head = ['JournalCode', 'JournalLib', 'EcritureNum', 'EcritureDate', 'CompteNum', 'CompteLib', 'CompAuxNum', 'CompAuxLib', 'PieceRef', 'PieceDate', 'EcritureLib', 'Debit', 'Credit', 'EcritureLet', 'DateLet', 'ValidDate', 'Montantdevise', 'Idevise'];
+        $rows = [$head]; $n = 0;
+        $add = function (string $num, string $date, string $acc, string $accLib, string $ref, string $lib, int $debit, int $credit) use (&$rows, $amt) {
+            $rows[] = ['VT', 'Ventes billetterie', $num, $date, $acc, $accLib, '', '', $ref, $date, mb_substr($lib, 0, 100), $amt($debit), $amt($credit), '', '', $date, '', ''];
+        };
+        foreach ($orders as $o) {
+            $n++; $num = 'VT' . str_pad((string)$n, 6, '0', STR_PAD_LEFT); $d = date('Ymd', strtotime((string)($o['paid_at'] ?: $o['created_at'])));
+            $online = in_array($o['method'], ['online', 'partner'], true);
+            $comm = $online && $o['fee_mode'] !== 'buyer' ? (int)$o['commission'] : 0;
+            $gross = array_sum(array_column($o['vat'], 'ttc'));
+            $lib = 'Commande ' . $o['ref'] . ' - ' . $o['ev_name'];
+            $add($num, $d, $online ? '467000' : '530000', $online ? 'Plateforme de billetterie' : 'Caisse', $o['ref'], $lib, $gross - $comm, 0);
+            if ($comm) $add($num, $d, '622600', 'Commissions billetterie', $o['ref'], $lib, $comm, 0);
+            foreach ($o['vat'] as $k => $v) {
+                if ($k === 'don') { $add($num, $d, '754000', 'Dons', $o['ref'], $lib, 0, $v['ttc']); continue; }
+                $add($num, $d, '706000', 'Ventes billetterie' . ($k === 'none' ? '' : ' ' . Vat::label((float)$k)), $o['ref'], $lib, 0, $v['ht']);
+                if ($v['vat']) $add($num, $d, '445710', 'TVA collectée ' . Vat::label((float)$k), $o['ref'], $lib, 0, $v['vat']);
+            }
+            if ((int)$o['refunded_amount']) { $n++; $rn = 'VT' . str_pad((string)$n, 6, '0', STR_PAD_LEFT); $add($rn, $d, '709000', 'Remboursements', $o['ref'], 'Remboursement ' . $o['ref'], (int)$o['refunded_amount'], 0); $add($rn, $d, $online ? '467000' : '530000', $online ? 'Plateforme de billetterie' : 'Caisse', $o['ref'], 'Remboursement ' . $o['ref'], 0, (int)$o['refunded_amount']); }
+        }
+        foreach (all('SELECT * FROM payouts WHERE organizer_id = ? AND created_at BETWEEN ? AND ? ORDER BY created_at', [$org['id'], $from . ' 00:00:00', $to . ' 23:59:59']) as $p) {
+            $n++; $num = 'BQ' . str_pad((string)$n, 6, '0', STR_PAD_LEFT); $d = date('Ymd', strtotime($p['created_at']));
+            $rows[] = ['BQ', 'Banque', $num, $d, '512000', 'Banque', '', '', (string)($p['reference'] ?: $p['id']), $d, 'Reversement plateforme', $amt((int)$p['amount']), '0,00', '', '', $d, '', ''];
+            $rows[] = ['BQ', 'Banque', $num, $d, '467000', 'Plateforme de billetterie', '', '', (string)($p['reference'] ?: $p['id']), $d, 'Reversement plateforme', '0,00', $amt((int)$p['amount']), '', '', $d, '', ''];
+        }
+        header('Content-Type: text/plain; charset=utf-8');
+        header('Content-Disposition: attachment; filename="' . preg_replace('~\D~', '', (string)$org['siret']) . 'FEC' . str_replace('-', '', $to) . '.txt"');
+        foreach ($rows as $r) echo implode("\t", array_map(fn($x) => str_replace(["\t", "\n", "\r"], ' ', (string)$x), $r)) . "\r\n";
+        exit;
+    }
+    $rows = [['Date', 'Commande', 'Événement', 'Acheteur', 'Vente', 'Paiement', 'Taux TVA', 'HT', 'TVA', 'TTC', 'Frais acheteur', 'Commission', 'Remboursé', 'Statut']];
+    foreach ($orders as $o) foreach ($o['vat'] as $k => $v) $rows[] = [substr((string)($o['paid_at'] ?: $o['created_at']), 0, 16), $o['ref'], $o['ev_name'], trim($o['first_name'] . ' ' . $o['last_name']), method_label($o['method']),
+        provider_label($o['provider'] ?: $o['pay_method']), $k === 'don' ? 'Don' : ($k === 'none' ? 'Non assujetti' : Vat::label((float)$k)), $amt($v['ht']), $amt($v['vat']), $amt($v['ttc']),
+        $o['fee_mode'] === 'buyer' ? $amt((int)$o['fees']) : '0,00', $amt((int)$o['commission']), $amt((int)$o['refunded_amount']), $o['status'] === 'paid' ? 'Payée' : 'Remboursée'];
+    csv_download('ventes-' . $from . '-' . $to . '.csv', $rows);
 }

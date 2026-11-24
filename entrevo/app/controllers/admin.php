@@ -145,12 +145,12 @@ function settings(): string
     if (is_post()) {
         $fields = [
             'general' => ['platform_name', 'tagline', 'contact_email', 'base_url', 'primary_color', 'pending_minutes'],
-            'fees' => ['fee_percent', 'fee_fixed', 'fee_mode_default'],
+            'fees' => ['fee_percent', 'fee_fixed', 'fee_mode_default', 'invoice_name', 'invoice_prefix', 'invoice_address', 'invoice_siret', 'invoice_vat_number', 'invoice_vat_rate', 'invoice_footer'],
             'payments' => ['stripe_secret', 'stripe_public', 'paypal_client_id', 'paypal_secret', 'sumup_api_key', 'sumup_merchant_code', 'mollie_api_key'],
             'emails' => ['smtp_host', 'smtp_port', 'smtp_secure', 'smtp_user', 'smtp_pass', 'mail_from', 'mail_from_name'],
             'legal' => ['cgv', 'legal', 'company_info'],
         ][$tab] ?? [];
-        $checks = ['general' => ['signup_open', 'org_approval'], 'fees' => ['refund_fees'], 'payments' => ['demo_enabled', 'stripe_enabled', 'paypal_enabled', 'paypal_sandbox', 'sumup_enabled', 'mollie_enabled']][$tab] ?? [];
+        $checks = ['general' => ['signup_open', 'org_approval'], 'fees' => ['refund_fees', 'kyc_required', 'invoice_auto'], 'payments' => ['demo_enabled', 'stripe_enabled', 'paypal_enabled', 'paypal_sandbox', 'sumup_enabled', 'mollie_enabled']][$tab] ?? [];
         foreach ($fields as $f) {
             if (!array_key_exists($f, $_POST)) continue;
             $v = trim((string)$_POST[$f]);

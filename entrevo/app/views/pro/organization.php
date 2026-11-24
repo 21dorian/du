@@ -44,6 +44,7 @@
         <div class="field"><label>Raison sociale</label><input name="legal_name" value="<?= e($org['legal_name']) ?>"></div>
         <div class="field"><label>SIRET / RNA</label><input name="siret" value="<?= e($org['siret']) ?>"></div>
         <div class="field"><label>N° TVA</label><input name="vat_number" value="<?= e($org['vat_number']) ?>"></div>
+        <div class="field"><label>Taux de TVA par défaut sur tes billets</label><select name="vat_rate"><option value="">Non assujetti</option><?php foreach (['0' => '0 %', '2.1' => '2,1 %', '5.5' => '5,5 % (spectacles)', '10' => '10 %', '20' => '20 %'] as $k => $l): ?><option value="<?= $k ?>" <?= $org['vat_rate'] !== null && (float)$org['vat_rate'] === (float)$k ? 'selected' : '' ?>><?= $l ?></option><?php endforeach; ?></select><small>Modifiable tarif par tarif. Sert aux reçus et au récap de TVA.</small></div>
         <div class="field"><label>Adresse</label><input name="address" value="<?= e($org['address']) ?>"></div>
         <div class="field"><label>IBAN</label><input name="iban" value="<?= e($org['iban']) ?>" class="mono"></div>
         <div class="field"><label>BIC</label><input name="bic" value="<?= e($org['bic']) ?>" class="mono"></div>

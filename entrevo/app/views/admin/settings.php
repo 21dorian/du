@@ -36,6 +36,26 @@ $secret = fn($k) => setting($k) ? '•••••• (enregistré, laisser vide
     <?php $ex = ['fee_percent' => null, 'fee_fixed' => null]; ?>
     <div class="notice mt">Exemple : billet à 20 € → commission de <b><?= e(money(Tickets::computeFees($ex, 2000, 1))) ?></b>.</div>
   </div>
+  <div class="card" style="max-width:820px">
+    <h2>🪪 Vérification des organisateurs (KYC)</h2>
+    <label class="check"><input type="checkbox" name="kyc_required" value="1" <?= $c('kyc_required') ?>> <span>Bloquer les reversements tant que les justificatifs ne sont pas vérifiés<br><small class="muted">Pièce d'identité, Kbis/statuts et RIB, déposés par l'organisateur dans « Vérification du compte ».</small></span></label>
+  </div>
+  <div class="card" style="max-width:820px">
+    <h2>🧾 Factures de commission</h2>
+    <p class="muted">Tes informations d'émetteur, imprimées sur chaque facture.</p>
+    <div class="grid2">
+      <div class="field"><label>Raison sociale</label><input name="invoice_name" value="<?= $s('invoice_name') ?>" placeholder="Entrevo SAS"></div>
+      <div class="field"><label>Préfixe des numéros</label><input name="invoice_prefix" value="<?= e((string)setting('invoice_prefix', 'COM')) ?>" maxlength="8"></div>
+    </div>
+    <div class="field"><label>Adresse</label><textarea name="invoice_address" rows="2"><?= $s('invoice_address') ?></textarea></div>
+    <div class="grid3">
+      <div class="field"><label>SIRET</label><input name="invoice_siret" value="<?= $s('invoice_siret') ?>"></div>
+      <div class="field"><label>N° de TVA</label><input name="invoice_vat_number" value="<?= $s('invoice_vat_number') ?>"></div>
+      <div class="field"><label>Taux de TVA</label><div class="input-suffix"><input name="invoice_vat_rate" value="<?= e((string)setting('invoice_vat_rate', '20')) ?>" inputmode="decimal"><span>%</span></div><small>0 = non assujetti (mention 293 B)</small></div>
+    </div>
+    <div class="field"><label>Mentions de bas de page <small class="muted">(capital, RCS…)</small></label><input name="invoice_footer" value="<?= $s('invoice_footer') ?>"></div>
+    <label class="check"><input type="checkbox" name="invoice_auto" value="1" <?= $c('invoice_auto') ?>> Générer et envoyer automatiquement les factures le 1er de chaque mois</label>
+  </div>
 <?php elseif ($tab === 'payments'): ?>
   <div class="notice mb" style="max-width:820px">🔔 Adresses de notification (webhooks) à déclarer chez chaque prestataire, pour que les commandes soient validées même si l'acheteur ferme son navigateur :<br>
     Stripe (événement « checkout.session.completed ») : <code><?= e(abs_url('/paiement/webhook/stripe')) ?></code><br>
@@ -101,7 +121,6 @@ $secret = fn($k) => setting($k) ? '•••••• (enregistré, laisser vide
 <?= soon_card('🧪 Commissions avancées', [
   'commission-paliers' => ['Commission par palier ou catégorie', 'Dégressive selon le volume'],
   'formules' => ['Formules organisateurs', 'Gratuit, Pro, Premium avec abonnement'],
-  'factures-commission' => ['Factures de commission', 'Envoyées chaque mois automatiquement'],
 ], 'admin') ?>
 <?php elseif ($tab === 'payments'): ?>
 <?= soon_card('🧪 Paiements à venir', [

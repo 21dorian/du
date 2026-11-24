@@ -62,7 +62,7 @@ if ($area === 'admin') {
         ]],
         ['Organisateurs', [
             ['orgs', '/admin/organisateurs', 'Organisateurs', $I['orgs']],
-            $soonA('kyc', 'Vérification KYC', 'kyc'),
+            ['kyc', '/admin/kyc', 'Vérification KYC', $I['kyc']],
             $soonA('contrats', 'Contrats & tarifs', 'handshake'),
             $soonA('prospection', 'Prospection', 'crm'),
             $soonA('formules', 'Formules & abonnements', 'card'),
@@ -71,7 +71,7 @@ if ($area === 'admin') {
             ['orders', '/admin/commandes', 'Commandes', $I['orders']],
             ['payouts', '/admin/reversements', 'Reversements', $I['money']],
             $soonA('litiges', 'Litiges & impayés', 'alert'),
-            $soonA('factures-commission', 'Factures de commission', 'invoice'),
+            ['factures-commission', '/admin/factures', 'Factures de commission', $I['invoice']],
             $soonA('fraude', 'Fraude & risques', 'shield'),
             $soonA('revendeurs', 'Revendeurs', 'bag'),
         ]],
@@ -136,10 +136,11 @@ if ($area === 'admin') {
             ['team', '/pro/equipe', 'Équipe', $I['team']],
             ['audit', '/pro/journal', 'Journal d\'activité', $I['audit']],
             ['org', '/pro/organisation', 'Réglages', $I['org']],
+            ['kyc', '/pro/verification', 'Vérification du compte', $I['kyc']],
             $soonP('zapier', 'Intégrations', 'plug'),
         ]],
     ];
-    if ($u['role'] === 'manager') foreach ($navGroups as &$g) $g[1] = array_values(array_filter($g[1], fn($n) => !in_array($n[0], ['team', 'org', 'finances', 'audit', 'factures', 'budget', 'documents', 'zapier'], true)));
+    if ($u['role'] === 'manager') foreach ($navGroups as &$g) $g[1] = array_values(array_filter($g[1], fn($n) => !in_array($n[0], ['team', 'org', 'finances', 'audit', 'factures', 'budget', 'documents', 'zapier', 'kyc'], true)));
     unset($g);
 }
 $nav = [];

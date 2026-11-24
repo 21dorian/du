@@ -26,11 +26,36 @@
     <form method="get" action="<?= url('/pro/finances/releve') ?>" target="_blank" class="row" style="flex-wrap:nowrap;gap:0"><input type="month" name="mois" value="<?= date('Y-m', strtotime('first day of last month')) ?>"><button class="btn btn-sm">📄 Relevé PDF</button></form>
   </div>
 </div>
+<div class="split mt">
+  <div class="card">
+    <div class="card-head"><h2>🧾 Factures de commission</h2><small class="muted">Émises par <?= e(setting('platform_name')) ?> chaque mois</small></div>
+    <?php foreach ($invoices as $inv): ?>
+      <a class="todo" href="<?= url('/pro/finances/factures/' . $inv['id']) ?>" target="_blank"><span class="todo-ic">🧾</span><span><b class="mono"><?= e($inv['number']) ?></b><small><?= e(Invoices::monthLabel($inv['period'])) ?> · <?= (int)$inv['orders_count'] ?> commande(s)</small></span><b><?= e(money((int)$inv['amount_ttc'])) ?></b></a>
+    <?php endforeach; ?>
+    <?php if (!$invoices): ?><p class="muted">Pas encore de facture. Elles arrivent au début de chaque mois pour le mois précédent.</p><?php endif; ?>
+  </div>
+  <div class="card">
+    <div class="card-head"><h2>📤 Export comptable</h2></div>
+    <form method="get" action="<?= url('/pro/finances/export') ?>" class="stack">
+      <div class="grid2"><div class="field mb0"><label>Du</label><input type="date" name="du" value="<?= date('Y-01-01') ?>"></div><div class="field mb0"><label>Au</label><input type="date" name="au" value="<?= date('Y-m-d') ?>"></div></div>
+      <div class="row" style="gap:8px"><button class="btn btn-sm" name="format" value="csv">⬇️ Ventes détaillées (CSV)</button><button class="btn btn-sm btn-light" name="format" value="fec">⬇️ Écritures (format FEC)</button></div>
+      <small class="muted">Le FEC utilise des comptes standards (706 ventes, 44571 TVA, 467 plateforme, 6226 commissions, 512 banque) : ton comptable pourra les ajuster.</small>
+    </form>
+  </div>
+</div>
+<div class="card mt">
+  <div class="card-head"><h2>🧮 TVA collectée</h2><small class="muted">Taux par défaut : <?= e(Vat::label($org['vat_rate'] !== null ? (float)$org['vat_rate'] : null)) ?> · <a href="<?= url('/pro/organisation') ?>">modifier</a></small></div>
+  <?php if (!$vatMonths): ?><p class="muted">Pas encore de vente payante.</p><?php else: ?>
+  <div class="table-wrap"><table class="table">
+    <thead><tr><th>Mois</th><th>Taux</th><th class="num">Ventes HT</th><th class="num">TVA</th><th class="num">TTC</th></tr></thead><tbody>
+    <?php foreach ($vatMonths as $m => $rates): foreach ($rates as $k => $v): ?>
+      <tr><td><?= e(Invoices::monthLabel($m)) ?></td><td><?= e($k === 'none' ? 'Non assujetti' : Vat::label((float)$k)) ?></td><td class="num"><?= e(money($v['ht'])) ?></td><td class="num"><b><?= e(money($v['vat'])) ?></b></td><td class="num"><?= e(money($v['ttc'])) ?></td></tr>
+    <?php endforeach; endforeach; ?>
+  </tbody></table></div>
+  <p class="muted mb0" style="font-size:13px">Calcul sur le prix des billets et options (réductions réparties), hors frais de service et dons. Tous canaux confondus (en ligne, guichet, invitations payantes).</p>
+  <?php endif; ?>
+</div>
 <?= soon_card('💶 Bientôt dans tes finances', [
   'stripe-connect' => ['Paiement direct sur ton compte', 'L\'argent arrive chez toi sans attendre les reversements'],
-  'export-compta' => ['Export comptable', 'FEC, Excel, CSV pour ton expert-comptable'],
-  'factures' => ['Factures automatiques', 'Pour les acheteurs pros, numérotées'],
-  'tva' => ['TVA collectée', 'Récapitulatif par taux et par mois'],
-  'budget' => ['Budget prévisionnel', 'Dépenses prévues contre recettes réelles'],
   'subventions' => ['Bilan pour les financeurs', 'Les chiffres prêts à copier'],
 ]) ?>

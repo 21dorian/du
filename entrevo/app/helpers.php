@@ -335,3 +335,47 @@ function soon_card(string $title, array $opts, string $area = 'pro'): string
     foreach ($opts as $key => [$label, $desc]) $h .= soon_opt($key, $label, $desc, $area);
     return $h . '</div></div>';
 }
+
+/**
+ * Fichier envoyé par formulaire, rangé hors d'accès public (storage/<dossier>/), jamais servi directement.
+ * @return array{file:string, original:string, mime:string, size:int}
+ */
+function store_private_upload(string $field, string $dir, int $maxMb = 10): array
+{
+    $f = $_FILES[$field] ?? null;
+    if (!$f || ($f['error'] ?? UPLOAD_ERR_NO_FILE) === UPLOAD_ERR_NO_FILE) throw new RuntimeException('Choisis un fichier.');
+    if ($f['error'] !== UPLOAD_ERR_OK) throw new RuntimeException('Envoi interrompu (fichier trop lourd ?).');
+    if ($f['size'] > $maxMb * 1048576) throw new RuntimeException('Fichier trop lourd (' . $maxMb . ' Mo maximum).');
+    $types = ['application/pdf' => 'pdf', 'image/jpeg' => 'jpg', 'image/png' => 'png', 'image/webp' => 'webp',
+        'application/vnd.openxmlformats-officedocument.wordprocessingml.document' => 'docx', 'application/msword' => 'doc',
+        'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' => 'xlsx', 'application/vnd.ms-excel' => 'xls', 'text/plain' => 'txt', 'application/zip' => 'zip'];
+    $mime = function_exists('mime_content_type') ? (string)mime_content_type($f['tmp_name']) : (string)$f['type'];
+    if (!isset($types[$mime])) throw new RuntimeException('Format refusé : PDF, image, Word, Excel ou texte uniquement.');
+    $sub = trim(preg_replace('~[^a-z0-9/_-]~i', '', $dir), '/');
+    $abs = STORAGE . '/' . $sub;
+    if (!is_dir($abs)) mkdir($abs, 0750, true);
+    $name = token(16) . '.' . $types[$mime];
+    if (!move_uploaded_file($f['tmp_name'], $abs . '/' . $name)) throw new RuntimeException('Impossible d\'enregistrer le fichier.');
+    return ['file' => $sub . '/' . $name, 'original' => mb_substr(basename((string)$f['name']), 0, 190), 'mime' => $mime, 'size' => (int)$f['size']];
+}
+
+/** Sert un fichier privé (après contrôle des droits par l'appelant). */
+function send_private_file(string $rel, string $name, string $mime, bool $inline = true): never
+{
+    $abs = realpath(STORAGE . '/' . $rel);
+    if (!$abs || !str_starts_with($abs, realpath(STORAGE)) || !is_file($abs)) abort(404);
+    header('Content-Type: ' . $mime);
+    header('Content-Length: ' . filesize($abs));
+    header('X-Content-Type-Options: nosniff');
+    header('Content-Disposition: ' . ($inline && preg_match('~^(application/pdf|image/)~', $mime) ? 'inline' : 'attachment') . '; filename="' . str_replace('"', '', $name) . '"');
+    readfile($abs);
+    exit;
+}
+
+function delete_private_file(string $rel): void
+{
+    $abs = realpath(STORAGE . '/' . $rel);
+    if ($abs && str_starts_with($abs, realpath(STORAGE)) && is_file($abs)) @unlink($abs);
+}
+
+function human_size(int $b): string { return $b >= 1048576 ? number_format($b / 1048576, 1, ',', ' ') . ' Mo' : max(1, (int)round($b / 1024)) . ' Ko'; }
