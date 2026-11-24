@@ -37,3 +37,11 @@
   </table></div>
 </div>
 <p class="muted" style="font-size:13px">💡 Les acheteurs peuvent cocher « recevoir les prochains événements » au moment de payer : ta liste grossit toute seule. Les e-mails partent par lots de <?= Campaigns::BATCH ?> toutes les minutes environ, pour rester dans les limites de ton hébergement.</p>
+<?= soon_card('🤖 Bientôt : les envois automatiques', [
+  'relance-panier' => ['Relance des paniers abandonnés', '1 h puis 24 h après, avec le panier prêt'],
+  'codes-auto' => ['Codes promo automatiques', 'Anniversaire, fidélité, retour après longtemps'],
+  'calendrier' => ['Rappel la veille', 'Adresse, horaires et infos pratiques'],
+  'avis' => ['Questionnaire de satisfaction', 'Le lendemain de l\'événement'],
+  'sms' => ['Campagnes SMS', 'Le canal le plus lu, en complément des e-mails'],
+  'parrainage' => ['Parrainage acheteurs', 'Chaque acheteur fait venir ses amis'],
+]) ?>

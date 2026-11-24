@@ -131,6 +131,7 @@ $valid = array_filter($tickets, fn($t) => $t['status'] === 'valid');
         <?php endif; ?>
         <button class="btn btn-block btn-light" name="action" value="cancel" data-confirm="Annuler la commande SANS remboursement ? Les billets seront refusés à l'entrée.">Annuler sans rembourser</button>
       </form>
+      <div class="soon-row"><?= soon_btn('transfert-billet', '🔁 Transférer') ?><?= soon_btn('echange-date', '📅 Changer de date') ?><?= soon_btn('factures', '🧾 Facture pro') ?><?= soon_btn('sms', '💬 Envoyer par SMS') ?></div>
     </div>
     <?php endif; ?>
   </div>

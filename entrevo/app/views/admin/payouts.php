@@ -51,3 +51,8 @@
     </form>
   </div>
 </div>
+<?= soon_card('🧪 Reversements à venir', [
+  'kyc' => ['Blocage tant que le KYC n\'est pas validé', 'Pièces justificatives contrôlées avant le premier virement'],
+  'litiges' => ['Retenue pour litiges', 'Une réserve gardée sur le solde en cas de contestation'],
+  'factures-commission' => ['Facture de commission jointe', 'Envoyée avec chaque reversement'],
+], 'admin') ?>

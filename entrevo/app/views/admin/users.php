@@ -21,3 +21,8 @@
     <button class="btn btn-block">Ajouter</button>
   </form>
 </div>
+<?= soon_card('🧪 Comptes à venir', [
+  'rgpd' => ['Demandes RGPD', 'Export et suppression des données d\'une personne'],
+  'connexion-sociale' => ['Connexion Google & Apple', 'Sans mot de passe'],
+  'audit-plateforme' => ['Journal du super-admin', 'Toutes tes actions tracées'],
+], 'admin') ?>

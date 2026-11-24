@@ -314,3 +314,24 @@ function ago_until(int $ts): string
     if ($h > 0) return 'Dans ' . $h . ' h ' . str_pad((string)$m, 2, '0', STR_PAD_LEFT) . ' min';
     return 'Dans ' . max(1, $m) . ' min';
 }
+
+/** Bouton vers une fonction en développement (ouvre sa page de présentation). */
+function soon_btn(string $key, string $label, string $area = 'pro', string $cls = 'btn btn-sm btn-light'): string
+{
+    return '<a class="' . e($cls) . ' soon-btn" href="' . e(url('/' . $area . '/bientot/' . $key)) . '" title="En développement : bientôt disponible">' . e($label) . ' <span class="soon-pill dev">dév</span></a>';
+}
+
+/** Option (case à cocher grisée) d'une fonction en développement. */
+function soon_opt(string $key, string $label, string $desc = '', string $area = 'pro'): string
+{
+    return '<a class="soon-opt" href="' . e(url('/' . $area . '/bientot/' . $key)) . '" title="En développement : bientôt disponible"><span class="soon-box" aria-hidden="true"></span>'
+        . '<span class="grow"><b>' . e($label) . '</b>' . ($desc !== '' ? '<small>' . e($desc) . '</small>' : '') . '</span><span class="soon-pill dev">dév</span></a>';
+}
+
+/** Carte regroupant plusieurs options en développement. */
+function soon_card(string $title, array $opts, string $area = 'pro'): string
+{
+    $h = '<div class="card soon-card"><div class="card-head"><h2>' . e($title) . '</h2><span class="soon-pill">En développement</span></div><div class="soon-opts">';
+    foreach ($opts as $key => [$label, $desc]) $h .= soon_opt($key, $label, $desc, $area);
+    return $h . '</div></div>';
+}

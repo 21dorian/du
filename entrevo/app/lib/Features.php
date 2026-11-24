@@ -21,6 +21,11 @@ final class Features
     /** @return array<string, array{cat:string, emoji:string, name:string, status:string, url?:string, pitch:string, points?:array, eta?:string}> */
     public static function all(): array
     {
+        return self::base() + self::extras();
+    }
+
+    private static function base(): array
+    {
         return [
             // ---- Vendre
             'billetterie' => ['cat' => 'sell', 'emoji' => '🎟️', 'name' => 'Billetterie en ligne', 'status' => 'on', 'url' => '/pro/evenements', 'pitch' => 'Tarifs, quotas, dates multiples, prix libre, packs, options et dons.'],
@@ -124,6 +129,56 @@ final class Features
         ];
     }
 
+
+    /** Options et petits plus annoncés dans les pages (boutons et cases « dév »). */
+    private static function extras(): array
+    {
+        $x = fn(string $cat, string $emoji, string $name, string $pitch, array $points = []) => ['cat' => $cat, 'emoji' => $emoji, 'name' => $name, 'status' => 'soon', 'eta' => '2027', 'pitch' => $pitch, 'points' => $points, 'extra' => true];
+        return [
+            // vendre
+            'prix-dynamique' => $x('sell', '📈', 'Tarification dynamique', 'Le prix monte tout seul quand la demande s\'emballe (ou baisse pour remplir les derniers jours).', ['Paliers selon le remplissage', 'Prix plancher et plafond', 'Historique des prix affiché à l\'organisateur']),
+            'early-bird' => $x('sell', '🐦', 'Early bird automatique', 'Un tarif qui bascule automatiquement au suivant à une date ou après X billets vendus.', ['Enchaînement de tarifs', 'Compte à rebours « fin du prix early » sur la page', 'Alerte quand on change de palier']),
+            'paiement-plusieurs-fois' => $x('sell', '💳', 'Paiement en 3 fois', 'Les gros paniers (pass festival, VIP) payables en plusieurs échéances.', ['2, 3 ou 4 fois sans frais pour l\'acheteur', 'Billet actif dès la première échéance', 'Relance automatique en cas d\'échec']),
+            'tarif-groupe' => $x('sell', '👨‍👩‍👧', 'Tarif dégressif par quantité', 'Plus on achète de billets, moins ils coûtent : idéal pour les bandes de potes et les CE.', ['Paliers (5, 10, 20 billets…)', 'Affichage de l\'économie réalisée']),
+            'assurance-annulation' => $x('sell', '☂️', 'Assurance annulation', 'L\'acheteur peut assurer son billet en cas d\'empêchement (maladie, transport…).', ['Option au moment du paiement', 'Remboursement géré par l\'assureur', 'Commission reversée à l\'organisateur']),
+            'transfert-billet' => $x('sell', '🔁', 'Transfert de billet', 'L\'acheteur donne son billet à un ami en deux clics : nouveau nom, nouveau QR code, l\'ancien est désactivé.', ['Depuis l\'e-mail ou l\'espace « Mes billets »', 'Limite de transferts réglable', 'Historique visible par l\'organisateur']),
+            'echange-date' => $x('sell', '📅', 'Échange de date', 'Sur un événement à plusieurs dates, l\'acheteur change de séance lui-même (s\'il reste de la place).', ['Frais d\'échange optionnels', 'Date limite d\'échange']),
+            'billet-nominatif-id' => $x('sell', '🪪', 'Contrôle d\'identité', 'Billets strictement nominatifs : nom vérifié à l\'entrée avec la pièce d\'identité, anti-revente sauvage.', ['Nom affiché en grand au scan', 'Date de naissance demandée', 'Transfert seulement via la bourse officielle']),
+            'vente-privee' => $x('sell', '🔒', 'Préventes privées', 'Vendre en avant-première à une liste précise : abonnés, anciens participants, membres.', ['Liste d\'e-mails autorisés', 'Lien privé ou code membre', 'Ouverture au public programmée']),
+            'places-pmr' => $x('sell', '♿', 'Places PMR & accompagnateurs', 'Réserver des places accessibles et offrir le billet de l\'accompagnateur.', ['Quota de places PMR', 'Billet accompagnateur gratuit lié', 'Informations d\'accès dédiées']),
+            'restriction-age' => $x('sell', '🔞', 'Restriction d\'âge', 'Âge minimum par événement ou par tarif, rappelé à l\'achat et vérifié à l\'entrée.', ['Date de naissance obligatoire', 'Alerte « mineur » au scan']),
+            // faire venir du monde
+            'relance-panier' => $x('market', '🛒', 'Relance des paniers abandonnés', 'Un e-mail automatique à ceux qui ont commencé à acheter sans finir, avec leur panier prêt.', ['Envoi 1 h puis 24 h après', 'Code promo optionnel', 'Ventes récupérées dans les stats']),
+            'codes-auto' => $x('market', '🎂', 'Codes promo automatiques', 'Des réductions qui partent toutes seules : anniversaire, fidélité, retour après longtemps.', ['Scénarios prêts à l\'emploi', 'Code unique par personne']),
+            'parrainage' => $x('market', '🎁', 'Parrainage acheteurs', 'Chaque acheteur reçoit un lien : s\'il fait venir des amis, il gagne une réduction ou une boisson.', ['Lien perso après l\'achat', 'Récompense automatique', 'Classement des meilleurs parrains']),
+            'pixels-avances' => $x('market', '🎯', 'Suivi publicitaire avancé', 'Conversions envoyées côté serveur à Meta, Google et TikTok pour des pubs mieux optimisées.', ['API Conversions Meta', 'Google Ads et TikTok', 'Résistant aux bloqueurs']),
+            'multilingue' => $x('market', '🌍', 'Pages en plusieurs langues', 'Ta page d\'événement, le paiement et les billets en anglais, espagnol, allemand…', ['Langue choisie par l\'acheteur', 'Traduction de tes textes', 'Billets PDF traduits']),
+            'calendrier' => $x('market', '🗓️', 'Rappels acheteurs', 'Ajout au calendrier en un clic et rappel la veille avec l\'adresse et les infos pratiques.', ['Fichier .ics et Google Agenda', 'E-mail J-1 personnalisable', 'Infos météo et accès']),
+            // jour J
+            'jauge-zone' => $x('onsite', '🧮', 'Jauge par zone', 'Combien de personnes dans chaque zone (fosse, balcon, VIP) en temps réel, avec seuil d\'alerte.', ['Entrées et sorties par zone', 'Alerte de saturation', 'Écran à afficher au PC sécurité']),
+            'badges-live' => $x('onsite', '🖨️', 'Badges imprimés à l\'arrivée', 'Pour les salons et congrès : le badge nominatif sort de l\'imprimante au moment du scan.', ['Imprimantes d\'étiquettes courantes', 'Modèle de badge personnalisable']),
+            'kiosque' => $x('onsite', '🏧', 'Borne libre-service', 'Une tablette en mode kiosque : les gens achètent ou retirent leur billet sans faire la queue.', ['Paiement par carte (terminal SumUp)', 'Impression du billet']),
+            'vestiaire' => $x('onsite', '🧥', 'Vestiaire', 'Tickets de vestiaire numérotés, payants ou non, retrouvés en scannant le billet.', ['Numéro lié au billet', 'Encaissement au guichet']),
+            // argent
+            'stripe-connect' => $x('money', '⚡', 'Paiement direct (Stripe Connect)', 'L\'argent des ventes arrive directement sur le compte de l\'organisateur, la commission est prélevée au passage.', ['Plus besoin d\'attendre les reversements', 'Commission prélevée automatiquement', 'Vérification d\'identité gérée par Stripe']),
+            'tva' => $x('money', '🧮', 'TVA par tarif', 'Taux de TVA par tarif ou option (5,5 %, 10 %, 20 %), mentions sur les reçus et déclarations simplifiées.', ['Taux par tarif et par option', 'Récapitulatif de TVA collectée', 'Reçus conformes']),
+            'export-compta' => $x('money', '📤', 'Export comptable', 'Ventes, remboursements, commissions et reversements exportés pour ton logiciel comptable.', ['FEC, Excel, CSV', 'Plan comptable personnalisable']),
+            'rapport-fin' => $x('money', '📄', 'Rapport de fin d\'événement', 'Un PDF propre le lendemain : ventes, fréquentation, publics, canaux, comparaison avec l\'édition précédente.', ['Envoi automatique', 'Logo de l\'organisation', 'Parfait pour les partenaires']),
+            'partage-stats' => $x('money', '🔗', 'Partager les stats', 'Un lien en lecture seule pour un partenaire, une salle ou un financeur, sans lui donner accès au compte.', ['Choix des chiffres visibles', 'Lien révocable']),
+            // équipe & organisation
+            'double-auth' => $x('team', '🔐', 'Double authentification', 'Un code envoyé par appli ou SMS en plus du mot de passe pour protéger les comptes.', ['Appli d\'authentification', 'Obligatoire pour les responsables (option)']),
+            'roles-perso' => $x('team', '🎛️', 'Rôles personnalisés', 'Créer ses propres rôles : « billetterie seulement », « compta », « lecture seule »…', ['Droits page par page', 'Accès limité à certains événements']),
+            'domaine-perso' => $x('team', '🌐', 'Domaine personnalisé', 'Ta billetterie sur billetterie.ton-site.fr, avec tes couleurs.', ['Certificat SSL automatique', 'E-mails envoyés à ton nom']),
+            'import-contacts' => $x('team', '📥', 'Import de contacts', 'Ramener ta liste d\'anciens participants (fichier Excel) pour tes campagnes, avec leur consentement.', ['Import CSV/Excel', 'Dédoublonnage automatique', 'Preuve du consentement']),
+            'doublons' => $x('team', '🧹', 'Fusion des doublons', 'Regrouper les contacts en double (même personne, e-mails différents).', ['Détection automatique', 'Fusion en un clic']),
+            'saison' => $x('team', '📆', 'Saison & duplication en masse', 'Préparer toute une saison d\'un coup : dupliquer 20 dates avec tarifs et réglages.', ['Création par calendrier', 'Modèles d\'événements', 'Abonnement de saison relié']),
+            // connecter
+            'google-sheets' => $x('connect', '📗', 'Synchro Google Sheets', 'Les commandes et participants qui se remplissent tout seuls dans un tableur partagé.', ['Mise à jour en temps réel', 'Choix des colonnes']),
+            'emailing-externe' => $x('connect', '📮', 'Mailchimp & Brevo', 'Envoi automatique des contacts consentants vers ton outil d\'e-mailing habituel.', ['Synchro des inscrits aux actus', 'Étiquettes par événement']),
+            'app-orga' => $x('connect', '📱', 'Appli mobile organisateur', 'Les ventes en direct et les notifications sur ton téléphone.', ['Notification à chaque vente (option)', 'Stats du jour', 'Accès au scan']),
+        ];
+    }
+
     /** Chantiers côté super-admin (feuille de route de la plateforme). */
     public static function admin(): array
     {
@@ -152,6 +207,15 @@ final class Features
                 'points' => ['Domaine personnalisé par organisateur', 'Logo, couleurs et e-mails à leur nom', 'Option payante']],
             'langues' => ['emoji' => '🌍', 'name' => 'Langues', 'pitch' => 'Billetterie en anglais, espagnol, allemand… pour les festivals qui accueillent des touristes.',
                 'points' => ['Choix de la langue par l\'acheteur', 'Traduction des pages et des e-mails', 'Billets PDF traduits']],
+            'commission-paliers' => ['emoji' => '📶', 'name' => 'Commissions par palier', 'pitch' => 'Commission dégressive selon le volume, différente par catégorie d\'événement ou par type de billet.', 'points' => ['Paliers de volume mensuel', 'Taux par catégorie', 'Simulation avant application']],
+            'formules' => ['emoji' => '💼', 'name' => 'Formules organisateurs', 'pitch' => 'Abonnements payants (Gratuit, Pro, Premium) qui débloquent des modules et baissent la commission.', 'points' => ['Paiement mensuel ou annuel', 'Modules réservés par formule', 'Période d\'essai']],
+            'rgpd' => ['emoji' => '🧾', 'name' => 'Demandes RGPD', 'pitch' => 'Export et suppression des données d\'une personne sur toute la plateforme, avec trace de la demande.', 'points' => ['Recherche par e-mail', 'Export ZIP', 'Anonymisation des commandes']],
+            'connexion-sociale' => ['emoji' => '🔑', 'name' => 'Connexion Google & Apple', 'pitch' => 'Se connecter sans mot de passe, pour les acheteurs comme pour les organisateurs.', 'points' => ['Google, Apple, lien magique par e-mail']],
+            'audit-plateforme' => ['emoji' => '🕵️', 'name' => 'Journal du super-admin', 'pitch' => 'Toutes les actions des super-admins tracées : reversements, changements de commission, consultations d\'espaces.', 'points' => ['Qui, quoi, quand', 'Filtre par organisateur']],
+            'alertes' => ['emoji' => '🚨', 'name' => 'Alertes de supervision', 'pitch' => 'Être prévenu par SMS, Slack ou e-mail si le site tombe, si les paiements échouent ou si le cron s\'arrête.', 'points' => ['Seuils réglables', 'Plusieurs destinataires']],
+            'delivrabilite' => ['emoji' => '📬', 'name' => 'Délivrabilité des e-mails', 'pitch' => 'Vérification SPF, DKIM et DMARC du domaine, taux de rebond et plaintes pour spam.', 'points' => ['Diagnostic DNS guidé', 'Liste des adresses en échec']],
+            'maintenance' => ['emoji' => '🚧', 'name' => 'Mode maintenance', 'pitch' => 'Mettre le site en pause proprement pendant une opération, avec une page d\'attente.', 'points' => ['Accès conservé pour les admins', 'Scanner toujours actif']],
+            'revendeurs' => ['emoji' => '🏪', 'name' => 'Réseau de revendeurs', 'pitch' => 'Des points de vente physiques (bars, disquaires, offices de tourisme) qui vendent les billets avec une commission.', 'points' => ['Compte revendeur', 'Commission par revendeur', 'Relevés mensuels']],
             'sauvegardes' => ['emoji' => '💾', 'name' => 'Sauvegardes automatiques', 'pitch' => 'Une sauvegarde quotidienne de la base et des images, gardée 30 jours, restaurable en un clic.',
                 'points' => ['Sauvegarde chaque nuit', 'Copie vers un stockage externe (FTP, S3)', 'Restauration guidée', 'Alerte en cas d\'échec']],
         ];

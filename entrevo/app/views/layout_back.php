@@ -65,6 +65,7 @@ if ($area === 'admin') {
             $soonA('kyc', 'Vérification KYC', 'kyc'),
             $soonA('contrats', 'Contrats & tarifs', 'handshake'),
             $soonA('prospection', 'Prospection', 'crm'),
+            $soonA('formules', 'Formules & abonnements', 'card'),
         ]],
         ['Argent', [
             ['orders', '/admin/commandes', 'Commandes', $I['orders']],
@@ -72,6 +73,7 @@ if ($area === 'admin') {
             $soonA('litiges', 'Litiges & impayés', 'alert'),
             $soonA('factures-commission', 'Factures de commission', 'invoice'),
             $soonA('fraude', 'Fraude & risques', 'shield'),
+            $soonA('revendeurs', 'Revendeurs', 'bag'),
         ]],
         ['Plateforme', [
             ['users', '/admin/utilisateurs', 'Utilisateurs', $I['user']],
@@ -81,10 +83,12 @@ if ($area === 'admin') {
             $soonA('emails-modeles', 'Modèles d\'e-mails', 'mail'),
             $soonA('marque-blanche', 'Marque blanche', 'brush'),
             $soonA('langues', 'Langues', 'lang'),
+            $soonA('rgpd', 'Demandes RGPD', 'doc'),
         ]],
         ['Technique', [
             ['health', '/admin/sante', 'Santé', $I['health']],
             $soonA('sauvegardes', 'Sauvegardes auto', 'backup'),
+            $soonA('alertes', 'Alertes', 'alert'),
             ['updates', '/admin/mises-a-jour', 'Mises à jour', $I['download']],
             ['settings', '/admin/reglages', 'Réglages', $I['settings']],
         ]],

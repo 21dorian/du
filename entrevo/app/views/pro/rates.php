@@ -58,3 +58,11 @@ $form = function (?array $r) use ($org, $sessions, $seatCats) {
   </details>
 <?php endforeach; ?>
 <details class="box" <?= !$rates ? 'open' : '' ?>><summary style="color:var(--primary)">+ Ajouter un tarif</summary><?= $form(null) ?></details>
+<?= soon_card('💡 Plus de possibilités pour tes tarifs', [
+  'early-bird' => ['Early bird automatique', 'Passe au tarif suivant à une date ou après X billets'],
+  'prix-dynamique' => ['Tarification dynamique', 'Le prix suit la demande, entre un plancher et un plafond'],
+  'tarif-groupe' => ['Tarif dégressif par quantité', '5 billets et plus = prix réduit'],
+  'paiement-plusieurs-fois' => ['Paiement en 3 fois', 'Pour les pass et les formules VIP'],
+  'abonnements' => ['Inclus dans un abonnement', 'Le tarif est accessible aux abonnés de la saison'],
+  'tva' => ['Taux de TVA du tarif', '5,5 %, 10 % ou 20 % sur les reçus'],
+]) ?>

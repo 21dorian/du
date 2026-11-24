@@ -65,4 +65,18 @@
   </div>
 </div>
 <div class="form-actions mt"><button class="btn btn-lg">Enregistrer</button></div>
+<div class="split mt">
+<?= soon_card('🌐 Ta marque', [
+  'domaine-perso' => ['Domaine personnalisé', 'billetterie.ton-site.fr avec tes couleurs'],
+  'mini-site' => ['Mini-site d\'événement', 'Line-up, plan, FAQ, partenaires'],
+  'multilingue' => ['Billetterie en plusieurs langues', 'Pour accueillir les touristes'],
+]) ?>
+<?= soon_card('🔌 Connexions', [
+  'stripe-connect' => ['Paiement direct (Stripe Connect)', 'Les ventes arrivent directement sur ton compte'],
+  'google-sheets' => ['Google Sheets', 'Commandes synchronisées dans un tableur'],
+  'emailing-externe' => ['Mailchimp & Brevo', 'Tes inscrits envoyés vers ton outil d\'e-mailing'],
+  'zapier' => ['Zapier, Make & n8n', 'Relier Entrevo à 5 000 applis'],
+  'pixels-avances' => ['Suivi publicitaire avancé', 'Conversions Meta, Google et TikTok côté serveur'],
+]) ?>
+</div>
 </form>

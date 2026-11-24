@@ -79,6 +79,12 @@ Couleurs : **vert** = entre, **orange** = déjà entré / pas entré (sortie), *
 
 ---
 
+## Nouveautés 1.4.2 ✨
+
+- **Plus de 50 nouvelles fonctionnalités annoncées « en développement »** directement dans les pages, sous forme de boutons et d'options pointillés avec le badge « dév ». Chacune ouvre sa page de présentation (et, côté organisateur, le vote).
+- Organisateurs : options avancées de l'événement (préventes privées, contrôle d'identité, âge minimum, places PMR, transfert et échange de billets, assurance annulation, rappel J-1, pages en plusieurs langues), options de tarif (early bird, prix dynamique, dégressif, paiement en 3 fois, TVA), actions sur une commande (transférer, changer de date, facture pro, SMS), partage (visuels réseaux sociaux, stats partagées, rapport de fin), finances (paiement direct, export comptable, budget), équipe (rôles personnalisés, double authentification), connexions (Google Sheets, Mailchimp/Brevo, Zapier), envois automatiques (paniers abandonnés, codes anniversaire, satisfaction, parrainage), PC sécurité (jauge par zone, badges, vestiaire, borne).
+- Super-admin : réglages (maintenance, connexion Google/Apple, langues, marque blanche), commissions par palier et formules d'abonnement, litiges et fraude, revendeurs, modèles d'e-mails et délivrabilité, KYC et contrats sur la fiche organisateur, RGPD, alertes et sauvegardes.
+
 ## Nouveautés 1.4.1 ✨
 
 - **Menus réorganisés** en rubriques repliables (la position est mémorisée), pour les organisateurs comme pour le super-admin.

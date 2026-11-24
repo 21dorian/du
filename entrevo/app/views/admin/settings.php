@@ -88,3 +88,30 @@ $secret = fn($k) => setting($k) ? '•••••• (enregistré, laisser vide
 <?php endif; ?>
 <div class="form-actions mt"><button class="btn btn-lg">Enregistrer</button></div>
 </form>
+<div class="mt"></div>
+<?php if ($tab === 'general'): ?>
+<?= soon_card('🧪 Réglages à venir', [
+  'maintenance' => ['Mode maintenance', 'Mettre le site en pause avec une page d\'attente'],
+  'connexion-sociale' => ['Connexion Google & Apple', 'Sans mot de passe, pour tout le monde'],
+  'langues' => ['Langues de la plateforme', 'Anglais, espagnol, allemand…'],
+  'marque-blanche' => ['Marque blanche', 'La billetterie sous la marque d\'un client'],
+  'contenus' => ['Page d\'accueil personnalisable', 'Mises en avant, bannières, pages libres'],
+], 'admin') ?>
+<?php elseif ($tab === 'fees'): ?>
+<?= soon_card('🧪 Commissions avancées', [
+  'commission-paliers' => ['Commission par palier ou catégorie', 'Dégressive selon le volume'],
+  'formules' => ['Formules organisateurs', 'Gratuit, Pro, Premium avec abonnement'],
+  'factures-commission' => ['Factures de commission', 'Envoyées chaque mois automatiquement'],
+], 'admin') ?>
+<?php elseif ($tab === 'payments'): ?>
+<?= soon_card('🧪 Paiements à venir', [
+  'litiges' => ['Gestion des litiges', 'Contestations de paiement et preuves automatiques'],
+  'fraude' => ['Détection de fraude', 'Alertes sur les achats suspects'],
+  'revendeurs' => ['Points de vente physiques', 'Bars, disquaires, offices de tourisme'],
+], 'admin') ?>
+<?php elseif ($tab === 'emails'): ?>
+<?= soon_card('🧪 E-mails à venir', [
+  'emails-modeles' => ['Modèles d\'e-mails modifiables', 'Textes de confirmation, rappel, remboursement…'],
+  'delivrabilite' => ['Délivrabilité', 'Vérification SPF, DKIM, DMARC et rebonds'],
+], 'admin') ?>
+<?php endif; ?>

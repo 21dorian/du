@@ -34,3 +34,8 @@
     <button class="btn btn-block">Créer le compte</button>
   </form>
 </div>
+<?= soon_card('🔐 Sécurité & droits', [
+  'roles-perso' => ['Rôles personnalisés', 'Billetterie seulement, compta, lecture seule…'],
+  'double-auth' => ['Double authentification', 'Un code en plus du mot de passe'],
+  'benevoles' => ['Bénévoles & staff', 'Planning, postes et pointage par badge'],
+]) ?>

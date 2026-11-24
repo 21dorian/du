@@ -60,6 +60,7 @@
     <?php foreach ($users as $m): ?><div class="list-item"><span class="grow"><b><?= e($m['name']) ?></b><br><small><?= e($m['email']) ?></small></span><span class="badge grey"><?= e(role_label($m['role'])) ?></span></div><?php endforeach; ?>
   </div>
 </div>
+<div class="soon-row mt"><?= soon_btn('kyc', '🪪 Vérifier les pièces', 'admin') ?><?= soon_btn('contrats', '🤝 Contrat & tarifs négociés', 'admin') ?><?= soon_btn('factures-commission', '🧾 Factures de commission', 'admin') ?><?= soon_btn('rgpd', '🧾 Export RGPD', 'admin') ?><?= soon_btn('fraude', '🛡️ Score de risque', 'admin') ?></div>
 <div class="card mt">
   <h2>📝 Note interne <small class="muted">(visible seulement par le super-admin)</small></h2>
   <form method="post" class="stack"><?= csrf_field() ?><input type="hidden" name="action" value="note"><textarea name="admin_note" rows="3" placeholder="Ex. : appelé le 12/11, pièces OK, gros festival en juillet…"><?= e((string)($org['admin_note'] ?? '')) ?></textarea><button class="btn btn-sm btn-light">Enregistrer</button></form>

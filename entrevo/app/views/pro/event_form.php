@@ -78,6 +78,17 @@
         <h2>📝 Texte sur le billet</h2>
         <textarea name="ticket_info" rows="4" placeholder="Ex. : Ouverture des portes 19 h. Pièce d'identité demandée."><?= e($ev['ticket_info'] ?? '') ?></textarea>
       </div>
+      <?= soon_card('🧪 Options avancées', [
+        'vente-privee' => ['Préventes privées', 'Vente réservée à une liste (abonnés, anciens) avant l\'ouverture au public'],
+        'billet-nominatif-id' => ['Contrôle d\'identité', 'Billet strictement nominatif, vérifié avec la pièce d\'identité'],
+        'restriction-age' => ['Âge minimum', 'Rappelé à l\'achat et signalé au scan'],
+        'places-pmr' => ['Places PMR & accompagnateurs', 'Quota dédié et billet accompagnateur offert'],
+        'transfert-billet' => ['Transfert de billet autorisé', 'L\'acheteur peut donner son billet à un ami'],
+        'echange-date' => ['Échange de date par l\'acheteur', 'Pour les événements à plusieurs dates'],
+        'assurance-annulation' => ['Assurance annulation', 'Proposée à l\'acheteur au moment du paiement'],
+        'calendrier' => ['Rappel J-1 et ajout au calendrier', 'Envoyé automatiquement aux participants'],
+        'multilingue' => ['Page en plusieurs langues', 'Anglais, espagnol, allemand…'],
+      ]) ?>
     </div>
   </div>
   <div class="form-actions mt">

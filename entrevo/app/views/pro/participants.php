@@ -23,6 +23,7 @@ $segs = ['' => 'Tout le monde', 'fideles' => '💜 Fidèles (2+ événements)', 
     <span class="grow"></span>
     <a class="btn btn-sm btn-ghost" href="<?= url('/pro/participants', $qs + ['csv' => 1]) ?>">⬇️ Exporter (CSV)</a>
     <button class="btn btn-sm btn-light" form="seg-campaign">✉️ Écrire à ce segment</button>
+    <?= soon_btn('import-contacts', '📥 Importer') ?><?= soon_btn('doublons', '🧹 Doublons') ?><?= soon_btn('emailing-externe', '📮 Vers Mailchimp') ?>
   </div>
 </form>
 <form id="seg-campaign" method="post" action="<?= url('/pro/campagnes/nouvelle') ?>" hidden><?= csrf_field() ?><input type="hidden" name="modele" value="annonce"><input type="hidden" name="source" value="customers"><input type="hidden" name="seg" value="<?= e($seg) ?>"><input type="hidden" name="ev" value="<?= (int)$evId ?>"></form>

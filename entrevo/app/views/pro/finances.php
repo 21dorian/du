@@ -26,3 +26,11 @@
     <form method="get" action="<?= url('/pro/finances/releve') ?>" target="_blank" class="row" style="flex-wrap:nowrap;gap:0"><input type="month" name="mois" value="<?= date('Y-m', strtotime('first day of last month')) ?>"><button class="btn btn-sm">📄 Relevé PDF</button></form>
   </div>
 </div>
+<?= soon_card('💶 Bientôt dans tes finances', [
+  'stripe-connect' => ['Paiement direct sur ton compte', 'L\'argent arrive chez toi sans attendre les reversements'],
+  'export-compta' => ['Export comptable', 'FEC, Excel, CSV pour ton expert-comptable'],
+  'factures' => ['Factures automatiques', 'Pour les acheteurs pros, numérotées'],
+  'tva' => ['TVA collectée', 'Récapitulatif par taux et par mois'],
+  'budget' => ['Budget prévisionnel', 'Dépenses prévues contre recettes réelles'],
+  'subventions' => ['Bilan pour les financeurs', 'Les chiffres prêts à copier'],
+]) ?>

@@ -43,6 +43,13 @@
       <?php endforeach; ?>
       <?php if (!$devices): ?><p class="muted">Aucun téléphone connecté. Les contrôleurs ouvrent <b><?= e(abs_url('/scan')) ?></b>.</p><?php endif; ?>
     </div>
+    <?= soon_card('🛰️ Bientôt au PC', [
+      'jauge-zone' => ['Jauge par zone en temps réel', 'Fosse, balcon, VIP, avec alerte de saturation'],
+      'controle-pro' => ['Écran PC sécurité', 'Flux par porte, prévision d\'attente, plein écran'],
+      'badges-live' => ['Badges imprimés à l\'arrivée', 'Pour les salons et congrès'],
+      'vestiaire' => ['Vestiaire', 'Tickets numérotés liés au billet'],
+      'kiosque' => ['Borne libre-service', 'Achat et retrait sans faire la queue'],
+    ]) ?>
     <div class="card">
       <h2>Par point d'accès</h2>
       <?php foreach ($aps as $a): ?><div class="list-item"><b class="grow"><?= e($a['name']) ?></b><span><?= (int)$a['entries'] ?> entrées<?= $a['exits'] ? ' · ' . (int)$a['exits'] . ' sorties' : '' ?><?= $a['refused'] ? ' · <span style="color:var(--red)">' . (int)$a['refused'] . ' refus</span>' : '' ?></span></div><?php endforeach; ?>
