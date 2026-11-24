@@ -127,10 +127,10 @@ if ($area === 'admin') {
         ['Gestion', [
             ['finances', '/pro/finances', 'Finances', $I['money']],
             $soonP('factures', 'Factures & compta', 'invoice'),
-            $soonP('budget', 'Budget prévisionnel', 'budget'),
+            ['budget', '/pro/budget', 'Budget prévisionnel', $I['budget']],
             $soonP('subventions', 'Bilans & subventions', 'chart'),
-            $soonP('taches', 'Rétroplanning', 'check'),
-            $soonP('documents', 'Documents', 'doc'),
+            ['taches', '/pro/taches', 'Tâches & rétroplanning', $I['check']],
+            ['documents', '/pro/documents', 'Documents & contrats', $I['doc']],
         ]],
         ['Mon organisation', [
             ['team', '/pro/equipe', 'Équipe', $I['team']],
@@ -140,7 +140,7 @@ if ($area === 'admin') {
             $soonP('zapier', 'Intégrations', 'plug'),
         ]],
     ];
-    if ($u['role'] === 'manager') foreach ($navGroups as &$g) $g[1] = array_values(array_filter($g[1], fn($n) => !in_array($n[0], ['team', 'org', 'finances', 'audit', 'factures', 'budget', 'documents', 'zapier', 'kyc'], true)));
+    if ($u['role'] === 'manager') foreach ($navGroups as &$g) $g[1] = array_values(array_filter($g[1], fn($n) => !in_array($n[0], ['team', 'org', 'finances', 'audit', 'factures', 'zapier', 'kyc'], true)));
     unset($g);
 }
 $nav = [];

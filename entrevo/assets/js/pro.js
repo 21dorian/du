@@ -137,4 +137,24 @@
     cb.checked = get('hide-soon') === '1'; apply();
     cb.addEventListener('change', function () { set('hide-soon', cb.checked ? '1' : null); apply(); });
   })();
+  // tâches : glisser-déposer entre colonnes
+  document.querySelectorAll('[data-kanban]').forEach(function (kb) {
+    var drag = null;
+    kb.querySelectorAll('[data-task]').forEach(function (t) {
+      t.addEventListener('dragstart', function (e) { drag = t; t.classList.add('dragging'); e.dataTransfer.setData('text/plain', t.dataset.task); });
+      t.addEventListener('dragend', function () { t.classList.remove('dragging'); kb.querySelectorAll('.kcol').forEach(function (c) { c.classList.remove('over'); }); });
+    });
+    kb.querySelectorAll('.kcol').forEach(function (col) {
+      col.addEventListener('dragover', function (e) { e.preventDefault(); col.classList.add('over'); });
+      col.addEventListener('dragleave', function () { col.classList.remove('over'); });
+      col.addEventListener('drop', function (e) {
+        e.preventDefault(); col.classList.remove('over'); if (!drag) return;
+        col.querySelector('.kcol-list').appendChild(drag);
+        var fd = new FormData(); fd.append('_csrf', kb.dataset.csrf); fd.append('action', 'move'); fd.append('task_id', drag.dataset.task); fd.append('status', col.dataset.status); fd.append('ajax', '1');
+        fetch(kb.dataset.url, { method: 'POST', body: fd, credentials: 'same-origin' }).then(function () {
+          kb.querySelectorAll('.kcol').forEach(function (c) { c.querySelector('h3 small').textContent = c.querySelectorAll('[data-task]').length; });
+        });
+      });
+    });
+  });
 })();

@@ -75,6 +75,12 @@ function home_dashboard(): string
     if ($n) $todo[] = ['⏳', $n . ' personne' . ($n > 1 ? 's' : '') . ' en liste d\'attente', 'Libère des places ou augmente la jauge', '/pro/evenements', ''];
     $n = (int)val("SELECT COUNT(*) FROM orders WHERE organizer_id = ? AND status = 'pending' AND created_at < NOW() - INTERVAL 20 MINUTE AND created_at > NOW() - INTERVAL 2 DAY", [$oid]);
     if ($n) $todo[] = ['🕓', $n . ' paiement' . ($n > 1 ? 's' : '') . ' en attente', 'Paniers non finalisés : on revérifie automatiquement', '/pro/commandes?st=pending', ''];
+    $n = (int)val("SELECT COUNT(*) FROM tasks WHERE organizer_id = ? AND status <> 'done' AND due_date < CURDATE()", [$oid]);
+    if ($n) $todo[] = ['✅', $n . ' tâche' . ($n > 1 ? 's' : '') . ' en retard', 'Dans ton rétroplanning', '/pro/taches', 'hot'];
+    foreach (all("SELECT id, title, expires_at FROM documents WHERE organizer_id = ? AND expires_at IS NOT NULL AND expires_at <= CURDATE() + INTERVAL 30 DAY ORDER BY expires_at LIMIT 3", [$oid]) as $d)
+        $todo[] = ['📎', '« ' . $d['title'] . ' » ' . ($d['expires_at'] < date('Y-m-d') ? 'a expiré' : 'expire le ' . date('d/m', strtotime($d['expires_at']))), 'Pense à le renouveler', '/pro/documents', $d['expires_at'] < date('Y-m-d') ? 'hot' : ''];
+    if (in_array($org['kyc_status'] ?? 'none', ['none', 'incomplete', 'rejected'], true) && ($balance['balance'] > 0 || Kyc::required()))
+        $todo[] = ['🪪', 'Vérifie ton compte', Kyc::required() ? 'Obligatoire pour recevoir tes reversements' : 'Trois documents à déposer', '/pro/verification', Kyc::required() ? 'hot' : ''];
     if (!$org['iban'] && $balance['balance'] > 0) $todo[] = ['🏦', 'Renseigne ton IBAN', money($balance['balance']) . ' t\'attendent', '/pro/organisation', 'hot'];
     // carte de chaleur : ventes par jour de semaine × heure
     $heat = array_fill(0, 7, array_fill(0, 24, 0));

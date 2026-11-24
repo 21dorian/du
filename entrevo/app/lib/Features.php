@@ -99,10 +99,10 @@ final class Features
                 'points' => ['Fréquentation par tranche d\'âge et ville', 'Part des tarifs réduits et gratuits', 'Export PDF du bilan']],
 
             // ---- Équipe & organisation
-            'budget' => ['cat' => 'money', 'emoji' => '📒', 'name' => 'Budget prévisionnel', 'status' => 'soon', 'eta' => '2027',
+            'budget' => ['cat' => 'money', 'emoji' => '📒', 'name' => 'Budget prévisionnel', 'status' => 'beta', 'url' => '/pro/budget', 'eta' => '2027',
                 'pitch' => 'Dépenses prévues contre recettes réelles : sais en direct si ton événement est rentable, et à partir de combien de billets.',
                 'points' => ['Postes de dépenses (artistes, technique, sécurité…)', 'Seuil de rentabilité calculé', 'Recettes billetterie reliées automatiquement', 'Export pour ton trésorier']],
-            'documents' => ['cat' => 'money', 'emoji' => '🗂️', 'name' => 'Documents & contrats', 'status' => 'soon', 'eta' => '2027',
+            'documents' => ['cat' => 'money', 'emoji' => '🗂️', 'name' => 'Documents & contrats', 'status' => 'beta', 'url' => '/pro/documents', 'eta' => '2027',
                 'pitch' => 'Tous les papiers de l\'événement au même endroit : contrats, assurances, autorisations, devis, avec rappels d\'échéance.',
                 'points' => ['Dossier par événement', 'Rappels avant échéance (assurance, préfecture, SACEM)', 'Signature électronique', 'Partage avec l\'équipe']],
             'equipe' => ['cat' => 'team', 'emoji' => '👥', 'name' => 'Équipe & droits', 'status' => 'on', 'url' => '/pro/equipe', 'pitch' => 'Responsables, gestionnaires, contrôleurs.'],
@@ -110,7 +110,7 @@ final class Features
             'benevoles' => ['cat' => 'team', 'emoji' => '🙋', 'name' => 'Staff & bénévoles', 'status' => 'soon', 'eta' => 'Printemps 2027',
                 'pitch' => 'Recrute, planifie et pointe tes bénévoles : créneaux, postes, rappels et badge QR.',
                 'points' => ['Annuaire réutilisable d\'un événement à l\'autre', 'Formulaire de candidature public', 'Planning par poste avec taux de remplissage', 'Espace perso pour chaque bénévole', 'Pointage par badge QR et heures réalisées']],
-            'taches' => ['cat' => 'team', 'emoji' => '✅', 'name' => 'Tâches & rétroplanning', 'status' => 'soon', 'eta' => '2027',
+            'taches' => ['cat' => 'team', 'emoji' => '✅', 'name' => 'Tâches & rétroplanning', 'status' => 'beta', 'url' => '/pro/taches', 'eta' => '2027',
                 'pitch' => 'La to-do de ton événement : jalons, responsables, échéances et rappels.',
                 'points' => ['Modèles de rétroplanning (festival, concert, salon)', 'Assignation à un membre de l\'équipe', 'Vue calendrier et kanban']],
             'multi-orga' => ['cat' => 'team', 'emoji' => '🏢', 'name' => 'Réseau multi-structures', 'status' => 'soon', 'eta' => '2027',

@@ -3,7 +3,7 @@ $tabs = [
     'overview' => ['Vue d\'ensemble', ''], 'edit' => ['Infos & réglages', '/modifier'], 'sessions' => ['Dates', '/dates'], 'rates' => ['Tarifs', '/tarifs'],
     'products' => ['Options', '/options'], 'form' => ['Formulaire', '/formulaire'], 'promos' => ['Codes promo', '/promos'], 'seating' => ['Plan de salle', '/plan'],
     'attendees' => ['Participants', '/participants'], 'invites' => ['Invitations & partenaires', '/invitations'], 'accred' => ['Accréditations', '/accreditations'],
-    'box' => ['Guichet', '/guichet'], 'waitlist' => ['Attente & revente', '/attente'], 'messages' => ['Messages', '/messages'],
+    'box' => ['Guichet', '/guichet'], 'budget' => ['Budget', '/budget'], 'tasks' => ['Tâches', '/taches'], 'docs' => ['Documents', '/documents'], 'waitlist' => ['Attente & revente', '/attente'], 'messages' => ['Messages', '/messages'],
     'access' => ['Contrôle d\'accès', '/acces'], 'live' => ['En direct', '/controle'], 'stats' => ['Stats', '/stats'],
 ];
 $link = abs_url('/e/' . $ev['slug']);
