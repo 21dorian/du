@@ -11,6 +11,14 @@
       </div>
       <div class="field"><label>Présentation</label><textarea name="description" rows="4"><?= e($org['description']) ?></textarea></div>
       <div class="field"><label>Logo</label><?php if ($org['logo']): ?><img src="<?= url($org['logo']) ?>" alt="" style="max-height:50px;margin-bottom:6px"><?php endif; ?><input type="file" name="logo" accept="image/png,image/jpeg,image/webp"></div>
+      <input type="hidden" name="page_settings" value="1">
+      <h3 class="mt">Ta page publique</h3>
+      <div class="field"><label>Accroche</label><input name="tagline" maxlength="190" value="<?= e((string)($org['tagline'] ?? '')) ?>" placeholder="Ex. : Concerts et festivals en plein air depuis 2012"></div>
+      <div class="field"><label>Image de couverture</label><?php if (!empty($org['cover'])): ?><img src="<?= url($org['cover']) ?>" alt="" style="max-height:90px;border-radius:12px;margin-bottom:6px;display:block"><label class="check"><input type="checkbox" name="remove_cover" value="1"> <span>Retirer la couverture</span></label><?php endif; ?><input type="file" name="cover" accept="image/png,image/jpeg,image/webp"><small>Format large conseillé (2400 × 900 px).</small></div>
+      <?php $soc = json_decode((string)($org['socials'] ?? ''), true) ?: []; ?>
+      <div class="grid2"><?php foreach (['instagram' => 'Instagram', 'facebook' => 'Facebook', 'tiktok' => 'TikTok', 'youtube' => 'YouTube', 'spotify' => 'Spotify', 'linkedin' => 'LinkedIn'] as $k => $l): ?>
+        <div class="field"><label><?= $l ?></label><input name="soc_<?= $k ?>" value="<?= e((string)($soc[$k] ?? '')) ?>" placeholder="https://"></div><?php endforeach; ?></div>
+      <label class="check mb"><input type="checkbox" name="show_past" value="1" <?= ($org['show_past'] ?? 1) ? 'checked' : '' ?>> <span>Montrer les événements passés (avec leurs avis)</span></label>
       <p class="mb0"><a href="<?= url('/o/' . $org['slug']) ?>" target="_blank">Voir ta page publique</a></p>
     </div>
     <div class="card">

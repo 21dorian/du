@@ -62,7 +62,25 @@ $fromPrice = $onSalePrices ? min($onSalePrices) : null;
         <?php endforeach; ?>
       </div>
     <?php endif; ?>
-    <?php if ($ev['description']): ?><h2 class="mt">Le programme</h2><div class="prose"><?= e($ev['description']) ?></div><?php endif; ?>
+    <?php $prog = json_decode((string)($ev['program'] ?? ''), true) ?: []; $faq = json_decode((string)($ev['faq'] ?? ''), true) ?: []; $prac = json_decode((string)($ev['practical'] ?? ''), true) ?: []; ?>
+    <?php if ($ev['description']): ?><h2 class="mt"><?= $prog ? 'L\'événement' : 'Le programme' ?></h2><div class="prose"><?= e($ev['description']) ?></div><?php endif; ?>
+    <?php if ($prog): ?>
+      <section class="ev-section"><h2>Programme</h2>
+        <ol class="timeline"><?php foreach ($prog as $p): ?><li><span class="tl-time"><?= e($p['when'] ?? '') ?></span><div><b><?= e($p['title'] ?? '') ?></b><?php if (!empty($p['text'])): ?><p><?= e($p['text']) ?></p><?php endif; ?></div></li><?php endforeach; ?></ol>
+      </section>
+    <?php endif; ?>
+    <?php $pracLabels = ['acces' => ['pin', 'Venir'], 'parking' => ['cart', 'Stationnement'], 'pmr' => ['users', 'Accessibilité'], 'regles' => ['shield', 'À savoir'], 'food' => ['store', 'Bar & restauration'], 'contact' => ['mail', 'Contact']]; $pracShown = array_filter($pracLabels, fn($k) => trim((string)($prac[$k] ?? '')) !== '', ARRAY_FILTER_USE_KEY); ?>
+    <?php if ($pracShown): ?>
+      <section class="ev-section"><h2>Infos pratiques</h2>
+        <div class="prac-grid"><?php foreach ($pracShown as $k => [$ic, $lab]): ?><div class="prac"><span class="prac-ico"><?= ui_icon($ic) ?></span><div><b><?= $lab ?></b><p><?= nl2br(e((string)$prac[$k])) ?></p></div></div><?php endforeach; ?></div>
+      </section>
+    <?php endif; ?>
+    <?php if ($faq): ?>
+      <section class="ev-section"><h2>Questions fréquentes</h2>
+        <div class="faq"><?php foreach ($faq as $q): ?><details><summary><?= e($q['q'] ?? '') ?></summary><p><?= nl2br(e($q['a'] ?? '')) ?></p></details><?php endforeach; ?></div>
+        <script type="application/ld+json"><?= json_encode(['@context' => 'https://schema.org', '@type' => 'FAQPage', 'mainEntity' => array_map(fn($q) => ['@type' => 'Question', 'name' => $q['q'] ?? '', 'acceptedAnswer' => ['@type' => 'Answer', 'text' => $q['a'] ?? '']], $faq)], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_HEX_TAG) ?></script>
+      </section>
+    <?php endif; ?>
     <?php if ($resales): ?>
       <h2 class="mt">Bourse aux billets officielle</h2>
       <p class="muted">Des billets revendus par d'autres spectateurs, au prix d'origine (jamais plus cher). Un nouveau QR code à ton nom est émis.</p>

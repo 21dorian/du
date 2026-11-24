@@ -558,6 +558,15 @@ function organization(): string
         }
         if (input('action') === 'api_key') { update('organizers', ['api_key' => 'ev_' . token(28)], 'id = ?', [$org['id']]); redirect('/pro/organisation', ['success' => 'Nouvelle clé API générée (l\'ancienne ne marche plus).']); }
         try { $logo = upload_image('logo'); if ($logo) $data['logo'] = $logo; } catch (RuntimeException $e) { back(['error' => $e->getMessage()]); }
+        if (input('page_settings') !== null) {
+            try { $cover = upload_image('cover'); if ($cover) $data['cover'] = $cover; } catch (RuntimeException $e) { back(['error' => $e->getMessage()]); }
+            if (input('remove_cover')) $data['cover'] = null;
+            $data['tagline'] = mb_substr(trim((string)input('tagline')), 0, 190) ?: null;
+            $data['show_past'] = checked('show_past');
+            $soc = [];
+            foreach (['instagram', 'facebook', 'tiktok', 'youtube', 'spotify', 'linkedin'] as $k) { $v = trim((string)input('soc_' . $k)); if ($v !== '' && preg_match('~^https?://~i', $v)) $soc[$k] = mb_substr($v, 0, 255); }
+            $data['socials'] = $soc ? json_encode($soc) : null;
+        }
         if (!$data['name'] || !is_email((string)$data['email'])) back(['error' => 'Nom et e-mail de contact obligatoires.']);
         update('organizers', $data, 'id = ?', [$org['id']]);
         Audit::log('org.updated', 'Profil de l\'organisation');

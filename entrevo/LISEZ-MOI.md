@@ -79,6 +79,38 @@ Couleurs : **vert** = entre, **orange** = déjà entré / pas entré (sortie), *
 
 ---
 
+## Nouveautés 2.0 ✨ — la V2
+
+**Nouveau design, haut de gamme**
+- Thème inspiré d'Apple : police système (SF Pro sur iPhone et Mac, Inter ailleurs), titres en minuscules, boutons en pilule noirs, beaucoup d'air, ombres très douces.
+- Éléments qui flottent : barre de navigation en verre dépoli, menu de l'espace pro en panneau de verre, tiroir d'achat en carte flottante, barre « Je réserve » sur mobile, menus et notifications en verre.
+- Plus aucun emoji dans l'interface : remplacés par de fines icônes dessinées. Le bleu est réservé aux liens ; la couleur principale reste réglable dans Super-admin › Réglages.
+
+**Vente**
+- Codes promo : date de début, minimum de billets, « une fois par personne », **lots de codes uniques** (10 à 500, avec préfixe, export CSV), ventes et remises générées par code.
+- Options avec **variantes** (tailles, couleurs) et ventes par variante.
+- Minuteur de paiement et durée de la place gardée (liste d'attente) réglables par événement ; bouton « Proposer » pour offrir une place à une personne précise.
+- 2ᵉ relance des paniers abandonnés 24 h après la première, avec un **code promo unique** facultatif (déjà appliqué via le bouton).
+
+**Faire venir du monde**
+- **Liens de suivi & ambassadeurs** (onglet de l'événement, et menu « Liens & ambassadeurs ») : un lien par canal (story, affiche, newsletter) ou par personne, avec QR code à imprimer, code promo appliqué automatiquement, clics, ventes, chiffre d'affaires et conversion. Classement des ambassadeurs ; chaque ambassadeur reçoit son lien et une **page de résultats** à lui.
+- Campagnes : nouveaux segments « venus au moins une fois » et « ont acheté mais jamais venus ».
+
+**Pages publiques**
+- Onglet **Page** de l'événement : programme horaire, infos pratiques (venir, stationnement, accessibilité, à savoir, bar, contact) et **questions fréquentes** (aussi lues par Google).
+- **Page organisateur** personnalisable (Mon organisation) : image de couverture, logo, accroche, réseaux sociaux, chiffres, événements passés, avis avec réponses.
+- Note moyenne de l'organisateur affichée sur la page de l'événement.
+
+**Après l'achat**
+- **Espace « Mes billets »** : connexion par lien e-mail, tous les billets à venir et passés (même ceux offerts), accès direct aux commandes, invitation à donner son avis.
+- Rappel avant l'événement : délai au choix (veille, 2 jours, 3 jours, 1 semaine) et message personnalisé par événement.
+- Réponses publiques de l'organisateur sous les avis ; délai limite pour donner un billet.
+
+**Gestion & jour J**
+- Commandes : filtres par tarif, code promo et source (invité par un ami, relance panier, tarif groupe…), export enrichi.
+- Points d'accès : **horaires d'ouverture et de fermeture automatiques** (respectés même hors ligne).
+- PC sécurité : **main courante** (incidents par catégorie, zone, niveau ; clos/rouvrir ; export CSV).
+
 ## Nouveautés 1.9 ✨
 
 **Pour les acheteurs**

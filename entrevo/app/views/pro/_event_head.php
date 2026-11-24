@@ -1,7 +1,7 @@
 <?php
 $tabs = [
-    'overview' => ['Vue d\'ensemble', ''], 'edit' => ['Infos & réglages', '/modifier'], 'sessions' => ['Dates', '/dates'], 'rates' => ['Tarifs', '/tarifs'],
-    'products' => ['Options', '/options'], 'form' => ['Formulaire', '/formulaire'], 'promos' => ['Codes promo', '/promos'], 'seating' => ['Plan de salle', '/plan'],
+    'overview' => ['Vue d\'ensemble', ''], 'edit' => ['Infos & réglages', '/modifier'], 'page' => ['Page', '/page'], 'sessions' => ['Dates', '/dates'], 'rates' => ['Tarifs', '/tarifs'],
+    'products' => ['Options', '/options'], 'form' => ['Formulaire', '/formulaire'], 'promos' => ['Codes promo', '/promos'], 'links' => ['Liens & ambassadeurs', '/liens'], 'seating' => ['Plan de salle', '/plan'],
     'attendees' => ['Participants', '/participants'], 'invites' => ['Invitations & partenaires', '/invitations'], 'accred' => ['Accréditations', '/accreditations'],
     'box' => ['Guichet', '/guichet'], 'budget' => ['Budget', '/budget'], 'tasks' => ['Tâches', '/taches'], 'staff' => ['Bénévoles', '/benevoles'], 'docs' => ['Documents', '/documents'], 'waitlist' => ['Attente & revente', '/attente'], 'messages' => ['Messages', '/messages'],
     'access' => ['Contrôle d\'accès', '/acces'], 'live' => ['En direct', '/controle'], 'stats' => ['Stats', '/stats'],

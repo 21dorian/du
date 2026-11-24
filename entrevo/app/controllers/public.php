@@ -22,6 +22,15 @@ function public_event(string $slug, bool $gates = true): array
     }
     // prévente privée : achat réservé aux personnes autorisées jusqu'à l'ouverture au public
     if (Buyers::presaleActive($ev) && !$isOwner && empty($_SESSION['presale'][$ev['id']])) $ev['_presale_locked'] = true;
+    // lien de suivi (canal ou ambassadeur) : clic compté une fois par visite, code promo associé appliqué
+    if (!empty($_GET['l']) && preg_match('~^[A-Za-z0-9-]{2,24}$~', (string)$_GET['l'])) {
+        $lk = one('SELECT * FROM tracking_links WHERE event_id = ? AND code = ? AND active = 1', [$ev['id'], strtoupper((string)$_GET['l'])]);
+        if ($lk) {
+            if (($_SESSION['link'][$ev['id']] ?? 0) !== (int)$lk['id']) q('UPDATE tracking_links SET clicks = clicks + 1 WHERE id = ?', [$lk['id']]);
+            $_SESSION['link'][$ev['id']] = (int)$lk['id'];
+            if ($lk['promo_code']) { $c = cart_get((int)$ev['id']); if (empty($c['promo'])) { $c['promo'] = $lk['promo_code']; cart_set((int)$ev['id'], $c); } }
+        }
+    }
     // invitation d'un ami : on retient qui a partagé le lien
     if (!empty($_GET['ami']) && preg_match('~^E[A-Z0-9]{7}$~', (string)$_GET['ami'])) {
         $rid = val("SELECT id FROM orders WHERE ref = ? AND event_id = ? AND status = 'paid'", [(string)$_GET['ami'], $ev['id']]);
@@ -89,7 +98,12 @@ function organizer_page(string $slug): string
         AND COALESCE(ends_at, starts_at) >= NOW() - INTERVAL 6 HOUR ORDER BY starts_at", [$org['name'], $org['id']]));
     $rating = Buyers::orgRating((int)$org['id']);
     $reviews = all("SELECT r.*, e.name ev_name FROM reviews r JOIN events e ON e.id = r.event_id WHERE r.organizer_id = ? AND r.visible = 1 AND r.comment IS NOT NULL ORDER BY r.rating >= 4 DESC, r.created_at DESC LIMIT 6", [$org['id']]);
-    return pub('organizer', ['org' => $org, 'events' => $events, 'rating' => $rating, 'reviews' => $reviews], $org['name'], ['widget_ok' => true, 'org_tracking' => $org]);
+    $past = !empty($org['show_past']) ? array_map('event_card_data', all("SELECT e.*, ? AS org_name FROM events e WHERE organizer_id = ? AND status IN ('published','closed') AND password IS NULL
+        AND COALESCE(ends_at, starts_at) < NOW() - INTERVAL 6 HOUR ORDER BY starts_at DESC LIMIT 8", [$org['name'], $org['id']])) : [];
+    $figures = one("SELECT COUNT(DISTINCT e.id) events, (SELECT COUNT(*) FROM tickets t JOIN events e2 ON e2.id = t.event_id WHERE e2.organizer_id = ? AND t.status = 'valid') tickets FROM events e WHERE e.organizer_id = ? AND e.status IN ('published','closed')", [$org['id'], $org['id']]);
+    $socials = json_decode((string)($org['socials'] ?? ''), true) ?: [];
+    return pub('organizer', ['org' => $org, 'events' => $events, 'rating' => $rating, 'reviews' => $reviews, 'past' => $past, 'figures' => $figures, 'socials' => $socials], $org['name'],
+        ['widget_ok' => true, 'org_tracking' => $org, 'description' => $org['tagline'] ?: mb_substr((string)$org['description'], 0, 160), 'og_image' => !empty($org['cover']) ? abs_url('/' . ltrim($org['cover'], '/')) : null]);
 }
 
 function cart_get(int $eventId): array
@@ -332,6 +346,7 @@ function place_order(array $ev, array $org, array $cart, ?array $session, array 
     if (input('birth_date') && Buyers::requiredAge($ev, array_keys($cart['q']))) update('orders', ['birth_date' => (string)input('birth_date')], 'id = ?', [$o['id']]);
     if (!empty($_POST['optin'])) { update('orders', ['marketing_optin' => 1], 'id = ?', [$o['id']]); q('DELETE FROM email_unsubscribes WHERE organizer_id = ? AND email = ?', [$org['id'], strtolower((string)$o['email'])]); }
     if (!empty($_SESSION['ami'][$ev['id']]) && strtolower((string)val('SELECT email FROM orders WHERE id = ?', [$_SESSION['ami'][$ev['id']]])) !== strtolower((string)$o['email'])) update('orders', ['referrer_order_id' => (int)$_SESSION['ami'][$ev['id']]], 'id = ?', [$o['id']]);
+    if (!empty($_SESSION['link'][$ev['id']])) update('orders', ['link_id' => (int)$_SESSION['link'][$ev['id']]], 'id = ?', [$o['id']]);
     if (!empty($_SESSION['presale'][$ev['id']])) q('UPDATE presale_access SET used_at = COALESCE(used_at, NOW()) WHERE event_id = ? AND email = ?', [$ev['id'], $_SESSION['presale'][$ev['id']]]);
     if (!empty($_SESSION['recover'][$ev['id']])) { update('orders', ['recovered_from' => (int)$_SESSION['recover'][$ev['id']]], 'id = ?', [$o['id']]); unset($_SESSION['recover'][$ev['id']]); }
     $_SESSION['orders'][] = $o['ref'];

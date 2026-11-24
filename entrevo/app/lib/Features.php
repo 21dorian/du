@@ -25,7 +25,7 @@ final class Features
         // modules sortis du développement (1.5) : on garde leur fiche, avec un lien direct
         foreach (['jauge-zone' => '/pro/pc', 'tva' => '/pro/finances', 'export-compta' => '/pro/finances'] as $k => $url) if (isset($a[$k])) $a[$k] = ['status' => 'beta', 'url' => $url] + $a[$k];
         // 1.8 : sortis du développement
-        foreach (['avis' => '/pro/avis', 'relance-panier' => '/pro/campagnes', 'calendrier' => '/pro/campagnes', 'transfert-billet' => '/pro/evenements', 'early-bird' => '/pro/evenements', 'echange-date' => '/pro/evenements', 'tarif-groupe' => '/pro/evenements', 'vente-privee' => '/pro/evenements', 'restriction-age' => '/pro/evenements'] as $k => $url) if (isset($a[$k])) $a[$k] = ['status' => 'on', 'url' => $url] + $a[$k];
+        foreach (['avis' => '/pro/avis', 'relance-panier' => '/pro/campagnes', 'calendrier' => '/pro/campagnes', 'transfert-billet' => '/pro/evenements', 'early-bird' => '/pro/evenements', 'echange-date' => '/pro/evenements', 'tarif-groupe' => '/pro/evenements', 'vente-privee' => '/pro/evenements', 'restriction-age' => '/pro/evenements', 'affiliation' => '/pro/liens'] as $k => $url) if (isset($a[$k])) $a[$k] = ['status' => 'on', 'url' => $url] + $a[$k];
         return $a;
     }
 
