@@ -26,6 +26,7 @@ $fromPrice = $onSalePrices ? min($onSalePrices) : null;
     <div class="event-pills">
       <?php if ($showCountdown): ?><span class="pill pill-dark" data-countdown="<?= e(date('c', $startTs)) ?>">⏳ <span data-cd-text><?= e(ago_until($startTs)) ?></span></span><?php endif; ?>
       <?php if ($scarce): ?><span class="pill pill-hot">🔥 Plus que <?= (int)$capLeft ?> place<?= $capLeft > 1 ? 's' : '' ?></span><?php elseif ($capLeft === 0 && $capTotal > 0): ?><span class="pill">😢 Complet</span><?php endif; ?>
+      <?php $orgRating = Buyers::orgRating((int)$org['id']); if ($orgRating['count'] >= 3): ?><a class="pill pill-soft" href="<?= url('/o/' . $org['slug']) ?>#avis">⭐ <?= e(number_format($orgRating['avg'], 1, ',', '')) ?>/5 · <?= $orgRating['count'] ?> avis sur l'organisateur</a><?php endif; ?>
       <?php if (!empty($ev['min_age'])): ?><span class="pill pill-age">🔞 <?= (int)$ev['min_age'] ?> ans et +</span><?php endif; ?>
       <?php $tiersP = Tickets::tiers($ev); if ($tiersP && $anyOnSale): ?><span class="pill pill-soft">👥 <?= count($tiersP) > 1 ? 'Jusqu\'à ' : '' ?>−<?= (int)end($tiersP)['pct'] ?> % en groupe</span><?php endif; ?>
       <?php if ($fromPrice !== null): ?><span class="pill pill-soft"><?= $fromPrice === 0 ? '🎁 Gratuit' : '🎟️ Dès ' . e(money($fromPrice)) ?></span><?php endif; ?>
@@ -148,7 +149,9 @@ $fromPrice = $onSalePrices ? min($onSalePrices) : null;
           <div class="rate">
             <div class="rate-info"><b><?= e($p['name']) ?></b><?php if ($p['description']): ?><small><?= e($p['description']) ?></small><?php endif; ?><?php if ($pmax <= 0): ?><span class="rate-tag" style="color:var(--muted)">Épuisé</span><?php endif; ?></div>
             <div class="rate-price"><?= e(money((int)$p['price'])) ?></div>
-            <?php if ($pmax > 0): ?><div class="qty" data-base="<?= (int)$p['price'] ?>" data-price="<?= (int)$p['price'] ?>"><button type="button" data-d="-1">−</button><input type="number" name="product[<?= (int)$p['id'] ?>]" value="<?= (int)($cart['products'][$p['id']] ?? 0) ?>" min="0" max="<?= $pmax ?>"><button type="button" data-d="1">+</button></div><?php endif; ?>
+            <?php if ($pmax > 0): ?><div class="qty" data-base="<?= (int)$p['price'] ?>" data-price="<?= (int)$p['price'] ?>"><button type="button" data-d="-1">−</button><input type="number" name="product[<?= (int)$p['id'] ?>]" value="<?= (int)($cart['products'][$p['id']] ?? 0) ?>" min="0" max="<?= $pmax ?>"><button type="button" data-d="1">+</button></div>
+              <?php $vars = array_filter(array_map('trim', explode(',', (string)($p['variants'] ?? '')))); if ($vars): ?><label class="variant-pick">Taille / modèle <select name="variant[<?= (int)$p['id'] ?>]"><?php foreach ($vars as $v): ?><option <?= ($cart['variants'][$p['id']] ?? '') === $v ? 'selected' : '' ?>><?= e($v) ?></option><?php endforeach; ?></select></label><?php endif; ?>
+            <?php endif; ?>
           </div>
         <?php endforeach; ?>
       <?php endif; ?>
@@ -181,7 +184,7 @@ $fromPrice = $onSalePrices ? min($onSalePrices) : null;
     <?php if ($soldOut && $ev['waitlist_enabled']): ?>
       <form class="card waitlist-box" method="post" action="<?= url($base . '/attente') ?>"><?= csrf_field() ?>
         <h3>⏳ Complet… mais pas fini !</h3>
-        <p class="muted" style="font-size:14.5px">Inscris-toi sur la liste d'attente : si une place se libère, la première personne inscrite la reçoit par e-mail et on la lui garde 24 h.</p>
+        <p class="muted" style="font-size:14.5px">Inscris-toi sur la liste d'attente : si une place se libère, la première personne inscrite la reçoit par e-mail et on la lui garde <?= Waitlist::hours($ev) ?> h.</p>
         <div class="grid2"><input name="first_name" placeholder="Prénom"><input name="last_name" placeholder="Nom"></div>
         <div class="row mt" style="flex-wrap:nowrap;gap:0"><input type="email" name="email" placeholder="ton@email.fr" required><select name="qty" style="width:90px"><?php for ($i = 1; $i <= 6; $i++): ?><option value="<?= $i ?>"><?= $i ?> pl.</option><?php endfor; ?></select></div>
         <button class="btn btn-block mt">Je m'inscris</button>

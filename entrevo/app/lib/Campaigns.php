@@ -14,7 +14,7 @@ declare(strict_types=1);
 final class Campaigns
 {
     public const STATUS = ['draft' => ['Brouillon', 'grey'], 'scheduled' => ['Programmée', 'orange'], 'sending' => ['En cours d\'envoi', 'orange'], 'sent' => ['Envoyée', 'green'], 'cancelled' => ['Annulée', 'red']];
-    public const SEGMENTS = ['' => 'Tout le monde', 'fideles' => 'Fidèles (2 événements ou plus)', 'gros' => '100 € dépensés ou plus', 'recents' => 'Achat dans les 30 derniers jours', 'dormants' => 'Pas d\'achat depuis 6 mois'];
+    public const SEGMENTS = ['' => 'Tout le monde', 'fideles' => 'Fidèles (2 événements ou plus)', 'gros' => '100 € dépensés ou plus', 'recents' => 'Achat dans les 30 derniers jours', 'dormants' => 'Pas d\'achat depuis 6 mois', 'venus' => 'Venus au moins une fois (billet scanné)', 'absents' => 'Ont acheté mais jamais venus'];
     public const BATCH = 40;
 
     public static function badge(string $s): string { [$l, $c] = self::STATUS[$s] ?? [$s, 'grey']; return '<span class="badge ' . $c . '">' . e($l) . '</span>'; }
@@ -44,6 +44,8 @@ final class Campaigns
             'gros' => 'SUM(o.total - o.refunded_amount) >= 10000',
             'recents' => 'MAX(o.created_at) >= NOW() - INTERVAL 30 DAY',
             'dormants' => 'MAX(o.created_at) < NOW() - INTERVAL 180 DAY',
+            'venus' => 'SUM(EXISTS (SELECT 1 FROM tickets t WHERE t.order_id = o.id AND t.entries > 0)) > 0',
+            'absents' => 'SUM(EXISTS (SELECT 1 FROM tickets t WHERE t.order_id = o.id AND t.entries > 0)) = 0 AND MAX((SELECT COALESCE(ev.ends_at, ev.starts_at) FROM events ev WHERE ev.id = o.event_id)) < NOW()',
             default => '1',
         };
         $rows = all("SELECT LOWER(o.email) email, SUBSTRING_INDEX(GROUP_CONCAT(o.first_name ORDER BY o.created_at DESC SEPARATOR '\x1f'), '\x1f', 1) first_name

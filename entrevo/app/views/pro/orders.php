@@ -26,9 +26,12 @@ $active = count($qs);
     <select name="ev" aria-label="Événement"><option value="">Tous les événements</option><?php foreach ($events as $e2): ?><option value="<?= (int)$e2['id'] ?>" <?= $f['ev'] === (int)$e2['id'] ? 'selected' : '' ?>><?= e($e2['name']) ?></option><?php endforeach; ?></select>
     <select name="st" aria-label="Statut"><option value="">Payées, annulées, remboursées</option><?php foreach (['refund_request' => '💸 Remboursement demandé', 'paid' => 'Payées', 'partial' => 'Remboursées en partie', 'pending' => 'En attente de paiement', 'refunded' => 'Remboursées', 'cancelled' => 'Annulées', 'expired' => 'Expirées'] as $k => $l): ?><option value="<?= $k ?>" <?= $f['st'] === $k ? 'selected' : '' ?>><?= $l ?></option><?php endforeach; ?></select>
     <button class="btn btn-sm">Filtrer</button>
-    <button type="button" class="btn btn-sm btn-light" data-toggle-more aria-expanded="<?= $f['m'] || $f['tag'] || $f['from'] || $f['to'] ? 'true' : 'false' ?>">Plus de filtres</button>
+    <button type="button" class="btn btn-sm btn-light" data-toggle-more aria-expanded="<?= $f['m'] || $f['tag'] || $f['from'] || $f['to'] || $f['rt'] || $f['pr'] !== '' || $f['src'] ? 'true' : 'false' ?>">Plus de filtres</button>
   </div>
-  <div class="filters-more" <?= $f['m'] || $f['tag'] || $f['from'] || $f['to'] ? '' : 'hidden' ?>>
+  <div class="filters-more" <?= $f['m'] || $f['tag'] || $f['from'] || $f['to'] || $f['rt'] || $f['pr'] !== '' || $f['src'] ? '' : 'hidden' ?>>
+    <label>Tarif <select name="rt"><option value="">Tous</option><?php $cur = null; foreach ($rateList as $r): if (!$f['ev'] && $cur !== $r['ev_name']): if ($cur !== null) echo '</optgroup>'; $cur = $r['ev_name']; echo '<optgroup label="' . e($cur) . '">'; endif; ?><option value="<?= (int)$r['id'] ?>" <?= $f['rt'] === (int)$r['id'] ? 'selected' : '' ?>><?= e($r['name']) ?></option><?php endforeach; if ($cur !== null) echo '</optgroup>'; ?></select></label>
+    <label>Code promo <select name="pr"><option value="">Peu importe</option><option value="*" <?= $f['pr'] === '*' ? 'selected' : '' ?>>Avec un code</option><?php foreach ($promoList as $c): ?><option <?= $f['pr'] === $c ? 'selected' : '' ?>><?= e($c) ?></option><?php endforeach; ?></select></label>
+    <label>Source <select name="src"><option value="">Toutes</option><?php foreach (['web' => 'Site', 'widget' => 'Widget', 'ami' => '👯 Invité par un ami', 'relance' => '🛒 Relance panier', 'groupe' => '👥 Tarif groupe', 'revente' => 'Bourse', 'partenaire' => 'Partenaire'] as $k => $l): ?><option value="<?= $k ?>" <?= $f['src'] === $k ? 'selected' : '' ?>><?= $l ?></option><?php endforeach; ?></select></label>
     <label>Vente <select name="m"><option value="">Toutes</option><?php foreach (['online' => 'En ligne', 'guichet' => 'Guichet', 'gratuit' => 'Gratuit', 'invitation' => 'Invitation'] as $k => $l): ?><option value="<?= $k ?>" <?= $f['m'] === $k ? 'selected' : '' ?>><?= $l ?></option><?php endforeach; ?></select></label>
     <label>Étiquette <select name="tag"><option value="">Toutes</option><?php foreach ($allTags as $t => $n): ?><option value="<?= e($t) ?>" <?= $f['tag'] === $t ? 'selected' : '' ?>><?= e($t) ?> (<?= (int)$n ?>)</option><?php endforeach; ?></select></label>
     <label>Du <input type="date" name="from" value="<?= e($f['from']) ?>"></label>
@@ -38,7 +41,9 @@ $active = count($qs);
   <div class="chips">
     <?php
     $labels = ['q' => fn($v) => '« ' . $v . ' »', 'ev' => fn($v) => '📅 ' . (array_column($events, 'name', 'id')[$v] ?? '#' . $v), 'st' => fn($v) => '🚦 ' . (['refund_request' => 'Remboursement demandé', 'partial' => 'Remboursées en partie', 'paid' => 'Payées', 'pending' => 'En attente', 'refunded' => 'Remboursées', 'cancelled' => 'Annulées', 'expired' => 'Expirées'][$v] ?? $v),
-      'm' => fn($v) => '🛒 ' . method_label($v), 'tag' => fn($v) => '🏷️ ' . $v, 'from' => fn($v) => 'Depuis le ' . short_date($v . ' 00:00:00'), 'to' => fn($v) => 'Jusqu\'au ' . short_date($v . ' 00:00:00')];
+      'm' => fn($v) => '🛒 ' . method_label($v), 'tag' => fn($v) => '🏷️ ' . $v, 'from' => fn($v) => 'Depuis le ' . short_date($v . ' 00:00:00'), 'to' => fn($v) => 'Jusqu\'au ' . short_date($v . ' 00:00:00'),
+      'rt' => fn($v) => '🎟️ ' . (array_column($rateList, 'name', 'id')[$v] ?? 'Tarif #' . $v), 'pr' => fn($v) => '🏷️ ' . ($v === '*' ? 'Avec code promo' : $v),
+      'src' => fn($v) => '📣 ' . (['web' => 'Site', 'widget' => 'Widget', 'ami' => 'Invité par un ami', 'relance' => 'Relance panier', 'groupe' => 'Tarif groupe', 'revente' => 'Bourse', 'partenaire' => 'Partenaire'][$v] ?? $v)];
     foreach ($qs as $k => $v): $without = $qs; unset($without[$k]); ?>
       <a class="chip" href="<?= url('/pro/commandes', $without) ?>" title="Retirer ce filtre"><?= e(($labels[$k])($v)) ?> <span aria-hidden="true">×</span></a>
     <?php endforeach; ?>

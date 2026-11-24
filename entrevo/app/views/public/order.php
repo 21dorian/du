@@ -10,6 +10,9 @@
       <button class="btn btn-ghost" onclick="window.print()">Imprimer</button>
       <?php if ((int)$o['total'] > 0): ?><a class="btn btn-ghost" href="<?= url('/commande/' . $o['ref'] . '/recu', ['t' => $o['token']]) ?>" target="_blank">Reçu</a><?php endif; ?>
     </div>
+    <?php if (strtotime((string)($ev['ends_at'] ?: $ev['starts_at'])) < time()): $hasRev = val('SELECT id FROM reviews WHERE order_id = ?', [$o['id']]); ?>
+      <p class="no-print" style="margin-top:12px"><a class="btn btn-light" href="<?= url('/avis/' . $o['ref'], ['t' => $o['token']]) ?>"><?= $hasRev ? '⭐ Modifier mon avis' : '⭐ Donner mon avis sur l\'événement' ?></a></p>
+    <?php endif; ?>
     <div class="row no-print" style="justify-content:center;margin-top:10px">
       <details class="cal-menu"><summary class="btn btn-sm btn-light">📅 Ajouter à mon agenda</summary><div class="cal-pop"><a href="<?= e(Buyers::googleUrl($ev, $session)) ?>" target="_blank" rel="noopener">Google Agenda</a><a href="<?= e(Buyers::icsUrl($ev, $session)) ?>">Apple / Outlook (.ics)</a></div></details>
     </div>

@@ -8,7 +8,10 @@ require_once APP . '/controllers/pro.php';
 function auto_settings(): never
 {
     $org = require_org();
-    update('organizers', ['auto_recovery' => checked('auto_recovery'), 'auto_reminder' => checked('auto_reminder'), 'auto_review' => checked('auto_review')], 'id = ?', [$org['id']]);
+    $data = ['auto_recovery' => checked('auto_recovery'), 'auto_reminder' => checked('auto_reminder'), 'auto_review' => checked('auto_review')];
+    if (input('details') !== null) $data += ['recovery_second' => checked('recovery_second'), 'recovery_pct' => max(0, min(50, (int)input('recovery_pct'))),
+        'reminder_hours' => in_array((int)input('reminder_hours'), [24, 48, 72, 168], true) ? (int)input('reminder_hours') : 24];
+    update('organizers', $data, 'id = ?', [$org['id']]);
     Audit::log('org.auto', 'Envois automatiques modifiés', null, null, (int)$org['id']);
     redirect('/pro/campagnes', ['success' => '✅ Envois automatiques enregistrés.']);
 }
@@ -20,6 +23,11 @@ function reviews_page(): string
     if (is_post()) {
         $id = (int)input('review_id');
         if (input('action') === 'toggle') q('UPDATE reviews SET visible = 1 - visible WHERE id = ? AND organizer_id = ?', [$id, $oid]);
+        if (input('action') === 'reply') {
+            $reply = mb_substr(trim((string)input('reply')), 0, 1000);
+            q('UPDATE reviews SET reply = ?, replied_at = ? WHERE id = ? AND organizer_id = ?', [$reply ?: null, $reply ? now() : null, $id, $oid]);
+            back(['success' => $reply ? '💬 Réponse publiée sous l\'avis.' : 'Réponse retirée.']);
+        }
         back(['success' => 'C\'est noté 👍']);
     }
     $evId = (int)input('ev');

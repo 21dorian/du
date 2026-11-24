@@ -154,6 +154,7 @@ final class Tickets
         if (!$p) return ['error' => 'Code inconnu.'];
         if ((int)$p['max_uses'] > 0 && (int)$p['used'] >= (int)$p['max_uses']) return ['error' => 'Ce code a déjà été utilisé à fond.'];
         if ($p['valid_until'] && strtotime($p['valid_until']) < time()) return ['error' => 'Ce code a expiré. Trop tard, désolé.'];
+        if (!empty($p['valid_from']) && strtotime($p['valid_from']) > time()) return ['error' => 'Ce code sera valable à partir du ' . fr_date($p['valid_from']) . '. Patience 😉'];
         $p['rate_list'] = array_filter(array_map('intval', explode(',', (string)$p['rate_ids'])));
         return ['promo' => $p];
     }
@@ -183,6 +184,10 @@ final class Tickets
     public static function discount(?array $promo, array $items): int
     {
         if (!$promo || $promo['kind'] === 'unlock') return 0;
+        if (!empty($promo['min_qty'])) {
+            $n = array_sum(array_map(fn($i) => ($i['kind'] ?? 'rate') === 'rate' ? $i['qty'] * max(1, (int)($i['_pack'] ?? $i['pack'] ?? 1)) : 0, $items));
+            if ($n < (int)$promo['min_qty']) return 0;
+        }
         $eligible = array_filter($items, fn($i) => ($i['kind'] ?? 'rate') === 'rate' && (!$promo['rate_list'] || in_array((int)$i['rate_id'], $promo['rate_list'], true)));
         $base = array_sum(array_map(fn($i) => $i['unit_price'] * $i['qty'], $eligible));
         if ($promo['kind'] === 'percent') return min($base, (int)round($base * (int)$promo['value'] / 100));
@@ -311,7 +316,10 @@ final class Tickets
                 if ((int)$prod['max_per_order'] > 0 && $qty > (int)$prod['max_per_order']) { $errors[] = $prod['name'] . ' : maximum ' . $prod['max_per_order'] . '.'; continue; }
                 $rem = self::productRemaining($prod);
                 if ($qty > $rem) { $errors[] = $prod['name'] . ' : plus que ' . $rem . ' en stock.'; continue; }
-                $items[] = ['kind' => 'product', 'rate_id' => 0, 'product_id' => (int)$prod['id'], 'name' => $prod['name'], 'qty' => $qty,
+                $vars = array_filter(array_map('trim', explode(',', (string)($prod['variants'] ?? ''))));
+                $variant = $vars ? (string)($p['variants'][$prod['id']] ?? '') : '';
+                if ($vars && !in_array($variant, $vars, true)) $variant = reset($vars);
+                $items[] = ['kind' => 'product', 'rate_id' => 0, 'product_id' => (int)$prod['id'], 'name' => $prod['name'] . ($variant !== '' ? ' (' . $variant . ')' : ''), 'variant' => $variant !== '' ? $variant : null, 'qty' => $qty,
                     'unit_price' => $method === 'invitation' ? 0 : (int)$prod['price'], 'seats' => null, '_pack' => 0];
             }
             if (!$units && !$errors) $errors[] = 'Prends au moins un billet 🎟️';
@@ -319,6 +327,13 @@ final class Tickets
             if ($waitlist && $places > (int)$waitlist['qty']) $errors[] = 'Ta place réservée couvre ' . (int)$waitlist['qty'] . ' billet(s).';
             if ($errors) { db()->rollBack(); return ['errors' => array_values(array_unique($errors))]; }
 
+            if ($promo && $promo['kind'] !== 'unlock') {
+                $nt = array_sum(array_map(fn($i) => $i['kind'] === 'rate' ? $i['qty'] * $i['_pack'] : 0, $items));
+                if ((int)$promo['min_qty'] > $nt) $errors[] = 'Le code ' . $promo['code'] . ' demande au moins ' . (int)$promo['min_qty'] . ' billets.';
+                if ($promo['once_per_email'] && val("SELECT id FROM orders WHERE event_id = ? AND promo_code = ? AND LOWER(email) = ? AND status = 'paid' LIMIT 1", [$ev['id'], $promo['code'], strtolower((string)($p['buyer']['email'] ?? ''))]))
+                    $errors[] = 'Tu as déjà utilisé le code ' . $promo['code'] . ' : il ne marche qu\'une fois par personne.';
+                if ($errors) { db()->rollBack(); return ['errors' => $errors]; }
+            }
             $subtotal = array_sum(array_map(fn($i) => $i['unit_price'] * $i['qty'], $items));
             $discount = self::discount($promo, $items);
             $group = ($method === 'online' && !$partner && !$resale) ? self::groupDiscount($ev, $items)['amount'] : 0;
@@ -371,7 +386,7 @@ final class Tickets
                 'note' => mb_substr((string)($p['note'] ?? ''), 0, 500),
                 'created_by' => $p['user_id'] ?? null,
                 'created_at' => now(),
-                'expires_at' => date('Y-m-d H:i:s', time() + 60 * max(5, (int)setting('pending_minutes'))),
+                'expires_at' => date('Y-m-d H:i:s', time() + 60 * max(5, (int)($ev['hold_minutes'] ?? 0) ?: (int)setting('pending_minutes'))),
             ];
             $order['id'] = insert('orders', $order);
             foreach ($items as $it) { unset($it['_pack']); insert('order_items', $it + ['order_id' => $order['id']]); }
@@ -531,8 +546,9 @@ final class Tickets
             } elseif ($sessionId && $t['session_id'] && (int)$t['session_id'] !== $sessionId) {
                 $result = 'wrong_session';
                 $info['session'] = fr_date((string)val('SELECT starts_at FROM sessions WHERE id = ?', [$t['session_id']]));
-            } elseif ($ap && !$ap['active']) {
+            } elseif ($ap && (!$ap['active'] || (!empty($ap['opens_at']) && strtotime((string)$ap['opens_at']) > strtotime((string)($p['scanned_at'] ?? 'now'))) || (!empty($ap['closes_at']) && strtotime((string)$ap['closes_at']) < strtotime((string)($p['scanned_at'] ?? 'now'))))) {
                 $result = 'closed';
+                if ($ap['active'] && !empty($ap['opens_at'])) $info['hours'] = 'Ouverture ' . date('H\\hi', strtotime((string)$ap['opens_at'])) . (!empty($ap['closes_at']) ? ', fermeture ' . date('H\\hi', strtotime((string)$ap['closes_at'])) : '');
             } elseif ($ap && $zones !== null && !in_array((int)$ap['id'], $zones, true)) {
                 $result = 'not_allowed';
             } elseif ($ap && $zones === null && $ap['rate_ids'] && !in_array((int)$t['rate_id'], array_map('intval', explode(',', $ap['rate_ids'])), true)) {

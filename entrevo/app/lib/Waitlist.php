@@ -6,6 +6,17 @@ final class Waitlist
 {
     public const HOLD_HOURS = 24;
 
+    public static function hours(array $ev): int { return max(1, (int)($ev['waitlist_hours'] ?? 0) ?: self::HOLD_HOURS); }
+
+    /** Propose sa place à une personne précise (bouton de l'organisateur ou tour automatique). */
+    public static function offer(array $w, array $ev): void
+    {
+        $session = $w['session_id'] ? one('SELECT * FROM sessions WHERE id = ?', [$w['session_id']]) : null;
+        $exp = date('Y-m-d H:i:s', time() + self::hours($ev) * 3600);
+        update('waitlist', ['status' => 'offered', 'offered_at' => now(), 'expires_at' => $exp], 'id = ?', [$w['id']]);
+        self::mailOffer($w, $ev, $session, $exp);
+    }
+
     public static function process(): int
     {
         q("UPDATE waitlist SET status = 'expired' WHERE status = 'offered' AND expires_at < NOW()");
@@ -20,7 +31,7 @@ final class Waitlist
             if ($free <= 0) continue;
             foreach (all("SELECT * FROM waitlist WHERE event_id = ? AND COALESCE(session_id, 0) = ? AND status = 'waiting' ORDER BY id", [$ev['id'], $g['sid']]) as $w) {
                 if ((int)$w['qty'] > $free) break; // on respecte l'ordre d'inscription
-                $exp = date('Y-m-d H:i:s', time() + self::HOLD_HOURS * 3600);
+                $exp = date('Y-m-d H:i:s', time() + self::hours($ev) * 3600);
                 update('waitlist', ['status' => 'offered', 'offered_at' => now(), 'expires_at' => $exp], 'id = ?', [$w['id']]);
                 $free -= (int)$w['qty'];
                 $offers++;

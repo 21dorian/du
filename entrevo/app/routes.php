@@ -111,6 +111,7 @@ return [
     ['GET', '/pro/pc', 'pc@pc_choose'],
     ['GET', '/pro/evenements/{id}/pc', 'pc@pc_page'],
     ['GET|POST', '/pro/evenements/{id}/pc/donnees', 'pc@pc_data'],
+    ['GET', '/pro/evenements/{id}/pc/main-courante.csv', 'pc@pc_incidents_csv'],
     ['GET|POST', '/pro/benevoles', 'staff@staff_directory'],
     ['GET|POST', '/pro/benevoles/{id}', 'staff@staff_member_page'],
     ['GET|POST', '/pro/evenements/{id}/benevoles', 'staff@staff_event'],

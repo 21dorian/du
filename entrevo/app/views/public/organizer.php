@@ -16,6 +16,7 @@
     <span class="rv-stars" aria-label="<?= (int)$r['rating'] ?> sur 5"><?= Buyers::stars((float)$r['rating']) ?></span>
     <blockquote><?= nl2br(e($r['comment'])) ?></blockquote>
     <figcaption><b><?= e($r['author'] ?: 'Un·e participant·e') ?></b><?= $r['verified'] ? ' · ✅ venu·e' : '' ?><br><small class="muted"><?= e($r['ev_name']) ?></small></figcaption>
+    <?php if ($r['reply']): ?><div class="rv-org-reply"><b>💬 <?= e($org['name']) ?></b><p><?= nl2br(e($r['reply'])) ?></p></div><?php endif; ?>
   </figure>
 <?php endforeach; ?>
 </div>

@@ -70,7 +70,8 @@ function products_tab(string $id): string
             back(['success' => '🗑️ Option supprimée.']);
         }
         $data = ['name' => trim((string)input('name')), 'description' => trim((string)input('description')) ?: null, 'price' => parse_money(input('price')),
-            'stock' => max(0, (int)input('stock')), 'max_per_order' => max(0, (int)input('max_per_order')), 'active' => checked('active'), 'sort' => (int)input('sort')];
+            'stock' => max(0, (int)input('stock')), 'max_per_order' => max(0, (int)input('max_per_order')), 'active' => checked('active'), 'sort' => (int)input('sort'),
+            'variants' => implode(', ', array_slice(array_values(array_unique(array_filter(array_map(fn($v) => mb_substr(trim($v), 0, 30), explode(',', (string)input('variants'))), fn($v) => $v !== ''))), 0, 20)) ?: null];
         if ($data['name'] === '') back(['error' => 'Donne un nom à cette option.']);
         if ($pid) update('products', $data, 'id = ? AND event_id = ?', [$pid, $ev['id']]); else insert('products', $data + ['event_id' => $ev['id']]);
         back(['success' => '✅ Option enregistrée.']);
@@ -273,6 +274,14 @@ function waitlist_tab(string $id): string
     if (is_post()) {
         $wid = (int)input('waitlist_id');
         if (input('action') === 'cancel') q("UPDATE waitlist SET status = 'cancelled' WHERE id = ? AND event_id = ?", [$wid, $ev['id']]);
+        if (input('action') === 'offer' && ($w = one("SELECT * FROM waitlist WHERE id = ? AND event_id = ? AND status IN ('waiting','expired')", [$wid, $ev['id']]))) {
+            try { Waitlist::offer($w, $ev); } catch (Throwable $e) { log_line('emails', 'Liste d\'attente : ' . $e->getMessage()); }
+            back(['success' => '📨 Place proposée à ' . $w['email'] . ' (gardée ' . Waitlist::hours($ev) . ' h).']);
+        }
+        if (input('action') === 'settings') {
+            update('events', ['waitlist_hours' => max(1, min(168, (int)input('waitlist_hours', 24))), 'hold_minutes' => (int)input('hold_minutes') ? max(5, min(60, (int)input('hold_minutes'))) : null], 'id = ?', [$ev['id']]);
+            back(['success' => '✅ Délais enregistrés.']);
+        }
         if (input('action') === 'process') { $n = Waitlist::process(); back(['success' => '⏳ ' . $n . ' offre(s) envoyée(s).']); }
         back(['success' => '✅ C\'est fait.']);
     }

@@ -292,6 +292,8 @@
     if (!t.v) return { result: 'cancelled', t: t };
     if (cfg.sessionId && t.s && t.s !== cfg.sessionId) return { result: 'wrong_session', t: t };
     if (ap && !ap.active) return { result: 'closed', t: t };
+    var nowS = nowSql();
+    if (ap && ((ap.opens && nowS < ap.opens) || (ap.closes && nowS > ap.closes))) return { result: 'closed', t: t };
     var pop = t.p ? data.pops[t.p] : null;
     if (ap && pop && pop.zones.length && pop.zones.indexOf(ap.id) < 0) return { result: 'not_allowed', t: t };
     if (ap && !pop && ap.rates.length && ap.rates.indexOf(t.r) < 0) return { result: 'not_allowed', t: t };

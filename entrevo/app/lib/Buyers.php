@@ -23,6 +23,7 @@ final class Buyers
         if ($t['resale_status'] === 'listed') return 'Ce billet est en vente sur la bourse : retire-le d\'abord.';
         if ((int)$t['transfers'] >= self::MAX_TRANSFERS) return 'Ce billet a déjà été donné ' . self::MAX_TRANSFERS . ' fois : c\'est le maximum.';
         if (strtotime((string)($ev['ends_at'] ?: $ev['starts_at'])) < time()) return 'L\'événement est terminé.';
+        if ((int)($ev['transfer_hours'] ?? 0) > 0 && strtotime((string)$ev['starts_at']) - time() < (int)$ev['transfer_hours'] * 3600) return 'Les transferts sont fermés ' . (int)$ev['transfer_hours'] . ' h avant l\'événement.';
         return null;
     }
 
@@ -123,7 +124,7 @@ final class Buyers
     {
         $rows = all("SELECT o.id FROM orders o JOIN events e ON e.id = o.event_id JOIN organizers g ON g.id = o.organizer_id LEFT JOIN sessions s ON s.id = o.session_id
             WHERE o.status = 'paid' AND o.reminder_sent_at IS NULL AND g.auto_reminder = 1 AND o.email IS NOT NULL AND o.email <> '' AND (o.channel IS NULL OR o.channel <> 'systeme')
-              AND COALESCE(s.starts_at, e.starts_at) BETWEEN NOW() + INTERVAL 2 HOUR AND NOW() + INTERVAL 30 HOUR
+              AND COALESCE(s.starts_at, e.starts_at) BETWEEN NOW() + INTERVAL 2 HOUR AND NOW() + INTERVAL (g.reminder_hours + 6) HOUR
               AND o.paid_at < NOW() - INTERVAL 2 HOUR LIMIT 40");
         $n = 0;
         foreach ($rows as $r) {
@@ -135,7 +136,8 @@ final class Buyers
             $nb = (int)val("SELECT COUNT(*) FROM tickets WHERE order_id = ? AND status = 'valid' AND holder_email IS NULL", [$o['id']]);
             if (!$nb || !is_email((string)$o['email'])) continue;
             $start = strtotime((string)($session['starts_at'] ?? $ev['starts_at']));
-            $when = date('Y-m-d', $start) === date('Y-m-d') ? 'Ce soir' : 'Demain';
+            $days = (int)round((strtotime(date('Y-m-d', $start)) - strtotime(date('Y-m-d'))) / 86400);
+            $when = $days <= 0 ? 'Ce soir' : ($days === 1 ? 'Demain' : 'Dans ' . $days . ' jours');
             $place = self::place($ev);
             $link = abs_url('/commande/' . $o['ref'], ['t' => $o['token']]);
             try {
@@ -144,7 +146,7 @@ final class Buyers
                     . '<table style="font-size:15px;border-collapse:collapse"><tr><td style="padding:4px 12px 4px 0">🕗</td><td><b>' . e(fr_date(date('Y-m-d H:i:s', $start))) . '</b></td></tr>'
                     . ($place ? '<tr><td style="padding:4px 12px 4px 0">📍</td><td>' . e($place) . ' — <a href="https://www.google.com/maps/search/?api=1&amp;query=' . e(rawurlencode($place)) . '">itinéraire</a></td></tr>' : '')
                     . '<tr><td style="padding:4px 12px 4px 0">🎟️</td><td>' . $nb . ' billet' . ($nb > 1 ? 's' : '') . ' · commande ' . e($o['ref']) . '</td></tr></table>'
-                    . (!empty($ev['email_message']) ? '<div style="margin:16px 0;padding:12px 14px;background:#f6f4ef;border-left:4px solid #0032fa;white-space:pre-line">' . e($ev['email_message']) . '</div>' : '')
+                    . (!empty($ev['reminder_message']) || !empty($ev['email_message']) ? '<div style="margin:16px 0;padding:12px 14px;background:#f6f4ef;border-left:4px solid #0032fa;white-space:pre-line">' . e((string)($ev['reminder_message'] ?: $ev['email_message'])) . '</div>' : '')
                     . '<p><a href="' . e($link) . '" style="background:' . e(setting('primary_color', '#0032fa')) . ';color:#fff;padding:12px 18px;border-radius:8px;text-decoration:none;display:inline-block">Afficher mes billets</a></p>'
                     . '<p style="color:#777;font-size:13px">Astuce : garde cette page ouverte ou fais une capture du QR code, au cas où le réseau sature sur place 😉</p>',
                     [], $org['email'] ?? null);
@@ -189,6 +191,46 @@ final class Buyers
                     [], $org['email'] ?? null);
                 $n++;
             } catch (Throwable $e) { log_line('emails', 'Relance panier #' . $o['id'] . ' : ' . $e->getMessage()); }
+        }
+        return $n;
+    }
+
+    /** 2e relance, environ 24 h après la première, avec un code promo à usage unique si l'organisateur l'a choisi. */
+    public static function recoverySecond(): int
+    {
+        $rows = all("SELECT o.id FROM orders o JOIN events e ON e.id = o.event_id JOIN organizers g ON g.id = o.organizer_id
+            WHERE o.status IN ('pending','expired') AND o.recovery_sent_at IS NOT NULL AND o.recovery2_sent_at IS NULL AND g.auto_recovery = 1 AND g.recovery_second = 1
+              AND o.recovery_sent_at < NOW() - INTERVAL 23 HOUR AND o.recovery_sent_at > NOW() - INTERVAL 72 HOUR
+              AND e.status = 'published' AND COALESCE(e.ends_at, e.starts_at) > NOW() + INTERVAL 6 HOUR ORDER BY o.id DESC LIMIT 40");
+        $n = 0; $done = [];
+        foreach ($rows as $r) {
+            $o = one('SELECT * FROM orders WHERE id = ?', [$r['id']]);
+            $email = strtolower((string)$o['email']);
+            q("UPDATE orders SET recovery2_sent_at = NOW() WHERE LOWER(email) = ? AND event_id = ? AND recovery2_sent_at IS NULL", [$email, $o['event_id']]);
+            $key = $email . '|' . $o['event_id'];
+            if (isset($done[$key])) continue;
+            $done[$key] = true;
+            // la première relance n'a été envoyée qu'à la commande la plus récente : on ne relance que celle-là
+            if (!val("SELECT 1 FROM orders WHERE id = ? AND recovery_sent_at IS NOT NULL", [$o['id']])) continue;
+            if (val("SELECT id FROM orders WHERE LOWER(email) = ? AND event_id = ? AND status = 'paid' AND id > ? LIMIT 1", [$email, $o['event_id'], $o['id']])) continue;
+            if (!is_email($email) || val('SELECT 1 FROM email_unsubscribes WHERE organizer_id = ? AND email = ?', [$o['organizer_id'], $email])) continue;
+            $ev = one('SELECT * FROM events WHERE id = ?', [$o['event_id']]);
+            $org = one('SELECT * FROM organizers WHERE id = ?', [$o['organizer_id']]);
+            $code = null;
+            if ((int)$org['recovery_pct'] > 0) {
+                do { $code = 'RETOUR-' . random_code(6); } while (val('SELECT id FROM promos WHERE event_id = ? AND code = ?', [$ev['id'], $code]));
+                insert('promos', ['event_id' => $ev['id'], 'code' => $code, 'kind' => 'percent', 'value' => min(50, (int)$org['recovery_pct']), 'max_uses' => 1, 'once_per_email' => 1,
+                    'valid_until' => date('Y-m-d H:i:s', time() + 72 * 3600), 'batch' => 'RELANCE-' . date('ym'), 'label' => 'Relance panier : ' . $email, 'active' => 1]);
+            }
+            $link = abs_url('/reprendre/' . $o['ref'], array_filter(['t' => $o['token'], 'code' => $code]));
+            try {
+                Mailer::send($email, $code ? '🎁 −' . (int)$org['recovery_pct'] . ' % pour finir ta réservation : ' . $ev['name'] : '⏳ Dernier rappel : ' . $ev['name'],
+                    '<p>Re-salut ' . e($o['first_name']) . ' 👋</p><p>Ton panier pour <b>' . e($ev['name']) . '</b> t\'attend toujours… mais plus pour très longtemps.</p>'
+                    . ($code ? '<p style="font-size:17px">Pour te motiver, voici <b>−' . (int)$org['recovery_pct'] . ' %</b> avec le code <b style="font-family:monospace;background:#f4f4f8;padding:3px 8px;border-radius:6px">' . e($code) . '</b> (valable 72 h, déjà appliqué via le bouton).</p>' : '')
+                    . '<p><a href="' . e($link) . '" style="background:' . e(setting('primary_color', '#0032fa')) . ';color:#fff;padding:12px 18px;border-radius:8px;text-decoration:none;display:inline-block">Je finis ma réservation</a></p>'
+                    . '<p style="color:#777;font-size:13px">C\'est le dernier e-mail à ce sujet, promis.</p>', [], $org['email'] ?? null);
+                $n++;
+            } catch (Throwable $e) { log_line('emails', 'Relance panier (2) #' . $o['id'] . ' : ' . $e->getMessage()); }
         }
         return $n;
     }

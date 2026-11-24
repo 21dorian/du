@@ -187,7 +187,7 @@ final class Features
 
     /** Fonctions à venir côté public (acheteurs et visiteurs du site). */
     /** Fonctions acheteurs déjà en ligne (1.8) : retirées des listes « bientôt ». */
-    public const PUBLIC_LIVE = ['agenda', 'transfert', 'filtres-date', 'avis-public', 'echange', 'inviter-amis'];
+    public const PUBLIC_LIVE = ['agenda', 'transfert', 'filtres-date', 'avis-public', 'echange', 'inviter-amis', 'compte-acheteur'];
 
     public static function public(): array
     {

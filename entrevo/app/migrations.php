@@ -774,4 +774,51 @@ return [
             UNIQUE KEY (event_id, email)
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4",
     ],
+    // ---------- 2.0.0 : modules plus poussés ----------
+    11 => [
+        "ALTER TABLE promos ADD COLUMN valid_from DATETIME NULL, ADD COLUMN min_qty INT NOT NULL DEFAULT 0, ADD COLUMN once_per_email TINYINT(1) NOT NULL DEFAULT 0, ADD COLUMN batch VARCHAR(40) NULL, ADD COLUMN label VARCHAR(190) NULL, ADD INDEX(batch)",
+        "ALTER TABLE products ADD COLUMN variants VARCHAR(500) NULL",
+        "ALTER TABLE order_items ADD COLUMN variant VARCHAR(80) NULL",
+        "ALTER TABLE events ADD COLUMN hold_minutes INT NULL, ADD COLUMN waitlist_hours INT NULL, ADD COLUMN reminder_message TEXT NULL, ADD COLUMN transfer_hours INT NOT NULL DEFAULT 0",
+        "ALTER TABLE organizers ADD COLUMN reminder_hours INT NOT NULL DEFAULT 24, ADD COLUMN recovery_second TINYINT(1) NOT NULL DEFAULT 1, ADD COLUMN recovery_pct INT NOT NULL DEFAULT 0",
+        "ALTER TABLE orders ADD COLUMN recovery2_sent_at DATETIME NULL",
+        "ALTER TABLE reviews ADD COLUMN reply TEXT NULL, ADD COLUMN replied_at DATETIME NULL",
+        "ALTER TABLE access_points ADD COLUMN opens_at DATETIME NULL, ADD COLUMN closes_at DATETIME NULL",
+        "CREATE TABLE IF NOT EXISTS incidents (
+            id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+            event_id INT UNSIGNED NOT NULL,
+            level VARCHAR(10) NOT NULL DEFAULT 'info',
+            category VARCHAR(30) NOT NULL DEFAULT 'autre',
+            zone VARCHAR(120) NULL,
+            title VARCHAR(190) NOT NULL,
+            note TEXT NULL,
+            author VARCHAR(120) NULL,
+            status VARCHAR(10) NOT NULL DEFAULT 'open',
+            created_at DATETIME NOT NULL,
+            resolved_at DATETIME NULL,
+            INDEX(event_id, status)
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4",
+    ],
+    // ---------- 2.0.0 (vague 2) : liens de suivi & ambassadeurs, page événement enrichie, page organisateur ----------
+    12 => [
+        "CREATE TABLE IF NOT EXISTS tracking_links (
+            id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+            organizer_id INT UNSIGNED NOT NULL,
+            event_id INT UNSIGNED NOT NULL,
+            name VARCHAR(120) NOT NULL,
+            code VARCHAR(24) NOT NULL,
+            kind VARCHAR(12) NOT NULL DEFAULT 'canal',
+            email VARCHAR(190) NULL,
+            promo_code VARCHAR(64) NULL,
+            reward VARCHAR(190) NULL,
+            token VARCHAR(40) NOT NULL,
+            clicks INT NOT NULL DEFAULT 0,
+            active TINYINT(1) NOT NULL DEFAULT 1,
+            created_at DATETIME NOT NULL,
+            UNIQUE KEY (event_id, code), INDEX(organizer_id), INDEX(token)
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4",
+        "ALTER TABLE orders ADD COLUMN link_id INT UNSIGNED NULL, ADD INDEX(link_id)",
+        "ALTER TABLE events ADD COLUMN program MEDIUMTEXT NULL, ADD COLUMN faq MEDIUMTEXT NULL, ADD COLUMN practical MEDIUMTEXT NULL",
+        "ALTER TABLE organizers ADD COLUMN cover VARCHAR(255) NULL, ADD COLUMN accent VARCHAR(7) NULL, ADD COLUMN socials TEXT NULL, ADD COLUMN tagline VARCHAR(190) NULL, ADD COLUMN show_past TINYINT(1) NOT NULL DEFAULT 1",
+    ],
 ];

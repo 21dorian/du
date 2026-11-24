@@ -212,6 +212,8 @@ function fill_cart_from_input(array $ev, array &$cart, array $in): void
     foreach ((array)($in['price'] ?? []) as $rid => $v) $cart['prices'][(int)$rid] = parse_money($v);
     $cart['products'] = [];
     foreach ((array)($in['product'] ?? []) as $pid => $n) if ((int)$n > 0) $cart['products'][(int)$pid] = min(50, (int)$n);
+    $cart['variants'] = [];
+    foreach ((array)($in['variant'] ?? []) as $pid => $v) if (isset($cart['products'][(int)$pid])) $cart['variants'][(int)$pid] = mb_substr(trim((string)$v), 0, 30);
     $cart['donation'] = !empty($ev['donation_enabled']) ? parse_money($in['donation'] ?? 0) : 0;
     $cart['seats'] = [];
     foreach ((array)($in['seats'] ?? []) as $rid => $list) {
@@ -235,7 +237,7 @@ function cart_summary(array $ev, array $org, array $cart): array
     }
     foreach ($cart['products'] as $pid => $qty) {
         $pr = one('SELECT * FROM products WHERE id = ? AND event_id = ?', [$pid, $ev['id']]);
-        if ($pr) $lines[] = ['kind' => 'product', 'rate_id' => 0, 'name' => $pr['name'], 'qty' => (int)$qty, 'unit_price' => (int)$pr['price'], 'pack' => 0, 'seats' => []];
+        if ($pr) $lines[] = ['kind' => 'product', 'rate_id' => 0, 'name' => $pr['name'] . (!empty($cart['variants'][$pid]) ? ' (' . $cart['variants'][$pid] . ')' : ''), 'qty' => (int)$qty, 'unit_price' => (int)$pr['price'], 'pack' => 0, 'seats' => []];
     }
     $promo = $cart['promo'] ? (Tickets::findPromo((int)$ev['id'], $cart['promo'])['promo'] ?? null) : null;
     $subtotal = array_sum(array_map(fn($l) => $l['qty'] * $l['unit_price'], $lines));
@@ -322,7 +324,7 @@ function place_order(array $ev, array $org, array $cart, ?array $session, array 
     $r = Tickets::createOrder([
         'event' => $ev, 'org' => $org, 'session' => $session, 'quantities' => $cart['q'], 'prices' => $cart['prices'], 'products' => $cart['products'],
         'donation' => $cart['donation'], 'seats' => $cart['seats'], 'buyer' => $buyer, 'holders' => $holders, 'order_answers' => $orderAnswers,
-        'promo' => $cart['promo'], 'unlocked' => $cart['unlocked'] ?? [], 'method' => $partner ? 'partner' : 'online', 'partner' => $partner,
+        'promo' => $cart['promo'], 'unlocked' => $cart['unlocked'] ?? [], 'variants' => $cart['variants'] ?? [], 'method' => $partner ? 'partner' : 'online', 'partner' => $partner,
         'waitlist' => $waitlist, 'utm' => $_SESSION['utm'] ?? [], 'channel' => (($_SESSION['utm']['source'] ?? '') === 'widget') ? 'widget' : null,
     ]);
     if (!empty($r['errors'])) return ['errors' => $r['errors']];
@@ -369,7 +371,7 @@ function order_by_ref(string $ref, bool $requireToken = true): array
     $o = one('SELECT * FROM orders WHERE ref = ?', [$ref]);
     if (!$o) abort(404, 'Commande introuvable 🕵️');
     $t = (string)input('t');
-    $mine = in_array($o['ref'], $_SESSION['orders'] ?? [], true);
+    $mine = in_array($o['ref'], $_SESSION['orders'] ?? [], true) || (!empty($_SESSION['buyer_email']) && strtolower((string)$o['email']) === $_SESSION['buyer_email']);
     $u = user();
     $staff = $u && ($u['role'] === 'superadmin' || ((int)$u['organizer_id'] === (int)$o['organizer_id'] && $u['role'] !== 'scanner'));
     if ($requireToken && !$mine && !$staff && !hash_equals($o['token'], $t)) abort(404, 'Commande introuvable.');
@@ -492,21 +494,49 @@ function order_pdf(string $ref): never
 function find_tickets(): string
 {
     $sent = false;
+    if (input('sortir')) { unset($_SESSION['buyer_email']); redirect('/mes-billets', ['info' => '👋 Déconnecté de ton espace.']); }
     if (is_post()) {
-        $email = trim((string)input('email'));
-        if (is_email($email)) {
-            $orders = all("SELECT o.*, e.name AS ev_name, e.starts_at FROM orders o JOIN events e ON e.id = o.event_id
-                           WHERE o.email = ? AND o.status = 'paid' ORDER BY o.created_at DESC LIMIT 20", [$email]);
-            if ($orders) {
+        $email = strtolower(trim((string)input('email')));
+        if (is_email($email) && throttle_ok_pub('mes-billets-' . $email)) {
+            $orders = all("SELECT o.*, e.name AS ev_name, e.starts_at FROM orders o JOIN events e ON e.id = o.event_id WHERE LOWER(o.email) = ? AND o.status = 'paid' ORDER BY o.created_at DESC LIMIT 20", [$email]);
+            $held = (int)val('SELECT COUNT(*) FROM tickets WHERE holder_email = ?', [$email]);
+            if ($orders || $held) {
+                $exp = time() + 1800;
+                require_once APP . '/controllers/drawer.php';
+                $tok = rtrim(strtr(base64_encode($email . '|' . $exp . '|' . buyer_sig($email, $exp)), '+/', '-_'), '=');
                 $list = '';
                 foreach ($orders as $o) $list .= '<li style="margin-bottom:8px"><a href="' . e(abs_url('/commande/' . $o['ref'], ['t' => $o['token']])) . '">' . e($o['ev_name']) . '</a> — ' . e(fr_date($o['starts_at'], false)) . ' (commande ' . e($o['ref']) . ')</li>';
-                try { Mailer::send($email, '🎟️ Tes billets ' . setting('platform_name'), '<p>Salut 👋</p><p>Tu les cherchais ? Les voilà :</p><ul>' . $list . '</ul><p>Bonne soirée (ou bon match, ou bon concert…) !</p>'); }
+                try { Mailer::send($email, '🎟️ Ton espace billets ' . setting('platform_name'), '<p>Salut 👋</p><p>Voici ton accès à <b>tous tes billets</b> au même endroit (lien valable 30 minutes) :</p>'
+                    . '<p><a href="' . e(abs_url('/acheteur/' . $tok, ['r' => '/mes-billets'])) . '" style="display:inline-block;background:' . e(setting('primary_color', '#0032fa')) . ';color:#fff;padding:12px 18px;border-radius:12px;text-decoration:none;font-weight:bold">Ouvrir mon espace</a></p>'
+                    . ($list ? '<p>Ou directement :</p><ul>' . $list . '</ul>' : '') . '<p style="color:#777;font-size:13px">Pas toi ? Ignore cet e-mail.</p>'); }
                 catch (Throwable $e) { log_line('emails', 'Mes billets : ' . $e->getMessage()); }
             }
         }
         $sent = true; // même réponse que l'adresse existe ou non (confidentialité)
     }
-    return pub('find_tickets', ['sent' => $sent], 'Retrouver mes billets');
+    $me = $_SESSION['buyer_email'] ?? null;
+    if ($me) {
+        $orders = all("SELECT o.*, e.name ev_name, e.slug, e.image, e.venue, e.city, COALESCE(s.starts_at, e.starts_at) start_at, COALESCE(s.ends_at, e.ends_at, e.starts_at) end_at,
+                (SELECT COUNT(*) FROM tickets t WHERE t.order_id = o.id AND t.status = 'valid' AND t.holder_email IS NULL) n_tickets,
+                (SELECT id FROM reviews r WHERE r.order_id = o.id) review_id
+            FROM orders o JOIN events e ON e.id = o.event_id LEFT JOIN sessions s ON s.id = o.session_id
+            WHERE LOWER(o.email) = ? AND o.status IN ('paid','refunded') ORDER BY start_at DESC LIMIT 200", [$me]);
+        $held = all("SELECT t.*, e.name ev_name, e.slug, e.image, e.starts_at start_at FROM tickets t JOIN events e ON e.id = t.event_id WHERE t.holder_email = ? AND t.status = 'valid' ORDER BY e.starts_at DESC", [$me]);
+        $upcoming = array_values(array_filter($orders, fn($o) => strtotime((string)$o['end_at']) + 6 * 3600 >= time()));
+        $past = array_values(array_filter($orders, fn($o) => strtotime((string)$o['end_at']) + 6 * 3600 < time()));
+        $stats = ['events' => count(array_unique(array_column($orders, 'event_id'))), 'tickets' => array_sum(array_map('intval', array_column($orders, 'n_tickets')))];
+        return pub('my_tickets', compact('me', 'upcoming', 'past', 'held', 'stats'), 'Mes billets');
+    }
+    return pub('find_tickets', ['sent' => $sent], 'Mes billets');
+}
+
+function throttle_ok_pub(string $k): bool
+{
+    $key = 'thr_' . md5($k);
+    $n = $_SESSION[$key] ?? 0;
+    if ($n >= 3) return false;
+    $_SESSION[$key] = $n + 1;
+    return true;
 }
 
 function cgv(): string { return pub('text', ['title' => 'Conditions générales de vente', 'text' => (string)setting('cgv')], 'CGV'); }
@@ -556,7 +586,7 @@ function waitlist_join(string $slug): never
         'qty' => $qty, 'token' => token(20), 'created_at' => now()]);
     $pos = (int)val("SELECT COUNT(*) FROM waitlist WHERE event_id = ? AND COALESCE(session_id,0) = ? AND status = 'waiting' AND id <= (SELECT MAX(id) FROM waitlist WHERE event_id = ? AND email = ?)",
         [$ev['id'], (int)$cart['session'], $ev['id'], $email]);
-    redirect($back, ['success' => '⏳ C\'est noté ! Tu es n°' . max(1, $pos) . ' sur la liste d\'attente. Si une place se libère, on te l\'envoie par e-mail et on te la garde 24 h.']);
+    redirect($back, ['success' => '⏳ C\'est noté ! Tu es n°' . max(1, $pos) . ' sur la liste d\'attente. Si une place se libère, on te l\'envoie par e-mail et on te la garde ' . Waitlist::hours($ev) . ' h.']);
 }
 
 function waitlist_claim(string $token): never

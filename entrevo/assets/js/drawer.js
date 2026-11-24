@@ -20,7 +20,7 @@
   var don = buy.querySelector('#donation'); if (don) optionRows.push(don.closest('.rate'));
   if (optionRows.length) {
     var h = document.createElement('h3'); h.className = 'dw-h'; h.textContent = '✨ Envie d’un petit plus ?'; opts.appendChild(h);
-    optionRows.forEach(function (r) { if (!r) return; r.querySelectorAll('input').forEach(function (i) { i.setAttribute('form', 'buy'); }); if (r.classList.contains('extras-head')) r.remove(); else opts.appendChild(r); });
+    optionRows.forEach(function (r) { if (!r) return; r.querySelectorAll('input, select').forEach(function (i) { i.setAttribute('form', 'buy'); }); if (r.classList.contains('extras-head')) r.remove(); else opts.appendChild(r); });
   }
   // prérenseignement : lien de connexion, sinon cet appareil
   var pre = null; try { pre = JSON.parse(dw.dataset.buyer || 'null'); } catch (e) { pre = null; }
@@ -100,6 +100,7 @@
     if (summary.discount) add('good', 'Réduction' + (summary.promo ? ' (' + summary.promo + ')' : ''), '−' + summary.discount);
     if (summary.fees) add('muted', 'Frais de service', summary.fees);
     if (summary.donation) add('', '💛 Don', summary.donation);
+    if (summary.promo_note) add('muted', 'ℹ️ ' + summary.promo_note, '');
     add('total', 'Total', summary.total);
     box.appendChild(t);
   }

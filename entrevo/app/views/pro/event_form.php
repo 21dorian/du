@@ -69,6 +69,7 @@
         <h2>🛒 Options de vente</h2>
         <label class="check mb"><input type="checkbox" name="waitlist_enabled" value="1" <?= ($ev['waitlist_enabled'] ?? 1) ? 'checked' : '' ?>> ⏳ Liste d'attente quand c'est complet</label>
         <label class="check mb"><input type="checkbox" name="transfer_enabled" value="1" <?= ($ev['transfer_enabled'] ?? 1) ? 'checked' : '' ?>> 🎁 Les acheteurs peuvent donner leur billet à un ami</label>
+        <div class="field" data-show-if="transfer_enabled=1"><label>Transferts possibles jusqu'à</label><div class="input-suffix"><input type="number" name="transfer_hours" min="0" max="720" value="<?= (int)($ev['transfer_hours'] ?? 0) ?>"><span>h avant</span></div><small>0 = jusqu'au début de l'événement.</small></div>
         <label class="check mb"><input type="checkbox" name="exchange_enabled" value="1" <?= !empty($ev['exchange_enabled']) ? 'checked' : '' ?>> 📅 Les acheteurs peuvent changer de date eux-mêmes (événement à plusieurs dates)</label>
         <div class="field" data-show-if="exchange_enabled=1"><label>Jusqu'à combien d'heures avant la date d'origine ?</label><div class="input-suffix"><input type="number" name="exchange_hours" min="0" max="720" value="<?= (int)($ev['exchange_hours'] ?? 24) ?>"><span>h</span></div></div>
         <label class="check mb"><input type="checkbox" name="resale_enabled" value="1" <?= !empty($ev['resale_enabled']) ? 'checked' : '' ?>> 🔁 Bourse aux billets officielle</label>
@@ -93,6 +94,7 @@
           <div class="field"><label>Logo sur le billet</label><?php if (!empty($ev['ticket_logo'])): ?><img src="<?= url($ev['ticket_logo']) ?>" alt="" style="max-height:40px;margin-bottom:6px"><?php endif; ?><input type="file" name="ticket_logo" accept="image/png,image/jpeg"></div>
         </div>
         <div class="field mb0"><label>Message dans l'e-mail de confirmation</label><textarea name="email_message" rows="3" placeholder="Infos pratiques, accès, parking…"><?= e($ev['email_message'] ?? '') ?></textarea></div>
+        <div class="field mb0 mt"><label>⏰ Message du rappel avant l'événement</label><textarea name="reminder_message" rows="3" placeholder="Ex. : Ouverture des portes 19 h, pensez à la pièce d'identité, navette depuis la gare toutes les 15 min…"><?= e($ev['reminder_message'] ?? '') ?></textarea><small>Vide = on reprend le message de confirmation. Le délai d'envoi se règle dans Campagnes › Envois automatiques.</small></div>
       </div>
       <div class="card">
         <h2>📝 Texte sur le billet</h2>

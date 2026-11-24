@@ -35,6 +35,7 @@ final class Jobs
             'staff' => fn() => class_exists('Staff') ? Staff::reminders() : 0,
             'rappels' => fn() => class_exists('Buyers') ? Buyers::reminders() : 0,
             'paniers' => fn() => class_exists('Buyers') ? Buyers::recovery() : 0,
+            'paniers2' => fn() => class_exists('Buyers') ? Buyers::recoverySecond() : 0,
             'avis' => fn() => class_exists('Buyers') ? Buyers::reviewRequests() : 0,
             'queue' => fn() => q('DELETE FROM queue_entries WHERE last_seen < NOW() - INTERVAL 2 HOUR')->rowCount(),
         ];

@@ -103,6 +103,8 @@ function recover_cart(string $ref): never
     if (val("SELECT id FROM orders WHERE LOWER(email) = ? AND event_id = ? AND status = 'paid' AND id > ? LIMIT 1", [strtolower((string)$o['email']), $o['event_id'], $o['id']]))
         redirect('/e/' . $ev['slug'], ['info' => '🎟️ Tu as déjà pris tes billets pour cet événement depuis. Bonne fête !']);
     [$ev, $cart] = Buyers::restoreCart($o);
+    $code = strtoupper(preg_replace('~[^A-Za-z0-9-]~', '', (string)input('code')));
+    if ($code !== '' && empty(Tickets::findPromo((int)$ev['id'], $code)['error'])) $cart['promo'] = $code;
     cart_set((int)$ev['id'], $cart);
     $_SESSION['recover'][$ev['id']] = (int)$o['id'];
     $_SESSION['buyer'] = ['first_name' => $o['first_name'], 'last_name' => $o['last_name'], 'email' => $o['email'], 'phone' => $o['phone']];

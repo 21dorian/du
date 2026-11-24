@@ -82,7 +82,7 @@ function api_data(string $id): never
     $pops = [];
     foreach (all('SELECT * FROM populations WHERE event_id = ?', [$ev['id']]) as $p) $pops[(int)$p['id']] = ['name' => $p['name'], 'zones' => array_values(array_filter(array_map('intval', explode(',', (string)$p['access_point_ids']))))];
     $sessions = array_map(fn($x) => ['id' => (int)$x['id'], 'label' => fr_date($x['starts_at']) . ($x['label'] ? ' · ' . $x['label'] : ''), 'start' => $x['starts_at']], Tickets::sessions((int)$ev['id']));
-    $aps = array_map(fn($a) => ['id' => (int)$a['id'], 'name' => $a['name'], 'active' => (int)$a['active'],
+    $aps = array_map(fn($a) => ['id' => (int)$a['id'], 'name' => $a['name'], 'active' => (int)$a['active'], 'opens' => $a['opens_at'] ?? null, 'closes' => $a['closes_at'] ?? null,
         'rates' => array_values(array_filter(array_map('intval', explode(',', (string)$a['rate_ids']))))],
         all('SELECT * FROM access_points WHERE event_id = ? ORDER BY id', [$ev['id']]));
     $rates = []; $rules = [];

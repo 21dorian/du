@@ -51,6 +51,16 @@
       <span class="auto-body"><b>⭐ Demande d'avis</b><small>Le lendemain, aux participants venus (note en un clic + commentaire).</small>
       <span class="auto-stats"><span><b><?= (int)$auto['reviews_sent'] ?></b> demande<?= (int)$auto['reviews_sent'] === 1 ? '' : 's' ?></span><span><b><?= (int)$auto['reviews'] ?></b> avis reçu<?= (int)$auto['reviews'] === 1 ? '' : 's' ?></span><a href="<?= url('/pro/avis') ?>">Voir les avis →</a></span></span></label>
     <noscript><button class="btn btn-sm">Enregistrer</button></noscript>
+    <details class="auto-more">
+      <summary>⚙️ Réglages fins</summary>
+      <input type="hidden" name="details" value="1">
+      <div class="auto-more-grid">
+        <label class="check"><input type="checkbox" name="recovery_second" value="1" <?= $ao['recovery_second'] ? 'checked' : '' ?>> <span>🛒 2<sup>e</sup> relance 24 h après la première (dernier rappel)</span></label>
+        <label class="inline-field">🎁 Code promo offert dans la 2<sup>e</sup> relance <span class="input-suffix" style="width:110px"><input type="number" name="recovery_pct" min="0" max="50" value="<?= (int)$ao['recovery_pct'] ?>"><span>%</span></span> <small class="muted">0 = pas de code. Code unique, 1 utilisation, 72 h.</small></label>
+        <label class="inline-field">⏰ Envoyer le rappel <select name="reminder_hours"><?php foreach ([24 => 'la veille (24 h avant)', 48 => '2 jours avant', 72 => '3 jours avant', 168 => 'une semaine avant'] as $h => $l): ?><option value="<?= $h ?>" <?= (int)$ao['reminder_hours'] === $h ? 'selected' : '' ?>><?= $l ?></option><?php endforeach; ?></select></label>
+      </div>
+      <button class="btn btn-sm">Enregistrer les réglages</button>
+    </details>
   </form>
 </div>
 <?php $rf = $auto['referral']; ?>

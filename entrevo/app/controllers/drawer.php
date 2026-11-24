@@ -12,7 +12,8 @@ function drawer_fmt(array $sum): array
         'group' => !empty($sum['group']['amount']) ? ['pct' => $sum['group']['pct'], 'amount' => money($sum['group']['amount'])] : null,
         'group_next' => !empty($sum['group']['next']) ? ['missing' => $sum['group']['next']['min'] - $sum['group']['count'], 'pct' => $sum['group']['next']['pct']] : null, 'fees' => $sum['fees'] ? money($sum['fees']) : null,
         'donation' => $sum['donation'] ? money($sum['donation']) : null, 'total' => money($sum['total']), 'total_cents' => $sum['total'], 'places' => $sum['places'],
-        'promo' => $sum['promo']['code'] ?? null];
+        'promo' => $sum['promo']['code'] ?? null,
+        'promo_note' => !empty($sum['promo']['min_qty']) && $sum['places'] < (int)$sum['promo']['min_qty'] ? 'Le code ' . $sum['promo']['code'] . ' s\'applique dès ' . (int)$sum['promo']['min_qty'] . ' billets.' : null];
 }
 
 /** Champs de l'étape « Toi » qui dépendent des billets choisis (questions de l'organisateur, noms facultatifs). */
@@ -105,7 +106,7 @@ function buyer_link_request(): never
     $email = strtolower(trim((string)input('email')));
     $back = (string)input('back');
     if (!preg_match('~^/[^/]~', $back)) $back = '/';
-    if (is_email($email) && val("SELECT id FROM orders WHERE LOWER(email) = ? AND status IN ('paid','refunded') LIMIT 1", [$email]) && throttle_ok('lien-' . $email)) {
+    if (is_email($email) && (val("SELECT id FROM orders WHERE LOWER(email) = ? AND status IN ('paid','refunded') LIMIT 1", [$email]) || val('SELECT id FROM tickets WHERE holder_email = ? LIMIT 1', [$email])) && throttle_ok('lien-' . $email)) {
         $exp = time() + 1800;
         $tok = rtrim(strtr(base64_encode($email . '|' . $exp . '|' . buyer_sig($email, $exp)), '+/', '-_'), '=');
         try { Mailer::send($email, '🔑 Ton lien de connexion ' . setting('platform_name'), '<p>Clique ici pour retrouver tes infos préremplies (valable 30 minutes) :</p><p><a href="' . e(abs_url('/acheteur/' . $tok, ['r' => $back])) . '" style="display:inline-block;background:#0032fa;color:#fff;padding:12px 18px;border-radius:12px;text-decoration:none;font-weight:bold">Me connecter</a></p><p style="color:#777;font-size:13px">Pas toi ? Ignore cet e-mail.</p>'); }
@@ -132,6 +133,8 @@ function buyer_link(string $token): never
     if (!is_email($email) || (int)$exp < time() || !hash_equals(buyer_sig($email, (int)$exp), $sig)) redirect($back, ['error' => 'Ce lien a expiré. Redemande-en un, ça prend 10 secondes.']);
     $o = one("SELECT first_name, last_name, email, phone FROM orders WHERE LOWER(email) = ? AND status IN ('paid','refunded') ORDER BY id DESC LIMIT 1", [$email]);
     $_SESSION['buyer'] = $o ?: ['email' => $email];
+    $_SESSION['buyer_email'] = strtolower($email); // espace « Mes billets » ouvert
+    if (str_starts_with($back, '/mes-billets')) redirect('/mes-billets', ['success' => '👋 Bienvenue dans ton espace' . (!empty($o['first_name']) ? ', ' . $o['first_name'] : '') . ' !']);
     redirect($back . (str_contains($back, '#') ? '' : '#acheter'), ['success' => '👋 Re-bonjour ' . ($o['first_name'] ?? '') . ' ! Tes infos sont préremplies.']);
 }
 

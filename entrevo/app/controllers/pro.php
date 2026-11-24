@@ -117,6 +117,8 @@ function event_form(?string $id = null): string
             'ticket_color' => preg_match('~^#[0-9a-fA-F]{6}$~', (string)input('ticket_color')) ? (string)input('ticket_color') : null,
             'email_message' => trim((string)input('email_message')) ?: null,
             'exchange_enabled' => checked('exchange_enabled'),
+            'reminder_message' => trim((string)input('reminder_message')) ?: null,
+            'transfer_hours' => max(0, min(720, (int)input('transfer_hours'))),
             'exchange_hours' => max(0, min(720, (int)input('exchange_hours', 24))),
             'min_age' => in_array((int)input('min_age'), [12, 16, 18, 21], true) ? (int)input('min_age') : null,
             'presale_until' => dt_from_input(input('presale_until')),
@@ -304,26 +306,58 @@ function promos(string $id): string
     require_org();
     $ev = org_event((int)$id);
     $rates = all('SELECT id, name, hidden FROM rates WHERE event_id = ? ORDER BY sort, id', [$ev['id']]);
+    if (input('csv')) {
+        $batch = (string)input('batch');
+        $rows = [['Code', 'Lot', 'Libellé', 'Effet', 'Utilisations', 'Max', 'Début', 'Fin', 'Actif']];
+        foreach (all('SELECT * FROM promos WHERE event_id = ?' . ($batch !== '' ? ' AND batch = ?' : '') . ' ORDER BY id', $batch !== '' ? [$ev['id'], $batch] : [$ev['id']]) as $p)
+            $rows[] = [$p['code'], $p['batch'], $p['label'], $p['kind'] === 'percent' ? $p['value'] . ' %' : ($p['kind'] === 'amount' ? money_input((int)$p['value']) . ' €' : 'accès'), $p['used'], $p['max_uses'] ?: '', $p['valid_from'], $p['valid_until'], $p['active'] ? 'oui' : 'non'];
+        csv_download('codes-' . $ev['slug'] . ($batch !== '' ? '-' . $batch : '') . '.csv', $rows);
+    }
     if (is_post()) {
         $pid = (int)input('promo_id');
-        if (input('action') === 'delete') { q('DELETE FROM promos WHERE id = ? AND event_id = ?', [$pid, $ev['id']]); back(['success' => '🗑️ Code supprimé.']); }
-        if (input('action') === 'toggle') { q('UPDATE promos SET active = 1 - active WHERE id = ? AND event_id = ?', [$pid, $ev['id']]); back(); }
+        $a = (string)input('action');
+        if ($a === 'delete') { q('DELETE FROM promos WHERE id = ? AND event_id = ? AND used = 0', [$pid, $ev['id']]) ; back(['success' => '🗑️ Code supprimé (un code déjà utilisé ne peut qu\'être désactivé).']); }
+        if ($a === 'toggle') { q('UPDATE promos SET active = 1 - active WHERE id = ? AND event_id = ?', [$pid, $ev['id']]); back(); }
+        if ($a === 'batch_off') { q('UPDATE promos SET active = 0 WHERE batch = ? AND event_id = ?', [(string)input('batch'), $ev['id']]); back(['success' => 'Lot désactivé.']); }
         $kind = (string)input('kind');
-        $code = strtoupper(preg_replace('~[^A-Za-z0-9_-]~', '', (string)input('code')));
-        if (input('generate') || $code === '') $code = random_code(8);
-        $rateIds = array_map('intval', (array)($_POST['rate_ids'] ?? []));
-        $valid = array_column($rates, 'id');
-        $rateIds = array_values(array_filter($rateIds, fn($r) => in_array($r, array_map('intval', $valid), true)));
         if (!in_array($kind, ['percent', 'amount', 'unlock'], true)) $kind = 'percent';
+        $rateIds = array_map('intval', (array)($_POST['rate_ids'] ?? []));
+        $valid = array_map('intval', array_column($rates, 'id'));
+        $rateIds = array_values(array_filter($rateIds, fn($r) => in_array($r, $valid, true)));
         $value = $kind === 'percent' ? max(1, min(100, (int)input('value'))) : ($kind === 'amount' ? parse_money(input('value')) : 0);
         if ($kind === 'unlock' && !$rateIds) back(['error' => 'Choisis le ou les tarifs secrets que ce code débloque.']);
+        $base = ['event_id' => $ev['id'], 'kind' => $kind, 'value' => $value, 'rate_ids' => $rateIds ? implode(',', $rateIds) : null,
+            'max_uses' => max(0, (int)input('max_uses')), 'valid_from' => dt_from_input(input('valid_from')), 'valid_until' => dt_from_input(input('valid_until')),
+            'min_qty' => max(0, min(100, (int)input('min_qty'))), 'once_per_email' => checked('once_per_email'), 'label' => mb_substr(trim((string)input('label')), 0, 190) ?: null, 'active' => 1];
+        if ($base['valid_from'] && $base['valid_until'] && $base['valid_until'] <= $base['valid_from']) back(['error' => 'La fin de validité doit être après le début.']);
+        $count = max(1, min(1000, (int)input('count', 1)));
+        if ($count > 1) {
+            // lot de codes uniques (un par influenceur, partenaire, abonné…)
+            $prefix = strtoupper(preg_replace('~[^A-Za-z0-9]~', '', (string)input('prefix'))) ?: 'ENT';
+            $batch = substr($prefix, 0, 12) . '-' . date('ymdHi');
+            for ($k = 0; $k < $count; $k++) {
+                do { $code = substr($prefix, 0, 8) . '-' . random_code(6); } while (val('SELECT id FROM promos WHERE event_id = ? AND code = ?', [$ev['id'], $code]));
+                insert('promos', $base + ['code' => $code, 'batch' => $batch, 'max_uses' => $base['max_uses'] ?: 1]);
+            }
+            Audit::log('promo.batch', $count . ' codes ' . $batch, (int)$ev['id']);
+            back(['success' => '🏷️ ' . $count . ' codes uniques créés (lot ' . $batch . '). Exporte-les en CSV pour les distribuer.']);
+        }
+        $code = strtoupper(preg_replace('~[^A-Za-z0-9_-]~', '', (string)input('code')));
+        if (input('generate') || $code === '') $code = random_code(8);
         if (val('SELECT id FROM promos WHERE event_id = ? AND code = ?', [$ev['id'], $code])) back(['error' => 'Ce code existe déjà pour cet événement.']);
-        insert('promos', ['event_id' => $ev['id'], 'code' => $code, 'kind' => $kind, 'value' => $value, 'rate_ids' => $rateIds ? implode(',', $rateIds) : null,
-            'max_uses' => max(0, (int)input('max_uses')), 'valid_until' => dt_from_input(input('valid_until')), 'active' => 1]);
+        insert('promos', $base + ['code' => $code]);
         back(['success' => '🏷️ Code « ' . $code . ' » créé. Fais-le tourner !']);
     }
-    $promos = all('SELECT * FROM promos WHERE event_id = ? ORDER BY id DESC', [$ev['id']]);
-    return ev_page($ev, 'promos', 'Codes promo & accès', 'promos', ['promos' => $promos, 'rates' => $rates]);
+    $stats = [];
+    foreach (all("SELECT promo_code, COUNT(*) n, SUM(total) revenue, SUM(discount - group_discount) disc FROM orders WHERE event_id = ? AND status = 'paid' AND promo_code IS NOT NULL GROUP BY promo_code", [$ev['id']]) as $r) $stats[$r['promo_code']] = $r;
+    $promos = all('SELECT * FROM promos WHERE event_id = ? AND batch IS NULL ORDER BY id DESC', [$ev['id']]);
+    $batches = all('SELECT batch, MIN(label) label, MIN(kind) kind, MIN(value) value, COUNT(*) n, SUM(used > 0) used, SUM(active) active, MIN(created) created FROM (SELECT p.*, p.id created FROM promos p WHERE event_id = ? AND batch IS NOT NULL) x GROUP BY batch ORDER BY created DESC', [$ev['id']]);
+    foreach ($batches as &$b) {
+        $codes = array_column(all('SELECT code FROM promos WHERE event_id = ? AND batch = ?', [$ev['id'], $b['batch']]), 'code');
+        $b['revenue'] = array_sum(array_map(fn($c) => (int)($stats[$c]['revenue'] ?? 0), $codes));
+    }
+    unset($b);
+    return ev_page($ev, 'promos', 'Codes promo & accès', 'promos', ['promos' => $promos, 'rates' => $rates, 'stats' => $stats, 'batches' => $batches]);
 }
 
 // ---------- Points d'accès ----------
@@ -338,7 +372,9 @@ function access_points(string $id): string
         if (input('action') === 'reentry') { update('events', ['allow_reentry' => checked('allow_reentry')], 'id = ?', [$ev['id']]); back(['success' => '✅ C\'est noté.']); }
         $valid = array_map('intval', array_column($rates, 'id'));
         $rateIds = array_values(array_filter(array_map('intval', (array)($_POST['rate_ids'] ?? [])), fn($r) => in_array($r, $valid, true)));
-        $data = ['name' => trim((string)input('name')) ?: 'Entrée', 'rate_ids' => $rateIds ? implode(',', $rateIds) : null, 'active' => checked('active'), 'capacity' => (int)input('capacity') > 0 ? (int)input('capacity') : null];
+        $data = ['name' => trim((string)input('name')) ?: 'Entrée', 'rate_ids' => $rateIds ? implode(',', $rateIds) : null, 'active' => checked('active'), 'capacity' => (int)input('capacity') > 0 ? (int)input('capacity') : null,
+            'opens_at' => dt_from_input(input('opens_at')), 'closes_at' => dt_from_input(input('closes_at'))];
+        if ($data['opens_at'] && $data['closes_at'] && $data['closes_at'] <= $data['opens_at']) back(['error' => 'La fermeture doit être après l\'ouverture.']);
         if ($aid) update('access_points', $data, 'id = ? AND event_id = ?', [$aid, $ev['id']]);
         else insert('access_points', $data + ['event_id' => $ev['id']]);
         back(['success' => '✅ Point d\'accès enregistré.']);
