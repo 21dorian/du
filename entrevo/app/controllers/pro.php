@@ -322,7 +322,7 @@ function access_points(string $id): string
         if (input('action') === 'reentry') { update('events', ['allow_reentry' => checked('allow_reentry')], 'id = ?', [$ev['id']]); back(['success' => '✅ C\'est noté.']); }
         $valid = array_map('intval', array_column($rates, 'id'));
         $rateIds = array_values(array_filter(array_map('intval', (array)($_POST['rate_ids'] ?? [])), fn($r) => in_array($r, $valid, true)));
-        $data = ['name' => trim((string)input('name')) ?: 'Entrée', 'rate_ids' => $rateIds ? implode(',', $rateIds) : null, 'active' => checked('active')];
+        $data = ['name' => trim((string)input('name')) ?: 'Entrée', 'rate_ids' => $rateIds ? implode(',', $rateIds) : null, 'active' => checked('active'), 'capacity' => (int)input('capacity') > 0 ? (int)input('capacity') : null];
         if ($aid) update('access_points', $data, 'id = ? AND event_id = ?', [$aid, $ev['id']]);
         else insert('access_points', $data + ['event_id' => $ev['id']]);
         back(['success' => '✅ Point d\'accès enregistré.']);

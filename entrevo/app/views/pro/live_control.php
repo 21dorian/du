@@ -1,4 +1,5 @@
 <div data-autorefresh="20"></div>
+<a class="pc-cta" href="<?= url('/pro/evenements/' . $ev['id'] . '/pc') ?>" target="_blank"><span>🛰️</span><span><b>Ouvrir le PC sécurité</b><small>Écran plein écran : jauges par zone, flux, refus, téléphones, alertes automatiques</small></span><i>↗</i></a>
 <?php $rate = $stats['sold'] ? round($stats['checked'] / $stats['sold'] * 100) : 0; ?>
 <div class="kpis">
   <div class="kpi"><small class="muted">✅ Entrés</small><b><?= $stats['checked'] ?> <small style="font-size:18px;color:var(--muted)">/ <?= $stats['sold'] ?></small></b><div class="bar green"><i style="width:<?= $rate ?>%"></i></div><div class="sub"><?= $rate ?> % du public est là</div></div>
@@ -44,8 +45,6 @@
       <?php if (!$devices): ?><p class="muted">Aucun téléphone connecté. Les contrôleurs ouvrent <b><?= e(abs_url('/scan')) ?></b>.</p><?php endif; ?>
     </div>
     <?= soon_card('🛰️ Bientôt au PC', [
-      'jauge-zone' => ['Jauge par zone en temps réel', 'Fosse, balcon, VIP, avec alerte de saturation'],
-      'controle-pro' => ['Écran PC sécurité', 'Flux par porte, prévision d\'attente, plein écran'],
       'badges-live' => ['Badges imprimés à l\'arrivée', 'Pour les salons et congrès'],
       'vestiaire' => ['Vestiaire', 'Tickets numérotés liés au billet'],
       'kiosque' => ['Borne libre-service', 'Achat et retrait sans faire la queue'],

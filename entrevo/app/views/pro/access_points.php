@@ -1,7 +1,7 @@
 <?php
 $rateName = array_column($rates, 'name', 'id');
 $form = function (?array $a) use ($rates) {
-    $p = $a ?? ['id' => 0, 'name' => '', 'rate_ids' => '', 'active' => 1];
+    $p = $a ?? ['id' => 0, 'name' => '', 'rate_ids' => '', 'active' => 1, 'capacity' => null];
     $sel = array_map('intval', array_filter(explode(',', (string)$p['rate_ids'])));
     ob_start(); ?>
     <form method="post"><?= csrf_field() ?><input type="hidden" name="ap_id" value="<?= (int)$p['id'] ?>">
@@ -9,6 +9,7 @@ $form = function (?array $a) use ($rates) {
       <div class="field"><label>Tarifs autorisés à ce point</label>
         <?php foreach ($rates as $r): ?><label class="check" style="margin-bottom:6px"><input type="checkbox" name="rate_ids[]" value="<?= (int)$r['id'] ?>" <?= in_array((int)$r['id'], $sel, true) ? 'checked' : '' ?>> <?= e($r['name']) ?></label><?php endforeach; ?>
         <small>Aucun coché = tous les tarifs. Exemple : ne coche que « Pass VIP » pour l'espace VIP. Les autres resteront dehors 😎</small></div>
+      <div class="field"><label>🧮 Jauge de la zone <small class="muted">(facultatif)</small></label><input type="number" name="capacity" min="0" value="<?= $p['capacity'] !== null ? (int)$p['capacity'] : '' ?>" placeholder="Ex. : 400"><small>Nombre maximum de personnes en même temps derrière cette porte. Le PC sécurité alerte à 90 % et préviens les contrôleurs.</small></div>
       <label class="check" style="margin-bottom:14px"><input type="checkbox" name="active" value="1" <?= $p['active'] ? 'checked' : '' ?>> Ouvert</label>
       <div class="form-actions"><button class="btn"><?= $p['id'] ? 'Enregistrer' : 'Ajouter' ?></button>
       <?php if ($p['id']): ?><button class="btn btn-ghost" style="color:var(--red)" name="action" value="delete" formnovalidate data-confirm="Supprimer ce point d'accès ?">Supprimer</button><?php endif; ?></div>

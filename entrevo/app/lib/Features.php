@@ -21,7 +21,10 @@ final class Features
     /** @return array<string, array{cat:string, emoji:string, name:string, status:string, url?:string, pitch:string, points?:array, eta?:string}> */
     public static function all(): array
     {
-        return self::base() + self::extras();
+        $a = self::base() + self::extras();
+        // modules sortis du développement (1.5) : on garde leur fiche, avec un lien direct
+        foreach (['jauge-zone' => '/pro/pc', 'tva' => '/pro/finances', 'export-compta' => '/pro/finances'] as $k => $url) if (isset($a[$k])) $a[$k] = ['status' => 'beta', 'url' => $url] + $a[$k];
+        return $a;
     }
 
     private static function base(): array
@@ -73,7 +76,7 @@ final class Features
                 'points' => ['Visuels carré, story et bannière en un clic', 'Compte à rebours « J-7 », « Dernières places » automatiques', 'Publication programmée', 'Lien suivi pour mesurer les ventes']],
             'controle' => ['cat' => 'onsite', 'emoji' => '📷', 'name' => 'Contrôle d\'accès', 'status' => 'on', 'url' => '/scan', 'pitch' => 'Appli de scan hors ligne, douchette, portes, zones, entrées/sorties.'],
             'accreditations' => ['cat' => 'onsite', 'emoji' => '🪪', 'name' => 'Accréditations & badges', 'status' => 'on', 'url' => '/pro/evenements', 'pitch' => 'Presse, artistes, prestataires : badges imprimables par zone.'],
-            'controle-pro' => ['cat' => 'onsite', 'emoji' => '🛰️', 'name' => 'PC sécurité temps réel', 'status' => 'soon', 'eta' => 'Printemps 2027',
+            'controle-pro' => ['cat' => 'onsite', 'emoji' => '🛰️', 'name' => 'PC sécurité temps réel', 'status' => 'beta', 'url' => '/pro/pc', 'eta' => 'Printemps 2027',
                 'pitch' => 'Un écran de supervision : jauge par zone, flux par porte, alertes de saturation et appareils connectés.',
                 'points' => ['Jauge en direct par zone', 'Débit par porte et prévision d\'attente', 'Alertes de saturation', 'Liste des appareils de scan et leur batterie']],
             'bracelets' => ['cat' => 'onsite', 'emoji' => '🎗️', 'name' => 'Bracelets RFID / NFC', 'status' => 'soon', 'eta' => '2027',
@@ -221,7 +224,7 @@ final class Features
         ];
     }
 
-    public static function getAdmin(string $key): ?array { $a = self::admin(); return isset($a[$key]) ? $a[$key] + ['key' => $key, 'status' => 'soon', 'cat' => ''] : null; }
+    public static function getAdmin(string $key): ?array { $a = self::admin(); return isset($a[$key]) ? $a[$key] + ['key' => $key, 'status' => 'soon', 'url' => '/pro/pc', 'cat' => ''] : null; }
 
     public static function get(string $key): ?array { $a = self::all(); return isset($a[$key]) ? $a[$key] + ['key' => $key] : null; }
 
