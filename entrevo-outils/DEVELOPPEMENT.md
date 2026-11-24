@@ -44,6 +44,7 @@ Puis ouvrir http://127.0.0.1:8080/install.php.
 | 1.7.0 | `04feaac` | `livraisons/entrevo-v1.7.0.zip`, `livraisons/maj-1.7.0.zip` |
 | 1.8.0 | `3a24da7` | `livraisons/entrevo-v1.8.0.zip`, `livraisons/maj-1.8.0.zip` |
 | 1.9.0 | `dd5699d` | `livraisons/entrevo-v1.9.0.zip`, `livraisons/maj-1.9.0.zip` |
+| 2.0.0 | `1a78196` | `livraisons/entrevo-v2.0.0.zip`, `livraisons/maj-2.0.0.zip` |
 
 Pour un paquet de mise à jour, passer ce commit comme référence de départ à `creer-maj.php` (les étiquettes git ne sont pas poussées).
 
