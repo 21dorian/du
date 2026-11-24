@@ -159,4 +159,42 @@ final class Insights
         }
         return $groups;
     }
+
+    /**
+     * 2.2 : prévision de remplissage au jour J.
+     * Méthode 1 (si l'organisateur a des événements passés) : à J-x, quelle part des billets finaux était déjà vendue ?
+     * On prend la médiane de ces parts et on projette : prévision = vendus / part médiane.
+     * Méthode 2 (sinon) : rythme des 14 derniers jours prolongé jusqu'à l'événement, majoré de 30 % pour la dernière ligne droite.
+     * @return array{sold:int, cap:int, days:int, rate14:float, need:?float, forecast:int, method:string, refs:array, low:int, high:int}|null
+     */
+    public static function forecast(array $ev, int $cap): ?array
+    {
+        $start = strtotime($ev['starts_at']);
+        $days = (int)ceil(($start - time()) / 86400);
+        if ($days < 0) return null;
+        $sold = (int)val("SELECT COUNT(*) FROM tickets t JOIN orders o ON o.id = t.order_id WHERE t.event_id = ? AND t.status = 'valid' AND (o.channel IS NULL OR o.channel <> 'systeme')", [$ev['id']]);
+        $sold14 = (int)val("SELECT COUNT(*) FROM tickets t JOIN orders o ON o.id = t.order_id WHERE t.event_id = ? AND t.status = 'valid' AND o.paid_at >= NOW() - INTERVAL 14 DAY", [$ev['id']]);
+        $rate = $sold14 / 14;
+        $refs = []; $shares = [];
+        $past = all("SELECT e.id, e.name, e.starts_at, (SELECT COUNT(*) FROM tickets t WHERE t.event_id = e.id AND t.status = 'valid') final FROM events e
+            WHERE e.organizer_id = ? AND e.id <> ? AND e.starts_at < NOW() ORDER BY e.starts_at DESC LIMIT 8", [$ev['organizer_id'], $ev['id']]);
+        foreach ($past as $p) {
+            if ((int)$p['final'] < 20) continue;
+            $at = (int)val("SELECT COUNT(*) FROM tickets t JOIN orders o ON o.id = t.order_id WHERE t.event_id = ? AND t.status = 'valid' AND o.paid_at <= ? - INTERVAL ? DAY", [$p['id'], $p['starts_at'], $days]);
+            if ($at <= 0) continue;
+            $shares[] = $at / (int)$p['final'];
+            $refs[] = ['name' => $p['name'], 'at' => $at, 'final' => (int)$p['final'], 'share' => $at / (int)$p['final']];
+        }
+        if (count($shares) >= 2 && $sold > 0) {
+            sort($shares); $m = $shares[intdiv(count($shares), 2)];
+            $forecast = (int)round($sold / max(0.05, $m)); $method = 'historique';
+            $lo = (int)round($sold / max(0.05, end($shares))); $hi = (int)round($sold / max(0.05, $shares[0]));
+        } else {
+            $forecast = (int)round($sold + $rate * $days * 1.3); $method = 'rythme';
+            $lo = (int)round($sold + $rate * $days); $hi = (int)round($sold + $rate * $days * 1.7);
+        }
+        if ($cap > 0) { $forecast = min($forecast, $cap); $lo = min($lo, $cap); $hi = min($hi, $cap); }
+        return ['sold' => $sold, 'cap' => $cap, 'days' => $days, 'rate14' => $rate, 'need' => $cap > 0 && $days > 0 ? max(0, $cap - $sold) / $days : null,
+            'forecast' => max($sold, $forecast), 'low' => max($sold, $lo), 'high' => max($sold, $hi), 'method' => $method, 'refs' => array_slice($refs, 0, 3)];
+    }
 }

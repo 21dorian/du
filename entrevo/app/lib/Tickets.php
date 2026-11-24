@@ -198,17 +198,18 @@ final class Tickets
     // ---------- Commission de la plateforme ----------
     public static function feeRates(array $org): array
     {
-        $pct = $org['fee_percent'] !== null && $org['fee_percent'] !== '' ? (float)$org['fee_percent'] : (float)setting('fee_percent');
-        $fixed = $org['fee_fixed'] !== null && $org['fee_fixed'] !== '' ? (int)$org['fee_fixed'] : (int)setting('fee_fixed');
-        return [$pct, $fixed];
+        $t = Billing::terms($org);
+        return [$t['pct'], $t['fixed']];
     }
 
-    /** Frais de service pour un montant net et un nombre de billets payants. */
+    /** Frais de service pour un montant net et un nombre de billets payants (plafond par billet éventuel). */
     public static function computeFees(array $org, int $net, int $paidTickets): int
     {
         if ($net <= 0 || $paidTickets <= 0) return 0;
-        [$pct, $fixed] = self::feeRates($org);
-        return (int)round($net * $pct / 100) + $fixed * $paidTickets;
+        $t = Billing::terms($org);
+        $fee = (int)round($net * $t['pct'] / 100) + $t['fixed'] * $paidTickets;
+        if ($t['cap'] !== null && $t['cap'] >= 0) $fee = min($fee, $t['cap'] * $paidTickets);
+        return $fee;
     }
 
     /** Frais affichés à l'acheteur pour un billet à ce prix (si frais à sa charge). */
@@ -679,9 +680,10 @@ final class Tickets
         $r = one("SELECT COALESCE(SUM(total),0) collected, COALESCE(SUM(commission),0) commission, COALESCE(SUM(organizer_amount),0) due, COUNT(*) n
                   FROM orders WHERE organizer_id = ? AND status = 'paid' AND method = 'online' AND provider IN ('stripe','paypal','sumup','mollie')", [$orgId]);
         $paid = (int)val('SELECT COALESCE(SUM(amount),0) FROM payouts WHERE organizer_id = ?', [$orgId]);
+        $charges = class_exists('Billing') ? Billing::chargesTotal($orgId) : 0;
         return [
             'collected' => (int)$r['collected'], 'commission' => (int)$r['commission'], 'due' => (int)$r['due'],
-            'paid_out' => $paid, 'balance' => (int)$r['due'] - $paid, 'orders' => (int)$r['n'],
+            'paid_out' => $paid, 'charges' => $charges, 'balance' => (int)$r['due'] - $paid - $charges, 'orders' => (int)$r['n'],
         ];
     }
 }

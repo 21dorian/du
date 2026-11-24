@@ -275,7 +275,8 @@ function upload_image(string $field): ?string
     if (empty($_FILES[$field]) || $_FILES[$field]['error'] === UPLOAD_ERR_NO_FILE) return null;
     $f = $_FILES[$field];
     if ($f['error'] !== UPLOAD_ERR_OK) throw new RuntimeException('Envoi de l\'image impossible (code ' . $f['error'] . ').');
-    if ($f['size'] > 5 * 1024 * 1024) throw new RuntimeException('Image trop lourde (5 Mo maximum).');
+    $maxMb = max(1, (int)(setting('max_upload_mb', '5') ?: 5));
+    if ($f['size'] > $maxMb * 1024 * 1024) throw new RuntimeException('Image trop lourde (' . $maxMb . ' Mo maximum).');
     $info = @getimagesize($f['tmp_name']);
     $ext = ['image/jpeg' => 'jpg', 'image/png' => 'png', 'image/webp' => 'webp', 'image/gif' => 'gif'][$info['mime'] ?? ''] ?? null;
     if (!$ext) throw new RuntimeException('Format d\'image non accepté (JPG, PNG, WebP ou GIF).');
@@ -432,6 +433,8 @@ function ui_icon(string $name, int $size = 20): string
         'lock' => '<rect x="4" y="11" width="16" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/>',
         'star' => '<path d="M12 3.5l2.6 5.3 5.9.9-4.3 4.1 1 5.8L12 16.9l-5.2 2.7 1-5.8L3.5 9.7l5.9-.9z"/>',
         'shield' => '<path d="M12 3l8 3v6c0 4.5-3.4 8.3-8 9-4.6-.7-8-4.5-8-9V6z"/>',
+        'help' => '<circle cx="12" cy="12" r="9"/><path d="M9.5 9a2.5 2.5 0 1 1 3.5 2.3c-.6.3-1 .9-1 1.7M12 17v.5"/>',
+        'doc' => '<path d="M6 3h8l4 4v14H6z"/><path d="M14 3v4h4M9 12h6M9 16h6"/>',
         'sparkles' => '<path d="M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8z"/><path d="M19 15l.8 2.2L22 18l-2.2.8L19 21l-.8-2.2L16 18l2.2-.8z"/>',
         'settings' => '<circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/>',
         'bag' => '<path d="M5 8h14l-1 13H6z"/><path d="M9 8V6a3 3 0 0 1 6 0v2"/>',
@@ -447,4 +450,17 @@ function ui_icon(string $name, int $size = 20): string
 function feature_icon(array $f): string
 {
     return ui_icon(['sell' => 'ticket', 'market' => 'megaphone', 'onsite' => 'scan', 'money' => 'euro', 'team' => 'users', 'connect' => 'link'][$f['cat'] ?? ''] ?? 'sparkles');
+}
+
+/** Durée lisible entre deux dates (« 2 h », « 3 j »). */
+function ago_between(string $a, string $b): string
+{
+    $m = max(0, (int)round((strtotime($b) - strtotime($a)) / 60));
+    return $m < 60 ? $m . ' min' : ($m < 1440 ? round($m / 60, 1) . ' h' : round($m / 1440, 1) . ' j');
+}
+
+function month_fr(string $ym): string
+{
+    $m = ['01' => 'janvier', '02' => 'février', '03' => 'mars', '04' => 'avril', '05' => 'mai', '06' => 'juin', '07' => 'juillet', '08' => 'août', '09' => 'septembre', '10' => 'octobre', '11' => 'novembre', '12' => 'décembre'];
+    return ($m[substr($ym, 5, 2)] ?? '') . ' ' . substr($ym, 0, 4);
 }

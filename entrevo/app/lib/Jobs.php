@@ -28,6 +28,8 @@ final class Jobs
             'waitlist' => fn() => class_exists('Waitlist') ? Waitlist::process() : 0,
             'campaigns' => fn() => class_exists('Campaigns') ? Campaigns::process() : 0,
             'sms' => fn() => class_exists('Sms') ? Sms::process() : 0,
+            'formules' => fn() => class_exists('Billing') ? Billing::monthly() : 0,
+            'rgpd' => fn() => class_exists('Gdpr') ? Gdpr::retention() : 0,
             'invoices' => fn() => (setting('invoice_auto') === '1' && class_exists('Invoices') && setting('invoices_auto_last') !== date('Y-m', strtotime('first day of last month')) && trim((string)setting('invoice_name')) !== '')
                 ? (set_setting('invoices_auto_last', date('Y-m', strtotime('first day of last month'))) ?? count(Invoices::generate(date('Y-m', strtotime('first day of last month')))))
                 : 0,

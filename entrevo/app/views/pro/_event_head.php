@@ -1,11 +1,17 @@
 <?php
-$tabs = [
-    'overview' => ['Vue d\'ensemble', ''], 'edit' => ['Infos & réglages', '/modifier'], 'page' => ['Page', '/page'], 'sessions' => ['Dates', '/dates'], 'rates' => ['Tarifs', '/tarifs'],
-    'products' => ['Options', '/options'], 'form' => ['Formulaire', '/formulaire'], 'promos' => ['Codes promo', '/promos'], 'links' => ['Liens & ambassadeurs', '/liens'], 'seating' => ['Plan de salle', '/plan'],
-    'attendees' => ['Participants', '/participants'], 'invites' => ['Invitations & partenaires', '/invitations'], 'accred' => ['Accréditations', '/accreditations'],
-    'box' => ['Guichet', '/guichet'], 'budget' => ['Budget', '/budget'], 'tasks' => ['Tâches', '/taches'], 'staff' => ['Bénévoles', '/benevoles'], 'docs' => ['Documents', '/documents'], 'waitlist' => ['Attente & revente', '/attente'], 'messages' => ['Messages', '/messages'],
-    'access' => ['Contrôle d\'accès', '/acces'], 'live' => ['En direct', '/controle'], 'stats' => ['Stats', '/stats'],
+// 2.2 : onglets regroupés par rubrique (ligne 1 = rubriques, ligne 2 = pages de la rubrique)
+$groups = [
+    'apercu' => ['Vue d\'ensemble', ['overview' => ['Vue d\'ensemble', '']]],
+    'vendre' => ['Vendre', ['rates' => ['Tarifs', '/tarifs'], 'sessions' => ['Dates', '/dates'], 'products' => ['Options', '/options'], 'promos' => ['Codes promo', '/promos'],
+        'seating' => ['Plan de salle', '/plan'], 'waitlist' => ['Attente & revente', '/attente'], 'box' => ['Guichet', '/guichet']]],
+    'communiquer' => ['Communiquer', ['page' => ['Page publique', '/page'], 'form' => ['Formulaire', '/formulaire'], 'links' => ['Liens & ambassadeurs', '/liens'], 'messages' => ['Messages', '/messages']]],
+    'public' => ['Participants', ['attendees' => ['Participants', '/participants'], 'invites' => ['Invitations & partenaires', '/invitations'], 'accred' => ['Accréditations', '/accreditations']]],
+    'organiser' => ['Organiser', ['edit' => ['Infos & réglages', '/modifier'], 'budget' => ['Budget', '/budget'], 'tasks' => ['Tâches', '/taches'], 'staff' => ['Bénévoles', '/benevoles'], 'docs' => ['Documents', '/documents']]],
+    'jourj' => ['Jour J', ['access' => ['Points d\'accès', '/acces'], 'live' => ['En direct', '/controle'], 'pc' => ['PC sécurité', '/pc']]],
+    'stats' => ['Stats', ['stats' => ['Statistiques', '/stats']]],
 ];
+$cur = 'apercu';
+foreach ($groups as $g => [, $items]) if (isset($items[$tab])) $cur = $g;
 $link = abs_url('/e/' . $ev['slug']);
 ?>
 <div class="card" style="padding:16px 20px;margin-bottom:18px">
@@ -30,5 +36,7 @@ $link = abs_url('/e/' . $ev['slug']);
     </div>
   </div>
 </div>
-<nav class="tabs"><?php foreach ($tabs as $k => [$l, $p]): ?><a class="<?= $k === $tab ? 'on' : '' ?>" href="<?= url('/pro/evenements/' . $ev['id'] . $p) ?>"><?= e($l) ?></a><?php endforeach; ?>
-  <?php foreach (['mini-site' => 'Mini-site', 'artistes' => 'Artistes', 'avis' => 'Avis'] as $k => $l): ?><a class="tab-soon" href="<?= url('/pro/bientot/' . $k) ?>"><?= e($l) ?> <span class="soon-pill">En dév.</span></a><?php endforeach; ?></nav>
+<nav class="ev-nav" aria-label="Rubriques de l'événement">
+  <div class="ev-nav-groups"><?php foreach ($groups as $g => [$gl, $items]): $first = reset($items); ?><a class="<?= $g === $cur ? 'on' : '' ?>" href="<?= url('/pro/evenements/' . $ev['id'] . $first[1]) ?>"><?= e($gl) ?></a><?php endforeach; ?></div>
+  <?php if (count($groups[$cur][1]) > 1): ?><div class="ev-nav-sub"><?php foreach ($groups[$cur][1] as $k => [$l, $p]): ?><a class="<?= $k === $tab ? 'on' : '' ?>" href="<?= url('/pro/evenements/' . $ev['id'] . $p) ?>" <?= $k === 'pc' ? 'target="_blank"' : '' ?>><?= e($l) ?></a><?php endforeach; ?></div><?php endif; ?>
+</nav>

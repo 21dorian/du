@@ -16,6 +16,7 @@ function store_orders(int $orgId, string $kind, int $limit = 200): array
 function pro_gift_cards(): string
 {
     $org = require_org();
+    require_module('cartes-cadeaux');
     $oid = (int)$org['id'];
     if (is_post()) {
         $a = (string)input('action');
@@ -54,6 +55,7 @@ function pro_gift_cards(): string
 function pro_passes(): string
 {
     $org = require_org();
+    require_module('abonnements');
     $oid = (int)$org['id'];
     if (is_post()) {
         $a = (string)input('action');
@@ -83,6 +85,7 @@ function pro_passes(): string
 function pro_shop(): string
 {
     $org = require_org();
+    require_module('boutique');
     $oid = (int)$org['id'];
     if (is_post()) {
         $a = (string)input('action');

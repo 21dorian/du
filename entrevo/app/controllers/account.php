@@ -27,22 +27,59 @@ function login(): string
         if (too_many_attempts()) {
             $error = 'Trop d\'essais Pause café de 15 minutes, et on réessaie.';
         } else {
-            $u = one('SELECT * FROM users WHERE email = ?', [strtolower(trim((string)input('email')))]);
+            $email = strtolower(trim((string)input('email')));
+            $u = one('SELECT * FROM users WHERE email = ?', [$email]);
+            if ($u && ($until = Security::lockedUntil($u))) {
+                Security::log($u, $email, 'locked');
+                return pub('login', ['error' => 'Trop d\'essais sur ce compte : il est verrouillé jusqu\'à ' . date('H\hi', strtotime($until)) . '. Tu peux aussi réinitialiser ton mot de passe.'], 'Connexion');
+            }
             if ($u && $u['active'] && password_verify((string)input('password'), $u['password_hash'])) {
                 clear_attempts();
                 if (password_needs_rehash($u['password_hash'], PASSWORD_DEFAULT)) {
                     update('users', ['password_hash' => password_hash((string)input('password'), PASSWORD_DEFAULT)], 'id = ?', [$u['id']]);
                     $u = one('SELECT * FROM users WHERE id = ?', [$u['id']]);
                 }
+                $next = safe_next((string)input('suite'), home_for($u));
+                if ((int)$u['totp_enabled'] && $u['totp_secret']) {
+                    session_regenerate_id(true);
+                    $_SESSION['mfa'] = ['uid' => (int)$u['id'], 'next' => $next, 'at' => time(), 'tries' => 0];
+                    redirect('/connexion/code');
+                }
+                Security::log($u, $email, 'ok');
                 login_user($u);
-                header('Location: ' . url(safe_next((string)input('suite'), home_for($u))), true, 303);
+                header('Location: ' . url($next), true, 303);
                 exit;
             }
             record_failed_attempt();
+            if ($u) { Security::failed($u); Security::log($u, $email, $u['active'] ? 'fail' : 'disabled'); } else Security::log(null, $email, 'unknown');
             $error = $u && !$u['active'] ? 'Ce compte est désactivé' : 'E-mail ou mot de passe incorrect. Respire, et réessaie';
         }
     }
     return pub('login', ['error' => $error], 'Connexion');
+}
+
+/** Second facteur : code à 6 chiffres de l'application d'authentification. */
+function login_code(): string
+{
+    $m = $_SESSION['mfa'] ?? null;
+    if (!$m || time() - (int)$m['at'] > 600) { unset($_SESSION['mfa']); redirect('/connexion', ['info' => 'Reconnecte-toi.']); }
+    $u = one('SELECT * FROM users WHERE id = ? AND active = 1', [$m['uid']]);
+    if (!$u) { unset($_SESSION['mfa']); redirect('/connexion'); }
+    $error = null;
+    if (is_post()) {
+        if (Security::verify((string)$u['totp_secret'], (string)input('code'))) {
+            unset($_SESSION['mfa']);
+            Security::log($u, $u['email'], 'ok');
+            login_user($u);
+            header('Location: ' . url($m['next']), true, 303);
+            exit;
+        }
+        $_SESSION['mfa']['tries'] = (int)$m['tries'] + 1;
+        Security::log($u, $u['email'], 'bad_code');
+        if ($_SESSION['mfa']['tries'] >= 5) { unset($_SESSION['mfa']); Security::failed($u); redirect('/connexion', ['error' => 'Trop de codes faux : reconnecte-toi.']); }
+        $error = 'Code incorrect. Vérifie l\'heure de ton téléphone et réessaie.';
+    }
+    return pub('login_code', ['error' => $error], 'Code de connexion');
 }
 
 function logout(): never
@@ -123,6 +160,28 @@ function reset_password(string $tok): string
 function profile(): string
 {
     $u = require_login();
+    if (is_post() && input('sec')) {
+        $a = (string)input('sec');
+        if ($a === 'totp_start') { $_SESSION['totp_pending'] = Security::newSecret(); redirect('/mon-compte#securite'); }
+        if ($a === 'totp_confirm') {
+            $sec = (string)($_SESSION['totp_pending'] ?? '');
+            if ($sec === '' || !Security::verify($sec, (string)input('code'))) redirect('/mon-compte#securite', ['error' => 'Code incorrect : vérifie qu\'il s\'agit bien du code affiché pour ce compte, et l\'heure du téléphone.']);
+            update('users', ['totp_secret' => $sec, 'totp_enabled' => 1], 'id = ?', [$u['id']]);
+            unset($_SESSION['totp_pending']);
+            Audit::log('user.2fa', 'Double authentification activée');
+            redirect('/mon-compte#securite', ['success' => 'Double authentification activée. Garde ton téléphone à portée de main.']);
+        }
+        if ($a === 'totp_disable') {
+            if (!password_verify((string)input('password'), $u['password_hash'])) redirect('/mon-compte#securite', ['error' => 'Mot de passe incorrect.']);
+            if ($u['role'] === 'superadmin' && setting('admin_2fa') === '1') redirect('/mon-compte#securite', ['error' => 'La double authentification est obligatoire pour les super-admins.']);
+            update('users', ['totp_secret' => null, 'totp_enabled' => 0], 'id = ?', [$u['id']]);
+            Audit::log('user.2fa', 'Double authentification désactivée');
+            redirect('/mon-compte#securite', ['success' => 'Double authentification désactivée.']);
+        }
+        if ($a === 'revoke') { q('UPDATE user_sessions SET revoked = 1 WHERE id = ? AND user_id = ?', [(int)input('sid'), $u['id']]); redirect('/mon-compte#securite', ['success' => 'Appareil déconnecté.']); }
+        if ($a === 'revoke_others') { q('UPDATE user_sessions SET revoked = 1 WHERE user_id = ? AND sid <> ?', [$u['id'], Security::sid()]); redirect('/mon-compte#securite', ['success' => 'Tous les autres appareils sont déconnectés.']); }
+        redirect('/mon-compte');
+    }
     if (is_post()) {
         $name = trim((string)input('name'));
         $email = strtolower(trim((string)input('email')));
@@ -140,6 +199,9 @@ function profile(): string
         redirect('/mon-compte', ['success' => 'C\'est enregistré.']);
     }
     $area = $u['role'] === 'superadmin' ? 'admin' : 'pro';
-    if ($u['role'] === 'scanner') return pub('profile', ['u' => $u], 'Mon compte');
-    return view('layout_back', ['title' => 'Mon compte', 'area' => $area, 'content' => view('public/profile', ['u' => $u])]);
+    $pending = (string)($_SESSION['totp_pending'] ?? '');
+    $sec = ['pending' => $u['totp_enabled'] ? '' : $pending, 'uri' => $pending ? Security::otpauth($u, $pending) : '', 'sessions' => Security::sessions((int)$u['id']),
+        'logins' => all('SELECT * FROM login_log WHERE user_id = ? ORDER BY id DESC LIMIT 8', [$u['id']])];
+    if ($u['role'] === 'scanner') return pub('profile', ['u' => $u, 'sec' => $sec], 'Mon compte');
+    return view('layout_back', ['title' => 'Mon compte', 'area' => $area, 'content' => view('public/profile', ['u' => $u, 'sec' => $sec])]);
 }

@@ -1,3 +1,7 @@
+<?php if (empty($ev) && ($prev = all('SELECT id, name, starts_at FROM events WHERE organizer_id = ? ORDER BY starts_at DESC LIMIT 30', [(int)(current_org()['id'] ?? 0)]))): ?>
+<div class="card reprise"><div><b>Une nouvelle édition ?</b><br><small class="muted">Reprends un événement existant : tarifs, options, formulaire, bénévoles et rétroplanning recopiés, dates décalées automatiquement.</small></div>
+  <form method="get" class="row" onsubmit="this.action=this.action.replace('ID', this.ev.value)" action="<?= url('/pro/evenements/ID/dupliquer') ?>"><select name="ev" style="width:auto"><?php foreach ($prev as $p): ?><option value="<?= (int)$p['id'] ?>"><?= e($p['name']) ?> · <?= e(short_date($p['starts_at'])) ?></option><?php endforeach; ?></select><button class="btn btn-light">Reprendre</button></form></div>
+<?php endif; ?>
 <form method="post" enctype="multipart/form-data"><?= csrf_field() ?>
   <?php if ($errors): ?><div class="flash error"><?= implode('<br>', array_map('e', $errors)) ?></div><?php endif; ?>
   <div class="split-3">
@@ -82,7 +86,7 @@
       <div class="card">
         <h2>Tarif dégressif</h2>
         <p class="muted mt0">Plus on prend de billets dans une même commande, moins c'est cher. La remise s'applique à tous les billets payants de la commande.</p>
-        <?php $tiers = Tickets::tiers($ev); for ($k = 0; $k < 3; $k++): $t = $tiers[$k] ?? ['min' => '', 'pct' => '']; ?>
+        <?php $tiers = $ev ? Tickets::tiers($ev) : []; for ($k = 0; $k < 3; $k++): $t = $tiers[$k] ?? ['min' => '', 'pct' => '']; ?>
           <div class="tier-row"><span>Dès</span><input type="number" name="tier_min[]" min="2" max="500" value="<?= e((string)$t['min']) ?>" placeholder="<?= [5, 10, 20][$k] ?>" aria-label="Nombre de billets"><span>billets :</span><div class="input-suffix"><input type="number" name="tier_pct[]" min="1" max="90" value="<?= e((string)$t['pct']) ?>" placeholder="<?= [10, 15, 20][$k] ?>" aria-label="Remise"><span>%</span></div><span>de remise</span></div>
         <?php endfor; ?>
         <small class="muted">Laisse vide pour ne pas en proposer. Non cumulable avec les partenaires et la revente ; cumulable avec un code promo.</small>
@@ -111,7 +115,7 @@
   <div class="form-actions mt">
     <button class="btn btn-lg"><?= $isNew ? 'Créer l\'événement' : 'Enregistrer' ?></button>
     <?php if (!$isNew): ?>
-      <button class="btn btn-ghost" formaction="<?= url('/pro/evenements/' . $ev['id'] . '/dupliquer') ?>" formnovalidate>Dupliquer</button>
+      <a class="btn btn-ghost" href="<?= url('/pro/evenements/' . $ev['id'] . '/dupliquer') ?>">Reprendre pour une nouvelle date</a>
       <button class="btn btn-ghost" style="color:var(--red)" formaction="<?= url('/pro/evenements/' . $ev['id'] . '/supprimer') ?>" formnovalidate data-confirm="Supprimer définitivement cet événement ?">Supprimer</button>
     <?php endif; ?>
   </div>

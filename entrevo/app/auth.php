@@ -28,6 +28,7 @@ function user(): ?array
         if (!empty($_SESSION['uid'])) {
             $u = one('SELECT * FROM users WHERE id = ? AND active = 1', [$_SESSION['uid']]);
             if ($u && ($_SESSION['pwv'] ?? '') !== substr(hash('sha256', $u['password_hash']), 0, 16)) $u = null; // mot de passe changé
+            if ($u && class_exists('Security') && !Security::touch($u)) $u = null; // session révoquée à distance
             if (!$u) unset($_SESSION['uid']);
         }
     }
@@ -41,11 +42,13 @@ function login_user(array $u): void
     $_SESSION['pwv'] = substr(hash('sha256', $u['password_hash']), 0, 16);
     unset($_SESSION['as_org']);
     update('users', ['last_login' => now()], 'id = ?', [$u['id']]);
+    if (class_exists('Security')) Security::openSession($u);
     $GLOBALS['__reload_user'] = true;
 }
 
 function logout_user(): void
 {
+    if (class_exists('Security')) Security::closeSession();
     $_SESSION = [];
     session_regenerate_id(true);
 }

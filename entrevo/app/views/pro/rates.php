@@ -49,24 +49,92 @@ $form = function (?array $r) use ($org, $sessions, $seatCats, $rates) {
     </form>
 <?php return ob_get_clean(); };
 [$pct, $fixed] = Tickets::feeRates($org);
+$editId = (string)input('edit');
+$editing = $editId === 'new' ? null : (array_values(array_filter($rates, fn($r) => (string)$r['id'] === $editId))[0] ?? false);
+$tot = ['sold' => array_sum(array_column($rates, 'sold')), 'revenue' => array_sum(array_column($rates, 'revenue')), 'sold7' => array_sum(array_column($rates, 'sold7'))];
+$quotaSum = array_sum(array_map(fn($r) => (int)$r['quota'] * max(1, (int)$r['pack_size']), array_filter($rates, fn($r) => $r['active'])));
+$unlimited = (bool)array_filter($rates, fn($r) => $r['active'] && !(int)$r['quota']);
+$cap = (int)$ev['capacity'];
+$state = function (array $r): array {
+    $s = $r['state'];
+    if (!$r['active']) return ['En pause', 'grey'];
+    if ($s['ok']) return [$r['hidden'] ? 'En vente · secret' : 'En vente', 'green'];
+    $w = (string)($s['why'] ?? '');
+    if (!empty($s['next'])) return ['Palier suivant', 'blue'];
+    if ($w === 'Complet') return ['Complet', 'red'];
+    if (str_starts_with($w, 'En vente le')) return ['Programmé', 'orange'];
+    if ($w === 'Vente terminée') return ['Terminé', 'grey'];
+    return [$w ?: 'Fermé', 'grey'];
+};
+$base = '/pro/evenements/' . $ev['id'] . '/tarifs';
 ?>
-<div class="notice mb">Frais de service : <b><?= e(rtrim(rtrim(number_format($pct, 2, ',', ''), '0'), ',')) ?> % + <?= e(money($fixed)) ?></b> par billet payant,
-  <?= $org['fee_mode'] === 'buyer' ? '<b>payés par l\'acheteur</b>' : '<b>déduits de ton reversement</b>' ?> (<a href="<?= url('/pro/organisation') ?>">changer</a>). Billets gratuits : 0 €, évidemment.</div>
-<?php foreach ($rates as $r): $fee = Tickets::computeFees($org, (int)$r['price'], (int)$r['price'] > 0 ? 1 : 0); ?>
-  <details class="box">
-    <summary>
-      <span><?= e($r['name']) ?> <?= !$r['active'] ? badge('draft') : '' ?> <?= $r['hidden'] ? '<span class="badge violet">Secret</span>' : '' ?><?php if ($r['after_rate_id']): $pv = array_values(array_filter($rates, fn($x) => (int)$x['id'] === (int)$r['after_rate_id'])); ?> <span class="badge blue">après « <?= e($pv[0]['name'] ?? '?') ?> »</span><?php endif; ?></span>
-      <span class="row" style="gap:16px;font-weight:500">
-        <span class="muted"><?= (int)$r['sold'] ?><?= $r['quota'] ? ' / ' . (int)$r['quota'] : '' ?> vendus</span>
-        <span><?= (int)$r['price'] ? e(money((int)$r['price'])) : 'Gratuit' ?><?php if ($fee): ?> <small>(<?= $org['fee_mode'] === 'buyer' ? 'acheteur paie ' . e(money((int)$r['price'] + $fee)) : 'tu reçois ' . e(money((int)$r['price'] - $fee)) ?>)</small><?php endif; ?></span>
-      </span>
-    </summary>
-    <?= $form($r) ?>
-  </details>
-<?php endforeach; ?>
-<details class="box" <?= !$rates ? 'open' : '' ?>><summary style="color:var(--primary)">+ Ajouter un tarif</summary><?= $form(null) ?></details>
-<?= soon_card('Plus de possibilités pour tes tarifs', [
-  'prix-dynamique' => ['Tarification dynamique', 'Le prix suit la demande, entre un plancher et un plafond'],
-  'paiement-plusieurs-fois' => ['Paiement en 3 fois', 'Pour les pass et les formules VIP'],
-  'abonnements' => ['Inclus dans un abonnement', 'Le tarif est accessible aux abonnés de la saison'],
-]) ?>
+<div class="page-head-row">
+  <div class="kpi-mini"><span>Billets vendus</span><b><?= number_format($tot['sold'], 0, ',', ' ') ?></b><small class="muted"><?= $tot['sold7'] ?> ces 7 derniers jours</small></div>
+  <div class="kpi-mini"><span>Recettes billets</span><b><?= e(money((int)$tot['revenue'])) ?></b><small class="muted">hors frais de service</small></div>
+  <div class="kpi-mini"><span>Prix moyen</span><b><?= $tot['sold'] ? e(money((int)round($tot['revenue'] / $tot['sold']))) : '—' ?></b></div>
+  <div class="kpi-mini"><span>Places mises en vente</span><b><?= $unlimited ? 'Illimité' : number_format($quotaSum, 0, ',', ' ') ?></b><small class="muted"><?= $cap ? 'jauge ' . number_format($cap, 0, ',', ' ') : 'pas de jauge' ?></small></div>
+</div>
+<?php if ($cap && !$unlimited && $quotaSum < $cap): ?><div class="notice info mb">Tes tarifs actifs ne couvrent que <b><?= $quotaSum ?></b> places sur une jauge de <b><?= $cap ?></b> : <?= $cap - $quotaSum ?> places ne pourront pas être vendues. Augmente un quota ou ajoute un tarif.</div><?php endif; ?>
+
+<?php if ($editing !== false && ($editing || $editId === 'new')): ?>
+<div class="card" id="editeur">
+  <div class="card-head"><h2><?= $editing ? 'Modifier « ' . e($editing['name']) . ' »' : 'Nouveau tarif' ?></h2><a class="btn btn-sm btn-ghost" href="<?= url($base) ?>">Fermer</a></div>
+  <?= $form($editing ?: null) ?>
+</div>
+<?php endif; ?>
+
+<div class="card table-card">
+  <div class="card-head"><h2>Tarifs <small class="muted">(<?= count($rates) ?>)</small></h2><div class="row"><small class="muted rate-hint">Glisse les lignes pour changer l'ordre d'affichage</small><a class="btn btn-sm" href="<?= url($base, ['edit' => 'new']) ?>#editeur">+ Ajouter un tarif</a></div></div>
+  <div class="table-wrap"><table class="table rate-table">
+    <thead><tr><th></th><th>Tarif</th><th>Statut</th><th class="num">Prix</th><th style="width:22%">Ventes</th><th class="num">Recettes</th><th></th></tr></thead>
+    <tbody data-reorder="<?= url($base) ?>">
+    <?php foreach ($rates as $r): [$sl, $sc] = $state($r); $fee = Tickets::computeFees($org, (int)$r['price'], (int)$r['price'] > 0 ? 1 : 0);
+      $q = (int)$r['quota']; $p = $q ? min(100, round($r['sold'] / max(1, $q * max(1, (int)$r['pack_size'])) * 100)) : null; ?>
+      <tr draggable="true" data-id="<?= (int)$r['id'] ?>" class="<?= $r['active'] ? '' : 'is-paused' ?>">
+        <td class="drag" title="Glisser pour réordonner">⋮⋮</td>
+        <td><a href="<?= url($base, ['edit' => $r['id']]) ?>#editeur"><b><?= e($r['name']) ?></b></a>
+          <div class="rate-tags">
+            <?php if ($r['price_mode'] === 'free'): ?><span>Prix libre</span><?php endif; ?>
+            <?php if ((int)$r['pack_size'] > 1): ?><span>Pack de <?= (int)$r['pack_size'] ?></span><?php endif; ?>
+            <?php if ((int)$r['max_entries'] > 1): ?><span><?= (int)$r['max_entries'] ?> entrées</span><?php endif; ?>
+            <?php if ($r['hidden']): ?><span>Secret</span><?php endif; ?>
+            <?php if ($r['min_age']): ?><span><?= (int)$r['min_age'] ?> ans et +</span><?php endif; ?>
+            <?php if ($r['session_ids']): ?><span><?= count(Tickets::rateSessions($r)) ?> date(s)</span><?php endif; ?>
+            <?php if ($r['after_rate_id']): $pv = array_values(array_filter($rates, fn($x) => (int)$x['id'] === (int)$r['after_rate_id'])); ?><span>après « <?= e($pv[0]['name'] ?? '?') ?> »</span><?php endif; ?>
+          </div>
+          <?php if ($r['sale_start'] || $r['sale_end']): ?><small class="muted"><?= $r['sale_start'] ? 'du ' . e(short_date($r['sale_start'])) : '' ?><?= $r['sale_end'] ? ' jusqu\'au ' . e(short_date($r['sale_end'])) : '' ?></small><?php endif; ?>
+        </td>
+        <td><span class="badge <?= $sc ?>"><?= e($sl) ?></span><?php if ($sl === 'Programmé' || $sl === 'Palier suivant'): ?><br><small class="muted"><?= e((string)$r['state']['why']) ?></small><?php endif; ?></td>
+        <td class="num nowrap"><b><?= (int)$r['price'] ? e(money((int)$r['price'])) : 'Gratuit' ?></b><?php if ($fee): ?><br><small class="muted"><?= $org['fee_mode'] === 'buyer' ? 'payé ' . e(money((int)$r['price'] + $fee)) : 'reçu ' . e(money((int)$r['price'] - $fee)) ?></small><?php endif; ?></td>
+        <td><div class="rate-sold"><b><?= (int)$r['sold'] ?></b><span class="muted"><?= $q ? ' / ' . $q * max(1, (int)$r['pack_size']) : '' ?></span><?php if ((int)$r['sold7']): ?><small class="up">+<?= (int)$r['sold7'] ?> en 7 j</small><?php endif; ?></div>
+          <?php if ($p !== null): ?><div class="bar-thin"><i style="width:<?= $p ?>%" class="<?= $p >= 90 ? 'hot' : '' ?>"></i></div><?php endif; ?>
+          <?php if ((int)$r['sold']): ?><small class="muted"><?= (int)$r['inside'] ?> entré<?= (int)$r['inside'] > 1 ? 's' : '' ?></small><?php endif; ?></td>
+        <td class="num"><?= (int)$r['revenue'] ? e(money((int)$r['revenue'])) : '<span class="muted">—</span>' ?></td>
+        <td class="right nowrap">
+          <form method="post" class="inline-form"><?= csrf_field() ?><input type="hidden" name="rate_id" value="<?= (int)$r['id'] ?>">
+            <button class="btn btn-sm btn-light" name="action" value="toggle"><?= $r['active'] ? 'Mettre en pause' : 'Remettre en vente' ?></button>
+            <button class="btn btn-sm btn-ghost" name="action" value="duplicate" title="Dupliquer">Dupliquer</button>
+          </form>
+        </td>
+      </tr>
+    <?php endforeach; ?>
+    <?php if (!$rates): ?><tr><td colspan="7" class="empty">Aucun tarif : ajoute-en un pour ouvrir la vente.</td></tr><?php endif; ?>
+    </tbody>
+  </table></div>
+</div>
+<p class="muted" style="font-size:13px">Frais de service : <b><?= e(rtrim(rtrim(number_format($pct, 2, ',', ''), '0'), ',')) ?> % + <?= e(money($fixed)) ?></b> par billet payant,
+  <?= $org['fee_mode'] === 'buyer' ? 'payés par l\'acheteur' : 'déduits de ton reversement' ?> (<a href="<?= url('/pro/organisation') ?>">changer</a>). Billets gratuits : 0 €.</p>
+<script>
+(() => {
+  const tb = document.querySelector('[data-reorder]'); if (!tb) return;
+  let drag = null;
+  tb.addEventListener('dragstart', e => { drag = e.target.closest('tr'); drag.classList.add('dragging'); e.dataTransfer.effectAllowed = 'move'; });
+  tb.addEventListener('dragover', e => { e.preventDefault(); const tr = e.target.closest('tr'); if (!tr || tr === drag) return; const r = tr.getBoundingClientRect(); tb.insertBefore(drag, e.clientY > r.top + r.height / 2 ? tr.nextSibling : tr); });
+  tb.addEventListener('dragend', () => {
+    drag.classList.remove('dragging'); drag = null;
+    const d = new FormData(); d.append('action', 'reorder'); d.append('ajax', '1'); d.append('_csrf', document.querySelector('[name=_csrf]').value);
+    tb.querySelectorAll('tr[data-id]').forEach(tr => d.append('ids[]', tr.dataset.id));
+    fetch(tb.dataset.reorder, { method: 'POST', body: d, credentials: 'same-origin' }).then(r => r.json()).then(() => { const h = document.querySelector('.rate-hint'); if (h) { h.textContent = 'Ordre enregistré'; setTimeout(() => h.textContent = 'Glisse les lignes pour changer l\'ordre d\'affichage', 2500); } }).catch(() => {});
+  });
+})();
+</script>

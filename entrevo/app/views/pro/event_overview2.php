@@ -27,6 +27,23 @@ $presence = $stats['sold'] ? round($stats['checked'] / $stats['sold'] * 100) : 0
 </div>
 <div class="split-3">
   <div>
+    <?php if ($fc && $fc['sold'] > 0): $fpct = $fc['cap'] ? round($fc['forecast'] / $fc['cap'] * 100) : null; $ok = $fc['cap'] && $fc['forecast'] >= $fc['cap'] * 0.9; ?>
+    <div class="card forecast">
+      <div class="card-head"><h2>Prévision au jour J</h2><small class="muted"><?= $fc['method'] === 'historique' ? 'd\'après tes éditions passées' : 'd\'après le rythme des 14 derniers jours' ?></small></div>
+      <div class="fc-grid">
+        <div class="fc-main"><b>~<?= number_format($fc['forecast'], 0, ',', ' ') ?></b><span>billets<?= $fpct !== null ? ' · ' . $fpct . ' % de la jauge' : '' ?></span><small class="muted">fourchette <?= number_format($fc['low'], 0, ',', ' ') ?> – <?= number_format($fc['high'], 0, ',', ' ') ?></small></div>
+        <div class="fc-bar"><?php if ($fc['cap']): ?><div class="fc-track"><i class="fc-sold" style="width:<?= min(100, round($fc['sold'] / $fc['cap'] * 100)) ?>%"></i><i class="fc-proj" style="width:<?= min(100, round(($fc['forecast'] - $fc['sold']) / $fc['cap'] * 100)) ?>%"></i></div>
+          <div class="fc-legend"><span><i class="fc-sold"></i>vendus <?= $fc['sold'] ?></span><span><i class="fc-proj"></i>attendus d'ici J</span><span>jauge <?= $fc['cap'] ?></span></div><?php endif; ?></div>
+      </div>
+      <div class="fc-facts">
+        <div><small class="muted">Jours restants</small><b><?= $fc['days'] ?></b></div>
+        <div><small class="muted">Rythme actuel</small><b><?= e(number_format($fc['rate14'], 1, ',', ' ')) ?> / jour</b></div>
+        <?php if ($fc['need'] !== null): ?><div><small class="muted">Pour remplir</small><b class="<?= $fc['need'] > $fc['rate14'] * 1.5 ? 'text-red' : '' ?>"><?= e(number_format($fc['need'], 1, ',', ' ')) ?> / jour</b></div><?php endif; ?>
+      </div>
+      <?php foreach ($fc['refs'] as $r): ?><p class="muted mb0" style="font-size:13px">À J-<?= $fc['days'] ?>, « <?= e($r['name']) ?> » en était à <?= $r['at'] ?> billets (<?= round($r['share'] * 100) ?> % de ses <?= $r['final'] ?> finaux).</p><?php endforeach; ?>
+      <?php if (!$ok && $fc['cap']): ?><p class="mb0 mt" style="font-size:14px"><b>Pour accélérer :</b> <a href="<?= url('/pro/campagnes') ?>">une campagne e-mail</a> à tes anciens participants, <a href="<?= url('/pro/evenements/' . $ev['id'] . '/liens') ?>">des liens ambassadeurs</a>, ou un <a href="<?= url('/pro/evenements/' . $ev['id'] . '/promos') ?>">code promo</a> limité dans le temps.</p><?php endif; ?>
+    </div>
+    <?php endif; ?>
     <div class="card">
       <div class="card-head"><h2>Remplissage</h2><small>Billets cumulés depuis l'ouverture des ventes</small></div>
       <?php if ($cum['values']): ?>

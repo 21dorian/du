@@ -1,11 +1,11 @@
 <?php
 $s = fn($k) => e(setting($k));
 $c = fn($k) => setting($k) === '1' ? 'checked' : '';
-$tabs = ['general' => 'Général', 'fees' => 'Commission', 'payments' => 'Paiements', 'emails' => 'E-mails', 'sms' => 'SMS', 'legal' => 'Textes légaux'];
+$tabs = ['general' => 'Général', 'apparence' => 'Apparence', 'fees' => 'Commission', 'payments' => 'Paiements', 'emails' => 'E-mails', 'sms' => 'SMS', 'plateforme' => 'Plateforme', 'securite' => 'Sécurité', 'legal' => 'Textes légaux'];
 $secret = fn($k) => setting($k) ? '•••••• (enregistré, laisser vide pour ne pas changer)' : '';
 ?>
 <nav class="tabs"><?php foreach ($tabs as $k => $l): ?><a class="<?= $tab === $k ? 'on' : '' ?>" href="<?= url('/admin/reglages', ['tab' => $k]) ?>"><?= $l ?></a><?php endforeach; ?></nav>
-<form method="post" action="<?= url('/admin/reglages', ['tab' => $tab]) ?>"><?= csrf_field() ?>
+<form method="post" action="<?= url('/admin/reglages', ['tab' => $tab]) ?>" enctype="multipart/form-data"><?= csrf_field() ?>
 <?php if ($tab === 'general'): ?>
   <div class="card" style="max-width:820px">
     <div class="grid2">
@@ -106,10 +106,56 @@ $secret = fn($k) => setting($k) ? '•••••• (enregistré, laisser vide
     <div class="grid2">
       <div class="field"><label>Clé API Brevo</label><input type="password" name="sms_api_key" placeholder="<?= e($secret('sms_api_key')) ?: 'xkeysib-…' ?>" autocomplete="new-password"><?php if (Sms::live()): ?><label class="check mt"><input type="checkbox" name="sms_key_clear" value="1"> <span>Retirer la clé (repasser en mode test)</span></label><?php endif; ?></div>
       <div class="field"><label>Prix facturé par SMS</label><div class="input-suffix"><input name="sms_price" value="<?= e(money_input(Sms::price())) ?>" inputmode="decimal"><span>€</span></div><small>Par tranche de 160 caractères, affiché aux organisateurs.</small></div>
+      <div class="field"><label>Refacturation</label><label class="check"><input type="checkbox" name="sms_deduct" value="1" <?= setting('sms_deduct', '1') === '1' ? 'checked' : '' ?>> <span>Retenir le coût des SMS sur les reversements</span></label></div>
       <div class="field"><label>Mention de désinscription</label><input name="sms_stop" value="<?= e(Sms::stopText()) ?>"><small>Ajoutée à la fin de chaque SMS (obligatoire en France pour les SMS commerciaux).</small></div>
       <div class="field"><label>Ce mois-ci</label><p class="mb0"><b><?= number_format((int)$smsStats['sent'], 0, ',', ' ') ?></b> destinataires · <b><?= number_format((int)$smsStats['seg'], 0, ',', ' ') ?></b> SMS · <b><?= e(money((int)$smsStats['cost'])) ?></b> à refacturer</p></div>
     </div>
     <div class="row mt"><input type="tel" name="test_sms" placeholder="Envoyer un test au 06…" style="max-width:300px"><button class="btn btn-ghost">Enregistrer et tester</button></div>
+  </div>
+<?php elseif ($tab === 'plateforme'): ?>
+  <div class="card" style="max-width:820px">
+    <h2>Mode maintenance</h2>
+    <label class="check"><input type="checkbox" name="maintenance" value="1" <?= $c('maintenance') ?>> <span><b>Mettre le site en maintenance</b><br><small class="muted">Le public voit une page d'attente. Restent ouverts : ton super-admin, l'appli de scan (le jour J n'est jamais bloqué), les retours de paiement.</small></span></label>
+    <div class="field mt"><label>Message affiché</label><textarea name="maintenance_message" rows="3" placeholder="La billetterie fait une courte pause pour maintenance…"><?= $s('maintenance_message') ?></textarea></div>
+  </div>
+  <div class="card" style="max-width:820px">
+    <h2>Limites</h2>
+    <div class="grid2">
+      <div class="field"><label>Événements à venir par organisateur</label><input type="number" name="max_events" min="0" value="<?= (int)setting('max_events', '0') ?>"><small>0 = illimité. Évite les abus des comptes gratuits.</small></div>
+      <div class="field"><label>Poids maximum des images</label><div class="input-suffix"><input type="number" name="max_upload_mb" min="1" max="50" value="<?= (int)(setting('max_upload_mb', '5') ?: 5) ?>"><span>Mo</span></div><small>Limité aussi par l'hébergement (<?= e((string)ini_get('upload_max_filesize')) ?>).</small></div>
+    </div>
+  </div>
+  <div class="card" style="max-width:820px">
+    <h2>Modules coupés pour tout le monde</h2>
+    <p class="muted" style="font-size:14px">Un module coupé ici disparaît chez tous les organisateurs, quelle que soit leur formule (utile tant qu'un service n'est pas branché).</p>
+    <?php $dis = explode(',', (string)setting('disabled_modules', '')); ?>
+    <div class="mod-grid"><?php foreach (Billing::MODULES as $mk => $ml): ?><label class="check"><input type="checkbox" name="disabled_modules[]" value="<?= $mk ?>" <?= in_array($mk, $dis, true) ? 'checked' : '' ?>> <span><?= e($ml) ?></span></label><?php endforeach; ?></div>
+  </div>
+<?php elseif ($tab === 'securite'): ?>
+  <?php $sk = one("SELECT SUM(role = 'superadmin') admins, SUM(role = 'superadmin' AND totp_enabled = 1) admins2fa, SUM(role = 'owner') owners, SUM(role = 'owner' AND totp_enabled = 1) owners2fa FROM users WHERE active = 1"); ?>
+  <div class="card" style="max-width:820px">
+    <h2>Double authentification</h2>
+    <p class="muted" style="font-size:14px">Équipe plateforme : <b><?= (int)$sk['admins2fa'] ?> / <?= (int)$sk['admins'] ?></b> avec 2FA · Responsables d'organisateurs : <b><?= (int)$sk['owners2fa'] ?> / <?= (int)$sk['owners'] ?></b>.</p>
+    <label class="check"><input type="checkbox" name="admin_2fa" value="1" <?= $c('admin_2fa') ?>> <span><b>Obligatoire pour l'équipe plateforme</b><br><small class="muted">Un super-admin sans 2FA est envoyé sur « Mon compte » pour l'activer avant d'accéder au super-admin. Active-la d'abord sur ton compte.</small></span></label>
+  </div>
+  <div class="card" style="max-width:820px">
+    <h2>Verrouillage des comptes</h2>
+    <div class="grid2">
+      <div class="field"><label>Verrouiller après</label><div class="input-suffix"><input type="number" name="lock_after" min="3" max="50" value="<?= (int)(setting('lock_after', '8') ?: 8) ?>"><span>échecs</span></div></div>
+      <div class="field"><label>Pendant</label><div class="input-suffix"><input type="number" name="lock_minutes" min="5" max="1440" value="<?= (int)(setting('lock_minutes', '15') ?: 15) ?>"><span>minutes</span></div></div>
+    </div>
+    <p class="muted mb0" style="font-size:13px">En plus, une même adresse IP est freinée après 5 essais ratés. Le journal complet est dans <a href="<?= url('/admin/utilisateurs') ?>">Utilisateurs & sécurité</a>.</p>
+  </div>
+<?php elseif ($tab === 'apparence'): ?>
+  <div class="card" style="max-width:820px">
+    <div class="grid2">
+      <div class="field"><label>Nom de la plateforme</label><input name="platform_name" value="<?= $s('platform_name') ?>" required></div>
+      <div class="field"><label>Slogan</label><input name="tagline" value="<?= $s('tagline') ?>"><small>Pied de page et titres.</small></div>
+      <div class="field"><label>Couleur d'accent</label><input type="color" name="primary_color" value="<?= $s('primary_color') ?>"><small>Liens et éléments actifs ; les boutons restent noirs.</small></div>
+      <div class="field"><label>Logo <small class="muted">(carré, PNG transparent)</small></label>
+        <div class="row"><span class="logo-preview"><?= view('partials/logo') ?></span><input type="file" name="platform_logo" accept="image/png,image/webp,image/jpeg"></div>
+        <?php if (setting('platform_logo')): ?><label class="check mt"><input type="checkbox" name="logo_remove" value="1"> <span>Revenir au logo par défaut</span></label><?php endif; ?></div>
+    </div>
   </div>
 <?php else: ?>
   <div class="card" style="max-width:900px">

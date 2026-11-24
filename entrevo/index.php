@@ -44,6 +44,21 @@ $routes = require APP . '/routes.php';
 $path = route_path();
 $method = $_SERVER['REQUEST_METHOD'] ?? 'GET';
 
+// 2.2 : mode maintenance — le public voit une page d'attente ; super-admin, contrôle d'accès et paiements continuent de fonctionner
+if (setting('maintenance') === '1' && !is_super()) {
+    $open = ['/connexion', '/deconnexion', '/mon-compte', '/admin', '/scan', '/api/scan', '/cron', '/paiement/webhook', '/paiement/retour', '/mot-de-passe'];
+    $exempt = false;
+    foreach ($open as $o) if ($path === $o || str_starts_with($path, $o . '/')) $exempt = true;
+    $u = user();
+    if ($u && $u['role'] === 'scanner') $exempt = true;
+    if (!$exempt) {
+        http_response_code(503);
+        header('Retry-After: 1800');
+        echo view('layout_public', ['title' => 'Maintenance', 'content' => '<div class="card center auth-box"><h1>On revient très vite</h1><p class="muted">' . nl2br(e((string)(setting('maintenance_message') ?: 'La billetterie fait une courte pause pour maintenance. Tes billets restent valables et le contrôle à l\'entrée fonctionne normalement.'))) . '</p></div>']);
+        exit;
+    }
+}
+
 try {
     foreach ($routes as [$verbs, $pattern, $handler]) {
         if (!in_array($method, explode('|', $verbs), true)) continue;

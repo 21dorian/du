@@ -50,6 +50,16 @@ function admin_home(): string
     $cronLast = (int)setting('cron_last', 0);
     if (!$cronLast || $cronLast < time() - 3600) $todo[] = [ui_icon('clock'), 'Tâche planifiée (cron) ' . ($cronLast ? 'arrêtée depuis ' . ago(date('Y-m-d H:i:s', $cronLast)) : 'jamais lancée'), 'Campagnes, récaps et rappels en dépendent', '/admin/sante', 'hot'];
     if (array_keys(Payments::available()) === ['demo'] || !Payments::available()) $todo[] = [ui_icon('lock'), 'Paiement en mode démo uniquement', 'Branche Stripe, PayPal, SumUp ou Mollie', '/admin/reglages?tab=payments', 'hot'];
+    // 2.2 : support, litiges, données personnelles, contrats qui finissent
+    $n = (int)val("SELECT COUNT(*) FROM support_tickets WHERE status = 'open'");
+    if ($n) $todo[] = [ui_icon('help'), $n . ' demande(s) de support à traiter', 'La plus ancienne attend depuis ' . ago((string)val("SELECT MIN(updated_at) FROM support_tickets WHERE status = 'open'")), '/admin/support', (int)val("SELECT COUNT(*) FROM support_tickets WHERE status = 'open' AND priority IN ('high','urgent')") ? 'hot' : ''];
+    $n = (int)val("SELECT COUNT(*) FROM disputes WHERE status = 'open'");
+    if ($n) $todo[] = [ui_icon('shield'), $n . ' litige(s) de paiement à traiter', money((int)val("SELECT COALESCE(SUM(amount), 0) FROM disputes WHERE status = 'open'")) . ' contestés', '/admin/litiges', (int)val("SELECT COUNT(*) FROM disputes WHERE status = 'open' AND due_on <= CURDATE() + INTERVAL 7 DAY") ? 'hot' : ''];
+    $n = (int)val("SELECT COUNT(*) FROM gdpr_requests WHERE status = 'pending'");
+    if ($n) $todo[] = [ui_icon('lock'), $n . ' demande(s) RGPD', 'Délai légal : un mois', '/admin/rgpd', (int)val("SELECT COUNT(*) FROM gdpr_requests WHERE status = 'pending' AND due_on <= CURDATE() + INTERVAL 7 DAY") ? 'hot' : ''];
+    $n = (int)val("SELECT COUNT(*) FROM contracts WHERE status = 'active' AND ends_on BETWEEN CURDATE() AND CURDATE() + INTERVAL 30 DAY");
+    if ($n) $todo[] = [ui_icon('doc'), $n . ' contrat(s) finissent dans 30 jours', 'À renouveler ou laisser revenir à la formule', '/admin/contrats?f=fin', ''];
+    if (setting('maintenance') === '1') $todo[] = [ui_icon('settings'), 'Site en maintenance', 'Le public voit la page d\'attente', '/admin/reglages?tab=plateforme', 'hot'];
     if (!setting('smtp_host')) $todo[] = [ui_icon('mail'), 'Pas de serveur SMTP configuré', 'Les e-mails partent via mail() : risque de spam', '/admin/reglages?tab=emails', ''];
     $recent = all('SELECT * FROM organizers ORDER BY created_at DESC LIMIT 6');
     $demo = (int)val("SELECT COUNT(*) FROM orders WHERE status = 'paid' AND provider = 'demo'");

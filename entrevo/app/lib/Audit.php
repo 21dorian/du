@@ -7,7 +7,7 @@ final class Audit
     public const LABELS = [
         'event.created' => 'Événement créé', 'event.updated' => 'Événement modifié', 'event.status' => 'Statut changé', 'event.deleted' => 'Événement supprimé',
         'rate.saved' => 'Tarif enregistré', 'rate.deleted' => 'Tarif supprimé', 'seatmap.saved' => 'Plan de salle enregistré',
-        'order.cancelled' => 'Commande annulée', 'order.refunded' => 'Commande remboursée', 'order.partial_refund' => 'Remboursement partiel',
+        'order.cancelled' => 'Commande annulée', 'order.refunded' => 'Commande remboursée', 'order.partial_refund' => 'Remboursement partiel', 'order.platform_refund' => 'Geste plateforme', 'dispute.created' => 'Litige ouvert', 'dispute.status' => 'Litige mis à jour', 'contract.saved' => 'Contrat enregistré', 'charge.added' => 'Retenue', 'plan.saved' => 'Formule enregistrée', 'plan.default' => 'Formule par défaut', 'rgpd.anonymized' => 'Données anonymisées', 'sms.created' => 'Campagne SMS', 'org.plan' => 'Formule changée',
         'order.resent' => 'Billets renvoyés', 'order.updated' => 'Commande modifiée', 'ticket.cancelled' => 'Billet annulé', 'ticket.renamed' => 'Billet renommé',
         'box.sale' => 'Vente guichet', 'invites.sent' => 'Invitations', 'accred.created' => 'Accréditations', 'message.sent' => 'Message envoyé',
         'cash.closed' => 'Caisse clôturée', 'team.changed' => 'Équipe modifiée', 'org.updated' => 'Organisation modifiée', 'bulk' => 'Action groupée',

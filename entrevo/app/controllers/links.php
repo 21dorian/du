@@ -17,6 +17,7 @@ function link_stats(int $eventId): array
 
 function links_tab(string $id): string
 {
+    require_module('liens');
     $org = require_org();
     $ev = org_event((int)$id);
     if (is_post()) {
@@ -81,6 +82,7 @@ function ambassador_page(string $token): string
 /** Menu « Liens & ambassadeurs » : ouvre l'événement à venir le plus proche. */
 function links_choose(): never
 {
+    require_module('liens');
     $org = require_org();
     $ev = one("SELECT id FROM events WHERE organizer_id = ? AND COALESCE(ends_at, starts_at) >= NOW() ORDER BY starts_at LIMIT 1", [$org['id']])
         ?: one('SELECT id FROM events WHERE organizer_id = ? ORDER BY starts_at DESC LIMIT 1', [$org['id']]);

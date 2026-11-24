@@ -8,6 +8,7 @@ require_once APP . '/controllers/pro.php';
 // ---------- Annuaire ----------
 function staff_directory(): string
 {
+    require_module('benevoles');
     $org = require_org();
     $oid = (int)$org['id'];
     if (is_post()) {
@@ -107,6 +108,7 @@ function staff_member_page(string $id): string
 // ---------- Planning d'un événement ----------
 function staff_event(string $id): string
 {
+    require_module('benevoles');
     $org = require_org();
     $ev = org_event((int)$id);
     $base = '/pro/evenements/' . $ev['id'] . '/benevoles';

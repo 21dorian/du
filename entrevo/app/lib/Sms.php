@@ -21,7 +21,11 @@ final class Sms
 
     public static function live(): bool { return trim((string)setting('sms_api_key', '')) !== ''; }
 
-    public static function price(): int { return max(0, (int)setting('sms_price', '8')); }
+    public static function price(?array $org = null): int
+    {
+        $p = $org && class_exists('Billing') ? Billing::plan($org) : null;
+        return max(0, $p && $p['sms_price'] !== null ? (int)$p['sms_price'] : (int)setting('sms_price', '8'));
+    }
 
     public static function stopText(): string { return trim((string)setting('sms_stop', 'STOP au 36173')); }
 
@@ -203,9 +207,14 @@ final class Sms
     {
         $c = one('SELECT * FROM sms_campaigns WHERE id = ?', [$id]);
         $n = one("SELECT SUM(status IN ('sent','test')) sent, SUM(status = 'failed') failed, SUM(status = 'queued') queued FROM sms_messages WHERE campaign_id = ?", [$id]);
-        $data = ['sent' => (int)$n['sent'], 'failed' => (int)$n['failed'], 'cost' => (int)$n['sent'] * (int)$c['segments'] * self::price()];
-        if (!(int)$n['queued'] && $c['status'] === 'sending') $data += ['status' => 'sent', 'sent_at' => now()];
+        $org = one('SELECT * FROM organizers WHERE id = ?', [$c['organizer_id']]);
+        $data = ['sent' => (int)$n['sent'], 'failed' => (int)$n['failed'], 'cost' => (int)$n['sent'] * (int)$c['segments'] * self::price($org)];
+        $done = !(int)$n['queued'] && in_array($c['status'], ['sending', 'cancelled'], true);
+        if ($done && $c['status'] === 'sending') $data += ['status' => 'sent', 'sent_at' => now()];
         update('sms_campaigns', $data, 'id = ?', [$id]);
+        // coût retenu sur le prochain reversement (une seule fois, SMS réellement partis seulement)
+        if ($done && self::live() && $data['cost'] > 0 && setting('sms_deduct', '1') === '1' && class_exists('Billing'))
+            Billing::charge((int)$c['organizer_id'], 'sms', 'Campagne SMS « ' . $c['name'] . ' » (' . $data['sent'] . ' destinataires)', $data['cost'], 'sms-' . $id);
         set_setting('sms_err_' . $id, '');
     }
 

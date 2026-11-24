@@ -123,7 +123,8 @@ function event_overview2(string $id): string
                      FROM orders WHERE event_id = ? AND status = 'paid' AND (channel IS NULL OR channel <> 'systeme') GROUP BY c ORDER BY t DESC", [$ev['id']]);
     $activity = Insights::activity((int)$ev['organizer_id'], (int)$ev['id'], 8);
     $ready = event_readiness($ev);
-    return ev_page($ev, 'overview', $ev['name'], 'event_overview2', compact('stats', 'cur', 'prev', 'spark', 'cum', 'fun', 'cap', 'channels', 'activity', 'ready'));
+    $fc = Insights::forecast($ev, $cap);
+    return ev_page($ev, 'overview', $ev['name'], 'event_overview2', compact('stats', 'cur', 'prev', 'spark', 'cum', 'fun', 'cap', 'channels', 'activity', 'ready', 'fc'));
 }
 
 /** Score « prêt à publier » : ce qui manque pour une billetterie au top. */

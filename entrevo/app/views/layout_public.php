@@ -37,7 +37,8 @@
       <a href="<?= url('/mes-billets') ?>">Billets perdus ?</a>
       <?php if (setting('cgv')): ?><a href="<?= url('/cgv') ?>">CGV</a><?php endif; ?>
       <?php if (setting('legal')): ?><a href="<?= url('/mentions-legales') ?>">Mentions légales</a><?php endif; ?>
-      <?php if (setting('contact_email')): ?><a href="mailto:<?= e(setting('contact_email')) ?>">Contact</a><?php endif; ?>
+      <a href="<?= url('/contact') ?>">Contact</a>
+      <a href="<?= url('/donnees-personnelles') ?>">Mes données</a>
       <a href="<?= url('/organisateurs') ?>">Vendre mes billets</a>
     </div>
     <div class="footer-links footer-soon">

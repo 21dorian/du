@@ -6,6 +6,20 @@
   <div class="kpi"><small class="muted">Sur place en ce moment</small><b><?= $stats['inside'] ?></b><div class="sub"><?= $ev['allow_reentry'] ? 'sorties déduites' : 'pas de ré-entrée' ?></div></div>
   <div class="kpi"><small class="muted">Encore attendus</small><b><?= $stats['sold'] - $stats['checked'] ?></b></div>
 </div>
+<div class="card flow-card">
+  <div class="card-head"><h2>Arrivées</h2><small class="muted">mis à jour toutes les 20 s</small></div>
+  <div class="flow-grid">
+    <div><small class="muted">Débit actuel</small><b><?= e(number_format($flow['rate'], 1, ',', ' ')) ?><small> / min</small></b><span class="muted"><?= (int)$flow['last15'] ?> entrées ces 15 dernières minutes</span></div>
+    <div><small class="muted">Fin de file estimée</small><b><?= $flow['remaining'] === 0 ? 'Tout le monde est là' : ($flow['eta'] ? e(date('H\hi', $flow['eta'])) : '—') ?></b><span class="muted"><?= $flow['remaining'] ? $flow['remaining'] . ' encore attendus' . ($flow['eta'] ? ' à ce rythme' : ' · pas d\'entrée récente') : '' ?></span></div>
+    <div><small class="muted">Pic d'affluence</small><b><?= $flow['peak'] ? e($flow['peak']['h']) : '—' ?></b><span class="muted"><?= $flow['peak'] ? (int)$flow['peak']['n'] . ' entrées en 15 min' : 'pas encore d\'entrée' ?></span></div>
+    <div><small class="muted">Refus</small><b class="<?= $flow['refuse_rate'] >= 5 ? 'text-red' : '' ?>"><?= e(number_format($flow['refuse_rate'], 1, ',', ' ')) ?> %</b><span class="muted"><?= implode(' · ', array_map(fn($r) => e(Tickets::LABELS[$r['result']] ?? $r['result']) . ' ' . (int)$r['n'], $flow['reasons'])) ?: 'aucun' ?></span></div>
+    <?php if ($flow['noshow'] !== null): ?><div><small class="muted">Absents (pour l'instant)</small><b><?= $flow['noshow'] ?> %</b><span class="muted">de billets pas encore scannés</span></div><?php endif; ?>
+  </div>
+  <div class="flow-doors"><?php $mx = max(1, ...array_map(fn($d) => (int)$d['n15'], $flow['doors'] ?: [['n15' => 1]])); foreach ($flow['doors'] as $d): ?>
+    <div class="flow-door"><span><?= e($d['name']) ?></span><div class="bar-thin"><i style="width:<?= round((int)$d['n15'] / $mx * 100) ?>%"></i></div><small><?= e(number_format((int)$d['n15'] / 15, 1, ',', ' ')) ?>/min</small></div>
+  <?php endforeach; ?></div>
+  <?= Viz::chart('columns', ['labels' => array_keys($flow['quarters']), 'xlabel' => 'Quart d\'heure', 'series' => [['name' => 'Entrées', 'values' => array_column($flow['quarters'], 0)], ['name' => 'Sorties', 'values' => array_column($flow['quarters'], 1)]]], 'Entrées et sorties par quart d\'heure', 'int', 180) ?>
+</div>
 <div class="split-3">
   <div class="card">
     <div class="card-head"><h2>Derniers passages</h2><small>Mise à jour toute seule toutes les 20 s</small></div>
@@ -59,11 +73,6 @@
         <div style="margin-bottom:12px"><div class="row between"><b><?= e($r['name']) ?></b><span><?= (int)$r['checked'] ?> / <?= (int)$r['sold'] ?></span></div><div class="bar green"><i style="width:<?= $p ?>%"></i></div></div>
       <?php endforeach; ?>
     </div>
-    <div class="card">
-      <h2>Afflux (12 h)</h2>
-      <?php if (!$perHour): ?><p class="muted">Rien à afficher.</p><?php else: $mx = max(array_column($perHour, 'n')); foreach ($perHour as $h): ?>
-        <div class="row" style="gap:10px;margin-bottom:6px"><span class="mono" style="width:50px"><?= e($h['h']) ?></span><div class="bar grow" style="margin:0"><i style="width:<?= round($h['n'] / $mx * 100) ?>%"></i></div><span style="width:40px" class="right"><?= (int)$h['n'] ?></span></div>
-      <?php endforeach; endif; ?>
-    </div>
+    
   </div>
 </div>

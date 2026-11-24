@@ -3,8 +3,11 @@ declare(strict_types=1);
 
 /* PC sécurité : écran de supervision plein écran, données en direct, messages aux contrôleurs. */
 
+require_once APP . '/controllers/pro.php';
+
 function pc_page(string $id): string
 {
+    require_module('pc');
     require_org(['owner', 'manager']);
     $ev = org_event((int)$id);
     return view('pro/pc', ['ev' => $ev, 'snap' => Pc::snapshot($ev)]);

@@ -8,6 +8,7 @@ require_once APP . '/controllers/pro.php';
 function sms_index(): string
 {
     $org = require_org();
+    require_module('sms');
     $oid = (int)$org['id'];
     if (is_post()) {
         $a = (string)input('action');
@@ -27,6 +28,7 @@ function sms_index(): string
             $id = (int)input('campaign_id');
             q("UPDATE sms_campaigns SET status = 'cancelled' WHERE id = ? AND organizer_id = ? AND status IN ('scheduled','sending')", [$id, $oid]);
             q("UPDATE sms_messages SET status = 'skipped', error = 'Campagne annulée' WHERE campaign_id = ? AND status = 'queued'", [$id]);
+            if (val('SELECT id FROM sms_campaigns WHERE id = ? AND organizer_id = ?', [$id, $oid])) Sms::refresh($id);
             back(['success' => 'Campagne arrêtée. Les SMS déjà partis ne peuvent pas être rappelés.']);
         }
         $body = trim(str_replace("\r", '', (string)input('body')));
@@ -76,7 +78,7 @@ function sms_estimate(): never
     $text = Sms::text(trim(str_replace("\r", '', (string)input('body'))), 'Alexandra', Sms::link($ev, 99999));
     [$len, $seg, $uni] = Sms::measure($text);
     $n = count(Sms::recipients((int)$org['id'], $aud));
-    json_out(['recipients' => $n, 'chars' => $len, 'segments' => $seg, 'unicode' => $uni, 'cost' => money($n * $seg * Sms::price()), 'preview' => $text]);
+    json_out(['recipients' => $n, 'chars' => $len, 'segments' => $seg, 'unicode' => $uni, 'cost' => money($n * $seg * Sms::price($org)), 'preview' => $text]);
 }
 
 function sms_report(string $id): string

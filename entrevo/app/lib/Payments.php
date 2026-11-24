@@ -225,6 +225,7 @@ final class Payments
         $ref = null;
         switch ($provider) {
             case 'stripe':
+                if (str_starts_with((string)($json['type'] ?? ''), 'charge.dispute.')) return Disputes::fromStripe((string)($json['data']['object']['id'] ?? ''));
                 if (($json['type'] ?? '') && str_starts_with((string)$json['type'], 'checkout.session.')) $ref = $json['data']['object']['id'] ?? null;
                 break;
             case 'paypal':

@@ -148,6 +148,7 @@ function event_form(?string $id = null): string
                 Audit::log('event.updated', $ev['name'], (int)$ev['id']);
                 redirect('/pro/evenements/' . $ev['id'], ['success' => 'C\'est enregistré.']);
             }
+            event_limit_check((int)$org['id']);
             $data += ['organizer_id' => $org['id'], 'slug' => unique_slug('events', $data['name'] . ' ' . date('Y', strtotime($data['starts_at']))), 'status' => 'draft', 'created_at' => now()];
             $newId = insert('events', $data);
             $price = parse_money(input('first_price'));
@@ -189,24 +190,55 @@ function event_status(string $id): never
     back(['success' => ['draft' => 'Retour en brouillon Plus personne ne le voit.', 'published' => 'C\'est en ligne ! La billetterie est ouverte.', 'closed' => 'Ventes clôturées. Les billets vendus restent valables.'][$st]]);
 }
 
-function event_duplicate(string $id): never
+/** 2.2 : reprendre un événement — nouvelle date (tout est décalé d'autant) et choix de ce qui est copié. */
+function event_duplicate(string $id): string
 {
-    require_org();
+    $org = require_org();
     $ev = org_event((int)$id);
+    if (!is_post() || !input('confirm')) {
+        $counts = ['rates' => (int)val('SELECT COUNT(*) FROM rates WHERE event_id = ?', [$ev['id']]), 'products' => (int)val('SELECT COUNT(*) FROM products WHERE event_id = ?', [$ev['id']]),
+            'promos' => (int)val('SELECT COUNT(*) FROM promos WHERE event_id = ? AND batch IS NULL', [$ev['id']]), 'sessions' => (int)val('SELECT COUNT(*) FROM sessions WHERE event_id = ?', [$ev['id']]),
+            'shifts' => (int)val('SELECT COUNT(*) FROM staff_shifts WHERE event_id = ?', [$ev['id']]), 'budget' => (int)val('SELECT COUNT(*) FROM budget_lines WHERE event_id = ?', [$ev['id']]),
+            'tasks' => (int)val('SELECT COUNT(*) FROM tasks WHERE event_id = ?', [$ev['id']]), 'fields' => (int)val('SELECT COUNT(*) FROM form_fields WHERE event_id = ?', [$ev['id']]),
+            'aps' => (int)val('SELECT COUNT(*) FROM access_points WHERE event_id = ?', [$ev['id']])];
+        $suggest = date('Y-m-d\TH:i', strtotime($ev['starts_at'] . (strtotime($ev['starts_at']) < time() ? ' +1 year' : ' +7 days')));
+        return ev_page($ev, 'edit', 'Reprendre l\'événement', 'event_duplicate', compact('counts', 'suggest'));
+    }
+    $start = dt_from_input(input('starts_at'));
+    if (!$start) back(['error' => 'Choisis la date du nouvel événement.']);
+    $delta = strtotime($start) - strtotime($ev['starts_at']);
+    $shift = fn(?string $d) => $d ? date('Y-m-d H:i:s', strtotime($d) + $delta) : null;
+    $shiftDay = fn(?string $d) => $d ? date('Y-m-d', strtotime($d) + $delta) : null;
+    $want = fn(string $k) => in_array($k, (array)($_POST['copy'] ?? []), true);
+    event_limit_check((int)$ev['organizer_id']);
     $copy = $ev;
     unset($copy['id']);
-    $copy['name'] = $ev['name'] . ' (copie)';
-    $copy['slug'] = unique_slug('events', $copy['name']);
+    $copy['name'] = mb_substr(trim((string)input('name')) ?: $ev['name'] . ' (copie)', 0, 190);
+    $copy['slug'] = unique_slug('events', $copy['name'] . ' ' . date('Y', strtotime($start)));
     $copy['status'] = 'draft';
     $copy['created_at'] = now();
+    foreach (['starts_at', 'ends_at', 'publish_at', 'refund_deadline', 'presale_until'] as $f) if (array_key_exists($f, $copy)) $copy[$f] = $shift($copy[$f]);
+    if ($copy['publish_at'] && strtotime($copy['publish_at']) < time()) $copy['publish_at'] = null;
     $newId = insert('events', $copy);
-    $map = [];
-    foreach (all('SELECT * FROM rates WHERE event_id = ?', [$ev['id']]) as $r) { $old = $r['id']; unset($r['id']); $r['event_id'] = $newId; $map[$old] = insert('rates', $r); }
-    foreach (all('SELECT * FROM form_fields WHERE event_id = ?', [$ev['id']]) as $f) { unset($f['id']); $f['event_id'] = $newId; insert('form_fields', $f); }
-    $remap = fn($ids) => $ids ? implode(',', array_filter(array_map(fn($i) => $map[(int)$i] ?? null, explode(',', $ids)))) : null;
-    foreach (all('SELECT * FROM access_points WHERE event_id = ?', [$ev['id']]) as $a) { unset($a['id']); $a['event_id'] = $newId; $a['rate_ids'] = $remap($a['rate_ids']); insert('access_points', $a); }
-    Audit::log('event.created', 'Duplication de « ' . $ev['name'] . ' »', (int)$newId);
-    redirect('/pro/evenements/' . $newId . '/modifier', ['success' => 'Dupliqué ! Tarifs, formulaire et accès copiés. Pense à changer les dates.']);
+    $map = []; $sessMap = []; $done = [];
+    if ($want('sessions')) foreach (all('SELECT * FROM sessions WHERE event_id = ?', [$ev['id']]) as $x) { $old = $x['id']; unset($x['id']); $x['event_id'] = $newId; $x['starts_at'] = $shift($x['starts_at']); $x['ends_at'] = $shift($x['ends_at']); $sessMap[$old] = insert('sessions', $x); }
+    foreach (all('SELECT * FROM rates WHERE event_id = ? ORDER BY id', [$ev['id']]) as $r) {
+        $old = $r['id']; unset($r['id']); $r['event_id'] = $newId; $r['sale_start'] = $shift($r['sale_start']); $r['sale_end'] = $shift($r['sale_end']);
+        $r['session_ids'] = $r['session_ids'] ? (implode(',', array_filter(array_map(fn($i) => $sessMap[(int)$i] ?? null, explode(',', (string)$r['session_ids'])))) ?: null) : null;
+        $map[$old] = insert('rates', $r);
+    }
+    foreach ($map as $old => $nid) { $after = val('SELECT after_rate_id FROM rates WHERE id = ?', [$old]); if ($after) update('rates', ['after_rate_id' => $map[(int)$after] ?? null], 'id = ?', [$nid]); }
+    $remap = fn($ids) => $ids ? (implode(',', array_filter(array_map(fn($i) => $map[(int)$i] ?? null, explode(',', (string)$ids)))) ?: null) : null;
+    if ($want('fields')) foreach (all('SELECT * FROM form_fields WHERE event_id = ?', [$ev['id']]) as $f) { unset($f['id']); $f['event_id'] = $newId; if (array_key_exists('rate_ids', $f)) $f['rate_ids'] = $remap($f['rate_ids']); insert('form_fields', $f); }
+    if ($want('aps')) foreach (all('SELECT * FROM access_points WHERE event_id = ?', [$ev['id']]) as $a) { unset($a['id']); $a['event_id'] = $newId; $a['rate_ids'] = $remap($a['rate_ids']); foreach (['opens', 'closes'] as $k) if (array_key_exists($k, $a)) $a[$k] = $shift($a[$k]); insert('access_points', $a); }
+    if ($want('products')) foreach (all('SELECT * FROM products WHERE event_id = ?', [$ev['id']]) as $p) { unset($p['id']); $p['event_id'] = $newId; insert('products', $p); }
+    if ($want('promos')) foreach (all('SELECT * FROM promos WHERE event_id = ? AND batch IS NULL', [$ev['id']]) as $p) { unset($p['id']); $p['event_id'] = $newId; $p['used'] = 0; $p['valid_from'] = $shift($p['valid_from'] ?? null); $p['valid_until'] = $shift($p['valid_until']); if (array_key_exists('rate_ids', $p)) $p['rate_ids'] = $remap($p['rate_ids']); insert('promos', $p); }
+    if ($want('shifts')) foreach (all('SELECT * FROM staff_shifts WHERE event_id = ?', [$ev['id']]) as $x) { unset($x['id']); $x['event_id'] = $newId; $x['starts_at'] = $shift($x['starts_at']); $x['ends_at'] = $shift($x['ends_at']); $x['created_at'] = now(); insert('staff_shifts', $x); }
+    if ($want('budget')) foreach (all('SELECT * FROM budget_lines WHERE event_id = ?', [$ev['id']]) as $x) { unset($x['id']); $x['event_id'] = $newId; foreach (['actual', 'paid'] as $k) if (array_key_exists($k, $x)) $x[$k] = is_numeric($x[$k]) ? 0 : null; $x['created_at'] = now(); insert('budget_lines', $x); }
+    if ($want('tasks')) foreach (all('SELECT * FROM tasks WHERE event_id = ?', [$ev['id']]) as $x) { unset($x['id']); $x['event_id'] = $newId; $x['due_date'] = $shiftDay($x['due_date']); $x['done_at'] = null; if (array_key_exists('status', $x)) $x['status'] = 'todo'; $x['created_at'] = now(); insert('tasks', $x); }
+    $days = (int)round($delta / 86400);
+    Audit::log('event.created', 'Reprise de « ' . $ev['name'] . ' » (' . ($days >= 0 ? '+' : '') . $days . ' jours)', (int)$newId);
+    redirect('/pro/evenements/' . $newId, ['success' => 'Nouvel événement créé en brouillon, toutes les dates décalées de ' . abs($days) . ' jour' . (abs($days) > 1 ? 's' : '') . '. Vérifie et publie.']);
 }
 
 function event_delete(string $id): never
@@ -228,6 +260,21 @@ function rates(string $id): string
     if (is_post()) {
         $action = (string)input('action');
         $rid = (int)input('rate_id');
+        // 2.2 : actions rapides depuis le tableau des tarifs
+        if ($action === 'toggle') { q('UPDATE rates SET active = 1 - active WHERE id = ? AND event_id = ?', [$rid, $ev['id']]); Audit::log('rate.toggled', 'Tarif #' . $rid, (int)$ev['id']); back(); }
+        if ($action === 'reorder') {
+            foreach (array_values(array_map('intval', (array)($_POST['ids'] ?? []))) as $i => $x) q('UPDATE rates SET sort = ? WHERE id = ? AND event_id = ?', [($i + 1) * 10, $x, $ev['id']]);
+            if (input('ajax')) json_out(['ok' => true]);
+            back(['success' => 'Ordre enregistré.']);
+        }
+        if ($action === 'duplicate') {
+            $r = one('SELECT * FROM rates WHERE id = ? AND event_id = ?', [$rid, $ev['id']]);
+            if (!$r) back();
+            unset($r['id']);
+            $r['name'] = mb_substr($r['name'] . ' (copie)', 0, 190); $r['active'] = 0; $r['sort'] = (int)$r['sort'] + 1;
+            $nid = insert('rates', $r);
+            redirect('/pro/evenements/' . $ev['id'] . '/tarifs?edit=' . $nid . '#editeur', ['success' => 'Tarif dupliqué (en pause) : ajuste-le puis active-le.']);
+        }
         if ($action === 'delete') {
             if (val('SELECT id FROM order_items WHERE rate_id = ? LIMIT 1', [$rid])) back(['error' => 'Ce tarif a déjà été vendu : désactive-le plutôt que de le supprimer.']);
             q('DELETE FROM rates WHERE id = ? AND event_id = ?', [$rid, $ev['id']]);
@@ -259,13 +306,20 @@ function rates(string $id): string
         ];
         if ($data['name'] === '') back(['error' => 'Donne un nom à ce tarif.']);
         if ($data['after_rate_id'] && $rid && (int)val('SELECT after_rate_id FROM rates WHERE id = ?', [$data['after_rate_id']]) === $rid) back(['error' => 'Ces deux tarifs s\'attendent l\'un l\'autre : choisis un seul sens.']);
+        if (!$rid && !(int)input('sort')) $data['sort'] = (int)val('SELECT COALESCE(MAX(sort), 0) + 10 FROM rates WHERE event_id = ?', [$ev['id']]);
         if ($rid) update('rates', $data, 'id = ? AND event_id = ?', [$rid, $ev['id']]);
-        else insert('rates', $data + ['event_id' => $ev['id']]);
+        else $rid = insert('rates', $data + ['event_id' => $ev['id']]);
         Audit::log('rate.saved', (string)input('name'), (int)$ev['id']);
-        back(['success' => 'Tarif enregistré.']);
+        redirect('/pro/evenements/' . $ev['id'] . '/tarifs', ['success' => 'Tarif « ' . $data['name'] . ' » enregistré.']);
     }
     $org = current_org();
-    $rates = all('SELECT r.*, (SELECT COUNT(*) FROM tickets t WHERE t.rate_id = r.id AND t.status = \'valid\') sold FROM rates r WHERE event_id = ? ORDER BY sort, id', [$ev['id']]);
+    $rates = all("SELECT r.*, (SELECT COUNT(*) FROM tickets t WHERE t.rate_id = r.id AND t.status = 'valid') sold,
+        (SELECT COUNT(*) FROM tickets t WHERE t.rate_id = r.id AND t.status = 'valid' AND t.created_at >= NOW() - INTERVAL 7 DAY) sold7,
+        (SELECT COUNT(*) FROM tickets t WHERE t.rate_id = r.id AND t.status = 'valid' AND t.entries > 0) inside,
+        (SELECT COALESCE(SUM(i.qty * i.unit_price), 0) FROM order_items i JOIN orders o ON o.id = i.order_id WHERE i.rate_id = r.id AND i.kind = 'rate' AND o.status = 'paid') revenue
+        FROM rates r WHERE event_id = ? ORDER BY sort, id", [$ev['id']]);
+    foreach ($rates as &$r) $r['state'] = Tickets::onSale($r, $ev);
+    unset($r);
     $sessions = Tickets::sessions((int)$ev['id'], false);
     $map = Seating::map($ev);
     return ev_page($ev, 'rates', 'Tarifs', 'rates', ['rates' => $rates, 'org' => $org, 'sessions' => $sessions, 'seatCats' => $map['categories'] ?? []]);
@@ -424,6 +478,7 @@ function attendees(string $id): string
 // ---------- Guichet & invitations ----------
 function box_office(string $id): string
 {
+    require_module('guichet');
     $org = require_org();
     $ev = org_event((int)$id);
     $rates = all('SELECT * FROM rates WHERE event_id = ? ORDER BY sort, id', [$ev['id']]);
@@ -489,7 +544,26 @@ function live_control(string $id): string
                   LEFT JOIN tickets t ON t.id = s.ticket_id LEFT JOIN access_points a ON a.id = s.access_point_id LEFT JOIN users u ON u.id = s.user_id
                   WHERE s.event_id = ? ORDER BY s.scanned_at DESC, s.id DESC LIMIT 40", [$ev['id']]);
     $perHour = all("SELECT DATE_FORMAT(scanned_at, '%H:00') h, COUNT(*) n FROM scans WHERE event_id = ? AND result = 'ok' AND undone = 0 AND scanned_at >= NOW() - INTERVAL 12 HOUR GROUP BY h ORDER BY MIN(scanned_at)", [$ev['id']]);
-    return ev_page($ev, 'live', 'Contrôle en direct', 'live_control', compact('stats', 'aps', 'scans', 'perHour', 'devices', 'messages'));
+    // 2.2 : lecture des arrivées
+    $flow = [];
+    $flow['last15'] = (int)val("SELECT COUNT(*) FROM scans WHERE event_id = ? AND result = 'ok' AND undone = 0 AND scanned_at >= NOW() - INTERVAL 15 MINUTE", [$ev['id']]);
+    $flow['rate'] = $flow['last15'] / 15;
+    $flow['remaining'] = max(0, (int)$stats['sold'] - (int)$stats['checked']);
+    $flow['eta'] = $flow['rate'] > 0 ? time() + (int)round($flow['remaining'] / $flow['rate'] * 60) : null;
+    $flow['started'] = strtotime($ev['starts_at']) < time();
+    $flow['noshow'] = $flow['started'] && strtotime($ev['starts_at']) < time() - 3600 && $stats['sold'] ? round($flow['remaining'] / (int)$stats['sold'] * 100) : null;
+    $tot = one("SELECT COUNT(*) n, SUM(result NOT IN ('ok','exit')) refused FROM scans WHERE event_id = ? AND undone = 0", [$ev['id']]);
+    $flow['refuse_rate'] = (int)$tot['n'] ? round((int)$tot['refused'] / (int)$tot['n'] * 100, 1) : 0;
+    $flow['reasons'] = all("SELECT result, COUNT(*) n FROM scans WHERE event_id = ? AND result NOT IN ('ok','exit') AND undone = 0 GROUP BY result ORDER BY n DESC LIMIT 4", [$ev['id']]);
+    $flow['peak'] = one("SELECT DATE_FORMAT(MIN(scanned_at), '%H:%i') h, COUNT(*) n FROM scans WHERE event_id = ? AND result = 'ok' AND undone = 0 GROUP BY FLOOR(UNIX_TIMESTAMP(scanned_at) / 900) ORDER BY n DESC LIMIT 1", [$ev['id']]);
+    $flow['doors'] = all("SELECT a.name, SUM(s.result = 'ok' AND s.undone = 0 AND s.scanned_at >= NOW() - INTERVAL 15 MINUTE) n15 FROM access_points a LEFT JOIN scans s ON s.access_point_id = a.id WHERE a.event_id = ? GROUP BY a.id ORDER BY a.id", [$ev['id']]);
+    $q = []; $from = strtotime(date('Y-m-d H:00:00', time() - 5 * 3600));
+    for ($t = $from; $t <= time(); $t += 900) $q[date('H:i', $t)] = [0, 0];
+    foreach (all("SELECT FLOOR(UNIX_TIMESTAMP(scanned_at) / 900) * 900 b, SUM(result = 'ok') i, SUM(result = 'exit') x FROM scans WHERE event_id = ? AND undone = 0 AND scanned_at >= ? GROUP BY b", [$ev['id'], date('Y-m-d H:i:s', $from)]) as $r) {
+        $k = date('H:i', (int)$r['b']); if (isset($q[$k])) $q[$k] = [(int)$r['i'], (int)$r['x']];
+    }
+    $flow['quarters'] = $q;
+    return ev_page($ev, 'live', 'Contrôle en direct', 'live_control', compact('stats', 'aps', 'scans', 'perHour', 'devices', 'messages', 'flow'));
 }
 
 // Commandes : voir app/controllers/orders.php
@@ -599,7 +673,9 @@ function finances(): string
         foreach ($o['vat'] as $k => $v) { if ($k === 'don') continue; $vatMonths[$m][$k]['ttc'] = ($vatMonths[$m][$k]['ttc'] ?? 0) + $v['ttc']; $vatMonths[$m][$k]['vat'] = ($vatMonths[$m][$k]['vat'] ?? 0) + $v['vat']; $vatMonths[$m][$k]['ht'] = ($vatMonths[$m][$k]['ht'] ?? 0) + $v['ht']; }
     }
     krsort($vatMonths);
-    return pro_page('Finances', 'finances', compact('org', 'balance', 'payouts', 'byEvent', 'demo', 'pct', 'fixed', 'invoices', 'vatMonths'), 'finances');
+    $terms = Billing::terms($org);
+    $charges = all('SELECT * FROM org_charges WHERE organizer_id = ? ORDER BY created_at DESC LIMIT 100', [$org['id']]);
+    return pro_page('Finances', 'finances', compact('org', 'balance', 'payouts', 'byEvent', 'demo', 'pct', 'fixed', 'invoices', 'vatMonths', 'terms', 'charges'), 'finances');
 }
 
 /** Export comptable : détail des ventes (CSV) ou écritures au format FEC. */
@@ -647,4 +723,22 @@ function finances_export(): never
         provider_label($o['provider'] ?: $o['pay_method']), $k === 'don' ? 'Don' : ($k === 'none' ? 'Non assujetti' : Vat::label((float)$k)), $amt($v['ht']), $amt($v['vat']), $amt($v['ttc']),
         $o['fee_mode'] === 'buyer' ? $amt((int)$o['fees']) : '0,00', $amt((int)$o['commission']), $amt((int)$o['refunded_amount']), $o['status'] === 'paid' ? 'Payée' : 'Remboursée'];
     csv_download('ventes-' . $from . '-' . $to . '.csv', $rows);
+}
+
+/** 2.2 : module réservé à certaines formules → page explicative au lieu de l'écran. */
+function require_module(string $key): void
+{
+    $org = current_org();
+    if (!$org || !class_exists('Billing') || Billing::allows($org, $key)) return;
+    $plan = Billing::plan($org);
+    echo pro_page(Billing::MODULES[$key] ?? 'Module', 'upsell', ['key' => $key, 'plan' => $plan, 'plans' => Billing::plansWith($key)], $key);
+    exit;
+}
+
+/** 2.2 : limite d'événements actifs par organisateur (Super-admin › Réglages › Plateforme). */
+function event_limit_check(int $orgId): void
+{
+    $max = (int)setting('max_events', '0');
+    if ($max > 0 && !is_super() && (int)val("SELECT COUNT(*) FROM events WHERE organizer_id = ? AND COALESCE(ends_at, starts_at) >= NOW()", [$orgId]) >= $max)
+        back(['error' => 'Tu as atteint la limite de ' . $max . ' événements à venir. Écris-nous depuis « Aide & support » pour l\'augmenter.']);
 }

@@ -8,6 +8,7 @@ require_once APP . '/controllers/pro.php';
 function campaigns_index(): string
 {
     $org = require_org();
+    require_module('campagnes');
     $oid = (int)$org['id'];
     $list = all('SELECT c.*, u.name author FROM campaigns c LEFT JOIN users u ON u.id = c.created_by WHERE c.organizer_id = ? ORDER BY COALESCE(c.sent_at, c.scheduled_at, c.updated_at, c.created_at) DESC LIMIT 200', [$oid]);
     foreach ($list as &$c) $c['stats'] = in_array($c['status'], ['sending', 'sent'], true) ? Campaigns::stats($c) : null;
@@ -28,6 +29,7 @@ function campaigns_index(): string
 
 function campaign_new(): never
 {
+    require_module('campagnes');
     $org = require_org();
     $upcoming = all("SELECT id, name FROM events WHERE organizer_id = ? AND starts_at >= NOW() ORDER BY starts_at LIMIT 10", [$org['id']]);
     $tpl = Campaigns::templates($upcoming)[(string)input('modele')] ?? Campaigns::templates($upcoming)['vide'];
@@ -59,6 +61,7 @@ function campaign_payload(): array
 
 function campaign_edit(string $id): string
 {
+    require_module('campagnes');
     $org = require_org();
     $c = Campaigns::get((int)$org['id'], (int)$id);
     if (!$c) abort(404);

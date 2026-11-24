@@ -71,6 +71,14 @@
     });
   });
 
+  // Copier le contenu d'un champ (dossier de preuves, etc.)
+  document.querySelectorAll('[data-copy-from]').forEach(function (b) {
+    b.addEventListener('click', function () {
+      var src = document.querySelector(b.dataset.copyFrom); if (!src) return;
+      navigator.clipboard.writeText(src.value || src.textContent).then(function () { var t = b.textContent; b.textContent = 'Copié'; setTimeout(function () { b.textContent = t; }, 1500); });
+    });
+  });
+
   // Partage natif (téléphone) ; sinon copie du lien
   document.querySelectorAll('[data-share]').forEach(function (b) {
     if (!navigator.share && !navigator.clipboard) { b.hidden = true; return; }

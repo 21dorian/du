@@ -85,6 +85,7 @@ function products_tab(string $id): string
 // ---------- Plan de salle ----------
 function seating_tab(string $id): string
 {
+    require_module('placement');
     require_org();
     $ev = org_event((int)$id);
     if (is_post()) {
@@ -396,6 +397,7 @@ function control_list_pdf(string $id): never
 // ---------- Caisse (guichet) : journal et clôture ----------
 function cash_tab(string $id): string
 {
+    require_module('guichet');
     require_org();
     $ev = org_event((int)$id);
     $from = dt_from_input(input('from')) ?: ((string)val('SELECT MAX(period_end) FROM cash_closures WHERE event_id = ?', [$ev['id']]) ?: date('Y-m-d 00:00:00'));

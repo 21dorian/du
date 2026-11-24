@@ -63,14 +63,14 @@ if ($area === 'admin') {
         ['Organisateurs', [
             ['orgs', '/admin/organisateurs', 'Organisateurs', $I['orgs']],
             ['kyc', '/admin/kyc', 'Vérification KYC', $I['kyc']],
-            $soonA('contrats', 'Contrats & tarifs', 'handshake'),
+            ['contrats', '/admin/contrats', 'Contrats & tarifs', $I['handshake']],
             $soonA('prospection', 'Prospection', 'crm'),
-            $soonA('formules', 'Formules & abonnements', 'card'),
+            ['formules', '/admin/formules', 'Formules', $I['card']],
         ]],
         ['Argent', [
             ['orders', '/admin/commandes', 'Commandes', $I['orders']],
             ['payouts', '/admin/reversements', 'Reversements', $I['money']],
-            $soonA('litiges', 'Litiges & impayés', 'alert'),
+            ['litiges', '/admin/litiges', 'Litiges & impayés', $I['alert']],
             ['factures-commission', '/admin/factures', 'Factures de commission', $I['invoice']],
             $soonA('fraude', 'Fraude & risques', 'shield'),
             $soonA('revendeurs', 'Revendeurs', 'bag'),
@@ -78,12 +78,12 @@ if ($area === 'admin') {
         ['Plateforme', [
             ['users', '/admin/utilisateurs', 'Utilisateurs', $I['user']],
             ['modules', '/admin/modules', 'Feuille de route', $I['apps']],
-            $soonA('support', 'Support', 'help'),
+            ['support', '/admin/support', 'Support', $I['help']],
             $soonA('contenus', 'Accueil & contenus', 'pages'),
             $soonA('emails-modeles', 'Modèles d\'e-mails', 'mail'),
             $soonA('marque-blanche', 'Marque blanche', 'brush'),
             $soonA('langues', 'Langues', 'lang'),
-            $soonA('rgpd', 'Demandes RGPD', 'doc'),
+            ['rgpd', '/admin/rgpd', 'Données personnelles', $I['doc']],
         ]],
         ['Technique', [
             ['health', '/admin/sante', 'Santé', $I['health']],
@@ -93,6 +93,11 @@ if ($area === 'admin') {
             ['settings', '/admin/reglages', 'Réglages', $I['settings']],
         ]],
     ];
+    if (class_exists('Security') && !empty($u['admin_perms'])) {
+        foreach ($navGroups as &$g) $g[1] = array_values(array_filter($g[1], fn($n) => !empty($n[4]) ? false : Security::allowed($u, Security::areaFor($n[1]))));
+        unset($g);
+        $navGroups = array_values(array_filter($navGroups, fn($g) => $g[1]));
+    }
 } else {
     $soonP = fn(string $k, string $label, string $ic) => [$k, '/pro/bientot/' . $k, $label, $I[$ic], true];
     $navGroups = [
@@ -138,8 +143,16 @@ if ($area === 'admin') {
             ['org', '/pro/organisation', 'Réglages', $I['org']],
             ['kyc', '/pro/verification', 'Vérification du compte', $I['kyc']],
             $soonP('zapier', 'Intégrations', 'plug'),
+            ['aide', '/pro/aide', 'Aide & support', $I['help']],
         ]],
     ];
+    // 2.2 : cadenas sur les modules hors formule
+    $curOrg = current_org();
+    if ($curOrg && class_exists('Billing')) {
+        $modMap = ['boutique' => 'boutique', 'abonnements' => 'abonnements', 'cartes-cadeaux' => 'cartes-cadeaux', 'campagnes' => 'campagnes', 'sms' => 'sms', 'liens' => 'liens', 'staff' => 'benevoles', 'controle-pro' => 'pc'];
+        foreach ($navGroups as &$g) foreach ($g[1] as &$n) if (isset($modMap[$n[0]]) && empty($n[4]) && !Billing::allows($curOrg, $modMap[$n[0]])) $n[5] = true;
+        unset($g, $n);
+    }
     if ($u['role'] === 'manager') foreach ($navGroups as &$g) $g[1] = array_values(array_filter($g[1], fn($n) => !in_array($n[0], ['team', 'org', 'finances', 'audit', 'factures', 'zapier', 'kyc'], true)));
     unset($g);
 }
@@ -170,13 +183,13 @@ $pname = (string)setting('platform_name');
       $hasOn = (bool)array_filter($items, fn($it) => $it[0] === $active); $nSoon = count(array_filter($items, fn($it) => !empty($it[4]))); ?>
       <?php if ($gt === ''): ?>
         <?php foreach ($items as $it): [$key, $href, $label, $ic] = $it; $soon = !empty($it[4]); ?>
-          <a href="<?= url($href) ?>" class="<?= $key === $active ? 'on' : '' ?><?= $soon ? ' soon' : '' ?>"><?= $icon($ic) ?><span class="grow"><?= e($label) ?></span><?= $soon ? '<span class="soon-pill dev">dév</span>' : '' ?></a>
+          <a href="<?= url($href) ?>" class="<?= $key === $active ? 'on' : '' ?><?= $soon ? ' soon' : '' ?>"><?= $icon($ic) ?><span class="grow"><?= e($label) ?></span><?= $soon ? '<span class="soon-pill dev">dév</span>' : '' ?><?= !empty($it[5]) ? '<span class="nav-lock" title="Pas dans ta formule">' . ui_icon('lock', 13) . '</span>' : '' ?></a>
         <?php endforeach; ?>
       <?php else: ?>
         <details class="side-sec" data-sec="<?= e($area . '-' . $gi) ?>" open<?= $hasOn ? ' data-has-on' : '' ?>>
           <summary class="side-group"><span class="grow"><?= e($gt) ?></span><?= $nSoon === count($items) ? '<span class="sec-soon">en dév.</span>' : '' ?><i aria-hidden="true">▾</i></summary>
           <?php foreach ($items as $it): [$key, $href, $label, $ic] = $it; $soon = !empty($it[4]); ?>
-            <a href="<?= url($href) ?>" class="<?= $key === $active ? 'on' : '' ?><?= $soon ? ' soon' : '' ?>" <?= $soon ? 'title="En développement : bientôt disponible"' : '' ?>><?= $icon($ic) ?><span class="grow"><?= e($label) ?></span><?= $soon ? '<span class="soon-pill dev">dév</span>' : '' ?></a>
+            <a href="<?= url($href) ?>" class="<?= $key === $active ? 'on' : '' ?><?= $soon ? ' soon' : '' ?>" <?= $soon ? 'title="En développement : bientôt disponible"' : '' ?>><?= $icon($ic) ?><span class="grow"><?= e($label) ?></span><?= $soon ? '<span class="soon-pill dev">dév</span>' : '' ?><?= !empty($it[5]) ? '<span class="nav-lock" title="Pas dans ta formule">' . ui_icon('lock', 13) . '</span>' : '' ?></a>
           <?php endforeach; ?>
         </details>
       <?php endif; ?>

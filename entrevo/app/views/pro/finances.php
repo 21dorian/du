@@ -23,9 +23,23 @@
     <?php foreach ($payouts as $p): ?><div class="list-item"><span class="grow"><b><?= e(money((int)$p['amount'])) ?></b><br><small><?= e(short_date($p['created_at'])) ?><?= $p['reference'] ? ' · ' . e($p['reference']) : '' ?></small></span></div><?php endforeach; ?>
     <?php if (!$payouts): ?><p class="muted">Aucun reversement pour l'instant.</p><?php endif; ?>
     <p class="muted" style="font-size:14px">Les reversements sont faits par virement par la plateforme.</p>
+    <div class="terms-box">
+      <div class="row between"><b>Tes conditions</b><?= $terms['plan'] ? '<span class="badge grey">Formule ' . e($terms['plan']['name']) . '</span>' : '' ?></div>
+      <p class="mb0"><?= e(rtrim(rtrim(number_format($terms['pct'], 2, ',', ''), '0'), ',')) ?> % + <?= e(money($terms['fixed'])) ?> par billet<?= $terms['cap'] !== null ? ', au plus ' . e(money($terms['cap'])) . ' par billet' : '' ?>
+        <?php if ($terms['contract']): ?><br><small class="muted">Contrat « <?= e($terms['contract']['label']) ?> »<?= $terms['contract']['ends_on'] ? ' jusqu\'au ' . e(date('d/m/Y', strtotime($terms['contract']['ends_on']))) : '' ?><?= $terms['contract']['threshold'] ? ' · ' . e(rtrim(rtrim(number_format((float)$terms['contract']['fee_percent_after'], 2, ',', ''), '0'), ',')) . ' % au-delà de ' . e(money((int)$terms['contract']['threshold'])) . ' de ventes' : '' ?></small><?php endif; ?>
+        <?php if ($terms['plan'] && (int)$terms['plan']['monthly_price']): ?><br><small class="muted">Abonnement : <?= e(money((int)$terms['plan']['monthly_price'])) ?> par mois, retenu sur tes reversements</small><?php endif; ?></p>
+    </div>
     <form method="get" action="<?= url('/pro/finances/releve') ?>" target="_blank" class="row" style="flex-wrap:nowrap;gap:0"><input type="month" name="mois" value="<?= date('Y-m', strtotime('first day of last month')) ?>"><button class="btn btn-sm">Relevé PDF</button></form>
   </div>
 </div>
+<?php if ($charges): ?>
+<div class="card table-card mt">
+  <div class="card-head"><h2>Retenues sur reversements</h2><small class="muted">Total : <?= e(money((int)$balance['charges'])) ?></small></div>
+  <div class="table-wrap"><table class="table"><thead><tr><th>Date</th><th>Nature</th><th>Détail</th><th class="num">Montant</th></tr></thead><tbody>
+  <?php foreach ($charges as $c): ?><tr><td class="nowrap"><small><?= e(short_date($c['created_at'])) ?></small></td><td><span class="badge grey"><?= e(Billing::CHARGE_KINDS[$c['kind']] ?? $c['kind']) ?></span></td><td><?= e($c['label']) ?></td><td class="num"><?= (int)$c['amount'] < 0 ? '+' . e(money(-(int)$c['amount'])) : '−' . e(money((int)$c['amount'])) ?></td></tr><?php endforeach; ?>
+  </tbody></table></div>
+</div>
+<?php endif; ?>
 <div class="split mt">
   <div class="card">
     <div class="card-head"><h2>Factures de commission</h2><small class="muted">Émises par <?= e(setting('platform_name')) ?> chaque mois</small></div>
