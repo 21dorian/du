@@ -79,6 +79,34 @@ Couleurs : **vert** = entre, **orange** = déjà entré / pas entré (sortie), *
 
 ---
 
+## Nouveautés 2.2 — un super-admin complet, une gestion plus profonde
+
+**Super-admin**
+- **Formules** : offres pour les organisateurs (commission, plafond par billet, abonnement mensuel, prix des SMS, modules inclus). Un module hors formule affiche « non inclus dans ta formule » avec un bouton pour le demander. Formule par défaut, revenu mensuel récurrent.
+- **Contrats & tarifs** : conditions négociées par organisateur, avec dates, contrat signé en PDF et **palier automatique** (commission réduite au-delà d'un volume de ventes). Ordre d'application : contrat, puis réglage particulier, puis formule, puis réglage global.
+- **Retenues sur reversements** : abonnements, coût des SMS, litiges perdus et ajustements manuels (ou avoirs) sont déduits automatiquement du solde à reverser ; l'organisateur les voit dans Finances.
+- **Litiges & impayés** : contestations de paiement suivies avec échéance, **dossier de preuves pré-rempli** (billets envoyés, scans à l'entrée), organisateur prévenu, retenue appliquée si le litige est perdu et annulée s'il est gagné. Les litiges Stripe arrivent tout seuls (vérifiés auprès de Stripe).
+- **Support** : vraie page Contact, suivi de la demande par lien, espace « Aide & support » pour les organisateurs, file de traitement avec priorités, prise en charge, notes internes, réponses enregistrées, contexte (commandes de la personne, demandes précédentes).
+- **Données personnelles (RGPD)** : formulaire public avec confirmation par e-mail, délai d'un mois suivi, inventaire de tout ce que la plateforme sait d'une personne, copie envoyée en JSON, opposition (plus d'e-mails ni de SMS), anonymisation. Conservation limitée réglable (anonymisation automatique des acheteurs après N ans).
+- **Fiche organisateur 360** : ventes et commission sur 12 mois, conditions appliquées et leur origine, formule, contrats, reversements, retenues, factures, équipe, connexions, journal, support, litiges, message direct.
+- **Commandes** : filtres (statut, paiement, organisateur, dates, montant), totaux, export CSV, fiche détaillée avec historique, renvoi des billets, remboursement total ou partiel, et **geste commercial pris sur la commission**.
+- **Utilisateurs & sécurité** : **double authentification** (application type Google Authenticator), journal des connexions, verrouillage après échecs, appareils connectés déconnectables à distance, membres de l'équipe plateforme **à accès limité** (support seulement, argent seulement…).
+- **Réglages** : nouveaux onglets Apparence (logo), Plateforme (**mode maintenance** qui laisse fonctionner le scan, limites, modules coupés pour tous) et Sécurité (2FA obligatoire pour l'équipe, verrouillage).
+
+**Gestion d'événement**
+- Les 23 onglets d'un événement sont rangés en 7 rubriques (Vendre, Communiquer, Participants, Organiser, Jour J…).
+- **Tarifs** : tableau de pilotage (statut réel : en vente, programmé, palier suivant, complet, en pause ; ventes, recettes, entrés), pause en un clic, duplication, ordre par glisser-déposer, alerte si les quotas ne couvrent pas la jauge.
+- **Reprendre un événement** pour une nouvelle édition : tout est recopié en brouillon avec les dates décalées (ventes, early bird, codes promo, créneaux bénévoles, tâches, budget).
+- **Prévision de remplissage** au jour J, d'après tes éditions passées ou le rythme actuel, avec le nombre de ventes par jour nécessaire pour remplir.
+
+**Jour J**
+- Contrôle en direct : débit par minute et par porte, heure estimée de fin de file, pic d'affluence, taux et motifs de refus, absents, graphique entrées / sorties par quart d'heure.
+- Guichet : total à encaisser et **rendu de monnaie** (billets rapides 5 € à 100 €).
+
+**Corrections**
+- La création d'un nouvel événement plantait depuis la 1.9 : corrigé.
+- Appli de scan et PC sécurité de nouveau lisibles (thème sombre), boutons du bandeau d'événement visibles, notifications lisibles.
+
 ## Nouveautés 2.1 — vendre au-delà des billets
 
 **Cartes cadeaux** (Vendre plus › Cartes cadeaux)
