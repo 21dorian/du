@@ -22,6 +22,7 @@
     <?php if ($o['discount']): ?><div class="summary-line" style="color:var(--green)"><span>Réduction</span><span>−<?= e(money((int)$o['discount'])) ?></span></div><?php endif; ?>
     <?php if ($o['fee_mode'] === 'buyer' && $o['fees']): ?><div class="summary-line"><span>Frais de service</span><span><?= e(money((int)$o['fees'])) ?></span></div><?php endif; ?>
     <div class="summary-line total"><span>Total</span><span><?= e(money((int)$o['total'])) ?></span></div>
-    <small>⏱️ Places gardées pour toi jusqu'à <?= e(date('H\hi', strtotime($o['expires_at']))) ?>.</small>
+    <div class="dw-timer" data-expires="<?= e(date('c', strtotime((string)$o['expires_at']))) ?>">⏱️ Places gardées <b data-left><?= e(date('H\hi', strtotime($o['expires_at']))) ?></b></div>
+    <script>(function(){var el=document.querySelector('[data-expires]'),end=new Date(el.dataset.expires).getTime(),b=el.querySelector('[data-left]');var t=function(){var s=Math.max(0,Math.round((end-Date.now())/1000));b.textContent=Math.floor(s/60)+':'+String(s%60).padStart(2,'0');el.classList.toggle('hurry',s<120);};t();setInterval(t,1000);})();</script>
   </aside>
 </div>

@@ -1,23 +1,5 @@
 <?php
-$input = function (array $f, string $name, string $val) {
-    $req = $f['required'] ? ' required' : '';
-    $id = 'x' . md5($name);
-    $h = '<div class="field"><label for="' . $id . '">' . e($f['label']) . ($f['required'] ? ' *' : '') . '</label>';
-    switch ($f['type']) {
-        case 'textarea': $h .= '<textarea id="' . $id . '" name="' . e($name) . '"' . $req . '>' . e($val) . '</textarea>'; break;
-        case 'select':
-            $h .= '<select id="' . $id . '" name="' . e($name) . '"' . $req . '><option value="">— Choisir —</option>';
-            foreach (field_options($f) as $o) $h .= '<option' . ($o === $val ? ' selected' : '') . '>' . e($o) . '</option>';
-            $h .= '</select>'; break;
-        case 'checkbox':
-            $h = '<div class="field"><label class="check"><input type="checkbox" name="' . e($name) . '" value="1"' . ($val ? ' checked' : '') . $req . '> ' . e($f['label']) . ($f['required'] ? ' *' : '') . '</label>'; break;
-        default:
-            $type = ['date' => 'date', 'email' => 'email', 'phone' => 'tel', 'number' => 'number'][$f['type']] ?? 'text';
-            $h .= '<input type="' . $type . '" id="' . $id . '" name="' . e($name) . '" value="' . e($val) . '"' . $req . '>';
-    }
-    return $h . '</div>';
-};
-?>
+$input = 'custom_field_html';?>
 <div class="steps"><span class="done">Billets</span><span class="on">Informations</span><span>Paiement</span><span>Confirmation</span></div>
 <div class="checkout">
   <form method="post" id="checkout"><?= csrf_field() ?>
@@ -39,7 +21,7 @@ $input = function (array $f, string $name, string $val) {
 
     <div class="card">
       <div class="card-head"><h2>Qui vient ? 👯</h2><button type="button" class="btn btn-sm btn-light" id="copy-buyer">C'est moi !</button></div>
-      <p class="muted mb0">Un nom par billet. Pas de « Batman », merci. 🦇</p>
+      <p class="muted mb0">Facultatif : laisse vide et les billets seront à ton nom, tu pourras les renommer après l'achat. 🦇</p>
       <?php foreach ($sum['lines'] as $l): if ($l['kind'] !== 'rate') continue;
           $tf = array_values(array_filter($ticketFields, fn($f) => !$f['only'] || in_array($l['rate_id'], $f['only'], true)));
           $n = $l['qty'] * $l['pack'];
@@ -47,8 +29,8 @@ $input = function (array $f, string $name, string $val) {
         <div class="holder">
           <div class="holder-title"><span>🎟️ <?= e($l['name']) ?><?= $n > 1 ? ' n°' . ($i + 1) : '' ?></span><?php if ($seat): ?><span class="ticket-seat">💺 <?= e($seatLabels[$seat] ?? $seat) ?></span><?php endif; ?></div>
           <div class="grid2">
-            <div class="field"><label>Prénom *</label><input name="<?= $p ?>[first_name]" value="<?= e($o['first_name'] ?? '') ?>" required class="h-first"></div>
-            <div class="field"><label>Nom *</label><input name="<?= $p ?>[last_name]" value="<?= e($o['last_name'] ?? '') ?>" required class="h-last"></div>
+            <div class="field"><label>Prénom</label><input name="<?= $p ?>[first_name]" value="<?= e($o['first_name'] ?? '') ?>" class="h-first"></div>
+            <div class="field"><label>Nom</label><input name="<?= $p ?>[last_name]" value="<?= e($o['last_name'] ?? '') ?>" class="h-last"></div>
           </div>
           <?php foreach ($tf as $f) echo $input($f, $p . '[f][' . $f['id'] . ']', (string)($o['f'][$f['id']] ?? '')); ?>
         </div>

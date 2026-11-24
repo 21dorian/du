@@ -1,5 +1,6 @@
 <?php
 $anyOnSale = (bool)array_filter($rates, fn($r) => $r['sale']['ok']);
+$useDrawer = !$seatmap && $anyOnSale && empty($cart['partner']);
 $hasCodes = (bool)val('SELECT COUNT(*) FROM promos WHERE event_id = ? AND active = 1', [$ev['id']]);
 $addr = trim($ev['venue'] . ' ' . $ev['address'] . ' ' . $ev['city']);
 $base = '/e/' . $ev['slug'];
@@ -38,7 +39,7 @@ $fromPrice = $onSalePrices ? min($onSalePrices) : null;
       <div class="fact"><dt>Par</dt><dd><a href="<?= url('/o/' . $org['slug']) ?>"><?= e($org['name']) ?></a></dd></div>
     </dl>
     <?php if (!empty($ev['volunteer_recruit'])): ?><a class="vol-cta" href="<?= url('/e/' . $ev['slug'] . '/benevoles') ?>">🙋 On cherche des bénévoles : rejoins l'équipe →</a><?php endif; ?>
-    <a class="btn btn-lg" href="#billets"><?= $sessions && !$session ? 'Choisir ma date 📅' : 'Je réserve 🎟️' ?></a>
+    <a class="btn btn-lg" href="#billets" <?= $useDrawer ? 'data-dw-open' : '' ?>><?= $sessions && !$session ? 'Choisir ma date 📅' : 'Je réserve 🎟️' ?></a>
     <div class="ev-actions"><?= pub_soon('favoris', '❤️ Favori') ?><?= pub_soon('agenda', '📅 Agenda') ?><?= pub_soon('inviter-amis', '👥 Inviter des amis') ?><?= pub_soon('covoiturage', '🚗 Covoiturage') ?></div>
   </div>
 </div>
@@ -71,6 +72,15 @@ $fromPrice = $onSalePrices ? min($onSalePrices) : null;
   </div>
 
   <aside class="buy-box" id="billets">
+    <?php if ($useDrawer): $onSale = array_values(array_filter($rates, fn($r) => $r['sale']['ok'])); ?>
+      <div class="buy-launch" hidden>
+        <div class="bl-top"><span class="bl-eyebrow">🎟️ Billetterie ouverte</span><b><?= $fromPrice === 0 ? 'Gratuit' : 'Dès ' . e(money((int)$fromPrice)) ?></b><?php if ($session): ?><small><?= e(fr_date($session['starts_at'])) ?></small><?php endif; ?></div>
+        <ul class="bl-rates"><?php foreach (array_slice($onSale, 0, 4) as $r): ?><li><span><?= e($r['name']) ?></span><b><?= $r['price_mode'] === 'free' ? 'Prix libre' : ((int)$r['price'] ? e(money((int)$r['price'])) : 'Gratuit') ?></b></li><?php endforeach; ?>
+          <?php if (count($onSale) > 4): ?><li class="muted">+ <?= count($onSale) - 4 ?> autre(s) tarif(s)</li><?php endif; ?></ul>
+        <button type="button" class="btn btn-lg btn-block" data-dw-open>Réserver mes billets →</button>
+        <p class="secure-note">🔒 Paiement sécurisé · billets par e-mail · <?= $org['fee_mode'] === 'buyer' ? 'frais affichés avant de payer' : 'prix tout compris' ?></p>
+      </div>
+    <?php endif; ?>
     <?php if ($sessions && !$session): ?>
       <div class="tickets-box"><div class="tickets-box-head"><h2>🎟️ Billets</h2></div><div class="rate"><span class="muted">👈 Choisis d'abord une date dans la liste.</span></div></div>
     <?php else: ?>
@@ -174,9 +184,54 @@ $fromPrice = $onSalePrices ? min($onSalePrices) : null;
 <script src="<?= asset('js/seats.js') ?>"></script>
 <?php endif; ?>
 
+<?php if (!empty($useDrawer)): $buyerPre = $_SESSION['buyer'] ?? null; ?>
+<div class="dw-backdrop" data-dw-close hidden></div>
+<aside class="drawer" id="drawer" hidden aria-label="Réserver mes billets" role="dialog" aria-modal="true"
+  data-cart="<?= url($base . '/tiroir/panier') ?>" data-order="<?= url($base . '/tiroir/commande') ?>" data-link="<?= url('/acheteur/lien') ?>" data-back="<?= e($base . ($session ? '?seance=' . (int)$session['id'] : '')) ?>"
+  data-csrf="<?= e(csrf_token()) ?>" data-buyer="<?= e(json_encode($buyerPre ? array_intersect_key($buyerPre, array_flip(['first_name', 'last_name', 'email', 'phone'])) : null, JSON_UNESCAPED_UNICODE)) ?>">
+  <header class="dw-head">
+    <div class="dw-ev"><?php if ($ev['image']): ?><img src="<?= url($ev['image']) ?>" alt=""><?php endif; ?><div><b><?= e($ev['name']) ?></b><small><?= e(fr_date($session['starts_at'] ?? $ev['starts_at'])) ?></small></div></div>
+    <button type="button" class="dw-x" data-dw-close aria-label="Fermer">✕</button>
+    <ol class="dw-steps"><li data-step="1">Billets</li><li data-step="2">Toi</li><li data-step="3">Récap</li><li data-step="4">Paiement</li></ol>
+  </header>
+  <div class="dw-body">
+    <section class="dw-panel" data-panel="1"><h3 class="dw-h">Choisis tes billets</h3><div data-slot="rates"></div></section>
+    <section class="dw-panel" data-panel="2" hidden>
+      <h3 class="dw-h">C'est pour qui ?</h3>
+      <form id="dw-buyer" novalidate>
+        <div style="position:absolute;left:-9999px" aria-hidden="true"><input name="website" tabindex="-1" autocomplete="off"></div>
+        <div class="dw-quick" data-quick><span>Déjà venu ? </span><button type="button" class="link-btn" data-quick-open>Préremplis tes infos avec un lien par e-mail</button>
+          <div class="dw-quick-form" hidden><input type="email" placeholder="ton@email.fr" data-quick-mail aria-label="E-mail"><button type="button" class="btn btn-sm" data-quick-send>Envoyer le lien</button></div></div>
+        <div class="grid2"><div class="field mb0"><label for="dw-fn">Prénom</label><input id="dw-fn" name="first_name" required autocomplete="given-name"></div>
+          <div class="field mb0"><label for="dw-ln">Nom</label><input id="dw-ln" name="last_name" required autocomplete="family-name"></div></div>
+        <div class="field mb0"><label for="dw-em">E-mail</label><input id="dw-em" type="email" name="email" required autocomplete="email" inputmode="email"><small data-email-hint>Tes billets arriveront ici.</small></div>
+        <div class="field mb0"><label for="dw-ph">Téléphone <small class="muted">(facultatif)</small></label><input id="dw-ph" type="tel" name="phone" autocomplete="tel"></div>
+        <div data-slot="fields"></div>
+        <label class="check dw-remember"><input type="checkbox" data-remember checked> <span>Me reconnaître sur cet appareil la prochaine fois</span></label>
+      </form>
+    </section>
+    <section class="dw-panel" data-panel="3" hidden>
+      <div data-slot="options"></div>
+      <div class="dw-recap" data-slot="recap"></div>
+      <?php if ($hasCodes): ?><div class="dw-code"><input data-code placeholder="Code promo" aria-label="Code promo" autocapitalize="characters"><button type="button" class="btn btn-sm btn-light" data-code-apply>Appliquer</button></div><?php endif; ?>
+      <label class="check"><input type="checkbox" name="optin" value="1" form="dw-buyer"> <span>📬 Recevoir les prochains événements de <b><?= e($org['name']) ?></b> (désinscription en un clic)</span></label>
+      <?php if (setting('cgv')): ?><label class="check"><input type="checkbox" name="cgv" value="1" form="dw-buyer" data-cgv> <span>J'accepte les <a href="<?= url('/cgv') ?>" target="_blank">conditions générales de vente</a></span></label><?php endif; ?>
+    </section>
+    <section class="dw-panel" data-panel="4" hidden><h3 class="dw-h">Dernière étape 💳</h3><div data-slot="pay"></div></section>
+    <div class="dw-errors" data-errors hidden></div>
+  </div>
+  <footer class="dw-foot">
+    <button type="button" class="dw-back" data-dw-back hidden aria-label="Étape précédente">←</button>
+    <div class="dw-total"><small data-count>0 billet</small><b data-total>0,00 €</b></div>
+    <button type="button" class="btn btn-lg dw-next" data-dw-next>Continuer →</button>
+  </footer>
+</aside>
+<script src="<?= asset('js/drawer.js') ?>"></script>
+<?php endif; ?>
+
 <?php if ($anyOnSale || ($sessions && !$session)): ?>
 <div class="buy-sticky" data-buy-sticky hidden>
   <div><b><?= e($ev['name']) ?></b><span><?= $fromPrice === null ? 'Choisis ta date' : ($fromPrice === 0 ? 'Gratuit' : 'Dès ' . e(money($fromPrice))) ?></span></div>
-  <a class="btn" href="#billets"><?= $sessions && !$session ? 'Choisir 📅' : 'Je réserve 🎟️' ?></a>
+  <a class="btn" href="#billets" <?= !empty($useDrawer) ? 'data-dw-open' : '' ?>><?= $sessions && !$session ? 'Choisir 📅' : 'Je réserve 🎟️' ?></a>
 </div>
 <?php endif; ?>

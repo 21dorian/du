@@ -245,56 +245,63 @@ function checkout(string $slug): string
     $old = $_POST + ($waitlist && !is_post() ? ['email' => $waitlist['email'], 'email2' => $waitlist['email'], 'first_name' => $waitlist['first_name'], 'last_name' => $waitlist['last_name']] : []);
 
     if (is_post()) {
-        $buyer = ['email' => trim((string)input('email')), 'first_name' => trim((string)input('first_name')),
-            'last_name' => trim((string)input('last_name')), 'phone' => trim((string)input('phone'))];
-        if ($buyer['first_name'] === '' || $buyer['last_name'] === '') $errors[] = 'On a besoin de ton prénom et de ton nom.';
-        if (!is_email($buyer['email'])) $errors[] = 'Cette adresse e-mail a l\'air bizarre 🤨';
-        if ($buyer['email'] !== trim((string)input('email2'))) $errors[] = 'Les deux e-mails ne sont pas pareils. Petite faute de frappe ?';
-        if (trim((string)input('website')) !== '') $errors[] = 'Requête refusée.'; // piège à robots
-        $orderAnswers = collect_answers($orderFields, (array)($_POST['f'] ?? []), $errors, '');
-        $holders = [];
-        foreach ($sum['lines'] as $l) {
-            if ($l['kind'] !== 'rate') continue;
-            $fieldsForRate = array_values(array_filter($ticketFields, fn($f) => !$f['only'] || in_array($l['rate_id'], $f['only'], true)));
-            for ($i = 0; $i < $l['qty'] * $l['pack']; $i++) {
-                $h = $_POST['h'][$l['rate_id']][$i] ?? [];
-                $label = $l['name'] . ' n°' . ($i + 1);
-                $fn = trim((string)($h['first_name'] ?? ''));
-                $ln = trim((string)($h['last_name'] ?? ''));
-                if ($fn === '' || $ln === '') $errors[] = 'Il manque le nom du participant (' . $label . ').';
-                $holders[$l['rate_id']][$i] = ['first_name' => $fn, 'last_name' => $ln,
-                    'answers' => collect_answers($fieldsForRate, (array)($h['f'] ?? []), $errors, ' (' . $label . ')')];
-            }
-        }
-        if (setting('cgv') && empty($_POST['cgv'])) $errors[] = 'Coche les conditions de vente, on sait que tu les as lues 😉';
-        if (!$errors) {
-            $r = Tickets::createOrder([
-                'event' => $ev, 'org' => $org, 'session' => $session, 'quantities' => $cart['q'], 'prices' => $cart['prices'], 'products' => $cart['products'],
-                'donation' => $cart['donation'], 'seats' => $cart['seats'], 'buyer' => $buyer, 'holders' => $holders, 'order_answers' => $orderAnswers,
-                'promo' => $cart['promo'], 'unlocked' => $cart['unlocked'] ?? [], 'method' => $partner ? 'partner' : 'online', 'partner' => $partner,
-                'waitlist' => $waitlist, 'utm' => $_SESSION['utm'] ?? [], 'channel' => (($_SESSION['utm']['source'] ?? '') === 'widget') ? 'widget' : null,
-            ]);
-            if (!empty($r['errors'])) {
-                $errors = $r['errors'];
-            } else {
-                $o = $r['order'];
-                if (!empty($_POST['optin'])) { update('orders', ['marketing_optin' => 1], 'id = ?', [$o['id']]); q('DELETE FROM email_unsubscribes WHERE organizer_id = ? AND email = ?', [$org['id'], strtolower((string)$o['email'])]); }
-                $_SESSION['orders'][] = $o['ref'];
-                unset($_SESSION['cart'][$ev['id']]);
-                Traffic::hit($ev, 'checkouts');
-                if ((int)$o['total'] === 0) {
-                    update('orders', ['provider' => 'free'], 'id = ?', [$o['id']]);
-                    Tickets::confirm((int)$o['id']);
-                    redirect('/commande/' . $o['ref'] . '?t=' . $o['token']);
-                }
-                redirect('/paiement/' . $o['ref'] . '?t=' . $o['token']);
-            }
-        }
+        $r = place_order($ev, $org, $cart, $session, $sum, $orderFields, $ticketFields, $waitlist, $partner);
+        if ($r['errors']) $errors = $r['errors'];
+        else redirect($r['url']);
     }
     $seatLabels = [];
     if ($map = Seating::map($ev)) foreach ($cart['seats'] as $list) foreach ($list as $k) $seatLabels[$k] = Seating::label($k, $map);
     return pub('checkout', compact('ev', 'org', 'sum', 'orderFields', 'ticketFields', 'errors', 'old', 'session', 'waitlist', 'partner', 'seatLabels'),
         'Tes infos — ' . $ev['name'], ['widget_ok' => true, 'org_tracking' => $org]);
+}
+
+/**
+ * Crée la commande à partir du panier et des infos postées (page « Infos » classique et tiroir d'achat).
+ * Les noms des participants sont facultatifs : à défaut, le billet est au nom de l'acheteur et peut être renommé après l'achat.
+ * @return array{errors: array, order?: array, url?: string}
+ */
+function place_order(array $ev, array $org, array $cart, ?array $session, array $sum, array $orderFields, array $ticketFields, ?array $waitlist, ?array $partner): array
+{
+    $errors = [];
+    $buyer = ['email' => trim((string)input('email')), 'first_name' => trim((string)input('first_name')),
+        'last_name' => trim((string)input('last_name')), 'phone' => trim((string)input('phone'))];
+    if ($buyer['first_name'] === '' || $buyer['last_name'] === '') $errors[] = 'On a besoin de ton prénom et de ton nom.';
+    if (!is_email($buyer['email'])) $errors[] = 'Cette adresse e-mail a l\'air bizarre 🤨';
+    if (isset($_POST['email2']) && $buyer['email'] !== trim((string)input('email2'))) $errors[] = 'Les deux e-mails ne sont pas pareils. Petite faute de frappe ?';
+    if (trim((string)input('website')) !== '') $errors[] = 'Requête refusée.'; // piège à robots
+    $orderAnswers = collect_answers($orderFields, (array)($_POST['f'] ?? []), $errors, '');
+    $holders = [];
+    foreach ($sum['lines'] as $l) {
+        if ($l['kind'] !== 'rate') continue;
+        $fieldsForRate = array_values(array_filter($ticketFields, fn($f) => !$f['only'] || in_array($l['rate_id'], $f['only'], true)));
+        for ($i = 0; $i < $l['qty'] * $l['pack']; $i++) {
+            $h = $_POST['h'][$l['rate_id']][$i] ?? [];
+            $label = $l['name'] . ' n°' . ($i + 1);
+            $holders[$l['rate_id']][$i] = ['first_name' => trim((string)($h['first_name'] ?? '')), 'last_name' => trim((string)($h['last_name'] ?? '')),
+                'answers' => $fieldsForRate ? collect_answers($fieldsForRate, (array)($h['f'] ?? []), $errors, ' (' . $label . ')') : []];
+        }
+    }
+    if (setting('cgv') && empty($_POST['cgv'])) $errors[] = 'Coche les conditions de vente, on sait que tu les as lues 😉';
+    if ($errors) return ['errors' => $errors];
+    $r = Tickets::createOrder([
+        'event' => $ev, 'org' => $org, 'session' => $session, 'quantities' => $cart['q'], 'prices' => $cart['prices'], 'products' => $cart['products'],
+        'donation' => $cart['donation'], 'seats' => $cart['seats'], 'buyer' => $buyer, 'holders' => $holders, 'order_answers' => $orderAnswers,
+        'promo' => $cart['promo'], 'unlocked' => $cart['unlocked'] ?? [], 'method' => $partner ? 'partner' : 'online', 'partner' => $partner,
+        'waitlist' => $waitlist, 'utm' => $_SESSION['utm'] ?? [], 'channel' => (($_SESSION['utm']['source'] ?? '') === 'widget') ? 'widget' : null,
+    ]);
+    if (!empty($r['errors'])) return ['errors' => $r['errors']];
+    $o = $r['order'];
+    if (!empty($_POST['optin'])) { update('orders', ['marketing_optin' => 1], 'id = ?', [$o['id']]); q('DELETE FROM email_unsubscribes WHERE organizer_id = ? AND email = ?', [$org['id'], strtolower((string)$o['email'])]); }
+    $_SESSION['orders'][] = $o['ref'];
+    $_SESSION['buyer'] = $buyer;
+    unset($_SESSION['cart'][$ev['id']]);
+    Traffic::hit($ev, 'checkouts');
+    if ((int)$o['total'] === 0) {
+        update('orders', ['provider' => 'free'], 'id = ?', [$o['id']]);
+        Tickets::confirm((int)$o['id']);
+        return ['errors' => [], 'order' => $o, 'url' => '/commande/' . $o['ref'] . '?t=' . $o['token'], 'free' => true];
+    }
+    return ['errors' => [], 'order' => $o, 'url' => '/paiement/' . $o['ref'] . '?t=' . $o['token'], 'free' => false];
 }
 
 function collect_answers(array $fields, array $input, array &$errors, string $suffix): array

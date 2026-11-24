@@ -79,6 +79,16 @@ Couleurs : **vert** = entre, **orange** = déjà entré / pas entré (sortie), *
 
 ---
 
+## Nouveautés 1.7 ✨ — nouveau parcours d'achat
+
+- **Achat dans un tiroir, sans quitter la page de l'événement** : panneau à droite sur ordinateur, feuille qui monte du bas sur téléphone. 4 étapes claires : **Billets → Toi → Récap → Paiement**, avec le total toujours visible en bas.
+- **Billets façon « ticket »** (encoches, prix en gros, tarif choisi surligné) et une carte « Réserver » sur la page de l'événement.
+- **Noms des participants facultatifs** : les billets sont au nom de l'acheteur par défaut. Après l'achat, le bloc **« Qui vient avec toi ? »** de la page de commande permet de renommer chaque billet (et de se renvoyer les PDF à jour). Les questions marquées obligatoires par l'organisateur restent demandées pendant l'achat.
+- **Minuteur de réservation** : les places sont gardées 20 minutes, compte à rebours visible au paiement (il passe au rouge sur les 2 dernières minutes).
+- **Options en fin de parcours** : produits (t-shirt…), don et code promo sont proposés à l'étape Récap, avec récapitulatif mis à jour en direct.
+- **Connexion rapide** : « Déjà venu ? » envoie un lien par e-mail (valable 30 minutes) qui préremplit les infos ; l'appareil peut aussi s'en souvenir.
+- Les événements avec **plan de salle** gardent l'ancien parcours (choix des places sur le plan).
+
 ## Nouveautés 1.6 ✨
 
 - **Page vitrine « Pour les organisateurs »** (`/organisateurs`, reliée au bouton « Organisateurs » et au pied de page) : promesse, étapes, fonctions incluses, fonctions à venir, tarif avec **simulateur**, questions fréquentes, appel à l'inscription.

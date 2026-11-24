@@ -26,6 +26,22 @@
 
 <?php if ($tickets): $n = count($tickets); $start = $session['starts_at'] ?? $ev['starts_at']; ?>
 <div style="max-width:860px;margin:0 auto">
+  <?php $valid = array_values(array_filter($tickets, fn($t) => $t['status'] === 'valid' && (int)$t['entries'] === 0));
+  $canName = $o['status'] === 'paid' && $valid && strtotime((string)($ev['ends_at'] ?: $ev['starts_at'])) > time();
+  $allBuyer = $canName && count($valid) > 1 && !array_filter($valid, fn($t) => $t['first_name'] !== $o['first_name'] || $t['last_name'] !== $o['last_name']); ?>
+  <?php if ($canName && count($valid) > 1): ?>
+  <details class="card names-box no-print" <?= $allBuyer ? 'open' : '' ?>>
+    <summary><b>👯 Qui vient avec toi ?</b> <span class="muted"><?= $allBuyer ? 'Tes ' . count($valid) . ' billets sont à ton nom : mets le nom de chacun (facultatif).' : 'Modifier les noms sur les billets' ?></span></summary>
+    <form method="post" action="<?= url('/commande/' . $o['ref'] . '/noms', ['t' => $o['token']]) ?>" class="stack" style="margin-top:12px"><?= csrf_field() ?>
+      <?php foreach ($valid as $i => $t): ?>
+        <div class="names-row"><span class="names-label">🎟️ <?= e($t['rate_name']) ?><?= $t['seat'] ? ' · 💺 ' . e(Seating::label($t['seat'], $map)) : '' ?></span>
+          <input name="t[<?= (int)$t['id'] ?>][first_name]" value="<?= e($t['first_name']) ?>" aria-label="Prénom" placeholder="Prénom"><input name="t[<?= (int)$t['id'] ?>][last_name]" value="<?= e($t['last_name']) ?>" aria-label="Nom" placeholder="Nom"></div>
+      <?php endforeach; ?>
+      <label class="check"><input type="checkbox" name="send" value="1" checked> <span>Me renvoyer les billets à jour par e-mail</span></label>
+      <button class="btn btn-sm">Enregistrer les noms</button>
+    </form>
+  </details>
+  <?php endif; ?>
   <div class="tickets-list">
   <?php foreach ($tickets as $i => $t): ?>
     <div class="ticket <?= $t['status'] !== 'valid' ? 'cancelled' : '' ?>">

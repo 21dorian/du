@@ -385,3 +385,25 @@ function pub_soon(string $key, string $label, string $cls = 'soon-chip'): string
 {
     return '<a class="' . e($cls) . '" href="' . e(url('/bientot/' . $key)) . '" title="Bientôt disponible">' . e($label) . ' <span class="soon-tag">bientôt</span></a>';
 }
+
+
+/** Champ du formulaire personnalisé de l'organisateur (page Infos et tiroir d'achat). */
+function custom_field_html(array $f, string $name, string $val): string
+{
+    $req = $f['required'] ? ' required' : '';
+    $id = 'x' . md5($name);
+    $h = '<div class="field"><label for="' . $id . '">' . e($f['label']) . ($f['required'] ? ' *' : '') . '</label>';
+    switch ($f['type']) {
+        case 'textarea': $h .= '<textarea id="' . $id . '" name="' . e($name) . '"' . $req . '>' . e($val) . '</textarea>'; break;
+        case 'select':
+            $h .= '<select id="' . $id . '" name="' . e($name) . '"' . $req . '><option value="">— Choisir —</option>';
+            foreach (field_options($f) as $o) $h .= '<option' . ($o === $val ? ' selected' : '') . '>' . e($o) . '</option>';
+            $h .= '</select>'; break;
+        case 'checkbox':
+            $h = '<div class="field"><label class="check"><input type="checkbox" name="' . e($name) . '" value="1"' . ($val ? ' checked' : '') . $req . '> ' . e($f['label']) . ($f['required'] ? ' *' : '') . '</label>'; break;
+        default:
+            $type = ['date' => 'date', 'email' => 'email', 'phone' => 'tel', 'number' => 'number'][$f['type']] ?? 'text';
+            $h .= '<input type="' . $type . '" id="' . $id . '" name="' . e($name) . '" value="' . e($val) . '"' . $req . '>';
+    }
+    return $h . '</div>';
+}
