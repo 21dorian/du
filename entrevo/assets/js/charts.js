@@ -55,11 +55,14 @@
     var max = 0; series.forEach(function (s) { s.values.forEach(function (v) { max = Math.max(max, +v || 0); }); });
     if (d.ref) max = Math.max(max, d.ref.value);
     max = niceMax(max * 1.05);
+    // petits entiers : une ligne par unité (évite « 0, 1, 1, 2, 2 »)
+    var ticks = (f === 'int' && max <= 4) ? Math.max(1, Math.ceil(max)) : 4;
+    if (f === 'int' && max <= 4) max = ticks;
     var svg = el('svg', { width: W, height: H, viewBox: '0 0 ' + W + ' ' + H, class: 'viz-svg' }, box);
     var iw = W - padL - padR, ih = H - padT - padB;
     var y = function (v) { return padT + ih - (v / max) * ih; };
-    for (var g = 0; g <= 4; g++) {
-      var gv = max / 4 * g, gy = y(gv);
+    for (var g = 0; g <= ticks; g++) {
+      var gv = max / ticks * g, gy = y(gv);
       el('line', { x1: padL, x2: W - padR, y1: gy, y2: gy, stroke: g ? '#edf1f6' : '#d5dce7', 'stroke-width': 1 }, svg);
       var tx = el('text', { x: padL - 8, y: gy + 4, 'text-anchor': 'end', class: 'viz-axis' }, svg); tx.textContent = axisFmt(gv, f);
     }

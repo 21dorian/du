@@ -50,7 +50,8 @@ try {
         $regex = '~^' . preg_replace('~\{(\w+)\}~', '(?P<$1>[^/]+)', $pattern) . '$~';
         if (!preg_match($regex, $path, $m)) continue;
         $params = array_filter($m, 'is_string', ARRAY_FILTER_USE_KEY);
-        if ($method === 'POST' && !str_starts_with($path, '/paiement/webhook') && !str_starts_with($path, '/api/v1/')) csrf_check();
+        // exemptés : notifications de paiement, API à clé, désinscription « en un clic » (jeton secret dans l'URL)
+        if ($method === 'POST' && !str_starts_with($path, '/paiement/webhook') && !str_starts_with($path, '/api/v1/') && !str_starts_with($path, '/desinscription/')) csrf_check();
         [$file, $fn] = explode('@', $handler);
         require_once APP . '/controllers/' . $file . '.php';
         $out = $fn(...array_values($params));

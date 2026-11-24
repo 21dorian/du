@@ -6,7 +6,8 @@ use PHPMailer\PHPMailer\PHPMailer;
 /** Envoi des e-mails (SMTP si configuré, sinon fonction mail() de l'hébergement). */
 final class Mailer
 {
-    public static function send(string $to, string $subject, string $html, array $attachments = [], ?string $replyTo = null): void
+    /** Prépare un PHPMailer configuré (SMTP ou mail()) avec l'expéditeur de la plateforme. */
+    private static function make(?string $fromName = null): PHPMailer
     {
         $m = new PHPMailer(true);
         $m->CharSet = 'UTF-8';
@@ -24,15 +25,43 @@ final class Mailer
             $m->isMail();
         }
         $from = (string)(setting('mail_from') ?: setting('smtp_user') ?: ('no-reply@' . preg_replace(['~^www\.~', '~:\d+$~'], '', $_SERVER['HTTP_HOST'] ?? 'localhost')));
-        $m->setFrom($from, (string)(setting('mail_from_name') ?: setting('platform_name')));
+        $m->setFrom($from, $fromName ?: (string)(setting('mail_from_name') ?: setting('platform_name')));
+        $m->isHTML(true);
+        return $m;
+    }
+
+    public static function send(string $to, string $subject, string $html, array $attachments = [], ?string $replyTo = null): void
+    {
+        $m = self::make();
         $m->addAddress($to);
         if ($replyTo && is_email($replyTo)) $m->addReplyTo($replyTo);
-        $m->isHTML(true);
         $m->Subject = $subject;
         $m->Body = self::wrap($subject, $html);
         $m->AltBody = trim(html_entity_decode(strip_tags(str_replace(['<br>', '</p>', '</tr>'], "\n", $html)), ENT_QUOTES, 'UTF-8'));
         foreach ($attachments as $a) $m->addStringAttachment($a['data'], $a['name'], PHPMailer::ENCODING_BASE64, $a['type'] ?? 'application/pdf');
         $m->send();
+        self::count();
+    }
+
+    /** E-mail déjà mis en page (campagnes) : expéditeur au nom de l'organisateur, en-têtes de désinscription. */
+    public static function sendRaw(string $to, string $subject, string $html, string $text, string $fromName, ?string $replyTo, string $unsubscribeUrl): void
+    {
+        $m = self::make($fromName);
+        $m->addAddress($to);
+        if ($replyTo && is_email($replyTo)) $m->addReplyTo($replyTo);
+        $m->Subject = $subject;
+        $m->Body = $html;
+        $m->AltBody = $text;
+        $m->addCustomHeader('List-Unsubscribe', '<' . $unsubscribeUrl . '>');
+        $m->addCustomHeader('List-Unsubscribe-Post', 'List-Unsubscribe=One-Click');
+        $m->send();
+        self::count();
+    }
+
+    /** Compteur d'e-mails envoyés par jour (page Santé du super-admin). */
+    private static function count(): void
+    {
+        try { $k = 'mails_' . date('Ymd'); set_setting($k, (string)((int)setting($k, 0) + 1)); } catch (Throwable $e) { /* sans gravité */ }
     }
 
     private static function wrap(string $title, string $body): string

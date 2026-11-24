@@ -76,7 +76,7 @@ final class Demo
                 $when = date('Y-m-d H:i:s', time() - random_int(1, 20 * 86400));
                 update('orders', ['provider' => $o['method'] === 'online' ? 'demo' : null, 'created_at' => $when], 'id = ?', [$o['id']]);
                 Tickets::markPaid((int)$o['id']);
-                update('orders', ['paid_at' => $when], 'id = ?', [$o['id']]);
+                update('orders', ['paid_at' => $when, 'marketing_optin' => random_int(0, 9) < 4 ? 1 : 0], 'id = ?', [$o['id']]);
             }
         }
         // audience de démonstration (pour que l'entonnoir et la conversion aient des données)

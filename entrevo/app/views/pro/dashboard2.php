@@ -15,7 +15,7 @@ $rateCur = $fun['rate']; $ratePrev = $funPrev['rate'];
   <a class="qa" href="<?= url($evPath('/messages')) ?>"><span>📣</span>Écrire aux participants</a>
   <a class="qa" href="<?= url('/scan') ?>"><span>📷</span>Ouvrir le scanner</a>
   <a class="qa" href="<?= url('/pro/commandes', ['csv' => 1]) ?>"><span>⬇️</span>Exporter les ventes</a>
-  <a class="qa qa-soon" href="<?= url('/pro/bientot/campagnes') ?>"><span>✉️</span>Lancer une campagne <i class="soon-pill">Bientôt</i></a>
+  <a class="qa" href="<?= url('/pro/campagnes') ?>"><span>✉️</span>Lancer une campagne</a>
 </div>
 
 <div class="today card">

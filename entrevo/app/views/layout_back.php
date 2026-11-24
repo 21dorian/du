@@ -42,7 +42,7 @@ if ($area === 'admin') {
             ['participants', '/pro/participants', 'Participants', $I['people']],
         ]],
         ['Faire venir du monde', [
-            ['campagnes', '/pro/bientot/campagnes', 'Campagnes', $I['mail'], true],
+            ['campagnes', '/pro/campagnes', 'Campagnes', $I['mail']],
             ['mini-site', '/pro/bientot/mini-site', 'Mini-site', $I['globe'], true],
             ['boutique', '/pro/bientot/boutique', 'Boutique', $I['bag'], true],
         ]],
@@ -122,8 +122,8 @@ $pname = (string)setting('platform_name');
         <a href="<?= url('/pro/evenements') ?>">💵 Une vente au guichet</a>
         <a href="<?= url('/pro/evenements') ?>">🎁 Des invitations</a>
         <a href="<?= url('/pro/equipe') ?>">👥 Un compte d'équipe</a>
+        <a href="<?= url('/pro/campagnes') ?>">✉️ Une campagne e-mail</a>
         <div class="menu-sep">Bientôt</div>
-        <a class="menu-soon" href="<?= url('/pro/bientot/campagnes') ?>">✉️ Une campagne e-mail</a>
         <a class="menu-soon" href="<?= url('/pro/bientot/boutique') ?>">🛍️ Un produit boutique</a>
         <a class="menu-soon" href="<?= url('/pro/bientot/cartes-cadeaux') ?>">🎁 Une carte cadeau</a>
         <a class="menu-soon" href="<?= url('/pro/bientot/abonnements') ?>">🎫 Un abonnement</a>

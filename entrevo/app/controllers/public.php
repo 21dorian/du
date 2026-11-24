@@ -278,6 +278,7 @@ function checkout(string $slug): string
                 $errors = $r['errors'];
             } else {
                 $o = $r['order'];
+                if (!empty($_POST['optin'])) { update('orders', ['marketing_optin' => 1], 'id = ?', [$o['id']]); q('DELETE FROM email_unsubscribes WHERE organizer_id = ? AND email = ?', [$org['id'], strtolower((string)$o['email'])]); }
                 $_SESSION['orders'][] = $o['ref'];
                 unset($_SESSION['cart'][$ev['id']]);
                 Traffic::hit($ev, 'checkouts');

@@ -22,9 +22,10 @@ $segs = ['' => 'Tout le monde', 'fideles' => '💜 Fidèles (2+ événements)', 
     <button class="btn btn-sm">Filtrer</button>
     <span class="grow"></span>
     <a class="btn btn-sm btn-ghost" href="<?= url('/pro/participants', $qs + ['csv' => 1]) ?>">⬇️ Exporter (CSV)</a>
-    <a class="btn btn-sm btn-light" href="<?= url('/pro/bientot/campagnes') ?>">✉️ Écrire à ce segment <span class="soon-pill">Bientôt</span></a>
+    <button class="btn btn-sm btn-light" form="seg-campaign">✉️ Écrire à ce segment</button>
   </div>
 </form>
+<form id="seg-campaign" method="post" action="<?= url('/pro/campagnes/nouvelle') ?>" hidden><?= csrf_field() ?><input type="hidden" name="modele" value="annonce"><input type="hidden" name="source" value="customers"><input type="hidden" name="seg" value="<?= e($seg) ?>"><input type="hidden" name="ev" value="<?= (int)$evId ?>"></form>
 <div class="card table-card">
   <div class="table-head-row"><span class="muted"><?= number_format($total, 0, ',', ' ') ?> contact<?= $total > 1 ? 's' : '' ?></span></div>
   <div class="table-wrap"><table class="table">

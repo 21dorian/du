@@ -56,6 +56,8 @@ $input = function (array $f, string $name, string $val) {
     </div>
 
     <div class="card">
+      <label class="check"><input type="checkbox" name="optin" value="1" <?= !empty($_POST['optin']) ? 'checked' : '' ?>> <span>📬 Je veux recevoir les prochains événements de <b><?= e($org['name']) ?></b> par e-mail (désinscription en un clic).</span></label>
+      <div style="height:10px"></div>
       <?php if (setting('cgv')): ?>
         <label class="check"><input type="checkbox" name="cgv" value="1" required> J'ai lu et j'accepte les <a href="<?= url('/cgv') ?>" target="_blank">conditions générales de vente</a> (oui, vraiment lu 😇).</label>
         <div style="height:14px"></div>
