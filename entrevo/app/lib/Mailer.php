@@ -67,7 +67,7 @@ final class Mailer
     private static function wrap(string $title, string $body): string
     {
         $c = e(setting('primary_color', '#0032fa'));
-        return '<!doctype html><html><body style="margin:0;background:#f4f4f8;font-family:Arial,Helvetica,sans-serif;color:#1c1c28">'
+        return '<!doctype html><html><body style="margin:0;background:#f4f4f8;font-family:Avenir Next,Avenir,Nunito Sans,Helvetica,Arial,sans-serif;color:#1c1c28">'
             . '<div style="max-width:600px;margin:0 auto;padding:24px 12px">'
             . '<div style="background:' . $c . ';color:#fff;border-radius:12px 12px 0 0;padding:18px 24px;font-size:20px;font-weight:bold">' . e(setting('platform_name')) . '</div>'
             . '<div style="background:#fff;border-radius:0 0 12px 12px;padding:24px;line-height:1.5;font-size:15px">' . $body . '</div>'

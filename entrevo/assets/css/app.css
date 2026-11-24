@@ -573,15 +573,22 @@ details.menu>summary::-webkit-details-marker{display:none}
 @font-face{font-family:"Host Grotesk";font-weight:600;font-display:swap;src:url(../fonts/host-grotesk-latin-600-normal.woff2) format("woff2")}
 @font-face{font-family:"Host Grotesk";font-weight:700;font-display:swap;src:url(../fonts/host-grotesk-latin-700-normal.woff2) format("woff2")}
 @font-face{font-family:"Host Grotesk";font-weight:800;font-display:swap;src:url(../fonts/host-grotesk-latin-800-normal.woff2) format("woff2")}
+@font-face{font-family:"Nunito Sans";font-weight:400;font-display:swap;src:url(../fonts/nunito-sans-latin-400-normal.woff2) format("woff2")}
+@font-face{font-family:"Nunito Sans";font-weight:500;font-display:swap;src:url(../fonts/nunito-sans-latin-500-normal.woff2) format("woff2")}
+@font-face{font-family:"Nunito Sans";font-weight:600;font-display:swap;src:url(../fonts/nunito-sans-latin-600-normal.woff2) format("woff2")}
+@font-face{font-family:"Nunito Sans";font-weight:700;font-display:swap;src:url(../fonts/nunito-sans-latin-700-normal.woff2) format("woff2")}
+@font-face{font-family:"Nunito Sans";font-weight:800;font-display:swap;src:url(../fonts/nunito-sans-latin-800-normal.woff2) format("woff2")}
+@font-face{font-family:"Nunito Sans";font-weight:900;font-display:swap;src:url(../fonts/nunito-sans-latin-900-normal.woff2) format("woff2")}
+@font-face{font-family:"Nunito Sans";font-weight:400;font-style:italic;font-display:swap;src:url(../fonts/nunito-sans-latin-400-italic.woff2) format("woff2")}
 @font-face{font-family:"Space Mono";font-weight:400;font-display:swap;src:url(../fonts/space-mono-latin-400-normal.woff2) format("woff2")}
 @font-face{font-family:"Space Mono";font-weight:700;font-display:swap;src:url(../fonts/space-mono-latin-700-normal.woff2) format("woff2")}
 
 :root,body.pub,body.back{
   --primary:#0032fa; --primary-dark:#0026c2; --primary-soft:#e6ecff;
   --lavender:#b388ff; --lavender-soft:#f1e9ff; --teal:#2dd2be; --teal-soft:#dcf8f4;
-  --font:"Host Grotesk",system-ui,-apple-system,"Segoe UI",Roboto,Arial,sans-serif;
+  --font:"Nunito Sans","Avenir Next","Avenir",system-ui,-apple-system,"Segoe UI",Roboto,Arial,sans-serif;
   --mono:"Space Mono",ui-monospace,Menlo,Consolas,monospace;
-  --display:"Barlow Condensed","Arial Narrow",Impact,sans-serif;
+  --display:"Nunito Sans","Avenir Next","Avenir",system-ui,sans-serif;
   --bg:#f0f5fa; --surface:#fff; --surface-2:#f6f8fc; --ink:#0f0f14; --ink-2:#3a4150; --muted:#667085;
   --line:#e1e7ef; --line-2:#edf1f6; --field:#fff; --field-line:#d5dce7; --hover:#f6f8fc;
   --btn:#0032fa; --btn-ink:#fff;
@@ -1666,3 +1673,9 @@ body.dw-lock{overflow:hidden}
 .pc-btn.sm{padding:4px 10px;font-size:12.5px}
 @media (max-width:900px){.pc-log{grid-column:auto}}
 @media (max-width:680px){.my-card{grid-template-columns:56px 1fr}.my-img{width:56px;height:56px}.my-arrow{display:none}}
+/* Nunito Sans (proche d'Avenir) : titres un peu plus compacts que l'ancienne police condensée */
+h1,h2,h3{letter-spacing:-.01em}
+.event-title{font-size:56px;line-height:1.02}
+.featured-body h1{font-size:54px;line-height:1.02}
+@media (max-width:900px){.event-title,.featured-body h1{font-size:40px}}
+@media (max-width:680px){.featured-body h1,.event-title{font-size:32px;line-height:1.05}h1{font-size:30px}}
