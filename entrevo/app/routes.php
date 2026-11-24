@@ -34,6 +34,8 @@ return [
     ['GET', '/commande/{ref}', 'public@order_page'],
     ['GET', '/commande/{ref}/pdf', 'public@order_pdf'],
     ['GET|POST', '/mes-billets', 'public@find_tickets'],
+    ['GET|POST', '/bientot/{key}', 'vitrine@public_soon'],
+    ['GET', '/organisateurs', 'vitrine@organizers_page'],
     ['GET', '/cgv', 'public@cgv'],
     ['GET', '/mentions-legales', 'public@legal'],
 

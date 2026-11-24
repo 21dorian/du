@@ -23,7 +23,7 @@
         <a class="btn btn-sm" href="<?= url($u['role'] === 'superadmin' ? '/admin' : ($u['role'] === 'scanner' ? '/scan' : '/pro')) ?>">Mon espace</a>
       <?php else: ?>
         <a href="<?= url('/connexion') ?>">Connexion</a>
-        <?php if (setting('signup_open') === '1'): ?><a class="btn btn-sm btn-ghost" href="<?= url('/inscription') ?>">Organisateurs</a><?php endif; ?>
+        <?php if (setting('signup_open') === '1'): ?><a class="btn btn-sm btn-ghost" href="<?= url('/organisateurs') ?>">Organisateurs</a><?php endif; ?>
       <?php endif; ?>
     </nav>
   </div>
@@ -38,7 +38,13 @@
       <?php if (setting('cgv')): ?><a href="<?= url('/cgv') ?>">CGV</a><?php endif; ?>
       <?php if (setting('legal')): ?><a href="<?= url('/mentions-legales') ?>">Mentions légales</a><?php endif; ?>
       <?php if (setting('contact_email')): ?><a href="mailto:<?= e(setting('contact_email')) ?>">Contact</a><?php endif; ?>
-      <a href="<?= url('/inscription') ?>">Vendre mes billets</a>
+      <a href="<?= url('/organisateurs') ?>">Vendre mes billets</a>
+    </div>
+    <div class="footer-links footer-soon">
+      <a href="<?= url('/bientot/aide') ?>">🛟 Centre d'aide <em>bientôt</em></a>
+      <a href="<?= url('/bientot/cartes-cadeaux-public') ?>">🎁 Cartes cadeaux <em>bientôt</em></a>
+      <a href="<?= url('/bientot/appli') ?>">📱 Appli mobile <em>bientôt</em></a>
+      <a href="<?= url('/bientot/langues-public') ?>">🌍 English <em>bientôt</em></a>
     </div>
   </div>
 </footer>

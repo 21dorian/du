@@ -79,6 +79,18 @@ Couleurs : **vert** = entre, **orange** = déjà entré / pas entré (sortie), *
 
 ---
 
+## Nouveautés 1.6 ✨
+
+- **Page vitrine « Pour les organisateurs »** (`/organisateurs`, reliée au bouton « Organisateurs » et au pied de page) : promesse, étapes, fonctions incluses, fonctions à venir, tarif avec **simulateur**, questions fréquentes, appel à l'inscription.
+- **Fonctions « Bientôt disponible » côté acheteurs**, chacune avec sa page de présentation et un formulaire « Préviens-moi » (e-mail facultatif) :
+  - accueil : ce soir / ce week-end / gratuit, carte « autour de moi », recommandations ;
+  - page événement : favoris, agenda, inviter des amis, covoiturage, payer à plusieurs, Apple Pay / Google Pay ;
+  - confirmation de commande : billet dans le Wallet, agenda, donner son billet, changer de date, covoiturage ;
+  - page organisateur : suivre l'organisateur, avis des participants ;
+  - « Mes billets » : compte acheteur ;
+  - pied de page : centre d'aide, cartes cadeaux, appli mobile, English.
+- Super-admin › **Feuille de route** : nouveau tableau « Attentes du public » (nombre d'intéressés et d'e-mails à prévenir par fonction).
+
 ## Nouveautés 1.5 ✨
 
 **Argent & conformité**

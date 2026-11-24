@@ -34,6 +34,7 @@ foreach ($events as $ev) if ($q === '' && $ev['image'] && (int)$ev['capacity'] >
 </section>
 <?php endif; ?>
 
+<div class="quick-filters"><?= pub_soon('filtres-date', '🌙 Ce soir') ?><?= pub_soon('filtres-date', '🎉 Ce week-end') ?><?= pub_soon('filtres-date', '🆓 Gratuit') ?><?= pub_soon('carte', '🗺️ Autour de moi') ?><?= pub_soon('recommandations', '✨ Pour moi') ?></div>
 <form class="searchbar" method="get" action="<?= url('/') ?>">
   <input type="search" name="q" value="<?= e($q) ?>" placeholder="Un concert, une ville, un plan pour samedi…" aria-label="Rechercher">
   <button class="btn">Trouver 🔍</button>

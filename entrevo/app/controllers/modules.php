@@ -85,10 +85,11 @@ function admin_modules(): string
     $all = Features::all();
     $all = array_filter($all, fn($f) => $f['status'] === 'soon');
     uksort($all, fn($a, $b) => ($counts[$b] ?? 0) <=> ($counts[$a] ?? 0));
+    $publicCounts = array_column(all('SELECT feature, COUNT(*) n, SUM(email IS NOT NULL) emails FROM public_interest GROUP BY feature'), null, 'feature');
     $prio = array_filter(explode(',', (string)setting('admin_roadmap')));
     $adminItems = Features::admin();
     uksort($adminItems, fn($a, $b) => (int)in_array($b, $prio, true) <=> (int)in_array($a, $prio, true));
-    return view('layout_back', ['title' => 'Feuille de route', 'area' => 'admin', 'active' => 'modules', 'content' => view('admin/modules', compact('all', 'counts', 'comments', 'adminItems', 'prio'))]);
+    return view('layout_back', ['title' => 'Feuille de route', 'area' => 'admin', 'active' => 'modules', 'content' => view('admin/modules', compact('all', 'counts', 'comments', 'adminItems', 'prio', 'publicCounts'))]);
 }
 
 /** Super-admin : page d'un chantier de la plateforme (en développement), marquable comme prioritaire. */

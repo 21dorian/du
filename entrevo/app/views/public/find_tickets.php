@@ -11,3 +11,9 @@
     </form>
   <?php endif; ?>
 </div>
+<div class="auth-box card soon-account">
+  <span class="soon-tag big">Bientôt disponible</span>
+  <h2>👤 Ton compte acheteur</h2>
+  <p class="muted">Tous tes billets au même endroit, tes favoris, les organisateurs que tu suis, connexion sans mot de passe.</p>
+  <div class="soon-row"><?= pub_soon('compte-acheteur', 'Me prévenir', 'btn btn-sm') ?><?= pub_soon('favoris', '❤️ Favoris') ?><?= pub_soon('suivre-orga', '🔔 Suivre') ?></div>
+</div>

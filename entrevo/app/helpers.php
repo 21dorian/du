@@ -379,3 +379,9 @@ function delete_private_file(string $rel): void
 }
 
 function human_size(int $b): string { return $b >= 1048576 ? number_format($b / 1048576, 1, ',', ' ') . ' Mo' : max(1, (int)round($b / 1024)) . ' Ko'; }
+
+/** Lien public vers une fonction « Bientôt disponible ». */
+function pub_soon(string $key, string $label, string $cls = 'soon-chip'): string
+{
+    return '<a class="' . e($cls) . '" href="' . e(url('/bientot/' . $key)) . '" title="Bientôt disponible">' . e($label) . ' <span class="soon-tag">bientôt</span></a>';
+}

@@ -25,3 +25,13 @@
     <?php endforeach; ?>
   </div>
 </div>
+<div class="card table-card mt">
+  <div class="table-head-row"><h2 class="mb0">🌍 Attentes du public (acheteurs et visiteurs)</h2><span class="muted">« Préviens-moi » laissés sur les pages Bientôt</span></div>
+  <div class="table-wrap"><table class="table"><thead><tr><th>Fonction</th><th class="num">Intéressés</th><th class="num">E-mails à prévenir</th></tr></thead><tbody>
+  <?php $pub = Features::public(); uksort($pub, fn($a, $b) => (int)($publicCounts[$b]['n'] ?? 0) <=> (int)($publicCounts[$a]['n'] ?? 0)); $mx = max(1, max(array_map(fn($r) => (int)$r['n'], $publicCounts ?: [['n' => 1]])));
+  foreach ($pub as $k => $f): $n = (int)($publicCounts[$k]['n'] ?? 0); ?>
+    <tr><td><?= $f['emoji'] ?> <a href="<?= url('/bientot/' . $k) ?>" target="_blank"><b><?= e($f['name']) ?></b></a><br><small class="muted"><?= e($f['pitch']) ?></small></td>
+      <td class="num"><span class="vote-bar"><i style="width:<?= round($n / $mx * 100) ?>%"></i></span> <b><?= $n ?></b></td><td class="num"><?= (int)($publicCounts[$k]['emails'] ?? 0) ?></td></tr>
+  <?php endforeach; ?>
+  </tbody></table></div>
+</div>

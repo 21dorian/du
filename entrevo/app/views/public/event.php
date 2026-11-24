@@ -39,6 +39,7 @@ $fromPrice = $onSalePrices ? min($onSalePrices) : null;
     </dl>
     <?php if (!empty($ev['volunteer_recruit'])): ?><a class="vol-cta" href="<?= url('/e/' . $ev['slug'] . '/benevoles') ?>">🙋 On cherche des bénévoles : rejoins l'équipe →</a><?php endif; ?>
     <a class="btn btn-lg" href="#billets"><?= $sessions && !$session ? 'Choisir ma date 📅' : 'Je réserve 🎟️' ?></a>
+    <div class="ev-actions"><?= pub_soon('favoris', '❤️ Favori') ?><?= pub_soon('agenda', '📅 Agenda') ?><?= pub_soon('inviter-amis', '👥 Inviter des amis') ?><?= pub_soon('covoiturage', '🚗 Covoiturage') ?></div>
   </div>
 </div>
 
@@ -138,6 +139,7 @@ $fromPrice = $onSalePrices ? min($onSalePrices) : null;
           <div class="buy-total"><span>Total</span><span id="buy-total">0,00 €</span></div>
           <button class="btn btn-block btn-lg" name="action" value="buy">C'est parti →</button>
           <p class="secure-note">🔒 Paiement sécurisé. Tes billets arrivent direct par e-mail.</p>
+          <div class="soon-row center-row"><?= pub_soon('payer-a-plusieurs', '🤝 Payer à plusieurs') ?><?= pub_soon('paiement-mobile', '📱 Apple Pay / Google Pay') ?></div>
         </div>
       <?php endif; ?>
     </form>

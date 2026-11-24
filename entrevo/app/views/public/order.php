@@ -10,6 +10,7 @@
       <button class="btn btn-ghost" onclick="window.print()">Imprimer</button>
       <?php if ((int)$o['total'] > 0): ?><a class="btn btn-ghost" href="<?= url('/commande/' . $o['ref'] . '/recu', ['t' => $o['token']]) ?>" target="_blank">Reçu</a><?php endif; ?>
     </div>
+    <div class="soon-row center-row no-print"><?= pub_soon('wallet', '📲 Ajouter au Wallet') ?><?= pub_soon('agenda', '📅 Ajouter à mon agenda') ?><?= pub_soon('transfert', '🔁 Donner à un ami') ?><?= pub_soon('echange', '📅 Changer de date') ?><?= pub_soon('covoiturage', '🚗 Covoiturage') ?></div>
   </div>
 <?php elseif ($o['status'] === 'pending'): ?>
   <div class="card center auth-box">

@@ -182,6 +182,45 @@ final class Features
         ];
     }
 
+
+    /** Fonctions à venir côté public (acheteurs et visiteurs du site). */
+    public static function public(): array
+    {
+        $x = fn(string $emoji, string $name, string $pitch, array $points = []) => ['emoji' => $emoji, 'name' => $name, 'pitch' => $pitch, 'points' => $points, 'status' => 'soon'];
+        return [
+            // trouver une sortie
+            'carte' => $x('🗺️', 'Carte des événements', 'Tous les événements autour de toi sur une carte, pour trouver une sortie près de chez toi.', ['Géolocalisation (si tu l\'acceptes)', 'Filtre par distance', 'Itinéraire en un clic']),
+            'filtres-date' => $x('🗓️', 'Ce soir, ce week-end…', 'Filtrer en un clic : ce soir, demain, ce week-end, cette semaine, gratuit.', ['Raccourcis de dates', 'Fourchette de prix', 'Événements gratuits']),
+            'favoris' => $x('❤️', 'Favoris', 'Mets un événement de côté et retrouve-le plus tard, avec une alerte quand les places partent.', ['Liste de favoris dans ton compte', 'Alerte « dernières places »', 'Rappel avant la fin des ventes']),
+            'suivre-orga' => $x('🔔', 'Suivre un organisateur', 'Sois prévenu dès que ta salle ou ton festival préféré met de nouvelles dates en vente.', ['Un clic sur la page de l\'organisateur', 'E-mail à chaque nouvelle date', 'Accès aux préventes']),
+            'recommandations' => $x('✨', 'Recommandations', 'Des idées de sorties selon ce que tu as déjà aimé.', ['Basé sur tes achats et favoris', 'Désactivable à tout moment']),
+            // acheter
+            'payer-a-plusieurs' => $x('🤝', 'Payer à plusieurs', 'Tu réserves pour la bande, chacun paie sa part avec son propre lien.', ['Places bloquées le temps que chacun paie', 'Relance automatique des retardataires', 'Billets envoyés à chacun']),
+            'inviter-amis' => $x('👥', 'Inviter des amis', 'Partage l\'événement à tes potes et voyez qui vient.', ['Lien d\'invitation', 'Liste des amis qui ont pris leur place']),
+            'paiement-mobile' => $x('📱', 'Apple Pay & Google Pay', 'Payer en deux secondes avec ton téléphone.', ['Sans saisir ta carte', 'Authentification par empreinte ou visage']),
+            'cartes-cadeaux-public' => $x('🎁', 'Cartes cadeaux', 'Offre une sortie : une carte cadeau utilisable sur tous les événements.', ['Montant libre', 'Carte PDF à imprimer ou e-mail programmé', 'Utilisable en plusieurs fois']),
+            // le jour J
+            'wallet' => $x('📲', 'Billet dans le Wallet', 'Ajoute ton billet à Apple Wallet ou Google Wallet : il s\'affiche tout seul le jour J.', ['Fonctionne sans réseau', 'Rappel sur l\'écran verrouillé', 'Mis à jour si l\'horaire change']),
+            'agenda' => $x('📅', 'Ajouter à mon agenda', 'L\'événement dans ton calendrier en un clic, avec l\'adresse et un rappel.', ['Google, Apple, Outlook', 'Rappel la veille']),
+            'transfert' => $x('🔁', 'Donner mon billet à un ami', 'Tu ne peux plus y aller ? Transfère ton billet à quelqu\'un en deux clics.', ['Nouveau nom, nouveau QR code', 'L\'ancien est désactivé', 'Gratuit']),
+            'echange' => $x('📅', 'Changer de date', 'Sur un événement à plusieurs dates, échange ton billet toi-même s\'il reste de la place.', ['Sans appeler l\'organisateur', 'Frais éventuels affichés avant']),
+            'covoiturage' => $x('🚗', 'Covoiturage', 'Trouve ou propose un trajet vers l\'événement avec d\'autres participants.', ['Trajets aller et retour', 'Entre participants uniquement']),
+            'cashless-public' => $x('💳', 'Recharger mon cashless', 'Recharge ton bracelet ou ton QR de paiement avant d\'arriver, et récupère le solde après.', ['Recharge en ligne', 'Remboursement du solde restant']),
+            // compte & services
+            'compte-acheteur' => $x('👤', 'Compte acheteur', 'Tous tes billets au même endroit, même ceux achetés avec des adresses différentes.', ['Historique de tes sorties', 'Infos préremplies au paiement', 'Connexion sans mot de passe']),
+            'avis-public' => $x('⭐', 'Donner mon avis', 'Note l\'événement après coup et aide les autres à choisir.', ['Avis vérifiés (billet scanné)', 'Réponse de l\'organisateur']),
+            'appli' => $x('📱', 'Appli mobile', 'L\'appli pour trouver des sorties, garder tes billets hors ligne et recevoir les alertes.', ['iPhone et Android', 'Billets disponibles sans réseau', 'Notifications des organisateurs suivis']),
+            'aide' => $x('🛟', 'Centre d\'aide', 'Toutes les réponses : billet perdu, remboursement, accès, accessibilité.', ['Questions fréquentes', 'Formulaire relié à ta commande', 'Suivi de ta demande']),
+            'langues-public' => $x('🌍', 'English & more', 'Le site et tes billets en anglais, espagnol, allemand…', ['Langue choisie automatiquement', 'Billets PDF traduits']),
+            // vitrine organisateurs
+            'demo-visio' => $x('🎥', 'Démo en visio', 'Une démo de 20 minutes avec l\'équipe pour voir comment lancer ta billetterie.', ['Créneau au choix', 'Questions sur tes besoins précis']),
+            'ressources' => $x('📚', 'Guides & ressources', 'Des guides pratiques pour réussir tes événements : communication, sécurité, budget, bénévoles.', ['Modèles à télécharger', 'Retours d\'expérience d\'organisateurs']),
+            'migration' => $x('🚚', 'Migration depuis une autre billetterie', 'On importe tes événements, tes contacts et tes billets déjà vendus.', ['Import accompagné', 'Billets externes contrôlables au scan']),
+        ];
+    }
+
+    public static function getPublic(string $key): ?array { $a = self::public(); return isset($a[$key]) ? $a[$key] + ['key' => $key] : null; }
+
     /** Chantiers côté super-admin (feuille de route de la plateforme). */
     public static function admin(): array
     {
