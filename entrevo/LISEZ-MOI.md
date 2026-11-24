@@ -79,6 +79,31 @@ Couleurs : **vert** = entre, **orange** = déjà entré / pas entré (sortie), *
 
 ---
 
+## Nouveautés 2.1 — vendre au-delà des billets
+
+**Cartes cadeaux** (Vendre plus › Cartes cadeaux)
+- Page de vente publique (bouton « Offrir une carte cadeau » sur ta page organisateur) : montants proposés ou montant libre, pour soi ou à offrir avec un petit mot, envoyée par e-mail avec une carte PDF à imprimer.
+- Utilisable en plusieurs fois sur tous tes événements, dans le même champ que les codes promo ; page publique pour connaître le solde.
+- Pas de commission à la vente de la carte : elle est prélevée normalement quand la carte paie des billets.
+- Côté organisateur : cartes émises, montants utilisés et restants, cartes offertes (geste commercial, lot de concours), annulation.
+
+**Abonnements & pass saison** (Vendre plus › Abonnements)
+- Pass saison (toutes les dates choisies) ou carnet de N entrées, prix, quota, date de fin, événements compris.
+- L'abonné reçoit un lien vers son espace : il réserve sa place à chaque événement en un clic, sans repayer, et reçoit son billet comme d'habitude.
+
+**Boutique & merch** (Vendre plus › Boutique & merch)
+- Produits avec photo, prix, stock et tailles ou modèles ; retrait sur place et/ou envoi postal avec frais de port.
+- Suivi des commandes à préparer (« préparée / remise »), ventes par produit.
+
+**Campagnes SMS** (Faire venir du monde › Campagnes SMS)
+- Message avec prénom et lien suivi vers l'événement, aperçu sur un téléphone, compteur de caractères et de SMS, coût estimé avant l'envoi, test sur ton mobile.
+- Mêmes profils que les e-mails (fidèles, récents, dormants…), uniquement les acheteurs qui ont accepté de recevoir tes actus ; liste STOP et mention de désinscription ajoutée à chaque SMS.
+- Envoi tout de suite ou programmé, uniquement du lundi au samedi de 8 h à 20 h hors jours fériés ; rapport par destinataire et ventes générées.
+- Super-admin › Réglages › SMS : clé API Brevo, prix par SMS, mention STOP. Sans clé, tout fonctionne en mode test (SMS écrits dans le journal).
+
+**Super-admin**
+- Nouvelle page **Statistiques** : volume d'affaires, commissions, commandes et billets sur 3 à 24 mois, prestataires de paiement, canaux de vente, meilleurs événements, clients fidèles.
+
 ## Nouveautés 2.0 ✨ — la V2
 
 **Nouveau design, haut de gamme**
