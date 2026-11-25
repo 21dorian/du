@@ -52,3 +52,7 @@ entrevo/storage/maj/secours.json
 entrevo/uploads/*/
 
 entrevo-captures/
+
+# Entrevo : données locales
+/entrevo/storage/sauvegardes/
+/entrevo/storage/contrats/
