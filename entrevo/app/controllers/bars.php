@@ -6,7 +6,7 @@ declare(strict_types=1);
 require_once APP . '/controllers/pro.php';
 
 const BARS_TABS = ['' => 'Tableau de bord', 'catalogue' => 'Catalogue', 'consignes' => 'Consignes', 'equipe' => 'Équipe', 'remises' => 'Happy hours & remises',
-    'credits' => 'Crédits offerts', 'caisses' => 'Caisses & clôtures', 'stocks' => 'Stocks', 'ventes' => 'Ventes', 'appareils' => 'Appareils', 'reglages' => 'Réglages'];
+    'credits' => 'Crédits offerts', 'caisses' => 'Caisses & clôtures', 'stocks' => 'Stocks', 'ventes' => 'Ventes', 'rapport' => 'Rapport', 'appareils' => 'Appareils', 'reglages' => 'Réglages'];
 
 function bars_page(string $id, string $tab = ''): string
 {
@@ -383,7 +383,9 @@ function bars_z_pdf(array $ev, array $org, int $sid): never
     $pdf->Ln(4); $pdf->SetTextColor(29, 29, 31);
     $row = function (string $l, string $v, bool $b = false) use ($pdf, $t) { $pdf->SetFont('Helvetica', $b ? 'B' : '', 11); $pdf->Cell(120, 7.5, $t($l), 'B'); $pdf->Cell(54, 7.5, $t($v), 'B', 1, 'R'); };
     foreach (Till::METHODS as $k => $l) if (isset($tt['methods'][$k])) $row($l . ' (' . $tt['methods'][$k]['n'] . ')', money((int)$tt['methods'][$k]['total']) . ((int)$tt['methods'][$k]['offered'] ? ' · offert ' . money((int)$tt['methods'][$k]['offered']) : ''));
-    $row('Total encaissé', money((int)$tt['total']), true);
+    $row('Total des ventes', money((int)$tt['total']), true);
+    if (!empty($tt['topups']['n'])) $row('Recharges cashless (espèces · carte)', money((int)$tt['topups']['cash']) . ' · ' . money((int)$tt['topups']['card']));
+    if (!empty($tt['cashout'])) $row('Soldes remboursés en espèces', '- ' . money((int)$tt['cashout']));
     $pdf->Ln(4);
     $row('Fond de caisse', money((int)$tt['float']));
     $row('Apports', money((int)$tt['moves']['add']));
@@ -517,4 +519,109 @@ function bars_reglages(array $ev, array $org, string $base): array
         back(['success' => 'Réglages enregistrés : les caisses les reçoivent sous 10 minutes, ou tout de suite avec « Mettre à jour ».']);
     }
     return ['settings' => Till::settings($ev), 'bars' => all('SELECT * FROM bars WHERE event_id = ? ORDER BY id', [$ev['id']])];
+}
+
+// ---------- 2.8 : rapport de caisse ----------
+/** Agrège les ventes : chiffre d'affaires, TVA par taux, moyens de paiement, offerts, consignes, recharges. */
+function bars_report_data(array $ev, ?string $day, ?int $bar): array
+{
+    $w = 's.event_id = ? AND s.undone = 0'; $p = [$ev['id']];
+    if ($day) { $w .= ' AND DATE(s.created_at) = ?'; $p[] = $day; }
+    if ($bar) { $w .= ' AND s.bar_id = ?'; $p[] = $bar; }
+    $rows = all("SELECT s.*, b.name bar FROM pos_sales s JOIN bars b ON b.id = s.bar_id WHERE $w ORDER BY s.created_at", $p);
+    $blank = fn() => ['ttc' => 0, 'ht' => 0, 'tva' => 0, 'n' => 0, 'offered' => 0, 'discount' => 0, 'cashless' => 0, 'card' => 0, 'cash' => 0, 'dep_in' => 0, 'dep_out' => 0, 'topup' => 0, 'cashout' => 0];
+    $tot = $blank(); $days = []; $bars = []; $vat = []; $cats = []; $prods = [];
+    $catName = array_column(all('SELECT id, name FROM pos_categories WHERE event_id = ?', [$ev['id']]), 'name', 'id');
+    $acc = function (array &$t, array $s, array $calc) {
+        foreach ($calc as $k => $v) $t[$k] += $v;
+    };
+    foreach ($rows as $s) {
+        $kind = $s['kind'] ?? 'sale';
+        $c = $blank();
+        if ($kind === 'topup') $c['topup'] = (int)$s['amount'];
+        elseif ($kind === 'cashout') $c['cashout'] = -(int)$s['amount'];
+        else {
+            $c['n'] = 1; $c['offered'] = (int)$s['offered_value']; $c['discount'] = (int)$s['discount'];
+            $paid = !in_array($s['method'], ['allowance', 'offered'], true);
+            $parts = $s['method'] === 'split' ? (json_decode((string)$s['payments_json'], true) ?: []) : [['method' => $s['method'], 'amount' => (int)$s['amount']]];
+            foreach ($parts as $pt) if (isset($c[$pt['method']])) $c[$pt['method']] += (int)$pt['amount'];
+            foreach (json_decode((string)$s['items'], true) ?: [] as $l) {
+                $k = $l['kind'] ?? 'product';
+                if ($k === 'deposit') $c['dep_in'] += (int)$l['total'];
+                elseif ($k === 'return') $c['dep_out'] += -(int)$l['total'];
+                elseif ($k === 'product') {
+                    $pn = (string)$l['name']; $prods[$pn]['q'] = ($prods[$pn]['q'] ?? 0) + (int)$l['qty']; $prods[$pn]['t'] = ($prods[$pn]['t'] ?? 0) + ($paid ? (int)$l['total'] : 0);
+                    $cn = $catName[$l['category_id'] ?? 0] ?? 'Sans catégorie'; $cats[$cn]['q'] = ($cats[$cn]['q'] ?? 0) + (int)$l['qty']; $cats[$cn]['t'] = ($cats[$cn]['t'] ?? 0) + ($paid ? (int)$l['total'] : 0);
+                }
+            }
+            if ($paid) foreach (json_decode((string)$s['vat_json'], true) ?: [] as $rate => $ttc) {
+                $ht = (int)round($ttc / (1 + (float)$rate / 100)); $r = rtrim(rtrim((string)$rate, '0'), '.');
+                $vat[$r] = $vat[$r] ?? ['ttc' => 0, 'ht' => 0, 'tva' => 0]; $vat[$r]['ttc'] += (int)$ttc; $vat[$r]['ht'] += $ht; $vat[$r]['tva'] += (int)$ttc - $ht;
+                $c['ttc'] += (int)$ttc; $c['ht'] += $ht; $c['tva'] += (int)$ttc - $ht;
+            }
+        }
+        $d = substr($s['created_at'], 0, 10);
+        $days[$d] = $days[$d] ?? $blank(); $bars[$s['bar']] = $bars[$s['bar']] ?? $blank();
+        $acc($days[$d], $s, $c); $acc($bars[$s['bar']], $s, $c); $acc($tot, $s, $c);
+    }
+    ksort($days); ksort($vat, SORT_NUMERIC); arsort($cats); uasort($prods, fn($a, $b) => $b['t'] <=> $a['t']);
+    return compact('tot', 'days', 'bars', 'vat', 'cats', 'prods') + ['count' => count($rows)];
+}
+
+function bars_rapport(array $ev, array $org, string $base): array
+{
+    $day = preg_match('~^\d{4}-\d{2}-\d{2}$~', (string)input('jour')) ? (string)input('jour') : null;
+    $bar = (int)input('bar') ?: null;
+    $r = bars_report_data($ev, $day, $bar);
+    $label = ($day ? fr_date($day, false) : 'Tout l\'événement') . ($bar ? ' · ' . val('SELECT name FROM bars WHERE id = ?', [$bar]) : '');
+    if (input('export') === 'csv') {
+        $m = fn($c) => money_input((int)$c);
+        $rows = [['Jour', 'Tickets', 'CA TTC', 'CA HT', 'TVA', 'Cashless', 'Carte', 'Espèces', 'Offert', 'Remises', 'Consignes encaissées', 'Consignes rendues', 'Recharges', 'Soldes remboursés']];
+        foreach ($r['days'] as $d => $x) $rows[] = [$d, $x['n'], $m($x['ttc']), $m($x['ht']), $m($x['tva']), $m($x['cashless']), $m($x['card']), $m($x['cash']), $m($x['offered']), $m($x['discount']), $m($x['dep_in']), $m($x['dep_out']), $m($x['topup']), $m($x['cashout'])];
+        $rows[] = []; $rows[] = ['Taux de TVA', 'HT', 'TVA', 'TTC'];
+        foreach ($r['vat'] as $rate => $v) $rows[] = [$rate . ' %', $m($v['ht']), $m($v['tva']), $m($v['ttc'])];
+        $rows[] = []; $rows[] = ['Point de vente', 'Tickets', 'CA TTC', 'Cashless', 'Carte', 'Espèces', 'Offert'];
+        foreach ($r['bars'] as $n => $x) $rows[] = [$n, $x['n'], $m($x['ttc']), $m($x['cashless']), $m($x['card']), $m($x['cash']), $m($x['offered'])];
+        csv_download('rapport-caisse-' . $ev['slug'] . ($day ? '-' . $day : '') . '.csv', $rows);
+    }
+    if (input('export') === 'pdf') bars_report_pdf($ev, $org, $r, $label);
+    $daysList = array_column(all('SELECT DISTINCT DATE(created_at) d FROM pos_sales WHERE event_id = ? ORDER BY d', [$ev['id']]), 'd');
+    $barsList = all('SELECT id, name FROM bars WHERE event_id = ? ORDER BY id', [$ev['id']]);
+    return ['r' => $r, 'day' => $day, 'bar' => $bar, 'label' => $label, 'daysList' => $daysList, 'barsList' => $barsList];
+}
+
+function bars_report_pdf(array $ev, array $org, array $r, string $label): never
+{
+    $t = fn($s) => PdfDoc::t((string)$s);
+    $pdf = new PdfDoc('P', 'mm', 'A4'); $pdf->SetMargins(16, 16, 16); $pdf->SetAutoPageBreak(true, 16); $pdf->AddPage();
+    $pdf->SetFont('Helvetica', 'B', 20); $pdf->Cell(0, 10, $t('Rapport de caisse'), 0, 1);
+    $pdf->SetFont('Helvetica', '', 10); $pdf->SetTextColor(110, 110, 115);
+    $pdf->MultiCell(0, 5, $t(($org['legal_name'] ?: $org['name']) . ' · ' . $ev['name'] . "\n" . $label . ' · édité le ' . date('d/m/Y H:i')));
+    $pdf->Ln(4); $pdf->SetTextColor(29, 29, 31);
+    $T = $r['tot'];
+    $tiles = [[money($T['ttc']), 'CA TTC'], [money($T['ht']), 'CA HT'], [money($T['tva']), 'TVA collectée'], [(string)$T['n'], 'tickets'], [money($T['offered']), 'offert'], [money($T['topup']), 'recharges cashless']];
+    $y0 = $pdf->GetY();
+    foreach ($tiles as $i => [$v, $l]) {
+        $x = 16 + ($i % 3) * 60; $y = $y0 + intdiv($i, 3) * 24;
+        $pdf->SetFillColor(245, 245, 247); $pdf->RoundedRect($x, $y, 56, 20, 3, 'F');
+        $pdf->SetXY($x + 4, $y + 3); $pdf->SetFont('Helvetica', 'B', 13); $pdf->Cell(48, 7, $t($v), 0, 2); $pdf->SetFont('Helvetica', '', 8.5); $pdf->SetTextColor(110, 110, 115); $pdf->Cell(48, 5, $t($l)); $pdf->SetTextColor(29, 29, 31);
+    }
+    $pdf->SetY($y0 + 50);
+    $table = function (string $title, array $head, array $rows, array $w) use ($pdf, $t) {
+        if ($pdf->GetY() > 245) $pdf->AddPage();
+        $pdf->SetFont('Helvetica', 'B', 12); $pdf->Cell(0, 8, $t($title), 0, 1);
+        $pdf->SetFont('Helvetica', 'B', 8); $pdf->SetTextColor(110, 110, 115);
+        foreach ($head as $i => $h) $pdf->Cell($w[$i], 6, $t($h), 'B', 0, $i ? 'R' : 'L');
+        $pdf->Ln(); $pdf->SetFont('Helvetica', '', 9); $pdf->SetTextColor(29, 29, 31); $pdf->SetDrawColor(225, 225, 230);
+        foreach ($rows as $row) { if ($pdf->GetY() > 275) $pdf->AddPage(); foreach ($row as $i => $c) $pdf->Cell($w[$i], 6, $t(mb_strimwidth((string)$c, 0, $i ? 18 : 48, '…')), 'B', 0, $i ? 'R' : 'L'); $pdf->Ln(); }
+        $pdf->Ln(4);
+    };
+    $table('TVA par taux', ['Taux', 'HT', 'TVA', 'TTC'], array_map(fn($k, $v) => [$k . ' %', money($v['ht']), money($v['tva']), money($v['ttc'])], array_keys($r['vat']), $r['vat']), [70, 36, 36, 36]);
+    $table('Moyens de paiement', ['', 'Montant'], [['Cashless (consommé)', money($T['cashless'])], ['Carte bancaire', money($T['card'])], ['Espèces', money($T['cash'])], ['Offert (dont crédits)', money($T['offered'])], ['Remises accordées', money($T['discount'])]], [142, 36]);
+    $table('Consignes et cashless', ['', 'Montant'], [['Consignes encaissées', money($T['dep_in'])], ['Consignes rendues', money($T['dep_out'])], ['Consignes conservées', money($T['dep_in'] - $T['dep_out'])], ['Recharges sur place', money($T['topup'])], ['Soldes remboursés sur place', money($T['cashout'])]], [142, 36]);
+    $table('Par jour', ['Jour', 'Tickets', 'CA TTC', 'Cashless', 'Carte', 'Espèces'], array_map(fn($d, $x) => [date('d/m/Y', strtotime($d)), $x['n'], money($x['ttc']), money($x['cashless']), money($x['card']), money($x['cash'])], array_keys($r['days']), $r['days']), [42, 20, 29, 29, 29, 29]);
+    $table('Par point de vente', ['Point de vente', 'Tickets', 'CA TTC', 'Cashless', 'Carte', 'Espèces'], array_map(fn($n, $x) => [$n, $x['n'], money($x['ttc']), money($x['cashless']), money($x['card']), money($x['cash'])], array_keys($r['bars']), $r['bars']), [42, 20, 29, 29, 29, 29]);
+    $table('Meilleures ventes', ['Produit', 'Quantité', 'TTC'], array_map(fn($n, $x) => [$n, $x['q'], money($x['t'])], array_slice(array_keys($r['prods']), 0, 25), array_slice($r['prods'], 0, 25)), [118, 30, 30]);
+    header('Content-Type: application/pdf'); header('Content-Disposition: inline; filename="rapport-caisse.pdf"');
+    echo $pdf->Output('S'); exit;
 }

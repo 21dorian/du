@@ -79,6 +79,23 @@ Couleurs : **vert** = entre, **orange** = déjà entré / pas entré (sortie), *
 
 ---
 
+## Nouveautés 2.8 — la caisse pour la restauration, la recharge et la comptabilité
+
+**Carte et vente**
+- **Options payantes** par produit : groupes de choix (cuisson, sauce…) obligatoires ou non, suppléments à plusieurs choix avec leur prix (cheddar + 1 €, sirop + 0,50 €). Le serveur choisit sur un écran de composition, le prix se met à jour.
+- **Formules** : un produit « formule » à composer par étapes (plat, boisson, dessert…) à prix fixe ; le stock et la consigne des produits choisis sont gérés.
+- **Paiement en plusieurs fois** : par exemple le solde cashless puis le reste en carte ou en espèces ; le ticket indique le détail, les rapports répartissent chaque part dans son moyen de paiement.
+
+**Rôles d'appareil** (Bars & caisses › Appareils)
+- **Point de recharge cashless** : scan du billet ou du bracelet, montants rapides, recharge en espèces ou par carte (terminal Nepting compris), **activation d'un bracelet neuf sans billet**, **remboursement du solde sur place** (droit « rembourser un solde » ou code d'un responsable). Les recharges entrent dans la caisse et dans la clôture, sans compter dans le chiffre d'affaires.
+- **Écran de préparation** (cuisine, comptoir) : les commandes contenant des produits « à préparer » arrivent avec leur numéro et le détail (options, formule) ; un toucher les passe « prêtes », un second « servies ».
+- **Écran d'appel** pour une TV : les numéros prêts s'affichent en grand avec un signal sonore, les commandes en préparation en dessous.
+- À la caisse, une vente avec des produits à préparer donne un **numéro de commande** (remis à zéro chaque jour, par point de vente), affiché au client et sur le ticket.
+
+**Rapport de caisse** (Bars & caisses › Rapport)
+- Chiffre d'affaires TTC et HT, **TVA par taux**, par jour, par point de vente et par catégorie ; moyens de paiement (paiements fractionnés répartis), offerts et remises ; consignes encaissées, rendues et conservées ; recharges et soldes remboursés sur place.
+- Export **CSV** et **rapport PDF** ; filtres par jour et par point de vente. Les ventes offertes et les crédits ne comptent plus dans la TVA collectée.
+
 ## Nouveautés 2.7 — Entrevo Caisse Pro, la caisse événementielle complète
 
 **Espace de gestion « Bars & caisses »** (Événement › Jour J), avec 11 pages :

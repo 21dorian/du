@@ -409,14 +409,15 @@ final class Till
         foreach (json_decode((string)$s['items'], true) ?: [] as $l)
             $rows .= '<tr><td style="padding:6px 0">' . (int)$l['qty'] . ' × ' . e($l['name']) . (!empty($l['offered']) ? ' <i>(offert)</i>' : '') . (!empty($l['promo']) ? ' <small style="color:#86868b">' . e($l['promo']) . '</small>' : '') . '</td><td style="padding:6px 0;text-align:right">' . e(money((int)$l['total'])) . '</td></tr>';
         $vat = '';
-        foreach (json_decode((string)$s['vat_json'], true) ?: [] as $rate => $ttc) { $tax = (int)round($ttc - $ttc / (1 + (float)$rate / 100)); $vat .= 'TVA ' . rtrim(rtrim($rate, '0'), '.') . ' % : ' . money($tax) . ' · '; }
+        foreach (in_array($s['method'], ['allowance', 'offered'], true) ? [] : (json_decode((string)$s['vat_json'], true) ?: []) as $rate => $ttc) { $tax = (int)round($ttc - $ttc / (1 + (float)$rate / 100)); $vat .= 'TVA ' . rtrim(rtrim($rate, '0'), '.') . ' % : ' . money($tax) . ' · '; }
         $footer = trim((string)self::settings($ev)['receipt_footer']);
         return '<p style="margin:0 0 4px;color:#86868b">Ticket n° ' . (int)$s['ticket_no'] . ' · ' . e(date('d/m/Y H:i', strtotime($s['created_at']))) . '</p>'
             . '<p style="margin:0 0 14px"><b>' . e($ev['name']) . '</b> · ' . e($bar) . '</p>'
             . '<table style="width:100%;border-collapse:collapse;font-size:15px">' . $rows
             . ((int)$s['discount'] ? '<tr><td style="padding:6px 0">Remise</td><td style="padding:6px 0;text-align:right">−' . e(money((int)$s['discount'])) . '</td></tr>' : '')
             . '<tr><td style="padding:10px 0;border-top:1px solid #e5e5ea"><b>Total payé</b></td><td style="padding:10px 0;border-top:1px solid #e5e5ea;text-align:right"><b>' . e(money((int)$s['amount'])) . '</b></td></tr></table>'
-            . '<p style="color:#86868b;font-size:13px;margin:10px 0 0">' . e(self::METHODS[$s['method']] ?? $s['method']) . ((int)$s['offered_value'] ? ' · offert : ' . e(money((int)$s['offered_value'])) : '') . ($vat ? '<br>' . e(rtrim($vat, ' ·')) : '') . '</p>'
+            . '<p style="color:#86868b;font-size:13px;margin:10px 0 0">' . e(($s['payments_json'] ? implode(' + ', array_map(fn($pt) => (self::METHODS[$pt['method']] ?? $pt['method']) . ' ' . money((int)$pt['amount']), json_decode((string)$s['payments_json'], true) ?: [])) : (self::METHODS[$s['method']] ?? $s['method'])))
+            . ($s['order_no'] ? ' · commande n° ' . (int)$s['order_no'] : '') . ((int)$s['offered_value'] ? ' · offert : ' . e(money((int)$s['offered_value'])) : '') . ($vat ? '<br>' . e(rtrim($vat, ' ·')) : '') . '</p>'
             . '<p style="color:#86868b;font-size:12px;margin:12px 0 0">' . e($org['legal_name'] ?: $org['name']) . ($org['address'] ? ' · ' . e(str_replace("\n", ', ', (string)$org['address'])) : '') . ($org['siret'] ? ' · SIRET ' . e($org['siret']) : '') . ($footer ? '<br>' . nl2br(e($footer)) : '') . '</p>';
     }
 
