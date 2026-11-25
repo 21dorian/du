@@ -36,6 +36,23 @@ function cashless_tab(string $id): string
             back(['success' => 'Produit enregistré.']);
         }
         if ($a === 'product_toggle') { q('UPDATE bar_products SET active = 1 - active WHERE id = ? AND event_id = ?', [(int)input('product_id'), $ev['id']]); back(); }
+        // 2.6 : appareils de l'application Entrevo Caisse
+        if ($a === 'device_add') {
+            $bar = (int)input('bar_id') ? one('SELECT id FROM bars WHERE id = ? AND event_id = ?', [(int)input('bar_id'), $ev['id']]) : null;
+            $d = Pos::createDevice((int)$ev['id'], $bar ? (int)$bar['id'] : null, trim((string)input('name')) ?: 'Caisse ' . ((int)val('SELECT COUNT(*) FROM pos_devices WHERE event_id = ?', [$ev['id']]) + 1), (int)user()['id']);
+            Audit::log('pos.device', 'Appareil de caisse « ' . $d['name'] . ' » créé', (int)$ev['id']);
+            redirect('/pro/evenements/' . $ev['id'] . '/cashless?d=' . $d['id'] . '#caisse', ['success' => 'Appareil créé : scanne le QR code avec la tablette ou le téléphone du bar.']);
+        }
+        $dev = (int)input('device_id') ? one('SELECT * FROM pos_devices WHERE id = ? AND event_id = ?', [(int)input('device_id'), $ev['id']]) : null;
+        if ($a === 'device_code' && $dev) { Pos::renewCode($dev); redirect('/pro/evenements/' . $ev['id'] . '/cashless?d=' . $dev['id'] . '#caisse', ['success' => 'Nouveau code d\'appairage (valable 30 minutes). L\'ancien appareil est déconnecté.']); }
+        if ($a === 'device_revoke' && $dev) { update('pos_devices', ['revoked' => 1, 'token_hash' => null, 'pair_code' => null], 'id = ?', [$dev['id']]); Audit::log('pos.revoke', 'Appareil « ' . $dev['name'] . ' » déconnecté', (int)$ev['id']); back(['success' => 'Appareil déconnecté : il ne peut plus encaisser.']); }
+        if ($a === 'device_tpe' && $dev) {
+            $host = trim((string)input('host'));
+            if (input('mode') === 'nepting' && !filter_var($host, FILTER_VALIDATE_IP) && !preg_match('~^[a-z0-9.-]+$~i', $host)) back(['error' => 'Indique l\'adresse IP du terminal Nepting (ex. 192.168.1.50).']);
+            $t = ['mode' => input('mode') === 'nepting' ? 'nepting' : 'manual', 'host' => $host, 'port' => (int)input('port') ?: 8888, 'cj' => (string)input('cj'), 'ca' => (string)input('ca'), 'cz' => (string)input('cz') ?: '0320', 'crlf' => checked('crlf'), 'timeout' => (int)input('timeout') ?: 120];
+            update('pos_devices', ['tpe_json' => json_encode($t), 'bar_id' => (int)input('bar_id') ?: null, 'name' => mb_substr(trim((string)input('name')) ?: $dev['name'], 0, 80)], 'id = ?', [$dev['id']]);
+            back(['success' => 'Réglages de l\'appareil enregistrés : ils arrivent sur la caisse sous 10 minutes, ou tout de suite avec « Mettre à jour les produits ».']);
+        }
         if ($a === 'refunded') {
             $w = one("SELECT * FROM wallets WHERE id = ? AND event_id = ? AND status = 'refund_req'", [(int)input('wallet_id'), $ev['id']]);
             if ($w && (int)$w['balance'] > 0) {
@@ -53,11 +70,20 @@ function cashless_tab(string $id): string
     uasort($sold, fn($a, $b) => $b['sum'] <=> $a['sum']);
     $hours = all("SELECT DATE_FORMAT(created_at, '%d/%m %Hh') h, -SUM(amount) s FROM wallet_tx WHERE event_id = ? AND kind = 'sale' AND undone = 0 GROUP BY h ORDER BY MIN(created_at)", [$ev['id']]);
     $refunds = all("SELECT * FROM wallets WHERE event_id = ? AND status = 'refund_req' ORDER BY id", [$ev['id']]);
-    return ev_page($ev, 'cashless', 'Cashless & bars', 'cashless', compact('bars', 'products', 'k', 'sold', 'hours', 'refunds'));
+    $devices = all('SELECT d.*, b.name bar_name, (SELECT COUNT(*) FROM pos_sales s WHERE s.device_id = d.id AND s.undone = 0) sales FROM pos_devices d LEFT JOIN bars b ON b.id = d.bar_id WHERE d.event_id = ? AND d.revoked = 0 ORDER BY d.id', [$ev['id']]);
+    $pstats = Pos::stats((int)$ev['id']);
+    $focus = (int)input('d');
+    return ev_page($ev, 'cashless', 'Cashless & bars', 'cashless', compact('bars', 'products', 'k', 'sold', 'hours', 'refunds', 'devices', 'pstats', 'focus'));
 }
 
 // ---------- Caisse bar ----------
-function bar_pos(string $eventId): string
+function bar_pos(string $eventId): never
+{
+    // 2.6 : la caisse est désormais l'application Entrevo Caisse
+    redirect('/caisse/');
+}
+
+function bar_pos_legacy(string $eventId): string
 {
     $u = require_login(['owner', 'manager', 'scanner']);
     $ev = one('SELECT * FROM events WHERE id = ?', [(int)$eventId]);

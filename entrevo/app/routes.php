@@ -245,5 +245,7 @@ return [
     ['GET', '/api/scan/event/{id}/stats', 'scan@api_stats'],
     ['POST', '/api/scan/event/{id}/undo', 'scan@api_undo'],
     ['POST', '/api/scan/event/{id}/ping', 'scan@api_ping'],
+    ['POST|OPTIONS', '/api/caisse', 'pos@pos_api'],
+    ['GET', '/caisse', 'pos@pos_app'],
     ['GET', '/sante', 'scan@health'],
 ];

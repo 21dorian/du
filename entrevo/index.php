@@ -48,9 +48,22 @@ $routes = require APP . '/routes.php';
 $path = route_path();
 $method = $_SERVER['REQUEST_METHOD'] ?? 'GET';
 
+// 2.6 : application caisse native (Capacitor) — requêtes d'une autre origine, authentifiées par jeton d'appareil (sans cookie)
+if ($path === '/api/caisse') {
+    $origin = (string)($_SERVER['HTTP_ORIGIN'] ?? '');
+    if (in_array($origin, ['capacitor://localhost', 'https://localhost', 'http://localhost', 'ionic://localhost'], true)) {
+        header('Access-Control-Allow-Origin: ' . $origin);
+        header('Vary: Origin');
+        header('Access-Control-Allow-Headers: Content-Type, X-Pos-Token');
+        header('Access-Control-Allow-Methods: POST, OPTIONS');
+        header('Access-Control-Max-Age: 86400');
+    }
+    if ($method === 'OPTIONS') { http_response_code(204); exit; }
+}
+
 // 2.2 : mode maintenance — le public voit une page d'attente ; super-admin, contrôle d'accès et paiements continuent de fonctionner
 if (setting('maintenance') === '1' && !is_super()) {
-    $open = ['/connexion', '/deconnexion', '/mon-compte', '/admin', '/scan', '/api/scan', '/cron', '/paiement/webhook', '/paiement/retour', '/mot-de-passe'];
+    $open = ['/connexion', '/deconnexion', '/mon-compte', '/admin', '/scan', '/api/scan', '/api/caisse', '/caisse', '/cron', '/paiement/webhook', '/paiement/retour', '/mot-de-passe'];
     $exempt = false;
     foreach ($open as $o) if ($path === $o || str_starts_with($path, $o . '/')) $exempt = true;
     $u = user();
@@ -70,7 +83,7 @@ try {
         if (!preg_match($regex, $path, $m)) continue;
         $params = array_filter($m, 'is_string', ARRAY_FILTER_USE_KEY);
         // exemptés : notifications de paiement, API à clé, désinscription « en un clic » (jeton secret dans l'URL)
-        if ($method === 'POST' && !str_starts_with($path, '/paiement/webhook') && !str_starts_with($path, '/api/v1/') && !str_starts_with($path, '/desinscription/')) csrf_check();
+        if ($method === 'POST' && !str_starts_with($path, '/paiement/webhook') && !str_starts_with($path, '/api/v1/') && $path !== '/api/caisse' && !str_starts_with($path, '/desinscription/')) csrf_check();
         [$file, $fn] = explode('@', $handler);
         require_once APP . '/controllers/' . $file . '.php';
         $out = $fn(...array_values($params));
