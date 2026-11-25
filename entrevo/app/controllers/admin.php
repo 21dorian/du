@@ -272,7 +272,7 @@ function settings(): string
             'emails' => ['smtp_host', 'smtp_port', 'smtp_secure', 'smtp_user', 'smtp_pass', 'mail_from', 'mail_from_name'],
             'legal' => ['cgv', 'legal', 'company_info'],
             'sms' => ['sms_api_key', 'sms_price', 'sms_stop'],
-            'plateforme' => ['maintenance_message', 'max_events', 'max_upload_mb'],
+            'plateforme' => ['maintenance_message', 'max_events', 'max_upload_mb', 'pay_host'],
             'securite' => ['lock_after', 'lock_minutes'],
             'apparence' => ['platform_name', 'tagline', 'primary_color'],
         ][$tab] ?? [];
@@ -293,6 +293,7 @@ function settings(): string
             if ($f === 'fee_fixed') $v = (string)parse_money($v);
             if ($f === 'fee_percent') $v = (string)max(0, min(50, (float)str_replace(',', '.', $v)));
             if ($f === 'base_url') $v = rtrim($v, '/');
+            if ($f === 'pay_host') $v = strtolower(preg_replace('~^https?://|/.*$~i', '', $v));
             if ($f === 'primary_color' && !preg_match('~^#[0-9a-fA-F]{6}$~', $v)) continue;
             set_setting($f, $v);
         }

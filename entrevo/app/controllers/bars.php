@@ -17,6 +17,8 @@ function bars_page(string $id, string $tab = ''): string
     require_module('cashless');
     $ev = org_event((int)$id);
     if (!array_key_exists($tab, BARS_TABS)) abort(404);
+    // 3.0 : tout le cashless se gère dans Entrevo Pay (sous-domaine dédié)
+    if (empty($GLOBALS['pay_ctx'])) redirect(Pay::path('/pro/e/' . $ev['id'] . ($tab ? '/' . $tab : '')));
     $base = '/pro/evenements/' . $ev['id'] . '/bars' . ($tab ? '/' . $tab : '');
     $fn = 'bars_' . ($tab ?: 'dashboard');
     $vars = $fn($ev, $org, $base);

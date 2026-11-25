@@ -24,6 +24,11 @@ function pos_api(): never
         // 2.9 : le point de vente est choisi sur l'appareil et envoyé à chaque requête (une vente hors ligne garde le sien).
         if (!empty($in['bar_id']) && (int)$in['bar_id'] !== (int)$d['bar_id'] && val('SELECT id FROM bars WHERE id = ? AND event_id = ?', [(int)$in['bar_id'], $ev['id']])) $d['bar_id'] = (int)$in['bar_id'];
         switch ($a) {
+            case 'beat':
+                // 3.0 : battement de cœur du terminal (parc de terminaux d'Entrevo Pay)
+                update('pos_devices', ['battery' => isset($in['battery']) ? max(0, min(100, (int)$in['battery'])) : null, 'charging' => isset($in['charging']) ? (int)(bool)$in['charging'] : null,
+                    'app_version' => mb_substr((string)($in['app_version'] ?? ''), 0, 20) ?: null, 'queue_size' => max(0, (int)($in['queue'] ?? 0)), 'last_seen' => now()] + (empty($in['queue']) ? ['last_sync' => now()] : []), 'id = ?', [$d['id']]);
+                json_out(['ok' => true, 'session' => (bool)Till::session($d), 'time' => date('c')]);
             case 'tabs':
                 json_out(['ok' => true, 'tabs' => Pos::tabs($d)]);
             case 'tab_save':
@@ -47,7 +52,8 @@ function pos_api(): never
             case 'lookup':
                 $w = Pos::wallet((int)$ev['id'], $in);
                 if (!$w) $fail(!empty($in['nfc']) ? 'Bracelet non associé.' : 'Billet inconnu pour cet événement.', 404);
-                json_out(['ok' => true, 'balance' => (int)$w['balance'], 'name' => Pos::holder($w), 'status' => $w['status'], 'nfc' => (bool)$w['nfc_uid']]);
+                if ($w['status'] === 'blocked') $fail('Porte-monnaie bloqué' . ($w['blocked_reason'] ? ' : ' . $w['blocked_reason'] : '') . '. Envoie le festivalier au point info.', 423);
+                json_out(['ok' => true, 'balance' => (int)$w['balance'], 'name' => Pay::holder($w) ?: Pos::holder($w), 'status' => $w['status'], 'nfc' => (bool)$w['nfc_uid'], 'profile' => Pay::PROFILES[$w['profile'] ?? 'public'] ?? null]);
             case 'sale':
             case 'topup':
             case 'cashout':
@@ -55,6 +61,7 @@ function pos_api(): never
                 if (Till::settings($ev)['sessions'] && !Till::session($d)) json_out(['ok' => false, 'till_closed' => true, 'error' => 'La caisse de ce point de vente est clôturée.'], 409);
                 json_out($a === 'sale' ? Pos::sale($d, $in) : ($a === 'topup' ? Pos::topup($d, $in) : Pos::cashout($d, $in)));
             case 'sync':
+                update('pos_devices', ['last_sync' => now(), 'queue_size' => 0], 'id = ?', [$d['id']]);
                 $done = [];
                 foreach (array_slice((array)($in['sales'] ?? []), 0, 200) as $s) {
                     if (!is_array($s) || ($s['method'] ?? '') === 'cashless') continue;

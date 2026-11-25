@@ -19,6 +19,12 @@ function route_path(): string
         $p = '/' . trim(rawurldecode($uri), '/');
         // 2.5 : marque blanche — la racine d'un domaine personnalisé sert la page de l'organisateur
         if (in_array($p, ['/', '/evenements'], true) && class_exists('WhiteLabel') && ($wl = WhiteLabel::org())) $p = '/o/' . $wl['slug'];
+        // 3.0 : sous-domaine Entrevo Pay — toutes les adresses sont servies par l'espace cashless
+        elseif (class_exists('Pay') && Pay::isHost()) {
+            $shared = ['/pay', '/assets', '/caisse', '/api/caisse', '/recu', '/paiement', '/commande', '/uploads', '/cron', '/connexion/code', '/mot-de-passe'];
+            $keep = false; foreach ($shared as $x) if ($p === $x || str_starts_with($p, $x . '/')) $keep = true;
+            if (!$keep) $p = rtrim('/pay' . $p, '/');
+        }
     }
     return $p;
 }

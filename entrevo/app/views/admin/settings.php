@@ -122,6 +122,7 @@ $secret = fn($k) => setting($k) ? '•••••• (enregistré, laisser vide
     <h2>Limites</h2>
     <div class="grid2">
       <div class="field"><label>Événements à venir par organisateur</label><input type="number" name="max_events" min="0" value="<?= (int)setting('max_events', '0') ?>"><small>0 = illimité. Évite les abus des comptes gratuits.</small></div>
+      <div class="field"><label>Sous-domaine Entrevo Pay (cashless)</label><input name="pay_host" value="<?= e((string)setting('pay_host', '')) ?>" placeholder="pay.mondomaine.fr"><small>Crée le sous-domaine chez ton hébergeur (Dyjix : Domaines › Sous-domaines) en le faisant pointer vers le même dossier qu'Entrevo, active le certificat SSL, puis saisis-le ici. Vide : Entrevo Pay reste sur <?= e(abs_url('/pay')) ?>.</small></div>
       <div class="field"><label>Poids maximum des images</label><div class="input-suffix"><input type="number" name="max_upload_mb" min="1" max="50" value="<?= (int)(setting('max_upload_mb', '5') ?: 5) ?>"><span>Mo</span></div><small>Limité aussi par l'hébergement (<?= e((string)ini_get('upload_max_filesize')) ?>).</small></div>
     </div>
   </div>

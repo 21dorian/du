@@ -5,7 +5,7 @@ require_once APP . '/controllers/public.php'; // pub(), order helpers
 
 function home_for(array $u): string
 {
-    return match ($u['role']) { 'superadmin' => '/admin', 'scanner' => '/scan', default => '/pro' };
+    return match ($u['role']) { 'superadmin' => '/admin', 'scanner' => '/scan', 'cashless' => '/pay/pro', 'operator' => '/pay/exploitant', default => '/pro' };
 }
 
 function safe_next(string $next, string $fallback): string

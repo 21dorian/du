@@ -11,6 +11,7 @@ function cashless_tab(string $id): string
     $org = require_org();
     require_module('cashless');
     $ev = org_event((int)$id);
+    if (!is_post()) redirect(Pay::path('/pro/e/' . $ev['id'])); // 3.0 : remplacé par Entrevo Pay
     if (is_post()) {
         $a = (string)input('action');
         if ($a === 'settings') {
@@ -128,6 +129,7 @@ function wallet_page(string $token): string
 {
     $w = one('SELECT * FROM wallets WHERE token = ?', [$token]);
     if (!$w || strlen($token) < 20) abort(404);
+    if (!is_post()) redirect(Pay::path('/w/' . $token)); // 3.0 : portail Entrevo Pay
     $ev = one('SELECT * FROM events WHERE id = ?', [$w['event_id']]);
     $org = one('SELECT * FROM organizers WHERE id = ?', [$ev['organizer_id']]);
     $ended = strtotime((string)($ev['ends_at'] ?: $ev['starts_at'])) + 6 * 3600 < time();

@@ -262,7 +262,7 @@ function badge(string $status): string
 }
 
 function method_label(string $m): string { return ['online' => 'En ligne', 'guichet' => 'Guichet', 'invitation' => 'Invitation', 'partner' => 'Partenaire', 'gratuit' => 'Gratuit', 'free' => 'Gratuit', 'import' => 'Import', 'accred' => 'Accréditation', 'resale' => 'Revente'][$m] ?? $m; }
-function role_label(string $r): string { return ['superadmin' => 'Super-admin', 'owner' => 'Responsable', 'manager' => 'Gestionnaire', 'scanner' => 'Contrôleur'][$r] ?? $r; }
+function role_label(string $r): string { return ['superadmin' => 'Super-admin', 'owner' => 'Responsable', 'manager' => 'Gestionnaire', 'scanner' => 'Contrôleur', 'cashless' => 'Équipe cashless', 'operator' => 'Exploitant'][$r] ?? $r; }
 function provider_label(?string $p): string { return ['stripe' => 'Stripe', 'paypal' => 'PayPal', 'sumup' => 'SumUp', 'mollie' => 'Mollie', 'demo' => 'Démo', 'free' => 'Gratuit'][$p ?? ''] ?? (string)$p; }
 
 function csv_download(string $filename, array $rows): never

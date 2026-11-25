@@ -17,6 +17,7 @@
   var money = function (c) { return (c / 100).toLocaleString('fr-FR', { style: 'currency', currency: 'EUR' }); };
   var uid = function () { return 'c' + Date.now().toString(36) + Math.random().toString(36).slice(2, 10); };
   var buzz = function (p) { try { navigator.vibrate && navigator.vibrate(p); } catch (e) { /* rien */ } };
+  var APP_V = '3.0.0';
   var METHOD = { cashless: 'Cashless', card: 'Carte', cash: 'Espèces', allowance: 'Crédit', offered: 'Offert' };
 
   var S = {
@@ -1217,7 +1218,12 @@
   setInterval(function () { if (S.token) { if (S.queue.length) sync(); else if (!S.online) api('ping').then(function (j) { S.config = j.config; save(); }, function () {}); } }, 20000);
   setInterval(function () { if (S.token && S.online && $('#sheet').hidden && !$('#s-pos').hidden) api('config').then(function (j) { S.config = j.config; save(); renderGrid(); renderCart(); }, function () {}); }, 300000);
   setInterval(function () { if (!$('#s-pos').hidden && $('#sheet').hidden) { renderGrid(); renderCart(); } }, 60000);
-  setInterval(function () { if (!$('#s-pos').hidden && S.online) refreshTabs(); }, 20000); // additions ouvertes sur les autres appareils // happy hours qui commencent ou finissent
+  setInterval(function () { if (!$('#s-pos').hidden && S.online) refreshTabs(); }, 20000); // additions ouvertes sur les autres appareils
+  // 3.0 : battement de cœur pour le parc de terminaux (batterie, version, ventes en attente)
+  var batt = null;
+  try { if (navigator.getBattery) navigator.getBattery().then(function (b) { batt = b; }); } catch (e) { /* non disponible */ }
+  var beat = function () { if (!S.token || !S.online) return; api('beat', { app_version: APP_V, battery: batt ? Math.round(batt.level * 100) : undefined, charging: batt ? batt.charging : undefined, queue: S.queue.length }, 8000).then(function () {}, function () {}); };
+  setTimeout(beat, 3000); setInterval(beat, 30000); // happy hours qui commencent ou finissent
 
   // ---------- démarrage ----------
   if (NATIVE) $('#pair-server-row').hidden = false;

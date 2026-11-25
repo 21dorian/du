@@ -79,6 +79,57 @@ Couleurs : **vert** = entre, **orange** = déjà entré / pas entré (sortie), *
 
 ---
 
+## Nouveautés 3.0 — Entrevo Pay, l'espace cashless séparé
+
+**Une application à part, sur son sous-domaine**
+- **Entrevo Pay** a sa propre adresse (ex. `pay.mondomaine.fr`), sa propre connexion et son propre design, séparés de la billetterie. Même installation et même base : billets, bracelets et soldes restent liés, une seule mise à jour.
+- Mise en place : crée le sous-domaine chez l'hébergeur en le faisant pointer vers le **même dossier** qu'Entrevo, active le certificat SSL, puis saisis-le dans Super-admin › Réglages › Plateforme. Sans sous-domaine, Entrevo Pay reste accessible sur `/pay`.
+- Sur le sous-domaine : le **portail festivalier** à la racine, l'**espace pro** sur `/pro`, l'**espace exploitant** sur `/exploitant`. L'application caisse reste sur `/caisse/`.
+- Dans la billetterie, « Bars & caisses » et « Cashless » ouvrent désormais Entrevo Pay.
+
+**Qui s'y connecte**
+- L'organisateur (mêmes identifiants), en administrateur.
+- Une **équipe cashless** sans accès à la billetterie : régisseur, responsable de bar (limité à ses points de vente), comptable, support festivaliers. Invitation par e-mail.
+- Les **exploitants** (food trucks, associations, brasseurs) : leur espace avec leurs ventes, leurs stocks et leur relevé, rien d'autre.
+- Les **festivaliers** : le portail public.
+
+**Pilotage en direct**
+- Chiffre d'affaires, dernière heure, ventes par minute, panier moyen, soldes en circulation, recharges, terminaux en ligne, actualisés toutes les 15 secondes.
+- Ventes par quart d'heure, moyens de paiement, classement des points de vente (avec exploitant, caisse, espèces), top produits, alertes (caisse pleine, rupture, terminal hors ligne, batterie faible, remboursements à traiter).
+
+**Porte-monnaie et bracelets**
+- Recherche par code de billet ou de carte, numéro ou UID de bracelet, nom, e-mail ; fiche complète avec historique.
+- Créditer ou corriger un solde (motif obligatoire, journalisé), bloquer et débloquer, **remplacer un bracelet perdu** (le solde suit, l'ancien est désactivé), transférer un solde, profil (public, staff, VIP, artiste, presse, technique).
+- **Stock de bracelets** : import des lots du fabricant (numéro imprimé et UID), profils, suivi en stock / actif / perdu / bloqué / détruit.
+- **Cartes virtuelles** créées par l'organisation, avec un crédit et envoi par e-mail.
+
+**Crédits, préchargements, éco-cups**
+- Créditer en masse un profil ou une liste (repas du staff, consommations des artistes) ; **cartes préchargées en série** (invitations, partenaires) avec fichier des codes et liens.
+- Éco-cups : taux de retour, consignes en circulation et conservées, par type et par point de vente, montant recrédité sur le cashless.
+
+**Recharges et remboursements**
+- Recharges en ligne, espèces, carte et crédits offerts ; demandes de remboursement de solde avec **export pour virements** et validation groupée ; frais de remboursement réglables.
+
+**Exploitants et reversements**
+- Fiches exploitants (raison sociale, SIRET, IBAN), **commission** en % du CA et forfait, qui garde les espèces et la carte.
+- Rattachement des points de vente à un exploitant par événement ; **relevé** automatique (CA, HT, encaissé par l'organisateur, commission, dû, versé, reste), **relevé PDF**, enregistrement des reversements.
+
+**Matériel**
+- **Parc de terminaux** : en ligne ou non, poste actuel, **batterie**, **version de l'application**, dernière synchronisation, ventes en attente d'envoi, ventes hors ligne.
+
+**Comptabilité**
+- Exports : journal de caisse, **écritures comptables** par jour (encaissements 531/5112/4191, ventes HT par taux 707, TVA 44571, consignes), mouvements cashless, soldes restants.
+
+**Portail festivalier** (inspiré d'EasyTransac)
+- Retrouver sa carte avec un code ou un numéro de bracelet, ou recevoir ses liens par e-mail.
+- **Carte cashless virtuelle** sans billet ni bracelet : QR code sur le téléphone, payable au bar.
+- Recharge en ligne (montants proposés réglables, solde maximum), **associer son bracelet**, **envoyer de l'argent à un ami**, **bloquer sa carte** en cas de perte (solde protégé), demande de remboursement après l'événement, historique.
+- Réglages par événement : cartes virtuelles, transferts, blocage en autonomie, frais de remboursement, message et couleur du portail.
+
+**Application caisse**
+- Un porte-monnaie bloqué est refusé à la caisse avec son motif ; le profil du festivalier s'affiche.
+- Le terminal envoie toutes les 30 secondes sa batterie, sa version et le nombre de ventes en attente.
+
 ## Nouveautés 2.10 — la caisse des pros
 
 **Additions ouvertes** (tables, loges, comptes clients)

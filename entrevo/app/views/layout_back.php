@@ -126,7 +126,7 @@ if ($area === 'admin') {
             ['controle-pro', '/pro/pc', 'PC sécurité', $I['radar']],
             ['staff', '/pro/benevoles', 'Bénévoles & staff', $I['hand']],
             ['artistes', '/pro/artistes', 'Artistes & planning', $I['mic']],
-            ['cashless', '/pro/cashless', 'Cashless & bars', $I['wallet']],
+            ['cashless', '/pro/cashless', 'Entrevo Pay ↗', $I['wallet']],
             ['objets-trouves', '/pro/objets-trouves', 'Objets trouvés', $I['box']],
         ]],
         ['Gestion', [
