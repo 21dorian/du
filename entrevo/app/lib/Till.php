@@ -14,10 +14,10 @@ declare(strict_types=1);
  */
 final class Till
 {
-    public const METHODS = ['cashless' => 'Cashless', 'card' => 'Carte bancaire', 'cash' => 'Espèces', 'allowance' => 'Crédit offert', 'offered' => 'Offert'];
+    public const METHODS = ['cashless' => 'Cashless', 'card' => 'Carte bancaire', 'cash' => 'Espèces', 'allowance' => 'Crédit offert', 'offered' => 'Offert', 'split' => 'Paiement multiple'];
     public const PERMS = ['offer' => 'Offrir des articles', 'discount' => 'Faire une remise', 'undo' => 'Annuler une vente', 'deposit' => 'Rendre des consignes',
-        'cash' => 'Apports et remises en banque', 'close' => 'Ouvrir et clôturer la caisse'];
-    public const ROLES = ['server' => ['Serveur', ['deposit']], 'manager' => ['Responsable', ['offer', 'discount', 'undo', 'deposit', 'cash', 'close']]];
+        'cash' => 'Apports et remises en banque', 'close' => 'Ouvrir et clôturer la caisse', 'cashout' => 'Rembourser un solde cashless'];
+    public const ROLES = ['server' => ['Serveur', ['deposit']], 'manager' => ['Responsable', ['offer', 'discount', 'undo', 'deposit', 'cash', 'close', 'cashout']]];
     public const PROMO_KINDS = ['percent' => 'Remise en %', 'amount' => 'Remise en €', 'price' => 'Prix fixe', 'second' => '2e article offert'];
     public const DAYS = ['1' => 'Lun', '2' => 'Mar', '3' => 'Mer', '4' => 'Jeu', '5' => 'Ven', '6' => 'Sam', '7' => 'Dim'];
     public const GROUPS = ['staff' => 'Bénévoles & staff', 'artist' => 'Artistes', 'tech' => 'Technique', 'guest' => 'Invités & partenaires'];
@@ -92,6 +92,28 @@ final class Till
         return is_array($v) ? array_values(array_filter($v, fn($x) => is_array($x) && trim((string)($x['name'] ?? '')) !== '')) : [];
     }
 
+    /** 2.8 : groupes d'options [{name, multi, required, items:[{name, price}]}] */
+    public static function options(array $p): array
+    {
+        $v = json_decode((string)($p['options_json'] ?? ''), true);
+        if (!is_array($v)) return [];
+        $out = [];
+        foreach ($v as $g) {
+            if (!is_array($g) || trim((string)($g['name'] ?? '')) === '') continue;
+            $items = array_values(array_filter((array)($g['items'] ?? []), fn($i) => is_array($i) && trim((string)($i['name'] ?? '')) !== ''));
+            if ($items) $out[] = ['name' => (string)$g['name'], 'multi' => !empty($g['multi']), 'required' => !empty($g['required']), 'items' => array_map(fn($i) => ['name' => (string)$i['name'], 'price' => (int)($i['price'] ?? 0)], $items)];
+        }
+        return $out;
+    }
+
+    /** 2.8 : étapes d'une formule [{name, products:[ids]}] */
+    public static function menuSteps(array $p): array
+    {
+        $v = json_decode((string)($p['menu_json'] ?? ''), true);
+        if (!is_array($v)) return [];
+        return array_values(array_filter(array_map(fn($st) => ['name' => (string)($st['name'] ?? ''), 'products' => array_values(array_map('intval', (array)($st['products'] ?? [])))], $v), fn($st) => $st['name'] !== '' && $st['products']));
+    }
+
     public static function barPrices(array $p): array
     {
         $v = json_decode((string)($p['bar_prices_json'] ?? ''), true);
@@ -157,7 +179,8 @@ final class Till
         $products = array_map(fn($p) => ['id' => (int)$p['id'], 'name' => $p['name'], 'desc' => $p['description'], 'category_id' => $p['category_id'] ? (int)$p['category_id'] : null,
             'price' => (int)$p['price'], 'bar_prices' => (object)self::barPrices($p), 'variants' => array_map(fn($v) => ['name' => $v['name'], 'price' => (int)$v['price']], self::variants($p)),
             'photo' => $p['photo'] ? abs_url('/' . ltrim($p['photo'], '/')) : null, 'color' => $p['color'], 'deposit_type_id' => $p['deposit_type_id'] ? (int)$p['deposit_type_id'] : null,
-            'bars' => $p['bar_ids'] ? array_map('intval', explode(',', (string)$p['bar_ids'])) : [], 'stock' => (int)$p['track_stock'] ? (object)($stock[(int)$p['id']] ?? []) : null],
+            'bars' => $p['bar_ids'] ? array_map('intval', explode(',', (string)$p['bar_ids'])) : [], 'stock' => (int)$p['track_stock'] ? (object)($stock[(int)$p['id']] ?? []) : null,
+            'kind' => $p['kind'] ?? 'item', 'options' => self::options($p), 'menu' => self::menuSteps($p)],
             all('SELECT * FROM bar_products WHERE event_id = ? AND active = 1 ORDER BY sort, name', [$ev['id']]));
         $promos = array_map(fn($pr) => ['name' => $pr['name'], 'kind' => $pr['kind'], 'value' => (int)$pr['value'], 'products' => array_map('intval', array_filter(explode(',', (string)$pr['product_ids']))),
             'categories' => array_map('intval', array_filter(explode(',', (string)$pr['category_ids']))), 'bars' => array_map('intval', array_filter(explode(',', (string)$pr['bar_ids']))),
@@ -193,15 +216,48 @@ final class Till
             $vs = self::variants($p);
             $unit = self::basePrice($p, $barId, $variant);
             $name = $p['name'] . ($variant !== null && isset($vs[$variant]) ? ' · ' . $vs[$variant]['name'] : '');
+            $prep = $p['prep'] ?? null; if ($prep === null) $prep = $p['category_id'] && isset($cats[(int)$p['category_id']]) ? (int)$cats[(int)$p['category_id']]['prep'] : 0;
+            $stockItems = (int)$p['track_stock'] ? [[(int)$p['id'], $qty]] : [];
+            $depIds = $p['deposit_type_id'] ? [(int)$p['deposit_type_id']] : [];
+            // 2.8 : options payantes (suppléments, choix)
+            $opts = self::options($p);
+            if ($opts) {
+                $chosen = []; $plus = 0; $labels = [];
+                foreach ((array)($it['opts'] ?? []) as $o) { [$g, $i] = array_map('intval', explode(':', (string)$o) + [1 => -1]); if (isset($opts[$g]['items'][$i])) $chosen[$g][] = $i; }
+                foreach ($opts as $g => $grp) {
+                    $sel = array_values(array_unique($chosen[$g] ?? []));
+                    if (!empty($grp['required']) && !$sel) throw new RuntimeException($p['name'] . ' : choisis « ' . $grp['name'] . ' ».');
+                    if (empty($grp['multi']) && count($sel) > 1) $sel = [$sel[0]];
+                    foreach ($sel as $i) { $plus += (int)$grp['items'][$i]['price']; $labels[] = $grp['items'][$i]['name']; }
+                }
+                $unit += $plus;
+                if ($labels) $name .= ' · ' . implode(', ', $labels);
+            }
+            // 2.8 : formules (menus à composer)
+            if (($p['kind'] ?? 'item') === 'menu') {
+                $steps = self::menuSteps($p); $picks = array_map('intval', (array)($it['picks'] ?? [])); $names = [];
+                foreach ($steps as $k => $st) {
+                    $pid = $picks[$k] ?? 0;
+                    if (!in_array($pid, $st['products'], true)) throw new RuntimeException($p['name'] . ' : choisis « ' . $st['name'] . ' ».');
+                    $sp = one('SELECT * FROM bar_products WHERE id = ? AND event_id = ?', [$pid, $ev['id']]);
+                    if (!$sp) throw new RuntimeException('Produit de formule introuvable.');
+                    $names[] = $sp['name'];
+                    if ((int)$sp['track_stock']) $stockItems[] = [(int)$sp['id'], $qty];
+                    if ($sp['deposit_type_id']) $depIds[] = (int)$sp['deposit_type_id'];
+                    $spPrep = $sp['prep'] ?? null; if ($spPrep === null) $spPrep = $sp['category_id'] && isset($cats[(int)$sp['category_id']]) ? (int)$cats[(int)$sp['category_id']]['prep'] : 0;
+                    if ($spPrep) $prep = 1;
+                }
+                $name .= ' (' . implode(', ', $names) . ')';
+            }
             $bp = self::bestPrice($p, $unit, $qty, $promos, $barId, $ts);
             $full = $unit * $qty; $tot = $bp['total'];
             $isOff = !empty($it['offered']) || !empty($in['offer_all']);
             $rate = $p['vat_rate'] !== null ? (float)$p['vat_rate'] : (($p['category_id'] && isset($cats[(int)$p['category_id']]) && $cats[(int)$p['category_id']]['vat_rate'] !== null) ? (float)$cats[(int)$p['category_id']]['vat_rate'] : (float)$s['default_vat']);
             $line = ['kind' => 'product', 'id' => (int)$p['id'], 'name' => $name, 'variant' => $variant, 'qty' => $qty, 'unit' => $unit, 'full' => $full, 'total' => $tot, 'promo' => $bp['promo'], 'vat' => $rate,
-                'category_id' => $p['category_id'] ? (int)$p['category_id'] : null, 'stock' => (int)$p['track_stock']];
+                'category_id' => $p['category_id'] ? (int)$p['category_id'] : null, 'stock' => $stockItems ? 1 : 0, 'stock_items' => $stockItems, 'prep' => (bool)$prep];
             if ($isOff) { $offered += $tot; $line['offered'] = true; $line['total'] = 0; }
             $lines[] = $line; $sub += $line['total']; $nProducts += $qty;
-            if ($p['deposit_type_id'] && isset($deps[(int)$p['deposit_type_id']])) $depCount[(int)$p['deposit_type_id']] = ($depCount[(int)$p['deposit_type_id']] ?? 0) + $qty;
+            foreach ($depIds as $did) if (isset($deps[$did])) $depCount[$did] = ($depCount[$did] ?? 0) + $qty;
         }
         // remise manuelle (produits seulement)
         $discount = $pct > 0 ? (int)round($sub * $pct / 100) : 0;
@@ -259,23 +315,65 @@ final class Till
         return (int)val('SELECT LAST_INSERT_ID()');
     }
 
+    /** Numéro de commande du jour, par point de vente (1, 2, 3… remis à zéro chaque jour). */
+    public static function nextOrder(int $barId): int
+    {
+        q('UPDATE bars SET order_seq = LAST_INSERT_ID(IF(order_day = CURDATE(), order_seq + 1, 1)), order_day = CURDATE() WHERE id = ?', [$barId]);
+        return (int)val('SELECT LAST_INSERT_ID()');
+    }
+
     public static function session(array $d): ?array { return one('SELECT * FROM pos_sessions WHERE device_id = ? AND closed_at IS NULL ORDER BY id DESC LIMIT 1', [$d['id']]); }
+
+    /**
+     * Totaux par moyen de paiement à partir de lignes de pos_sales (les paiements fractionnés sont répartis).
+     * Seules les ventes (kind = sale) comptent dans le chiffre d'affaires ; recharges et remboursements à part.
+     */
+    public static function byMethod(array $rows): array
+    {
+        $by = []; $top = ['cash' => 0, 'card' => 0, 'n' => 0]; $cashout = 0;
+        $add = function (string $m, int $t, int $o = 0, int $dsc = 0, int $n = 1) use (&$by) {
+            $by[$m] = $by[$m] ?? ['n' => 0, 'total' => 0, 'offered' => 0, 'discount' => 0];
+            $by[$m]['n'] += $n; $by[$m]['total'] += $t; $by[$m]['offered'] += $o; $by[$m]['discount'] += $dsc;
+        };
+        foreach ($rows as $r) {
+            $kind = $r['kind'] ?? 'sale';
+            if ($kind === 'topup') { $top[$r['method'] === 'card' ? 'card' : 'cash'] += (int)$r['amount']; $top['n']++; continue; }
+            if ($kind === 'cashout') { $cashout += -(int)$r['amount']; continue; }
+            if ($r['method'] === 'split' && $r['payments_json']) {
+                foreach (json_decode((string)$r['payments_json'], true) ?: [] as $i => $pt) $add((string)$pt['method'], (int)$pt['amount'], $i ? 0 : (int)$r['offered_value'], $i ? 0 : (int)$r['discount']);
+                continue;
+            }
+            $add((string)$r['method'], (int)$r['amount'], (int)$r['offered_value'], (int)$r['discount']);
+        }
+        return ['methods' => $by, 'topups' => $top, 'cashout' => $cashout, 'total' => array_sum(array_column($by, 'total')),
+            'count' => count(array_filter($rows, fn($r) => ($r['kind'] ?? 'sale') === 'sale')), 'offered' => array_sum(array_column($by, 'offered'))];
+    }
+
+    /** Espèces encaissées (ventes, parts espèces des paiements fractionnés, recharges, remboursements). */
+    public static function cashIn(array $rows): int
+    {
+        $c = 0;
+        foreach ($rows as $r) {
+            if ($r['method'] === 'cash') $c += (int)$r['amount'];
+            elseif ($r['method'] === 'split') foreach (json_decode((string)$r['payments_json'], true) ?: [] as $pt) if ($pt['method'] === 'cash') $c += (int)$pt['amount'];
+        }
+        return $c;
+    }
 
     public static function sessionTotals(array $se): array
     {
-        $by = [];
-        foreach (all('SELECT method, COUNT(*) n, SUM(amount) total, SUM(offered_value) offered, SUM(discount) discount FROM pos_sales WHERE session_id = ? AND undone = 0 GROUP BY method', [$se['id']]) as $r)
-            $by[$r['method']] = ['n' => (int)$r['n'], 'total' => (int)$r['total'], 'offered' => (int)$r['offered'], 'discount' => (int)$r['discount']];
+        $rows = all('SELECT method, kind, amount, offered_value, discount, payments_json, items FROM pos_sales WHERE session_id = ? AND undone = 0', [$se['id']]);
+        $bm = self::byMethod($rows);
         $moves = ['add' => 0, 'drop' => 0];
         foreach (all('SELECT kind, SUM(amount) a FROM pos_cash_moves WHERE session_id = ? GROUP BY kind', [$se['id']]) as $m) $moves[$m['kind']] = (int)$m['a'];
-        $cash = (int)$se['float_amount'] + ($by['cash']['total'] ?? 0) + $moves['add'] - $moves['drop'];
+        $cash = (int)$se['float_amount'] + self::cashIn($rows) + $moves['add'] - $moves['drop'];
         $prod = [];
-        foreach (all('SELECT items FROM pos_sales WHERE session_id = ? AND undone = 0', [$se['id']]) as $r) foreach (json_decode((string)$r['items'], true) ?: [] as $l) {
+        foreach ($rows as $r) if (($r['kind'] ?? 'sale') === 'sale') foreach (json_decode((string)$r['items'], true) ?: [] as $l) {
             $k = (string)$l['name']; $prod[$k]['qty'] = ($prod[$k]['qty'] ?? 0) + (int)$l['qty']; $prod[$k]['total'] = ($prod[$k]['total'] ?? 0) + (int)$l['total'];
         }
         uasort($prod, fn($a, $b) => $b['qty'] <=> $a['qty']);
-        return ['methods' => $by, 'moves' => $moves, 'float' => (int)$se['float_amount'], 'expected_cash' => $cash, 'products' => $prod,
-            'total' => array_sum(array_map(fn($m) => $m['total'], $by)), 'count' => array_sum(array_column($by, 'n')), 'offered' => array_sum(array_column($by, 'offered'))];
+        return ['methods' => $bm['methods'], 'topups' => $bm['topups'], 'cashout' => $bm['cashout'], 'moves' => $moves, 'float' => (int)$se['float_amount'], 'expected_cash' => $cash, 'products' => $prod,
+            'total' => $bm['total'], 'count' => $bm['count'], 'offered' => $bm['offered']];
     }
 
     // ---------- stocks ----------

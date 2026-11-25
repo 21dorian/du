@@ -54,7 +54,9 @@ function bars_live(array $ev): array
 {
     $day = input('jour') === 'tout' ? null : date('Y-m-d');
     $w = 'event_id = ? AND undone = 0' . ($day ? ' AND created_at >= ?' : ''); $p = $day ? [$ev['id'], $day . ' 00:00:00'] : [$ev['id']];
-    $m = []; foreach (all("SELECT method, COUNT(*) n, SUM(amount) t, SUM(offered_value) o FROM pos_sales WHERE $w GROUP BY method", $p) as $r) $m[$r['method']] = ['n' => (int)$r['n'], 't' => (int)$r['t'], 'o' => (int)$r['o']];
+    $bm = Till::byMethod(all("SELECT method, kind, amount, offered_value, discount, payments_json FROM pos_sales WHERE $w", $p));
+    $m = []; foreach ($bm['methods'] as $k => $r) $m[$k] = ['n' => $r['n'], 't' => $r['total'], 'o' => $r['offered']];
+    $w .= " AND kind = 'sale'";
     $hours = []; foreach (all("SELECT DATE_FORMAT(created_at, '%Hh') h, SUM(amount) t, COUNT(*) n FROM pos_sales WHERE $w GROUP BY h ORDER BY h", $p) as $r) $hours[$r['h']] = ['t' => (int)$r['t'], 'n' => (int)$r['n']];
     $prod = [];
     foreach (all("SELECT items FROM pos_sales WHERE $w", $p) as $r) foreach (json_decode((string)$r['items'], true) ?: [] as $l) {
@@ -62,7 +64,7 @@ function bars_live(array $ev): array
         $k = (string)$l['name']; $prod[$k]['q'] = ($prod[$k]['q'] ?? 0) + (int)$l['qty']; $prod[$k]['t'] = ($prod[$k]['t'] ?? 0) + (int)$l['total'];
     }
     uasort($prod, fn($a, $b) => $b['q'] <=> $a['q']);
-    $bars = all("SELECT b.id, b.name, COUNT(s.id) n, COALESCE(SUM(s.amount), 0) t, MAX(s.created_at) last FROM bars b LEFT JOIN pos_sales s ON s.bar_id = b.id AND s.undone = 0" . ($day ? ' AND s.created_at >= ?' : '') . " WHERE b.event_id = ? GROUP BY b.id, b.name ORDER BY b.id", $day ? [$day . ' 00:00:00', $ev['id']] : [$ev['id']]);
+    $bars = all("SELECT b.id, b.name, COUNT(s.id) n, COALESCE(SUM(s.amount), 0) t, MAX(s.created_at) last FROM bars b LEFT JOIN pos_sales s ON s.bar_id = b.id AND s.undone = 0 AND s.kind = 'sale'" . ($day ? ' AND s.created_at >= ?' : '') . " WHERE b.event_id = ? GROUP BY b.id, b.name ORDER BY b.id", $day ? [$day . ' 00:00:00', $ev['id']] : [$ev['id']]);
     foreach ($bars as &$b) $b['rate'] = (int)val('SELECT COUNT(*) FROM pos_sales WHERE bar_id = ? AND undone = 0 AND created_at >= NOW() - INTERVAL 15 MINUTE', [$b['id']]);
     unset($b);
     $alertCash = (int)Till::settings($ev)['drop_alert'];
@@ -74,10 +76,10 @@ function bars_live(array $ev): array
     $low = all('SELECT p.name, b.name bar, s.qty, p.stock_alert FROM pos_stock s JOIN bar_products p ON p.id = s.product_id JOIN bars b ON b.id = s.bar_id WHERE p.event_id = ? AND p.track_stock = 1 AND p.active = 1 AND s.qty <= COALESCE(p.stock_alert, 10) ORDER BY s.qty LIMIT 12', [$ev['id']]);
     $devices = all('SELECT name, last_seen FROM pos_devices WHERE event_id = ? AND revoked = 0 AND token_hash IS NOT NULL', [$ev['id']]);
     $online = count(array_filter($devices, fn($x) => $x['last_seen'] && strtotime($x['last_seen']) > time() - 300));
-    $total = array_sum(array_column($m, 't'));
-    $n = array_sum(array_map(fn($x) => $x['n'], array_filter($m, fn($k) => $k !== 'offered' && $k !== 'allowance', ARRAY_FILTER_USE_KEY)));
+    $total = $bm['total'];
+    $n = (int)val("SELECT COUNT(*) FROM pos_sales WHERE $w AND method NOT IN ('offered','allowance')", $p);
     return ['day' => $day, 'total' => $total, 'count' => $n, 'basket' => $n ? (int)round($total / $n) : 0, 'methods' => $m, 'hours' => $hours, 'products' => array_slice($prod, 0, 10, true),
-        'bars' => $bars, 'sessions' => $sessions, 'low' => $low, 'devices' => count($devices), 'online' => $online, 'cups' => Till::cups((int)$ev['id']), 'at' => date('H:i:s')];
+        'bars' => $bars, 'topups' => $bm['topups'], 'cashout' => $bm['cashout'], 'sessions' => $sessions, 'low' => $low, 'devices' => count($devices), 'online' => $online, 'cups' => Till::cups((int)$ev['id']), 'at' => date('H:i:s')];
 }
 
 // ---------- Catalogue ----------
@@ -88,7 +90,7 @@ function bars_catalogue(array $ev, array $org, string $base): array
         if ($a === 'category') {
             $name = mb_substr(trim((string)input('name')), 0, 60);
             if ($name === '') back(['error' => 'Donne un nom à la catégorie.']);
-            $d = ['name' => $name, 'color' => preg_match('~^#[0-9a-f]{6}$~i', (string)input('color')) ? (string)input('color') : null, 'vat_rate' => input('vat_rate') === '' ? null : (float)str_replace(',', '.', (string)input('vat_rate'))];
+            $d = ['name' => $name, 'color' => preg_match('~^#[0-9a-f]{6}$~i', (string)input('color')) ? (string)input('color') : null, 'vat_rate' => input('vat_rate') === '' ? null : (float)str_replace(',', '.', (string)input('vat_rate')), 'prep' => checked('prep')];
             if ((int)input('category_id')) update('pos_categories', $d, 'id = ? AND event_id = ?', [(int)input('category_id'), $ev['id']]);
             else insert('pos_categories', $d + ['event_id' => $ev['id'], 'sort' => (int)val('SELECT COALESCE(MAX(sort), 0) + 1 FROM pos_categories WHERE event_id = ?', [$ev['id']]), 'active' => 1]);
             back(['success' => 'Catégorie enregistrée.']);
@@ -116,6 +118,28 @@ function bars_catalogue(array $ev, array $org, string $base): array
                 'variants_json' => $variants ? json_encode($variants, JSON_UNESCAPED_UNICODE) : null, 'bar_prices_json' => $barPrices ? json_encode($barPrices) : null,
                 'bar_ids' => bars_ids('bar_ids') ?: null, 'track_stock' => checked('track_stock'), 'stock_alert' => input('stock_alert') === '' ? null : max(0, (int)input('stock_alert')),
                 'color' => preg_match('~^#[0-9a-f]{6}$~i', (string)input('color')) && input('use_color') ? (string)input('color') : null];
+            // 2.8 : options payantes, formule, préparation
+            $opts = [];
+            foreach ((array)($_POST['opt_name'] ?? []) as $g => $gn) {
+                $gn = trim((string)$gn); if ($gn === '') continue;
+                $items = [];
+                foreach (preg_split('~\R~', (string)($_POST['opt_items'][$g] ?? '')) as $line) {
+                    $parts = preg_split('~\s*[:=]\s*~', trim($line), 2);
+                    if (trim($parts[0] ?? '') === '') continue;
+                    $items[] = ['name' => mb_substr(trim($parts[0]), 0, 40), 'price' => isset($parts[1]) ? parse_money($parts[1]) : 0];
+                }
+                if ($items) $opts[] = ['name' => mb_substr($gn, 0, 40), 'multi' => !empty($_POST['opt_multi'][$g]), 'required' => !empty($_POST['opt_required'][$g]), 'items' => $items];
+            }
+            $d['options_json'] = $opts ? json_encode($opts, JSON_UNESCAPED_UNICODE) : null;
+            $d['kind'] = input('kind') === 'menu' ? 'menu' : 'item';
+            $steps = [];
+            if ($d['kind'] === 'menu') foreach ((array)($_POST['menu_step'] ?? []) as $k => $sn) {
+                $sn = trim((string)$sn); $ids = array_values(array_filter(array_map('intval', (array)($_POST['menu_products'][$k] ?? []))));
+                if ($sn !== '' && $ids) $steps[] = ['name' => mb_substr($sn, 0, 40), 'products' => $ids];
+            }
+            if ($d['kind'] === 'menu' && !$steps) back(['error' => 'Une formule a besoin d\'au moins une étape (par exemple « Plat » avec ses choix).']);
+            $d['menu_json'] = $steps ? json_encode($steps, JSON_UNESCAPED_UNICODE) : null;
+            $d['prep'] = in_array(input('prep'), ['0', '1'], true) ? (int)input('prep') : null;
             if ($d['price'] <= 0 && !$variants) back(['error' => 'Indique un prix (ou des variantes avec leur prix).']);
             if ($variants && $d['price'] <= 0) $d['price'] = $variants[0]['price'];
             try { if ($ph = bars_photo('photo')) $d['photo'] = $ph; } catch (Throwable $e) { back(['error' => $e->getMessage()]); }
@@ -221,8 +245,8 @@ function bars_equipe(array $ev, array $org, string $base): array
     }
     $pins = $_SESSION['new_pins'] ?? []; unset($_SESSION['new_pins']);
     $since = date('Y-m-d 00:00:00', strtotime((string)$ev['starts_at']) - 7 * 86400);
-    $staff = all("SELECT st.*, (SELECT COUNT(*) FROM pos_sales s WHERE s.staff_id = st.id AND s.event_id = ? AND s.undone = 0) n,
-            (SELECT COALESCE(SUM(amount), 0) FROM pos_sales s WHERE s.staff_id = st.id AND s.event_id = ? AND s.undone = 0) t,
+    $staff = all("SELECT st.*, (SELECT COUNT(*) FROM pos_sales s WHERE s.staff_id = st.id AND s.event_id = ? AND s.undone = 0 AND s.kind = 'sale') n,
+            (SELECT COALESCE(SUM(amount), 0) FROM pos_sales s WHERE s.staff_id = st.id AND s.event_id = ? AND s.undone = 0 AND s.kind = 'sale') t,
             (SELECT COALESCE(SUM(offered_value), 0) FROM pos_sales s WHERE (s.staff_id = st.id OR s.approved_by = st.id) AND s.event_id = ? AND s.undone = 0 AND s.method <> 'allowance') o
         FROM pos_staff st WHERE st.organizer_id = ? ORDER BY st.active DESC, st.role DESC, st.name", [$ev['id'], $ev['id'], $ev['id'], $org['id']]);
     $sel = input('s') === 'new' ? [] : ((int)input('s') ? one('SELECT * FROM pos_staff WHERE id = ? AND organizer_id = ?', [(int)input('s'), $org['id']]) : null);
@@ -416,15 +440,18 @@ function bars_ventes(array $ev, array $org, string $base): array
 {
     $w = ['s.event_id = ?']; $p = [$ev['id']];
     $f = ['bar' => (int)input('bar'), 'method' => (string)input('method'), 'staff' => (int)input('staff'), 'day' => (string)input('day'), 'q' => trim((string)input('q')), 'undone' => checked('undone')];
+    $f['kind'] = in_array(input('kind'), ['sale', 'topup', 'cashout'], true) ? (string)input('kind') : '';
+    if ($f['kind']) { $w[] = 's.kind = ?'; $p[] = $f['kind']; }
     if ($f['bar']) { $w[] = 's.bar_id = ?'; $p[] = $f['bar']; }
-    if (isset(Till::METHODS[$f['method']])) { $w[] = 's.method = ?'; $p[] = $f['method']; }
+    if (isset(Till::METHODS[$f['method']])) { $w[] = "(s.method = ? OR (s.method = 'split' AND s.payments_json LIKE ?))"; $p[] = $f['method']; $p[] = '%"method":"' . $f['method'] . '"%'; }
     if ($f['staff']) { $w[] = 's.staff_id = ?'; $p[] = $f['staff']; }
     if (preg_match('~^\d{4}-\d{2}-\d{2}$~', $f['day'])) { $w[] = 'DATE(s.created_at) = ?'; $p[] = $f['day']; }
     if ($f['q'] !== '') { $w[] = '(s.ticket_no = ? OR s.items LIKE ?)'; $p[] = (int)$f['q']; $p[] = '%' . $f['q'] . '%'; }
     if (!$f['undone']) $w[] = 's.undone = 0';
     $where = implode(' AND ', $w);
     $sales = all("SELECT s.*, b.name bar, st.name staff_name, ap.name approver FROM pos_sales s JOIN bars b ON b.id = s.bar_id LEFT JOIN pos_staff st ON st.id = s.staff_id LEFT JOIN pos_staff ap ON ap.id = s.approved_by WHERE $where ORDER BY s.id DESC LIMIT 300", $p);
-    $tot = one("SELECT COUNT(*) n, COALESCE(SUM(s.amount), 0) t, COALESCE(SUM(s.offered_value), 0) o, COALESCE(SUM(s.discount), 0) d FROM pos_sales s WHERE $where", $p);
+    $tot = one("SELECT COUNT(*) n, COALESCE(SUM(CASE WHEN s.kind = 'sale' THEN s.amount END), 0) t, COALESCE(SUM(s.offered_value), 0) o, COALESCE(SUM(s.discount), 0) d,
+        COALESCE(SUM(CASE WHEN s.kind = 'topup' THEN s.amount END), 0) top, COALESCE(-SUM(CASE WHEN s.kind = 'cashout' THEN s.amount END), 0) cashout FROM pos_sales s WHERE $where", $p);
     if (input('export') === 'csv') {
         $rows = [['Ticket', 'Date', 'Bar', 'Serveur', 'Moyen', 'Montant', 'Offert', 'Remise', 'Motif', 'Validé par', 'Articles', 'Hors ligne', 'Annulée']];
         foreach (all("SELECT s.*, b.name bar, st.name staff_name, ap.name approver FROM pos_sales s JOIN bars b ON b.id = s.bar_id LEFT JOIN pos_staff st ON st.id = s.staff_id LEFT JOIN pos_staff ap ON ap.id = s.approved_by WHERE $where ORDER BY s.id", $p) as $s)
@@ -446,6 +473,7 @@ function bars_appareils(array $ev, array $org, string $base): array
         if ($a === 'device_add') {
             $bar = (int)input('bar_id') ? one('SELECT id FROM bars WHERE id = ? AND event_id = ?', [(int)input('bar_id'), $ev['id']]) : null;
             $d = Pos::createDevice((int)$ev['id'], $bar ? (int)$bar['id'] : null, trim((string)input('name')) ?: 'Caisse ' . ((int)val('SELECT COUNT(*) FROM pos_devices WHERE event_id = ?', [$ev['id']]) + 1), (int)user()['id']);
+            if (in_array(input('mode_app'), ['topup', 'prep', 'display'], true)) update('pos_devices', ['mode' => (string)input('mode_app')], 'id = ?', [$d['id']]);
             redirect($base . '?d=' . $d['id'], ['success' => 'Appareil créé : scanne le QR code avec la tablette ou le téléphone du bar.']);
         }
         $dev = one('SELECT * FROM pos_devices WHERE id = ? AND event_id = ?', [(int)input('device_id'), $ev['id']]);
@@ -453,7 +481,8 @@ function bars_appareils(array $ev, array $org, string $base): array
         if ($dev && $a === 'device_revoke') { update('pos_devices', ['revoked' => 1, 'token_hash' => null, 'pair_code' => null], 'id = ?', [$dev['id']]); back(['success' => 'Appareil déconnecté.']); }
         if ($dev && $a === 'device_tpe') {
             $t = ['mode' => input('mode') === 'nepting' ? 'nepting' : 'manual', 'host' => trim((string)input('host')), 'port' => (int)input('port') ?: 8888, 'cj' => (string)input('cj'), 'ca' => (string)input('ca'), 'cz' => (string)input('cz') ?: '0320', 'crlf' => checked('crlf'), 'timeout' => (int)input('timeout') ?: 120];
-            update('pos_devices', ['tpe_json' => json_encode($t), 'bar_id' => (int)input('bar_id') ?: null, 'name' => mb_substr(trim((string)input('name')) ?: $dev['name'], 0, 80)], 'id = ?', [$dev['id']]);
+            update('pos_devices', ['tpe_json' => json_encode($t), 'bar_id' => (int)input('bar_id') ?: null, 'name' => mb_substr(trim((string)input('name')) ?: $dev['name'], 0, 80),
+                'mode' => in_array(input('mode_app'), ['bar', 'topup', 'prep', 'display'], true) ? (string)input('mode_app') : 'bar'], 'id = ?', [$dev['id']]);
             back(['success' => 'Réglages de l\'appareil enregistrés.']);
         }
         back();

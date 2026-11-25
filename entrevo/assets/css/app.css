@@ -2514,3 +2514,6 @@ input[type=color]{width:64px!important;height:40px!important;padding:4px!importa
 .pos-link{display:flex;align-items:center;justify-content:space-between;gap:20px}
 .receipt-card table td{border-bottom:1px solid var(--line,rgba(0,0,0,.06))}
 .var-row{display:grid!important;grid-template-columns:1fr 170px;gap:8px}.bar-row{display:grid!important;grid-template-columns:1fr 170px;gap:8px;align-items:center}
+.menu-steps,.opt-groups{display:flex;flex-direction:column;gap:10px;margin-bottom:8px}
+.menu-step,.opt-group{display:flex;flex-direction:column;gap:8px;padding:12px;border-radius:14px;background:var(--bg-soft,#f5f5f7)}
+.opt-group .row{flex-wrap:wrap;gap:10px}

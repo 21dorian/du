@@ -94,6 +94,20 @@ function pos_api(): never
                 update('pos_sessions', ['closed_at' => now(), 'closed_by' => $by['id'] ?? ($staff['id'] ?? null), 'expected_cash' => $tot['expected_cash'], 'counted_cash' => isset($in['counted']) ? max(0, (int)$in['counted']) : null,
                     'z_number' => $z, 'totals_json' => json_encode($tot, JSON_UNESCAPED_UNICODE), 'note' => mb_substr(trim((string)($in['note'] ?? '')), 0, 500) ?: null], 'id = ?', [$se['id']]);
                 json_out(['ok' => true, 'z' => $z, 'totals' => $tot, 'counted' => isset($in['counted']) ? (int)$in['counted'] : null]);
+            case 'topup':
+                json_out(Pos::topup($d, $in));
+            case 'new_wallet':
+                $w = Pos::newWallet($d, $in);
+                json_out(['ok' => true, 'code' => $w['code'], 'balance' => 0]);
+            case 'cashout':
+                json_out(Pos::cashout($d, $in));
+            case 'prep_list':
+                json_out(['ok' => true, 'orders' => Pos::prepList($d), 'time' => date('H:i:s')]);
+            case 'prep_set':
+                Pos::prepSet($d, (int)($in['sale_id'] ?? 0), (string)($in['status'] ?? ''));
+                json_out(['ok' => true, 'orders' => Pos::prepList($d)]);
+            case 'calls':
+                json_out(['ok' => true, 'orders' => Pos::prepList($d, true), 'preparing' => array_values(array_map(fn($o) => $o['order'], array_filter(Pos::prepList($d), fn($o) => $o['status'] === 'new')))]);
             case 'receipt':
                 $sale = one('SELECT * FROM pos_sales WHERE id = ? AND event_id = ?', [(int)($in['sale_id'] ?? 0), $ev['id']]);
                 if (!$sale) $fail('Vente introuvable.', 404);
