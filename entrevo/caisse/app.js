@@ -178,9 +178,19 @@
     return function () { stopped = true; cancelAnimationFrame(raf); if (stream) stream.getTracks().forEach(function (t) { t.stop(); }); };
   }
 
+  /** Module natif (application Android) : absent dans la web app. */
+  var plugins = {};
+  function nativePlugin(name) {
+    if (!NATIVE) return null;
+    if (plugins[name] !== undefined) return plugins[name];
+    var p = (CAP.Plugins && CAP.Plugins[name]) || null;
+    if (!p && CAP.isPluginAvailable && CAP.isPluginAvailable(name) && CAP.registerPlugin) p = CAP.registerPlugin(name);
+    return (plugins[name] = p);
+  }
+
   // ---------- NFC (bracelets) ----------
   var NFC = {
-    plugin: function () { return CAP && CAP.Plugins && CAP.Plugins.EntrevoNfc; },
+    plugin: function () { return nativePlugin('EntrevoNfc'); },
     available: function () { return !!this.plugin() || 'NDEFReader' in window; },
     start: function (cb) {
       var self = this, last = '', lastAt = 0;
@@ -202,7 +212,7 @@
 
   // ---------- TPE Nepting (protocole Caisse-AP, trame TLV sur TCP) ----------
   var TPE = {
-    plugin: function () { return CAP && CAP.Plugins && CAP.Plugins.EntrevoTpe; },
+    plugin: function () { return nativePlugin('EntrevoTpe'); },
     tlv: function (tag, v) { v = String(v); return tag + ('00' + v.length).slice(-3) + v; },
     frame: function (t, amount, ref) {
       return this.tlv('CZ', t.cz) + this.tlv('CJ', t.cj) + this.tlv('CA', t.ca) + this.tlv('CB', amount) + this.tlv('CD', '0') + this.tlv('CE', '978') + this.tlv('CF', String(ref).slice(0, 32)) + this.tlv('CK', '000');
