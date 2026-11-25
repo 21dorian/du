@@ -9,7 +9,8 @@
 <script>document.documentElement.classList.add('js')</script>
 <link rel="stylesheet" href="<?= asset('css/app.css') ?>">
 <link rel="icon" href="<?= asset('img/icon.svg') ?>" type="image/svg+xml">
-<style>:root{--primary:<?= e(setting('primary_color', '#0071e3')) ?>}</style>
+<?php $siteOn = !empty($site) && class_exists('Site') && Site::on($site); $siteS = $siteOn ? Site::settings($site) : []; ?>
+<style>:root{--primary:<?= e($siteOn && !empty($site['accent']) && preg_match('~^#[0-9a-fA-F]{6}$~', (string)$site['accent']) ? $site['accent'] : setting('primary_color', '#0071e3')) ?>}</style>
 <?php if (!empty($org_tracking)) echo view('partials/tracking', ['o' => $org_tracking]); ?>
 </head>
 <body class="pub">
@@ -28,8 +29,23 @@
     </nav>
   </div>
 </header>
+<?php if ($siteOn): $here = route_path(); ?>
+<div class="site-bar"><div class="wrap site-bar-in">
+  <a class="site-brand" href="<?= url('/o/' . $site['slug']) ?>"><?php if ($site['logo']): ?><img src="<?= e(url($site['logo'])) ?>" alt=""><?php endif; ?><b><?= e($site['name']) ?></b></a>
+  <nav class="site-nav"><?php foreach (Site::menu($site) as [$label, $href]): $on = $here === $href || ($href !== '/o/' . $site['slug'] && str_starts_with($here, $href)); ?><a href="<?= url($href) ?>"<?= $on ? ' class="on" aria-current="page"' : '' ?>><?= e($label) ?></a><?php endforeach; ?></nav>
+</div></div>
+<?php endif; ?>
 <?= $hero ?? '' ?>
 <main class="wrap main"><?= render_flash() ?><?= $content ?></main>
+<?php if ($siteOn): $soc = json_decode((string)($site['socials'] ?? ''), true) ?: []; ?>
+<section class="site-foot"><div class="wrap site-foot-in">
+  <div class="site-foot-id"><b><?= e($site['name']) ?></b><?php if ($siteS['footer']): ?><p><?= nl2br(e($siteS['footer'])) ?></p><?php endif; ?>
+    <?php if ($soc): ?><div class="site-soc"><?php foreach ($soc as $k => $u): ?><a href="<?= e($u) ?>" target="_blank" rel="noopener"><?= e(ucfirst((string)$k)) ?></a><?php endforeach; ?></div><?php endif; ?></div>
+  <?php if ($siteS['newsletter']): ?><form class="site-nl" method="post" action="<?= url('/o/' . $site['slug'] . '/newsletter') ?>"><?= csrf_field() ?><input type="hidden" name="back" value="<?= e(route_path()) ?>"><input class="hp" name="website" tabindex="-1" autocomplete="off" aria-hidden="true">
+    <b>Lettre d'information</b><small><?= e($siteS['newsletter_text']) ?></small>
+    <div class="site-nl-row"><input type="email" name="email" required placeholder="ton@email.fr" aria-label="Ton adresse e-mail"><button class="btn">S'inscrire</button></div></form><?php endif; ?>
+</div></section>
+<?php endif; ?>
 <footer class="footer">
   <div class="wrap footer-in">
     <div><b><?= e($pname) ?></b> — <?= e(setting('tagline')) ?></div>

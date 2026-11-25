@@ -52,6 +52,13 @@ final class Campaigns
             FROM orders o WHERE $w GROUP BY LOWER(o.email) " . implode(' AND ', $having) . ' LIMIT 50000', $p);
         $out = [];
         foreach ($rows as $r) if (is_email($r['email'])) $out[$r['email']] = $r['first_name'];
+        // 2.5 : abonnés à la lettre d'information du mini-site (consentement explicite)
+        if ($a['source'] === 'optin' && !$evs && !(int)$a['not_event'] && (string)$a['segment'] === '') {
+            try {
+                foreach (all('SELECT LOWER(email) email, name FROM site_contacts WHERE organizer_id = ? AND unsub_at IS NULL AND LOWER(email) NOT IN (SELECT email FROM email_unsubscribes WHERE organizer_id = ?)', [$orgId, $orgId]) as $c)
+                    if (is_email($c['email']) && !isset($out[$c['email']])) $out[$c['email']] = (string)strtok((string)$c['name'], ' ');
+            } catch (Throwable $e) { /* avant migration */ }
+        }
         return $out;
     }
 

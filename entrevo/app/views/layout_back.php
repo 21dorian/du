@@ -118,7 +118,7 @@ if ($area === 'admin') {
             ['avis', '/pro/avis', 'Avis des participants', $I['star']],
             ['liens', '/pro/liens', 'Liens & ambassadeurs', $I['share']],
             ['sms', '/pro/sms', 'Campagnes SMS', $I['sms']],
-            $soonP('mini-site', 'Mini-site', 'globe'),
+            ['mini-site', '/pro/mini-site', 'Mini-site', $I['globe']],
             ['visuels', '/pro/visuels', 'Visuels réseaux sociaux', $I['share']],
         ]],
         ['Le jour J', [

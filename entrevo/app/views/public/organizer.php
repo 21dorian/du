@@ -29,6 +29,8 @@
   <?php endif; ?>
   <?php if ((int)($org['lost_enabled'] ?? 1) && val('SELECT id FROM events WHERE organizer_id = ? AND starts_at < NOW() LIMIT 1', [$org['id']])): ?><p class="org-lost"><a href="<?= url('/o/' . $org['slug'] . '/objets-trouves') ?>">Objet perdu lors d'un événement ?</a></p><?php endif; ?>
 </section>
+<?php $siteOn = class_exists('Site') && Site::on($org); $siteS = $siteOn ? Site::settings($org) : [];
+if ($siteOn && trim((string)$siteS['intro']) !== ''): ?><section class="site-intro prose"><?= rich_text((string)$siteS['intro']) ?></section><?php endif; ?>
 <h2 class="org-h">À venir</h2>
 <?php if (!$events): ?><div class="card empty">Aucun événement en vente pour le moment.</div>
 <?php else: ?><div class="events-grid"><?php foreach ($events as $ev) echo view('partials/event_card', ['ev' => $ev]); ?></div><?php endif; ?>
@@ -48,4 +50,8 @@
   </figure>
 <?php endforeach; ?>
 </div>
+<?php endif; ?>
+<?php if ($siteOn && $siteS['news_home'] && ($news = Site::news((int)$org['id'], 3))): ?>
+<div class="row between org-h-row"><h2 class="org-h">Actualités</h2><a href="<?= url('/o/' . $org['slug'] . '/actualites') ?>">Toutes les actualités ›</a></div>
+<div class="news-grid"><?php foreach ($news as $n) echo view('public/_news_card', ['n' => $n, 'org' => $org]); ?></div>
 <?php endif; ?>

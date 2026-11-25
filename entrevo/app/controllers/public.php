@@ -103,7 +103,7 @@ function organizer_page(string $slug): string
     $figures = one("SELECT COUNT(DISTINCT e.id) events, (SELECT COUNT(*) FROM tickets t JOIN events e2 ON e2.id = t.event_id WHERE e2.organizer_id = ? AND t.status = 'valid') tickets FROM events e WHERE e.organizer_id = ? AND e.status IN ('published','closed')", [$org['id'], $org['id']]);
     $socials = json_decode((string)($org['socials'] ?? ''), true) ?: [];
     return pub('organizer', ['org' => $org, 'events' => $events, 'rating' => $rating, 'reviews' => $reviews, 'past' => $past, 'figures' => $figures, 'socials' => $socials], $org['name'],
-        ['widget_ok' => true, 'org_tracking' => $org, 'description' => $org['tagline'] ?: mb_substr((string)$org['description'], 0, 160), 'og_image' => !empty($org['cover']) ? abs_url('/' . ltrim($org['cover'], '/')) : null]);
+        ['widget_ok' => true, 'org_tracking' => $org, 'site' => $org, 'description' => $org['tagline'] ?: mb_substr((string)$org['description'], 0, 160), 'og_image' => !empty($org['cover']) ? abs_url('/' . ltrim($org['cover'], '/')) : null]);
 }
 
 function cart_get(int $eventId): array
