@@ -79,6 +79,18 @@ Couleurs : **vert** = entre, **orange** = déjà entré / pas entré (sortie), *
 
 ---
 
+## Nouveautés 2.4 — vendre partout, encaisser sur place
+
+**Organisateurs**
+- **Cashless & bars** : chaque billet devient un porte-monnaie. Rechargement en ligne (depuis la commande ou la page cashless) ou au bar ; caisse plein écran pour tablette (bars protégés par code, produits avec consigne, lecture du QR du billet à la caméra, annulation dans les 10 minutes, solde insuffisant refusé) ; remboursement du solde restant par virement après l'événement, jusqu'à la date choisie ; ventes par bar et par produit.
+- **Visuels réseaux sociaux** : visuels prêts à publier, générés depuis l'affiche de l'événement, en story, post, carré et bannière ; quatre messages (annonce, dernières places, c'est ce soir, complet), trois styles (sombre, clair, plein cadre), accroche libre et QR code vers la billetterie ; téléchargement en PNG.
+- **Intégrations** : webhooks fiables vers tes outils (Zapier, Make, n8n, ton CRM…) pour 8 événements (commande payée, remboursée, annulée, entrée scannée, événement publié, recharge cashless, demande de devis, nouvel avis). Signature HMAC, nouvelles tentatives espacées pendant 24 h, journal des envois, renvoi en un clic, envoi de test, recettes prêtes à l'emploi.
+- **Revendeurs** : autorise des partenaires de la plateforme (offices de tourisme, CSE, commerces) à vendre tes billets au comptoir, avec la commission de ton choix ; relevé mensuel de ce que chacun te doit.
+
+**Super-admin**
+- **Revendeurs** : fiche revendeur, commission par défaut, accès ouverts par organisateur, lien secret du portail (envoi par e-mail, renouvellement, suspension), relevé mensuel par organisateur et export CSV.
+- **Portail revendeur** : liste des événements à vendre, vente en quelques secondes (date, tarifs, acheteur), **placement numéroté attribué automatiquement** (places côte à côte), billets envoyés à l'acheteur, reçu imprimable, annulation dans les 30 minutes, relevé du mois. Ces ventes sont encaissées par le revendeur : elles n'entrent pas dans le solde à reverser.
+
 ## Nouveautés 2.3 — exploiter la plateforme sereinement
 
 **Super-admin**
