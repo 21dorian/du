@@ -24,6 +24,13 @@ function pos_api(): never
         // 2.9 : le point de vente est choisi sur l'appareil et envoyé à chaque requête (une vente hors ligne garde le sien).
         if (!empty($in['bar_id']) && (int)$in['bar_id'] !== (int)$d['bar_id'] && val('SELECT id FROM bars WHERE id = ? AND event_id = ?', [(int)$in['bar_id'], $ev['id']])) $d['bar_id'] = (int)$in['bar_id'];
         switch ($a) {
+            case 'tabs':
+                json_out(['ok' => true, 'tabs' => Pos::tabs($d)]);
+            case 'tab_save':
+                json_out(['ok' => true, 'tab' => Pos::tabSave($d, $in)]);
+            case 'tab_cancel':
+                Pos::tabCancel($d, $in);
+                json_out(['ok' => true, 'tabs' => Pos::tabs($d)]);
             case 'station':
                 // poste choisi sur l'appareil : point de vente et rôle
                 $mode = in_array($in['mode'] ?? '', Pos::MODES, true) ? (string)$in['mode'] : 'bar';
@@ -86,22 +93,23 @@ function pos_api(): never
                 $by = Till::settings($ev)['require_staff'] ? Till::authorize((int)$ev['organizer_id'], $staff, 'close', $in['approver_pin'] ?? null, true) : $staff;
                 $bar = (int)$d['bar_id'];
                 if (!val('SELECT id FROM bars WHERE id = ? AND event_id = ?', [$bar, $ev['id']])) $fail('Choisis ton point de vente.');
-                insert('pos_sessions', ['event_id' => $ev['id'], 'bar_id' => $bar, 'device_id' => $d['id'], 'opened_by' => $by['id'] ?? null, 'opened_at' => now(), 'float_amount' => max(0, (int)($in['float'] ?? 0))]);
+                [$fsum, $fjson] = is_array($in['count'] ?? null) ? Till::countSum($in['count']) : [max(0, (int)($in['float'] ?? 0)), null];
+                insert('pos_sessions', ['event_id' => $ev['id'], 'bar_id' => $bar, 'device_id' => $d['id'], 'opened_by' => $by['id'] ?? null, 'opened_at' => now(), 'float_amount' => $fsum, 'float_json' => $fjson]);
                 json_out(['ok' => true, 'config' => Pos::config($d)]);
             case 'session':
                 $se = Till::session($d);
                 $devs = $se ? all('SELECT DISTINCT d.name FROM pos_sales s JOIN pos_devices d ON d.id = s.device_id WHERE s.session_id = ?', [$se['id']]) : [];
                 json_out(['ok' => true, 'session' => $se ? ['id' => (int)$se['id'], 'opened_at' => $se['opened_at'], 'bar' => (string)val('SELECT name FROM bars WHERE id = ?', [$se['bar_id']]),
-                    'opener' => $se['opened_by'] ? (string)val('SELECT name FROM pos_staff WHERE id = ?', [$se['opened_by']]) : null, 'devices' => array_column($devs, 'name')] + Till::sessionTotals($se) : null]);
+                    'opener' => $se['opened_by'] ? (string)val('SELECT name FROM pos_staff WHERE id = ?', [$se['opened_by']]) : null, 'devices' => array_column($devs, 'name'), 'tabs' => array_map(fn($t) => ['label' => $t['label'], 'total' => $t['total']], Pos::tabs($d))] + Till::sessionTotals($se) : null]);
             case 'cash_move':
                 $se = Till::session($d);
                 if (!$se) $fail('Aucune caisse ouverte.');
                 $staff = Till::staffFrom($d, $in);
                 $by = Till::authorize((int)$ev['organizer_id'], $staff, 'cash', $in['approver_pin'] ?? null, (bool)Till::settings($ev)['require_staff']);
-                $amt = (int)($in['amount'] ?? 0);
+                [$amt, $cjson] = is_array($in['count'] ?? null) ? Till::countSum($in['count']) : [(int)($in['amount'] ?? 0), null];
                 if ($amt <= 0) $fail('Indique un montant.');
                 $kind = ($in['kind'] ?? '') === 'add' ? 'add' : 'drop';
-                insert('pos_cash_moves', ['session_id' => $se['id'], 'kind' => $kind, 'amount' => $amt, 'staff_id' => $by['id'] ?? ($staff['id'] ?? null), 'note' => mb_substr(trim((string)($in['note'] ?? '')), 0, 255) ?: null, 'created_at' => now()]);
+                insert('pos_cash_moves', ['session_id' => $se['id'], 'kind' => $kind, 'amount' => $amt, 'count_json' => $cjson, 'staff_id' => $by['id'] ?? ($staff['id'] ?? null), 'note' => mb_substr(trim((string)($in['note'] ?? '')), 0, 255) ?: null, 'created_at' => now()]);
                 json_out(['ok' => true, 'session' => Till::sessionTotals($se)]);
             case 'session_close':
                 $se = Till::session($d);
@@ -109,10 +117,12 @@ function pos_api(): never
                 $staff = Till::staffFrom($d, $in);
                 $by = Till::authorize((int)$ev['organizer_id'], $staff, 'close', $in['approver_pin'] ?? null, (bool)Till::settings($ev)['require_staff']);
                 $tot = Till::sessionTotals($se);
+                if (is_array($in['count'] ?? null)) { [$csum, $cjson] = Till::countSum($in['count']); $in['counted'] = $csum; } else $cjson = null;
                 $z = (int)val('SELECT COALESCE(MAX(z_number), 0) + 1 FROM pos_sessions WHERE event_id = ?', [$ev['id']]);
-                update('pos_sessions', ['closed_at' => now(), 'closed_by' => $by['id'] ?? ($staff['id'] ?? null), 'expected_cash' => $tot['expected_cash'], 'counted_cash' => isset($in['counted']) ? max(0, (int)$in['counted']) : null,
+                update('pos_sessions', ['closed_at' => now(), 'closed_by' => $by['id'] ?? ($staff['id'] ?? null), 'expected_cash' => $tot['expected_cash'], 'counted_cash' => isset($in['counted']) ? max(0, (int)$in['counted']) : null, 'count_json' => $cjson,
                     'z_number' => $z, 'totals_json' => json_encode($tot, JSON_UNESCAPED_UNICODE), 'note' => mb_substr(trim((string)($in['note'] ?? '')), 0, 500) ?: null], 'id = ?', [$se['id']]);
-                json_out(['ok' => true, 'z' => $z, 'totals' => $tot, 'counted' => isset($in['counted']) ? (int)$in['counted'] : null]);
+                $openTabs = (int)val("SELECT COUNT(*) FROM pos_tabs WHERE event_id = ? AND bar_id = ? AND status = 'open'", [$ev['id'], $se['bar_id']]);
+                json_out(['ok' => true, 'z' => $z, 'totals' => $tot, 'counted' => isset($in['counted']) ? (int)$in['counted'] : null, 'open_tabs' => $openTabs]);
             case 'new_wallet':
                 $w = Pos::newWallet($d, $in);
                 json_out(['ok' => true, 'code' => $w['code'], 'balance' => 0]);

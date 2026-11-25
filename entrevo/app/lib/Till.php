@@ -22,7 +22,23 @@ final class Till
     public const DAYS = ['1' => 'Lun', '2' => 'Mar', '3' => 'Mer', '4' => 'Jeu', '5' => 'Ven', '6' => 'Sam', '7' => 'Dim'];
     public const GROUPS = ['staff' => 'Bénévoles & staff', 'artist' => 'Artistes', 'tech' => 'Technique', 'guest' => 'Invités & partenaires'];
     public const SETTINGS = ['require_staff' => 0, 'sessions' => 1, 'methods' => ['cashless', 'card', 'cash', 'allowance'], 'receipt' => 'ask', 'receipt_footer' => '',
-        'default_vat' => 20, 'drop_alert' => 50000, 'photos' => 1, 'offer_reasons' => "Geste commercial\nErreur de service\nÉquipe / artiste\nPartenaire", 'big_buttons' => 0];
+        'default_vat' => 20, 'drop_alert' => 50000, 'photos' => 1, 'offer_reasons' => "Geste commercial\nErreur de service\nÉquipe / artiste\nPartenaire", 'big_buttons' => 0,
+        'tabs' => 1, 'blind_close' => 0, 'free_amount' => 0, 'count_denoms' => 1];
+    /** 2.10 : billets et pièces en euros (en centimes) pour le comptage de caisse. */
+    public const DENOMS = [50000, 20000, 10000, 5000, 2000, 1000, 500, 200, 100, 50, 20, 10, 5, 2, 1];
+
+    /** Somme d'un comptage {valeur en centimes: quantité} ; renvoie [total, json normalisé]. */
+    public static function countSum(array $count): array
+    {
+        $n = []; $sum = 0;
+        foreach ($count as $v => $q) {
+            $v = (int)$v; $q = (int)$q;
+            if (!in_array($v, self::DENOMS, true) || $q <= 0) continue;
+            $q = min($q, 100000); $n[(string)$v] = $q; $sum += $v * $q;
+        }
+        krsort($n, SORT_NUMERIC);
+        return [$sum, $n ? json_encode($n) : null];
+    }
 
     // ---------- réglages ----------
     public static function settings(array $ev): array
@@ -207,9 +223,12 @@ final class Till
             $qty = (int)($it['qty'] ?? 0);
             if ($qty <= 0 || $qty > 200) continue;
             $p = one('SELECT * FROM bar_products WHERE id = ? AND event_id = ?', [(int)($it['id'] ?? 0), $ev['id']]);
-            if (!$p) { // produit retiré depuis une vente hors ligne : prix envoyé par l'appli
+            $isFree = !empty($it['free']);
+            if ($isFree && !$s['free_amount']) throw new RuntimeException('Le montant libre n\'est pas autorisé sur cet événement.');
+            if ($isFree) $p = null;
+            if (!$p) { // montant libre, ou produit retiré depuis une vente hors ligne : prix envoyé par l'appli
                 if (!isset($it['unit'])) continue;
-                $p = ['id' => (int)($it['id'] ?? 0), 'name' => mb_substr((string)($it['name'] ?? 'Article'), 0, 80), 'price' => max(0, min(100000, (int)$it['unit'])), 'category_id' => null, 'variants_json' => null, 'bar_prices_json' => null, 'deposit_type_id' => null, 'vat_rate' => null, 'track_stock' => 0];
+                $p = ['id' => (int)($it['id'] ?? 0), 'name' => mb_substr((string)($it['name'] ?? '') ?: ($isFree ? 'Montant libre' : 'Article'), 0, 80), 'price' => max(0, min(100000, (int)$it['unit'])), 'category_id' => null, 'variants_json' => null, 'bar_prices_json' => null, 'deposit_type_id' => null, 'vat_rate' => null, 'track_stock' => 0];
             }
             if ($p['bar_ids'] ?? null) if (!in_array((string)$barId, explode(',', (string)$p['bar_ids']), true)) throw new RuntimeException($p['name'] . ' n\'est pas vendu dans ce bar.');
             $variant = isset($it['variant']) && $it['variant'] !== null && $it['variant'] !== '' ? (int)$it['variant'] : null;
@@ -249,11 +268,11 @@ final class Till
                 }
                 $name .= ' (' . implode(', ', $names) . ')';
             }
-            $bp = self::bestPrice($p, $unit, $qty, $promos, $barId, $ts);
+            $bp = $isFree ? ['total' => $unit * $qty, 'promo' => null] : self::bestPrice($p, $unit, $qty, $promos, $barId, $ts);
             $full = $unit * $qty; $tot = $bp['total'];
             $isOff = !empty($it['offered']) || !empty($in['offer_all']);
             $rate = $p['vat_rate'] !== null ? (float)$p['vat_rate'] : (($p['category_id'] && isset($cats[(int)$p['category_id']]) && $cats[(int)$p['category_id']]['vat_rate'] !== null) ? (float)$cats[(int)$p['category_id']]['vat_rate'] : (float)$s['default_vat']);
-            $line = ['kind' => 'product', 'id' => (int)$p['id'], 'name' => $name, 'variant' => $variant, 'qty' => $qty, 'unit' => $unit, 'full' => $full, 'total' => $tot, 'promo' => $bp['promo'], 'vat' => $rate,
+            $line = ['kind' => 'product', 'id' => (int)$p['id'], 'free' => $isFree, 'name' => $name, 'variant' => $variant, 'qty' => $qty, 'unit' => $unit, 'full' => $full, 'total' => $tot, 'promo' => $bp['promo'], 'vat' => $rate,
                 'category_id' => $p['category_id'] ? (int)$p['category_id'] : null, 'stock' => $stockItems ? 1 : 0, 'stock_items' => $stockItems, 'prep' => (bool)$prep];
             if ($isOff) { $offered += $tot; $line['offered'] = true; $line['total'] = 0; }
             $lines[] = $line; $sub += $line['total']; $nProducts += $qty;
@@ -355,6 +374,20 @@ final class Till
             'count' => count(array_filter($rows, fn($r) => ($r['kind'] ?? 'sale') === 'sale')), 'offered' => array_sum(array_column($by, 'offered'))];
     }
 
+    /** 2.10 : ventes par serveur (nombre, total encaissé, espèces, offert). */
+    public static function byStaff(array $rows): array
+    {
+        $out = [];
+        foreach ($rows as $r) {
+            if (($r['kind'] ?? 'sale') !== 'sale') continue;
+            $k = (string)($r['staff'] ?? '') ?: 'Sans nom';
+            $out[$k] = $out[$k] ?? ['n' => 0, 'total' => 0, 'cash' => 0, 'offered' => 0];
+            $out[$k]['n']++; $out[$k]['total'] += (int)$r['amount']; $out[$k]['offered'] += (int)$r['offered_value']; $out[$k]['cash'] += self::cashIn([$r]);
+        }
+        uasort($out, fn($a, $b) => $b['total'] <=> $a['total']);
+        return $out;
+    }
+
     /** Espèces encaissées (ventes, parts espèces des paiements fractionnés, recharges, remboursements). */
     public static function cashIn(array $rows): int
     {
@@ -368,7 +401,7 @@ final class Till
 
     public static function sessionTotals(array $se): array
     {
-        $rows = all('SELECT method, kind, amount, offered_value, discount, payments_json, items FROM pos_sales WHERE session_id = ? AND undone = 0', [$se['id']]);
+        $rows = all('SELECT method, kind, amount, offered_value, discount, payments_json, items, staff, device_id FROM pos_sales WHERE session_id = ? AND undone = 0', [$se['id']]);
         $bm = self::byMethod($rows);
         $moves = ['add' => 0, 'drop' => 0];
         foreach (all('SELECT kind, SUM(amount) a FROM pos_cash_moves WHERE session_id = ? GROUP BY kind', [$se['id']]) as $m) $moves[$m['kind']] = (int)$m['a'];
@@ -378,7 +411,7 @@ final class Till
             $k = (string)$l['name']; $prod[$k]['qty'] = ($prod[$k]['qty'] ?? 0) + (int)$l['qty']; $prod[$k]['total'] = ($prod[$k]['total'] ?? 0) + (int)$l['total'];
         }
         uasort($prod, fn($a, $b) => $b['qty'] <=> $a['qty']);
-        return ['methods' => $bm['methods'], 'topups' => $bm['topups'], 'cashout' => $bm['cashout'], 'moves' => $moves, 'float' => (int)$se['float_amount'], 'expected_cash' => $cash, 'products' => $prod,
+        return ['staff' => self::byStaff($rows), 'methods' => $bm['methods'], 'topups' => $bm['topups'], 'cashout' => $bm['cashout'], 'moves' => $moves, 'float' => (int)$se['float_amount'], 'expected_cash' => $cash, 'products' => $prod,
             'total' => $bm['total'], 'count' => $bm['count'], 'offered' => $bm['offered']];
     }
 

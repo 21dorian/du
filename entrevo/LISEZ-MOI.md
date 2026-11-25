@@ -79,6 +79,30 @@ Couleurs : **vert** = entre, **orange** = déjà entré / pas entré (sortie), *
 
 ---
 
+## Nouveautés 2.10 — la caisse des pros
+
+**Additions ouvertes** (tables, loges, comptes clients)
+- Dans le panier, « En attente » range la commande dans une **addition nommée** (Table 4, Loge VIP, prénom…). Elle est **partagée par tous les appareils du point de vente** : n'importe quel serveur la reprend, y ajoute des consommations et l'encaisse avec n'importe quel moyen de paiement.
+- Bouton **Additions** en haut de la caisse avec le nombre d'additions ouvertes, leur montant, depuis quand et qui les a ouvertes. Une addition modifiée sur un autre appareil est protégée (pas d'écrasement), et une addition réglée ne peut pas l'être deux fois.
+- Annuler une addition qui contient des articles demande le droit « annuler une vente » (ou le code d'un responsable).
+- En changeant de serveur, l'appli propose de mettre le panier en attente au lieu de le perdre.
+
+**Comptage de caisse billet par billet**
+- Fond de caisse, remises en banque, apports et clôture se comptent **par billet et par pièce** (500 € à 1 centime), avec le total en direct ; « Saisir le total » reste possible.
+- **Clôture à l'aveugle** (réglage) : le serveur compte sans voir le montant attendu, l'écart s'affiche une fois le comptage validé.
+- Le détail du comptage figure sur la page Caisses & clôtures et sur le ticket Z.
+
+**Rapport X et ventes par serveur**
+- Le menu Caisse est un vrai **rapport X** : moyens de paiement, espèces attendues, additions encore ouvertes et **ventes par serveur** (nombre, total, espèces, offert).
+- Les ventes par serveur sont aussi sur le Z (PDF), sur la page Caisses & clôtures et dans le **Rapport** de l'organisateur.
+
+**Contrôle des clôtures par l'organisateur**
+- Chaque Z est **à valider** : l'organisateur vérifie l'écart, ajoute une explication (erreur de rendu, pourboire…) et valide. Les clôtures validées sont prêtes pour la comptabilité ; la validation apparaît sur le Z.
+
+**Vente**
+- **Recherche** de produit dans la barre des catégories.
+- **Montant libre** (réglage) : une touche pour vendre un article hors carte au prix saisi, avec un libellé.
+
 ## Nouveautés 2.9 — des parcours de caisse repensés
 
 **Démarrage de l'appli : tout se fait sur l'appareil**

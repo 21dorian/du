@@ -31,3 +31,6 @@ $T = $r['tot']; $q = array_filter(['jour' => $day, 'bar' => $bar]); ?>
   <div class="card"><h2>Par catégorie</h2>
     <?php foreach ($r['cats'] as $n => $x): ?><div class="list-item"><span class="grow"><?= e($n) ?></span><small class="muted">× <?= (int)$x['q'] ?></small><b style="min-width:90px;text-align:right"><?= e(money((int)$x['t'])) ?></b></div><?php endforeach; ?></div>
 </div>
+<div class="card table-card mt"><div class="card-head"><h2>Par serveur</h2></div><div class="table-wrap"><table class="table table-sm"><thead><tr><th>Serveur</th><th class="num">Tickets</th><th class="num">CA TTC</th><th class="num">Cashless</th><th class="num">Carte</th><th class="num">Espèces</th><th class="num">Offert</th><th class="num">Remises</th></tr></thead><tbody>
+  <?php foreach ($r['staff'] as $n => $x): ?><tr><td><?= e($n) ?></td><td class="num"><?= (int)$x['n'] ?></td><td class="num"><b><?= e(money($x['ttc'])) ?></b></td><td class="num"><?= e(money($x['cashless'])) ?></td><td class="num"><?= e(money($x['card'])) ?></td><td class="num"><?= e(money($x['cash'])) ?></td><td class="num"><?= e(money($x['offered'])) ?></td><td class="num"><?= e(money($x['discount'])) ?></td></tr><?php endforeach; ?>
+  <?php if (!$r['staff']): ?><tr><td colspan="8" class="empty">Aucune vente.</td></tr><?php endif; ?></tbody></table></div></div>

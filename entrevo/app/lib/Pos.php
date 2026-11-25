@@ -84,7 +84,8 @@ final class Pos
             'event' => ['id' => (int)$ev['id'], 'name' => $ev['name'], 'starts_at' => $ev['starts_at'], 'cashless' => (bool)$ev['cashless_enabled']],
             'org' => ['name' => $org['name'], 'logo' => $org['logo'] ? abs_url('/' . ltrim($org['logo'], '/')) : null, 'accent' => $org['accent'] ?: null],
             'bars' => array_map(fn($b) => ['id' => (int)$b['id'], 'name' => $b['name']], $bars), 'methods' => $st['methods'],
-            'settings' => ['has_staff' => Till::hasStaff((int)$ev['organizer_id']), 'require_staff' => (bool)$st['require_staff'], 'sessions' => (bool)$st['sessions'], 'receipt' => $st['receipt'], 'photos' => (bool)$st['photos'], 'big' => (bool)$st['big_buttons'], 'reasons' => Till::reasons($st)],
+            'settings' => ['tabs' => (bool)$st['tabs'], 'blind_close' => (bool)$st['blind_close'], 'free_amount' => (bool)$st['free_amount'], 'count_denoms' => (bool)$st['count_denoms'], 'denoms' => Till::DENOMS,
+                'has_staff' => Till::hasStaff((int)$ev['organizer_id']), 'require_staff' => (bool)$st['require_staff'], 'sessions' => (bool)$st['sessions'], 'receipt' => $st['receipt'], 'photos' => (bool)$st['photos'], 'big' => (bool)$st['big_buttons'], 'reasons' => Till::reasons($st)],
             'session' => $se ? ['id' => (int)$se['id'], 'bar_id' => (int)$se['bar_id'], 'opened_at' => $se['opened_at'], 'float' => (int)$se['float_amount']] : null,
             'open_bars' => array_map('intval', array_column(all('SELECT DISTINCT bar_id FROM pos_sessions WHERE event_id = ? AND closed_at IS NULL', [$ev['id']]), 'bar_id')),
             'platform' => (string)setting('platform_name', 'Entrevo'), 'server_time' => date('c')] + Till::catalog($ev);
@@ -219,13 +220,66 @@ final class Pos
             $row['ticket_no'] = Till::nextTicket((int)$d['event_id']);
             // 2.8 : commande à préparer (cuisine, comptoir) → numéro à appeler
             if (array_filter($pr['lines'], fn($l) => !empty($l['prep']))) { $row['order_no'] = Till::nextOrder($barId); $row['prep_status'] = 'new'; }
+            $tab = !empty($in['tab_id']) ? one("SELECT id FROM pos_tabs WHERE id = ? AND event_id = ? AND status = 'open' FOR UPDATE", [(int)$in['tab_id'], $d['event_id']]) : null;
+            if (!empty($in['tab_id']) && !$tab) throw new RuntimeException('Cette addition a déjà été réglée sur un autre appareil.');
+            if ($tab) $row['tab_id'] = $tab['id'];
             $id = insert('pos_sales', $row);
+            if ($tab) update('pos_tabs', ['status' => 'paid', 'sale_id' => $id, 'closed_at' => now(), 'updated_at' => now()], 'id = ?', [$tab['id']]);
             foreach ($pr['lines'] as $l) if ($l['kind'] === 'product') foreach ($l['stock_items'] ?? [] as [$spid, $sq]) Till::stockMove((int)$d['event_id'], (int)$spid, $barId, -(int)$sq, 'sale', $id);
             db()->commit();
         } catch (Throwable $e) { if (db()->inTransaction()) db()->rollBack(); throw $e; }
         $sale = one('SELECT * FROM pos_sales WHERE id = ?', [$id]);
         if (!empty($in['receipt_email']) && is_email((string)$in['receipt_email'])) { try { Till::sendReceipt($sale, (string)$in['receipt_email']); } catch (Throwable $e) { log_line('caisse', 'Reçu : ' . $e->getMessage()); } }
         return self::out($sale) + $extra;
+    }
+
+    // ---------- 2.10 : additions ouvertes (tables, comptes clients), partagées par les appareils du point de vente ----------
+    private static function tabOut(array $t): array
+    {
+        return ['id' => (int)$t['id'], 'label' => $t['label'], 'total' => (int)$t['total'], 'items' => (int)$t['items'], 'version' => (int)$t['version'], 'staff' => $t['staff'],
+            'created_at' => $t['created_at'], 'updated_at' => $t['updated_at'], 'cart' => json_decode((string)$t['cart_json'], true) ?: []];
+    }
+
+    public static function tabs(array $d): array
+    {
+        if (!$d['bar_id']) return [];
+        return array_map([self::class, 'tabOut'], all("SELECT * FROM pos_tabs WHERE event_id = ? AND bar_id = ? AND status = 'open' ORDER BY created_at", [$d['event_id'], $d['bar_id']]));
+    }
+
+    /** Crée ou met à jour une addition. $in : id?, version?, label, cart {items, returns, discount_pct}. */
+    public static function tabSave(array $d, array $in): array
+    {
+        $ev = one('SELECT * FROM events WHERE id = ?', [$d['event_id']]);
+        if (!Till::settings($ev)['tabs']) throw new RuntimeException('Les additions ne sont pas activées sur cet événement.');
+        if (!$d['bar_id']) throw new RuntimeException('Choisis ton point de vente.');
+        $cart = is_array($in['cart'] ?? null) ? $in['cart'] : [];
+        $cart = ['items' => array_values(array_slice((array)($cart['items'] ?? []), 0, 120)), 'returns' => array_values(array_slice((array)($cart['returns'] ?? []), 0, 20)), 'discount_pct' => 0];
+        $pr = Till::price($ev, (int)$d['bar_id'], $cart, time());
+        $label = mb_substr(trim((string)($in['label'] ?? '')), 0, 80);
+        $st = Till::staffFrom($d, $in);
+        $row = ['cart_json' => json_encode($cart, JSON_UNESCAPED_UNICODE), 'total' => $pr['total'], 'items' => $pr['products'], 'updated_at' => now(), 'device_id' => $d['id']];
+        if (!empty($in['id'])) {
+            $t = one("SELECT * FROM pos_tabs WHERE id = ? AND event_id = ? AND bar_id = ?", [(int)$in['id'], $d['event_id'], $d['bar_id']]);
+            if (!$t || $t['status'] !== 'open') throw new RuntimeException('Cette addition a déjà été réglée ou annulée.');
+            if (isset($in['version']) && (int)$in['version'] !== (int)$t['version']) throw new RuntimeException('Cette addition a été modifiée sur un autre appareil : rouvre-la pour voir la dernière version.');
+            if ($label !== '') $row['label'] = $label;
+            q('UPDATE pos_tabs SET version = version + 1 WHERE id = ?', [$t['id']]);
+            update('pos_tabs', $row, 'id = ?', [$t['id']]);
+            return self::tabOut(one('SELECT * FROM pos_tabs WHERE id = ?', [$t['id']]));
+        }
+        if ($label === '') throw new RuntimeException('Donne un nom à l\'addition (table, prénom…).');
+        if (!$pr['lines']) throw new RuntimeException('Addition vide.');
+        $id = insert('pos_tabs', $row + ['event_id' => $d['event_id'], 'bar_id' => $d['bar_id'], 'label' => $label, 'staff_id' => $st['id'] ?? null, 'staff' => $st['name'] ?? (mb_substr(trim((string)($in['staff'] ?? '')), 0, 60) ?: null), 'created_at' => now()]);
+        return self::tabOut(one('SELECT * FROM pos_tabs WHERE id = ?', [$id]));
+    }
+
+    public static function tabCancel(array $d, array $in): void
+    {
+        $t = one("SELECT * FROM pos_tabs WHERE id = ? AND event_id = ? AND bar_id = ? AND status = 'open'", [(int)($in['id'] ?? 0), $d['event_id'], $d['bar_id']]);
+        if (!$t) throw new RuntimeException('Addition introuvable.');
+        $ev = one('SELECT * FROM events WHERE id = ?', [$d['event_id']]);
+        if ((int)$t['total'] > 0) Till::authorize((int)$ev['organizer_id'], Till::staffFrom($d, $in), 'undo', $in['approver_pin'] ?? null, (bool)Till::settings($ev)['require_staff']);
+        update('pos_tabs', ['status' => 'cancelled', 'closed_at' => now(), 'updated_at' => now()], 'id = ?', [$t['id']]);
     }
 
     // ---------- 2.8 : point de recharge ----------

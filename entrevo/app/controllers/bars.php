@@ -357,6 +357,12 @@ function bars_badges(array $ev, array $org, array $list): never
 // ---------- Caisses & clôtures ----------
 function bars_caisses(array $ev, array $org, string $base): array
 {
+    if (is_post() && input('action') === 'validate') {
+        // 2.10 : l'organisateur contrôle chaque Z (écart justifié) avant la comptabilité
+        $se = one('SELECT * FROM pos_sessions WHERE id = ? AND event_id = ? AND closed_at IS NOT NULL', [(int)input('session_id'), $ev['id']]);
+        if ($se) update('pos_sessions', $se['validated_at'] ? ['validated_at' => null, 'validated_by' => null] : ['validated_at' => now(), 'validated_by' => user()['id'], 'validation_note' => mb_substr(trim((string)input('note')), 0, 500) ?: null], 'id = ?', [$se['id']]);
+        back(['success' => $se && !$se['validated_at'] ? 'Clôture validée.' : 'Validation retirée.']);
+    }
     if (is_post() && input('action') === 'force_close') {
         $se = one('SELECT * FROM pos_sessions WHERE id = ? AND event_id = ? AND closed_at IS NULL', [(int)input('session_id'), $ev['id']]);
         if ($se) {
@@ -368,9 +374,19 @@ function bars_caisses(array $ev, array $org, string $base): array
     }
     if (($zid = (int)input('z'))) bars_z_pdf($ev, $org, $zid);
     $sessions = all('SELECT s.*, b.name bar, (SELECT GROUP_CONCAT(DISTINCT d2.name SEPARATOR \', \') FROM pos_sales x JOIN pos_devices d2 ON d2.id = x.device_id WHERE x.session_id = s.id) device, o.name opener, c.name closer FROM pos_sessions s JOIN bars b ON b.id = s.bar_id LEFT JOIN pos_staff o ON o.id = s.opened_by LEFT JOIN pos_staff c ON c.id = s.closed_by WHERE s.event_id = ? ORDER BY s.closed_at IS NULL DESC, s.id DESC', [$ev['id']]);
-    foreach ($sessions as &$se) { $se['t'] = $se['closed_at'] && $se['totals_json'] ? json_decode((string)$se['totals_json'], true) : Till::sessionTotals($se); $se['moves'] = all('SELECT m.*, st.name staff FROM pos_cash_moves m LEFT JOIN pos_staff st ON st.id = m.staff_id WHERE m.session_id = ? ORDER BY m.id', [$se['id']]); }
+    $validators = array_column(all('SELECT DISTINCT u.id, u.name FROM pos_sessions s JOIN users u ON u.id = s.validated_by WHERE s.event_id = ?', [$ev['id']]), 'name', 'id');
+    $tabs = []; foreach (all("SELECT bar_id, COUNT(*) n, SUM(total) t FROM pos_tabs WHERE event_id = ? AND status = 'open' GROUP BY bar_id", [$ev['id']]) as $r) $tabs[(int)$r['bar_id']] = $r;
+    foreach ($sessions as &$se) { $se['validator'] = $validators[(int)$se['validated_by']] ?? null; $se['tabs'] = !$se['closed_at'] ? ($tabs[(int)$se['bar_id']] ?? null) : null; $se['t'] = $se['closed_at'] && $se['totals_json'] ? json_decode((string)$se['totals_json'], true) : Till::sessionTotals($se); $se['moves'] = all('SELECT m.*, st.name staff FROM pos_cash_moves m LEFT JOIN pos_staff st ON st.id = m.staff_id WHERE m.session_id = ? ORDER BY m.id', [$se['id']]); }
     unset($se);
-    return compact('sessions');
+    $toValidate = count(array_filter($sessions, fn($s) => $s['closed_at'] && !$s['validated_at']));
+    return compact('sessions', 'toValidate');
+}
+
+/** 2.10 : détail d'un comptage billets/pièces. */
+function bars_count_txt(?string $json): string
+{
+    $c = json_decode((string)$json, true); if (!$c) return '';
+    return implode(' · ', array_map(fn($v, $q) => $q . ' × ' . ((int)$v >= 100 ? ((int)$v / 100) . ' €' : (int)$v . ' c'), array_keys($c), $c));
 }
 
 function bars_z_pdf(array $ev, array $org, int $sid): never
@@ -395,6 +411,15 @@ function bars_z_pdf(array $ev, array $org, int $sid): never
     $row('Remises en banque', '- ' . money((int)$tt['moves']['drop']));
     $row('Espèces attendues', money((int)$tt['expected_cash']), true);
     if ($se['counted_cash'] !== null) { $row('Espèces comptées', money((int)$se['counted_cash']), true); $row('Écart', money((int)$se['counted_cash'] - (int)$tt['expected_cash']), true); }
+    $pdf->SetFont('Helvetica', '', 9); $pdf->SetTextColor(110, 110, 115);
+    if ($se['float_json']) $pdf->MultiCell(0, 5, $t('Fond compté : ' . bars_count_txt($se['float_json'])));
+    if ($se['count_json']) $pdf->MultiCell(0, 5, $t('Clôture comptée : ' . bars_count_txt($se['count_json'])));
+    if ($se['validated_at']) $pdf->MultiCell(0, 5, $t('Validée le ' . date('d/m/Y H:i', strtotime($se['validated_at'])) . ($se['validation_note'] ? ' : ' . $se['validation_note'] : '')));
+    $pdf->SetTextColor(29, 29, 31);
+    if (!empty($tt['staff'])) {
+        $pdf->Ln(4); $pdf->SetFont('Helvetica', 'B', 12); $pdf->Cell(0, 8, $t('Par serveur'), 0, 1); $pdf->SetFont('Helvetica', '', 10);
+        foreach ($tt['staff'] as $name => $x) { $pdf->Cell(80, 6.5, $t($name), 'B'); $pdf->Cell(26, 6.5, $t($x['n'] . ' vente(s)'), 'B', 0, 'R'); $pdf->Cell(34, 6.5, $t('esp. ' . money((int)$x['cash'])), 'B', 0, 'R'); $pdf->Cell(34, 6.5, $t(money((int)$x['total'])), 'B', 1, 'R'); }
+    }
     $pdf->Ln(5); $pdf->SetFont('Helvetica', 'B', 12); $pdf->Cell(0, 8, $t('Articles'), 0, 1); $pdf->SetFont('Helvetica', '', 10);
     foreach ($tt['products'] as $name => $p) { $pdf->Cell(120, 6.5, $t($name), 'B'); $pdf->Cell(20, 6.5, (string)$p['qty'], 'B', 0, 'R'); $pdf->Cell(34, 6.5, $t(money((int)$p['total'])), 'B', 1, 'R'); }
     if ($se['note']) { $pdf->Ln(4); $pdf->SetFont('Helvetica', '', 9); $pdf->SetTextColor(110, 110, 115); $pdf->MultiCell(0, 5, $t($se['note'])); }
@@ -495,7 +520,8 @@ function bars_appareils(array $ev, array $org, string $base): array
     $bars = all('SELECT * FROM bars WHERE event_id = ? ORDER BY active DESC, id', [$ev['id']]);
     $tills = [];
     foreach (all('SELECT s.*, o.name opener FROM pos_sessions s LEFT JOIN pos_staff o ON o.id = s.opened_by WHERE s.event_id = ? AND s.closed_at IS NULL', [$ev['id']]) as $se) $tills[(int)$se['bar_id']] = $se + ['tot' => Till::sessionTotals($se)];
-    return ['devices' => $devices, 'bars' => $bars, 'tills' => $tills, 'focus' => (int)input('d'), 'sessionsOn' => (bool)Till::settings($ev)['sessions']];
+    $tabs = []; foreach (all("SELECT bar_id, COUNT(*) n, SUM(total) t FROM pos_tabs WHERE event_id = ? AND status = 'open' GROUP BY bar_id", [$ev['id']]) as $r) $tabs[(int)$r['bar_id']] = $r;
+    return ['tabs' => $tabs, 'devices' => $devices, 'bars' => $bars, 'tills' => $tills, 'focus' => (int)input('d'), 'sessionsOn' => (bool)Till::settings($ev)['sessions']];
 }
 
 // ---------- Réglages ----------
@@ -515,7 +541,7 @@ function bars_reglages(array $ev, array $org, string $base): array
         }
         $s = Till::settings($ev);
         $s['methods'] = array_values(array_intersect((array)($_POST['methods'] ?? []), ['cashless', 'card', 'cash', 'allowance']));
-        foreach (['require_staff', 'sessions', 'photos', 'big_buttons'] as $k) $s[$k] = checked($k);
+        foreach (['require_staff', 'sessions', 'photos', 'big_buttons', 'tabs', 'blind_close', 'free_amount', 'count_denoms'] as $k) $s[$k] = checked($k);
         $s['receipt'] = in_array(input('receipt'), ['off', 'qr', 'ask'], true) ? (string)input('receipt') : 'ask';
         $s['receipt_footer'] = mb_substr(trim((string)input('receipt_footer')), 0, 500);
         $s['default_vat'] = max(0, min(30, (float)str_replace(',', '.', (string)input('default_vat'))));
@@ -537,7 +563,7 @@ function bars_report_data(array $ev, ?string $day, ?int $bar): array
     if ($bar) { $w .= ' AND s.bar_id = ?'; $p[] = $bar; }
     $rows = all("SELECT s.*, b.name bar FROM pos_sales s JOIN bars b ON b.id = s.bar_id WHERE $w ORDER BY s.created_at", $p);
     $blank = fn() => ['ttc' => 0, 'ht' => 0, 'tva' => 0, 'n' => 0, 'offered' => 0, 'discount' => 0, 'cashless' => 0, 'card' => 0, 'cash' => 0, 'dep_in' => 0, 'dep_out' => 0, 'topup' => 0, 'cashout' => 0];
-    $tot = $blank(); $days = []; $bars = []; $vat = []; $cats = []; $prods = [];
+    $tot = $blank(); $days = []; $bars = []; $vat = []; $cats = []; $prods = []; $staff = [];
     $catName = array_column(all('SELECT id, name FROM pos_categories WHERE event_id = ?', [$ev['id']]), 'name', 'id');
     $acc = function (array &$t, array $s, array $calc) {
         foreach ($calc as $k => $v) $t[$k] += $v;
@@ -570,9 +596,11 @@ function bars_report_data(array $ev, ?string $day, ?int $bar): array
         $d = substr($s['created_at'], 0, 10);
         $days[$d] = $days[$d] ?? $blank(); $bars[$s['bar']] = $bars[$s['bar']] ?? $blank();
         $acc($days[$d], $s, $c); $acc($bars[$s['bar']], $s, $c); $acc($tot, $s, $c);
+        if ($kind === 'sale') { $sn = (string)$s['staff'] ?: 'Sans nom'; $staff[$sn] = $staff[$sn] ?? $blank(); $acc($staff[$sn], $s, $c); }
     }
     ksort($days); ksort($vat, SORT_NUMERIC); arsort($cats); uasort($prods, fn($a, $b) => $b['t'] <=> $a['t']);
-    return compact('tot', 'days', 'bars', 'vat', 'cats', 'prods') + ['count' => count($rows)];
+    uasort($staff, fn($a, $b) => $b['ttc'] <=> $a['ttc']);
+    return compact('tot', 'days', 'bars', 'vat', 'cats', 'prods', 'staff') + ['count' => count($rows)];
 }
 
 function bars_rapport(array $ev, array $org, string $base): array
