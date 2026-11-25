@@ -1,19 +1,29 @@
-<?php $u = user(); $pname = (string)setting('platform_name'); ?><!doctype html>
+<?php $u = user(); $pname = (string)setting('platform_name');
+$wl = class_exists('WhiteLabel') ? WhiteLabel::org() : null;
+if ($wl) { $platformName = $pname; $pname = (string)$wl['name']; if (empty($site)) $site = $wl; } ?><!doctype html>
 <html lang="fr">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title><?= e(($title ?? '') ? $title . ' · ' . $pname : $pname) ?></title>
+<title><?= e(($title ?? '') && !str_ends_with((string)$title, $pname) ? $title . ' · ' . $pname : (($title ?? '') ?: $pname)) ?></title>
 <?php if (!empty($description)): ?><meta name="description" content="<?= e($description) ?>"><?php endif; ?>
 <?php if (!empty($og_image)): ?><meta property="og:image" content="<?= e($og_image) ?>"><?php endif; ?>
 <script>document.documentElement.classList.add('js')</script>
 <link rel="stylesheet" href="<?= asset('css/app.css') ?>">
-<link rel="icon" href="<?= asset('img/icon.svg') ?>" type="image/svg+xml">
+<?php if ($wl && !empty($wl['logo'])): ?><link rel="icon" href="<?= e(url($wl['logo'])) ?>"><?php else: ?><link rel="icon" href="<?= asset('img/icon.svg') ?>" type="image/svg+xml"><?php endif; ?>
 <?php $siteOn = !empty($site) && class_exists('Site') && Site::on($site); $siteS = $siteOn ? Site::settings($site) : []; ?>
 <style>:root{--primary:<?= e($siteOn && !empty($site['accent']) && preg_match('~^#[0-9a-fA-F]{6}$~', (string)$site['accent']) ? $site['accent'] : setting('primary_color', '#0071e3')) ?>}</style>
 <?php if (!empty($org_tracking)) echo view('partials/tracking', ['o' => $org_tracking]); ?>
 </head>
 <body class="pub">
+<?php if ($wl): $wlMenu = $siteOn ? Site::menu($wl) : [['Billetterie', '/o/' . $wl['slug']]]; $here = route_path(); ?>
+<header class="topbar wl-bar">
+  <div class="wrap topbar-in">
+    <a class="logo" href="<?= url('/') ?>"><?php if (!empty($wl['logo'])): ?><img class="wl-logo" src="<?= e(url($wl['logo'])) ?>" alt=""><?php endif; ?><span><?= e($wl['name']) ?></span></a>
+    <nav class="topnav site-nav"><?php foreach ($wlMenu as [$label, $href]): $on = $here === $href || ($href !== '/o/' . $wl['slug'] && str_starts_with($here, $href)); ?><a href="<?= url($href === '/o/' . $wl['slug'] ? '/' : $href) ?>"<?= $on ? ' class="on"' : '' ?>><?= e($label) ?></a><?php endforeach; ?><a href="<?= url('/mes-billets') ?>">Mes billets</a></nav>
+  </div>
+</header>
+<?php else: ?>
 <header class="topbar">
   <div class="wrap topbar-in">
     <a class="logo" href="<?= url('/') ?>"><?= view('partials/logo') ?><span><?= e($pname) ?></span></a>
@@ -29,7 +39,8 @@
     </nav>
   </div>
 </header>
-<?php if ($siteOn): $here = route_path(); ?>
+<?php endif; ?>
+<?php if ($siteOn && !$wl): $here = route_path(); ?>
 <div class="site-bar"><div class="wrap site-bar-in">
   <a class="site-brand" href="<?= url('/o/' . $site['slug']) ?>"><?php if ($site['logo']): ?><img src="<?= e(url($site['logo'])) ?>" alt=""><?php endif; ?><b><?= e($site['name']) ?></b></a>
   <nav class="site-nav"><?php foreach (Site::menu($site) as [$label, $href]): $on = $here === $href || ($href !== '/o/' . $site['slug'] && str_starts_with($here, $href)); ?><a href="<?= url($href) ?>"<?= $on ? ' class="on" aria-current="page"' : '' ?>><?= e($label) ?></a><?php endforeach; ?></nav>
@@ -46,6 +57,20 @@
     <div class="site-nl-row"><input type="email" name="email" required placeholder="ton@email.fr" aria-label="Ton adresse e-mail"><button class="btn">S'inscrire</button></div></form><?php endif; ?>
 </div></section>
 <?php endif; ?>
+<?php if ($wl): $wls = WhiteLabel::settings($wl); ?>
+<footer class="footer wl-footer">
+  <div class="wrap footer-in">
+    <div><b><?= e($wl['name']) ?></b><?php if (!$wls['hide_credit']): ?> <span class="wl-credit">· billetterie <?= e($platformName) ?></span><?php endif; ?></div>
+    <div class="footer-links">
+      <a href="<?= url('/mes-billets') ?>">Billets perdus ?</a>
+      <?php if (setting('cgv')): ?><a href="<?= url('/cgv') ?>">CGV</a><?php endif; ?>
+      <?php if (setting('legal')): ?><a href="<?= url('/mentions-legales') ?>">Mentions légales</a><?php endif; ?>
+      <a href="<?= url($siteOn && Site::settings($wl)['contact'] ? '/o/' . $wl['slug'] . '/contact' : '/contact') ?>">Contact</a>
+      <a href="<?= url('/donnees-personnelles') ?>">Mes données</a>
+    </div>
+  </div>
+</footer>
+<?php else: ?>
 <footer class="footer">
   <div class="wrap footer-in">
     <div><b><?= e($pname) ?></b> — <?= e(setting('tagline')) ?></div>
@@ -65,6 +90,7 @@
     </div>
   </div>
 </footer>
+<?php endif; ?>
 <script src="<?= asset('js/app.js') ?>"></script>
 </body>
 </html>

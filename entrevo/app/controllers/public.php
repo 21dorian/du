@@ -11,6 +11,8 @@ function public_event(string $slug, bool $gates = true): array
     $ev = one('SELECT * FROM events WHERE slug = ?', [$slug]);
     if (!$ev) abort(404, 'Cet événement n\'existe pas. Ou plus. Ou pas encore.');
     $org = one('SELECT * FROM organizers WHERE id = ?', [$ev['organizer_id']]);
+    // 2.5 : sur le domaine d'un organisateur en marque blanche, seuls ses événements sont servis
+    if (class_exists('WhiteLabel') && ($wl = WhiteLabel::org()) && (int)$wl['id'] !== (int)$ev['organizer_id']) abort(404, 'Cet événement n\'existe pas sur ce site.');
     $u = user();
     $isOwner = $u && ($u['role'] === 'superadmin' || (int)$u['organizer_id'] === (int)$ev['organizer_id']);
     if (($ev['status'] === 'draft' || $org['status'] !== 'active') && !$isOwner) abort(404, 'Cet événement n\'est pas (ou plus) en ligne.');

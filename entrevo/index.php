@@ -17,6 +17,8 @@ function route_path(): string
         if ($base !== '' && str_starts_with($uri, $base)) $uri = substr($uri, strlen($base));
         if (str_starts_with($uri, '/index.php')) $uri = substr($uri, 10);
         $p = '/' . trim(rawurldecode($uri), '/');
+        // 2.5 : marque blanche — la racine d'un domaine personnalisé sert la page de l'organisateur
+        if (in_array($p, ['/', '/evenements'], true) && class_exists('WhiteLabel') && ($wl = WhiteLabel::org())) $p = '/o/' . $wl['slug'];
     }
     return $p;
 }
@@ -40,6 +42,8 @@ register_shutdown_function(function () {
     try { Jobs::run(); } catch (Throwable $e) { log_line('taches', $e->getMessage()); }
 });
 
+// 2.5 : marque blanche — les pages « plateforme » renvoient vers l'accueil de l'organisateur
+if (class_exists('WhiteLabel') && ($wlOrg = WhiteLabel::org()) && (in_array(route_path(), ['/organisateurs', '/inscription'], true) || (str_starts_with(route_path(), '/o/') && !str_starts_with(route_path() . '/', '/o/' . $wlOrg['slug'] . '/')))) redirect('/');
 $routes = require APP . '/routes.php';
 $path = route_path();
 $method = $_SERVER['REQUEST_METHOD'] ?? 'GET';

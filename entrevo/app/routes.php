@@ -209,6 +209,7 @@ return [
     ['GET|POST', '/admin/fraude', 'fraud@admin_fraud'],
     ['GET|POST', '/admin/prospection', 'crm@admin_crm'],
     ['GET|POST', '/admin/revendeurs', 'resellers@admin_resellers'],
+    ['GET|POST', '/admin/marque-blanche', 'whitelabel@admin_whitelabel'],
     ['GET|POST', '/admin/litiges/{id}', 'disputes@admin_dispute'],
     ['POST', '/admin/organisateurs/{id}/retenue', 'billing@admin_org_charge'],
     ['GET|POST', '/admin/reversements', 'platform@payouts_page'],

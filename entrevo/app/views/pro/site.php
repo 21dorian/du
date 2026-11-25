@@ -69,6 +69,12 @@ $base = '/o/' . $org['slug']; $on = (bool)$settings['enabled']; ?>
 </div>
 
 <?php else: ?>
+<?php $wlOn = (int)($org['white_label'] ?? 0) && ($org['domain_status'] ?? '') === 'active' && $org['custom_domain']; ?>
+<div class="card wl-info"><b>Ton propre nom de domaine</b>
+  <?php if ($wlOn): ?><p class="mb0">Ta billetterie est servie sur <a class="mono" target="_blank" rel="noopener" href="https://<?= e($org['custom_domain']) ?>">https://<?= e($org['custom_domain']) ?></a>, à tes couleurs, et tes e-mails de commande partent à ton nom.</p>
+  <?php elseif ($org['custom_domain'] ?? null): ?><p class="mb0">Le domaine <span class="mono"><?= e($org['custom_domain']) ?></span> est en cours de mise en place par notre équipe.</p>
+  <?php else: ?><p class="mb0">Sers ta billetterie et ton mini-site sur ton domaine (billetterie.tonfestival.fr), sans notre marque : c'est l'option marque blanche. <a href="<?= url('/pro/aide') ?>">Demande-la au support</a>.</p><?php endif; ?>
+</div>
 <form method="post" class="split"><?= csrf_field() ?><input type="hidden" name="action" value="settings">
   <div class="card"><h2>Mini-site</h2>
     <label class="check"><input type="checkbox" name="enabled" value="1" <?= $on ? 'checked' : '' ?>> <span><b>Mettre le mini-site en ligne</b></span></label>

@@ -25,7 +25,8 @@ final class Mailer
             $m->isMail();
         }
         $from = (string)(setting('mail_from') ?: setting('smtp_user') ?: ('no-reply@' . preg_replace(['~^www\.~', '~:\d+$~'], '', $_SERVER['HTTP_HOST'] ?? 'localhost')));
-        $m->setFrom($from, $fromName ?: (string)(setting('mail_from_name') ?: setting('platform_name')));
+        $wl = class_exists('WhiteLabel') ? WhiteLabel::mailOrg() : null;
+        $m->setFrom($from, $fromName ?: ($wl ? (WhiteLabel::settings($wl)['mail_name'] ?: $wl['name']) : (string)(setting('mail_from_name') ?: setting('platform_name'))));
         $m->isHTML(true);
         return $m;
     }
@@ -67,10 +68,12 @@ final class Mailer
     /** 2.3 : habillage des e-mails, réglable dans Super-admin › Contenus & e-mails. */
     public static function wrap(string $title, string $body): string
     {
-        $name = e((string)setting('platform_name', 'Entrevo'));
+        $wl = class_exists('WhiteLabel') ? WhiteLabel::mailOrg() : null;
+        $name = e($wl ? (string)$wl['name'] : (string)setting('platform_name', 'Entrevo'));
         $style = (string)setting('email_header', 'light');
-        $accent = e((string)(setting('email_accent') ?: '#1d1d1f'));
-        $logo = setting('platform_logo') ? '<img src="' . e(abs_url('/' . ltrim((string)setting('platform_logo'), '/'))) . '" alt="" width="32" height="32" style="border-radius:8px;vertical-align:middle;margin-right:10px">' : '';
+        $accent = e((string)(($wl['accent'] ?? null) ?: setting('email_accent') ?: '#1d1d1f'));
+        $logoPath = $wl ? (string)($wl['logo'] ?? '') : (string)setting('platform_logo');
+        $logo = $logoPath !== '' ? '<img src="' . e(abs_url('/' . ltrim($logoPath, '/'))) . '" alt="" width="32" height="32" style="border-radius:8px;vertical-align:middle;margin-right:10px">' : '';
         $head = $style === 'dark' ? 'background:#1d1d1f;color:#fff;' : ($style === 'color' ? 'background:' . $accent . ';color:#fff;' : 'background:#fff;color:#1d1d1f;border-bottom:1px solid #ececf0;');
         $sig = trim((string)setting('email_signature'));
         $foot = trim((string)setting('email_footer'));
@@ -84,13 +87,20 @@ final class Mailer
             . '<div style="background:#fff;border-radius:0 0 18px 18px;padding:28px;line-height:1.55;font-size:15px">' . $body
             . ($sig !== '' ? '<p style="margin-top:24px;color:#424245">' . nl2br(e($sig)) . '</p>' : '') . '</div>'
             . '<p style="color:#86868b;font-size:12px;line-height:1.5;text-align:center;margin:18px 10px 0">' . ($foot !== '' ? nl2br(e($foot)) . '<br>' : '')
-            . '<a href="' . e(abs_url('/')) . '" style="color:#86868b">' . $name . '</a> · <a href="' . e(abs_url('/mes-billets')) . '" style="color:#86868b">Mes billets</a> · <a href="' . e(abs_url('/contact')) . '" style="color:#86868b">Contact</a></p>'
+            . '<a href="' . e(abs_url($wl ? '/o/' . $wl['slug'] : '/')) . '" style="color:#86868b">' . $name . '</a> · <a href="' . e(abs_url('/mes-billets')) . '" style="color:#86868b">Mes billets</a> · <a href="' . e(abs_url('/contact')) . '" style="color:#86868b">Contact</a></p>'
             . '</div></body></html>';
     }
 
     /** Envoie les billets d'une commande payée (PDF en pièce jointe). */
+    private static bool $branded = false;
+
     public static function sendOrder(int $orderId): bool
     {
+        // 2.5 : marque blanche — e-mail au nom et aux couleurs de l'organisateur, liens sur son domaine
+        if (!self::$branded && class_exists('WhiteLabel')) {
+            $org0 = one('SELECT o.* FROM organizers o JOIN orders x ON x.organizer_id = o.id WHERE x.id = ?', [$orderId]);
+            return (bool)WhiteLabel::mailAs($org0, function () use ($orderId) { self::$branded = true; try { return self::sendOrder($orderId); } finally { self::$branded = false; } });
+        }
         $o = one('SELECT * FROM orders WHERE id = ?', [$orderId]);
         if (!$o || $o['status'] !== 'paid' || !is_email((string)$o['email'])) return false;
         $ev = one('SELECT * FROM events WHERE id = ?', [$o['event_id']]);

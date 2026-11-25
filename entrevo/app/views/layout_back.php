@@ -80,7 +80,7 @@ if ($area === 'admin') {
             ['modules', '/admin/modules', 'Feuille de route', $I['apps']],
             ['support', '/admin/support', 'Support', $I['help']],
             ['contenus', '/admin/contenus', 'Contenus & e-mails', $I['pages']],
-            $soonA('marque-blanche', 'Marque blanche', 'brush'),
+            ['marque-blanche', '/admin/marque-blanche', 'Marque blanche', $I['brush']],
             $soonA('langues', 'Langues', 'lang'),
             ['rgpd', '/admin/rgpd', 'Données personnelles', $I['doc']],
         ]],

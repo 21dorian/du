@@ -23,6 +23,11 @@ function url(string $path = '/', array $query = []): string
 function abs_url(string $path = '/', array $query = []): string
 {
     $base = rtrim((string)setting('base_url', ''), '/');
+    // 2.5 : marque blanche — liens sur le domaine de l'organisateur
+    if (class_exists('WhiteLabel')) {
+        if (WhiteLabel::org()) $base = '';
+        elseif ($mo = WhiteLabel::mailOrg()) $base = rtrim(WhiteLabel::url($mo, '/'), '/');
+    }
     if ($base === '') {
         $https = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') || (($_SERVER['HTTP_X_FORWARDED_PROTO'] ?? '') === 'https');
         $base = ($https ? 'https' : 'http') . '://' . ($_SERVER['HTTP_HOST'] ?? 'localhost') . base_path();
