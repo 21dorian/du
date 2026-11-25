@@ -82,7 +82,7 @@ final class Pos
             'event' => ['id' => (int)$ev['id'], 'name' => $ev['name'], 'starts_at' => $ev['starts_at'], 'cashless' => (bool)$ev['cashless_enabled']],
             'org' => ['name' => $org['name'], 'logo' => $org['logo'] ? abs_url('/' . ltrim($org['logo'], '/')) : null, 'accent' => $org['accent'] ?: null],
             'bars' => array_map(fn($b) => ['id' => (int)$b['id'], 'name' => $b['name']], $bars), 'methods' => $st['methods'],
-            'settings' => ['require_staff' => (bool)$st['require_staff'], 'sessions' => (bool)$st['sessions'], 'receipt' => $st['receipt'], 'photos' => (bool)$st['photos'], 'big' => (bool)$st['big_buttons'], 'reasons' => Till::reasons($st)],
+            'settings' => ['has_staff' => Till::hasStaff((int)$ev['organizer_id']), 'require_staff' => (bool)$st['require_staff'], 'sessions' => (bool)$st['sessions'], 'receipt' => $st['receipt'], 'photos' => (bool)$st['photos'], 'big' => (bool)$st['big_buttons'], 'reasons' => Till::reasons($st)],
             'session' => $se ? ['id' => (int)$se['id'], 'bar_id' => (int)$se['bar_id'], 'opened_at' => $se['opened_at'], 'float' => (int)$se['float_amount']] : null,
             'platform' => (string)setting('platform_name', 'Entrevo'), 'server_time' => date('c')] + Till::catalog($ev);
     }

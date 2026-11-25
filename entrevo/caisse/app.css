@@ -119,3 +119,37 @@ svg{width:24px;height:24px;fill:none;stroke:currentColor;stroke-width:1.8;stroke
 
 .toast{position:fixed;left:50%;bottom:calc(20px + var(--safe-b));transform:translateX(-50%);background:#2c2c34;padding:12px 18px;border-radius:14px;z-index:40;font-weight:600;max-width:calc(100vw - 30px);box-shadow:0 10px 30px rgba(0,0,0,.4)}
 .toast.ko{background:#4a1714;color:#ffd6d3}.toast.ok{background:#11361d;color:#c8f7d4}
+
+/* 2.7 — caisse Pro */
+.pin-dots{display:flex;justify-content:center;gap:14px;margin:6px 0}.pin-dots i{width:14px;height:14px;border-radius:50%;border:2px solid rgba(255,255,255,.35)}.pin-dots i.on{background:var(--text);border-color:var(--text)}
+.pin-keys{max-width:320px;margin:0 auto;width:100%}.pin-keys button:empty{visibility:hidden}
+#s-open .big{font-size:48px;font-weight:700;text-align:center;font-variant-numeric:tabular-nums}
+.staff-pill{border:0;border-radius:980px;padding:8px 14px;background:var(--panel2);font-weight:600;cursor:pointer;white-space:nowrap}
+.promo-pill{padding:7px 12px;border-radius:980px;background:rgba(255,159,10,.16);color:var(--orange);font-size:13px;font-weight:700;white-space:nowrap;max-width:30vw;overflow:hidden;text-overflow:ellipsis}
+.cats button{display:inline-flex;align-items:center;gap:8px}.cats button i{width:9px;height:9px;border-radius:50%;background:var(--c)}
+.prod{background:linear-gradient(160deg,color-mix(in srgb,var(--c) 38%,var(--panel)),var(--panel) 70%)}
+.prod.has-photo{padding:0;overflow:hidden;justify-content:flex-end;min-height:150px}
+.prod.has-photo img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+.prod.has-photo .prod-txt{position:relative;z-index:1;padding:28px 12px 10px;background:linear-gradient(transparent,rgba(0,0,0,.82));width:100%}
+.prod .prod-txt{display:flex;flex-direction:column;gap:2px}.prod-txt span{color:rgba(255,255,255,.85)}.prod-txt s{opacity:.6}
+.prod small.low{color:var(--orange)}.prod.out{opacity:.6}.prod.out small:last-child{color:var(--red)}
+.prod u{position:absolute;top:10px;left:10px;text-decoration:none;font-size:11px;font-weight:700;padding:3px 8px;border-radius:980px;background:var(--orange);color:#1d1300;z-index:2}
+.prod em{z-index:2}
+body.big-keys .grid{grid-template-columns:repeat(auto-fill,minmax(210px,1fr))}body.big-keys .prod{min-height:150px}body.big-keys .prod b{font-size:21px}
+.cart-tools{display:flex;gap:6px;padding:10px 14px 0}
+.tool{flex:1;border:0;border-radius:12px;background:var(--panel2);padding:9px 6px;font-size:12px;font-weight:600;display:flex;flex-direction:column;align-items:center;gap:4px;cursor:pointer;color:var(--muted)}
+.tool svg{width:20px;height:20px}.tool.on{background:rgba(255,159,10,.18);color:var(--orange)}
+.line{cursor:pointer}.line.offered .line-name b::after{content:" · offert";color:var(--orange);font-weight:600;font-size:13px}.line s{opacity:.55}
+.sub-line{cursor:default}.sub-line .line-name b{font-weight:500;font-size:14px}.sub-line.ret{color:var(--green)}
+.cart-sub{font-size:13px;color:var(--orange);min-height:0}
+.pay-row{grid-template-columns:repeat(auto-fit,minmax(70px,1fr))}
+.pay-credit{background:var(--orange);color:#1d1300}.pay-free{background:var(--text);color:#0b0b0f;grid-column:1/-1}
+.variants{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px}
+.variant{border:0;border-radius:16px;background:var(--panel2);padding:16px;display:flex;flex-direction:column;gap:4px;text-align:left;cursor:pointer}.variant b{font-size:18px}.variant span{color:var(--muted)}.variant:active{transform:scale(.97)}
+.btn-gift{background:rgba(255,159,10,.18);color:var(--orange)}
+.receipt-box{display:flex;gap:16px;align-items:center;padding:14px;border-radius:18px;background:var(--panel2)}
+.receipt-qr{width:132px;height:132px;border-radius:12px;background:#fff;padding:6px;flex:none}
+.receipt-box p{margin:4px 0 10px;font-size:14px}
+.sum-grid{grid-template-columns:repeat(3,1fr)}
+@media (max-width:760px){.promo-pill{display:none}.receipt-box{flex-direction:column;align-items:stretch}.receipt-qr{align-self:center}}
+.prod:not(.has-photo) u{position:static;align-self:flex-start;margin-bottom:8px}.prod:not(.has-photo){justify-content:flex-start;gap:0}.prod:not(.has-photo) .prod-txt{margin-top:auto}

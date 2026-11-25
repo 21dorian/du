@@ -147,3 +147,12 @@ function pos_receipt(string $token): string
     $ev = one('SELECT name FROM events WHERE id = ?', [$s['event_id']]);
     return pub('pos_receipt', ['s' => $s, 'html' => Till::receiptHtml($s), 'ev' => $ev], 'Ticket n° ' . $s['ticket_no'], ['noindex' => true]);
 }
+
+/** QR code du ticket (affiché par la caisse après la vente). */
+function pos_receipt_qr(string $token): never
+{
+    $s = strlen($token) >= 20 ? one('SELECT receipt_token FROM pos_sales WHERE receipt_token = ?', [$token]) : null;
+    if (!$s) abort(404);
+    header('Content-Type: image/svg+xml'); header('Cache-Control: public, max-age=86400');
+    echo Qr::svg(abs_url('/recu/' . $token), 220); exit;
+}

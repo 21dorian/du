@@ -79,6 +79,29 @@ Couleurs : **vert** = entre, **orange** = déjà entré / pas entré (sortie), *
 
 ---
 
+## Nouveautés 2.7 — Entrevo Caisse Pro, la caisse événementielle complète
+
+**Espace de gestion « Bars & caisses »** (Événement › Jour J), avec 11 pages :
+- **Tableau de bord en direct** : chiffre d'affaires, ventes par moyen de paiement, par heure, par point de vente, meilleures ventes, caisses ouvertes avec espèces en tiroir (alerte « caisse pleine »), alertes de stock, gobelets en circulation. Mise à jour automatique.
+- **Catalogue** : catégories avec couleur et TVA, produits avec **photo**, description, **variantes** (25 cl / 50 cl…), **prix différents par bar**, consigne, stock suivi, couleur de touche ; ordre par glisser-déposer ; duplication ; import de la carte d'un autre événement.
+- **Consignes** : plusieurs types (gobelet, pichet…), montant, remboursable ou souvenir, stock de départ ; suivi des gobelets sortis, rendus, en circulation, par bar.
+- **Équipe** : serveurs et responsables avec **code personnel**, droits sur mesure (offrir, remise, annulation, consignes, espèces, clôture), création en série avec codes à imprimer, ventes et offerts par personne.
+- **Happy hours & remises** : remise en %, en €, prix fixe ou 2e article offert, par catégorie ou produit, par bar, jours et horaires (même après minuit), dates ; appliqués automatiquement par les caisses ; journal des offerts et remises accordés.
+- **Crédits offerts** : boissons ou repas offerts à l'équipe, aux artistes et aux invités, en consommations ou en euros par jour, avec plafond et catégories ; **badges PDF à QR code** ; création en un clic pour les bénévoles confirmés.
+- **Caisses & clôtures** : fond de caisse, apports, remises en banque, clôture **Z** avec espèces comptées et écart, ticket X/Z en PDF, clôture à distance.
+- **Stocks** : stock par produit et par bar, entrées, transferts réserve → bar, inventaire avec écart, alertes, export CSV.
+- **Ventes** : journal filtrable (bar, serveur, moyen de paiement, jour, produit), offerts et remises, export CSV.
+- **Appareils** et **Réglages** : moyens de paiement, connexion obligatoire des serveurs, sessions de caisse, TVA par défaut, motifs d'offert, photos et grandes touches, ticket de caisse.
+
+**Application Entrevo Caisse**
+- Connexion du serveur par **code PIN**, ouverture de caisse avec fond, verrouillage et changement de serveur.
+- Touches avec **photos**, couleurs de catégorie, **variantes**, prix du bar, happy hour affiché, stock restant.
+- **Offrir** un article ou tout le panier avec un motif, **remise** sur le panier : validation par le code d'un responsable si le serveur n'en a pas le droit.
+- **Consignes** ajoutées automatiquement, **retour de consigne** remboursé en espèces ou sur le cashless.
+- Paiements : cashless (QR ou bracelet NFC), carte (terminal autonome ou Nepting), espèces avec monnaie à rendre, **crédit offert** (badge), vente entièrement offerte.
+- **Ticket de caisse** : QR code à scanner par le client (ticket en ligne, téléchargeable) et envoi **par e-mail** ; numérotation continue ; détail de la TVA.
+- Menu caisse : remises en banque, apports, **clôture Z** avec comptage et écart ; dernières ventes avec ticket et annulation (stock remis, cashless recrédité).
+
 ## Nouveautés 2.6 — Entrevo Caisse, l'application des bars
 
 Une **application dédiée** aux bars et points de vente, séparée du site : le site y renvoie (Cashless & bars, et l'ancienne adresse /bar/…).

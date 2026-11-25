@@ -250,5 +250,6 @@ return [
     ['POST|OPTIONS', '/api/caisse', 'pos@pos_api'],
     ['GET', '/caisse', 'pos@pos_app'],
     ['GET|POST', '/recu/{token}', 'pos@pos_receipt'],
+    ['GET', '/recu/{token}/qr', 'pos@pos_receipt_qr'],
     ['GET', '/sante', 'scan@health'],
 ];

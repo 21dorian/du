@@ -44,6 +44,8 @@ final class Till
         return array_values(array_intersect($p, array_keys(self::PERMS)));
     }
 
+    public static function hasStaff(int $orgId): bool { return (bool)val('SELECT 1 FROM pos_staff WHERE organizer_id = ? AND active = 1 LIMIT 1', [$orgId]); }
+
     public static function staffByPin(int $orgId, string $pin): ?array
     {
         $pin = preg_replace('~\D~', '', $pin);
@@ -77,6 +79,7 @@ final class Till
     public static function authorize(int $orgId, ?array $staff, string $perm, ?string $approverPin, bool $required): ?array
     {
         if ($staff && in_array($perm, self::perms($staff), true)) return $staff;
+        if (!self::hasStaff($orgId)) return null; // pas encore d'équipe déclarée : pas de validation possible, donc pas exigée
         if ($approverPin) { $a = self::staffByPin($orgId, $approverPin); if ($a && in_array($perm, self::perms($a), true)) return $a; throw new RuntimeException('Ce code ne permet pas : ' . mb_strtolower(self::PERMS[$perm]) . '.'); }
         if ($required) throw new RuntimeException('Validation d\'un responsable nécessaire : ' . mb_strtolower(self::PERMS[$perm]) . '.');
         return null;
