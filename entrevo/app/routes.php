@@ -73,6 +73,8 @@ return [
     ['GET', '/pro/cashless', 'artists@cashless_choose'],
     ['GET|POST', '/pro/revendeurs', 'resellers@pro_resellers'],
     ['GET|POST', '/pro/factures', 'compta@pro_compta'],
+    ['GET|POST', '/pro/bilans', 'reports@pro_reports'],
+    ['GET|POST', '/pro/bilans/{id}', 'reports@pro_report'],
     ['GET', '/pro/factures/facture/{id}', 'compta@pro_invoice_doc'],
     ['GET', '/pro/factures/avoir/{id}', 'compta@pro_credit_doc'],
     ['GET', '/commande/{ref}/avoir/{id}', 'compta@order_credit'],

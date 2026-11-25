@@ -133,7 +133,7 @@ if ($area === 'admin') {
             ['finances', '/pro/finances', 'Finances', $I['money']],
             ['factures', '/pro/factures', 'Factures & compta', $I['invoice']],
             ['budget', '/pro/budget', 'Budget prévisionnel', $I['budget']],
-            $soonP('subventions', 'Bilans & subventions', 'chart'),
+            ['subventions', '/pro/bilans', 'Bilans & subventions', $I['chart']],
             ['taches', '/pro/taches', 'Tâches & rétroplanning', $I['check']],
             ['documents', '/pro/documents', 'Documents & contrats', $I['doc']],
         ]],
