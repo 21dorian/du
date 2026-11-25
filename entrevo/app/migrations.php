@@ -1577,4 +1577,8 @@ return [
             ADD COLUMN prep_status VARCHAR(10) NULL, ADD COLUMN ready_at DATETIME NULL, ADD COLUMN served_at DATETIME NULL, ADD INDEX ev_prep (event_id, prep_status)",
         "ALTER TABLE bars ADD COLUMN order_seq INT NOT NULL DEFAULT 0, ADD COLUMN order_day DATE NULL",
     ],
+    24 => [
+        "ALTER TABLE pos_devices ADD COLUMN staff_name VARCHAR(60) NULL, ADD COLUMN station_at DATETIME NULL",
+        "ALTER TABLE pos_sessions ADD INDEX bar_open (bar_id, closed_at)",
+    ],
 ];

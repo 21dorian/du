@@ -12,6 +12,8 @@ declare(strict_types=1);
 final class Pos
 {
     public const METHODS = Till::METHODS;
+    public const MODES = ['bar', 'topup', 'prep', 'display'];
+    public const MODE_LABELS = ['bar' => 'Vente', 'topup' => 'Recharge cashless', 'prep' => 'Préparation', 'display' => 'Écran d\'appel'];
 
     public static function nfc(string $uid): string { return substr(strtoupper(preg_replace('~[^0-9A-Fa-f]~', '', $uid)), 0, 40); }
 
@@ -42,7 +44,7 @@ final class Pos
         $d = strlen($code) === 6 ? one('SELECT * FROM pos_devices WHERE pair_code = ? AND pair_expires > NOW() AND revoked = 0', [$code]) : null;
         if (!$d) return null;
         $token = 'pos_' . bin2hex(random_bytes(24));
-        update('pos_devices', ['token_hash' => hash('sha256', $token), 'pair_code' => null, 'pair_expires' => null, 'paired_at' => now(), 'last_seen' => now(), 'platform' => mb_substr($platform, 0, 40)], 'id = ?', [$d['id']]);
+        update('pos_devices', ['bar_id' => null, 'mode' => 'bar', 'staff_name' => null, 'token_hash' => hash('sha256', $token), 'pair_code' => null, 'pair_expires' => null, 'paired_at' => now(), 'last_seen' => now(), 'platform' => mb_substr($platform, 0, 40)], 'id = ?', [$d['id']]);
         return [one('SELECT * FROM pos_devices WHERE id = ?', [$d['id']]), $token];
     }
 
@@ -78,12 +80,13 @@ final class Pos
         $bars = all('SELECT id, name FROM bars WHERE event_id = ? AND active = 1 ORDER BY id', [$ev['id']]);
         $st = Till::settings($ev);
         $se = Till::session($d);
-        return ['device' => ['id' => (int)$d['id'], 'name' => $d['name'], 'bar_id' => $d['bar_id'] ? (int)$d['bar_id'] : null, 'mode' => in_array($d['mode'] ?? 'bar', ['bar', 'topup', 'prep', 'display'], true) ? $d['mode'] : 'bar'], 'tpe' => self::tpe($d),
+        return ['device' => ['id' => (int)$d['id'], 'name' => $d['name'], 'bar_id' => $d['bar_id'] ? (int)$d['bar_id'] : null, 'mode' => in_array($d['mode'] ?? 'bar', self::MODES, true) ? $d['mode'] : 'bar'], 'tpe' => self::tpe($d),
             'event' => ['id' => (int)$ev['id'], 'name' => $ev['name'], 'starts_at' => $ev['starts_at'], 'cashless' => (bool)$ev['cashless_enabled']],
             'org' => ['name' => $org['name'], 'logo' => $org['logo'] ? abs_url('/' . ltrim($org['logo'], '/')) : null, 'accent' => $org['accent'] ?: null],
             'bars' => array_map(fn($b) => ['id' => (int)$b['id'], 'name' => $b['name']], $bars), 'methods' => $st['methods'],
             'settings' => ['has_staff' => Till::hasStaff((int)$ev['organizer_id']), 'require_staff' => (bool)$st['require_staff'], 'sessions' => (bool)$st['sessions'], 'receipt' => $st['receipt'], 'photos' => (bool)$st['photos'], 'big' => (bool)$st['big_buttons'], 'reasons' => Till::reasons($st)],
             'session' => $se ? ['id' => (int)$se['id'], 'bar_id' => (int)$se['bar_id'], 'opened_at' => $se['opened_at'], 'float' => (int)$se['float_amount']] : null,
+            'open_bars' => array_map('intval', array_column(all('SELECT DISTINCT bar_id FROM pos_sessions WHERE event_id = ? AND closed_at IS NULL', [$ev['id']]), 'bar_id')),
             'platform' => (string)setting('platform_name', 'Entrevo'), 'server_time' => date('c')] + Till::catalog($ev);
     }
 

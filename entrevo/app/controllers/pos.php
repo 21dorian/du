@@ -21,7 +21,19 @@ function pos_api(): never
         $d = Pos::device((string)($_SERVER['HTTP_X_POS_TOKEN'] ?? ($in['token'] ?? '')));
         if (!$d) $fail('Cet appareil n\'est plus autorisé. Appaire-le à nouveau.', 401);
         $ev = one('SELECT * FROM events WHERE id = ?', [$d['event_id']]);
+        // 2.9 : le point de vente est choisi sur l'appareil et envoyé à chaque requête (une vente hors ligne garde le sien).
+        if (!empty($in['bar_id']) && (int)$in['bar_id'] !== (int)$d['bar_id'] && val('SELECT id FROM bars WHERE id = ? AND event_id = ?', [(int)$in['bar_id'], $ev['id']])) $d['bar_id'] = (int)$in['bar_id'];
         switch ($a) {
+            case 'station':
+                // poste choisi sur l'appareil : point de vente et rôle
+                $mode = in_array($in['mode'] ?? '', Pos::MODES, true) ? (string)$in['mode'] : 'bar';
+                $bar = (int)($in['bar_id'] ?? 0);
+                if ($bar && !val('SELECT id FROM bars WHERE id = ? AND event_id = ? AND active = 1', [$bar, $ev['id']])) $fail('Point de vente inconnu.');
+                if (!$bar && in_array($mode, ['bar', 'topup'], true)) $fail('Choisis ton point de vente.');
+                $staff = Till::staffFrom($d, $in);
+                if (Till::settings($ev)['require_staff'] && !$staff && in_array($mode, ['bar', 'topup'], true)) $fail('Connecte-toi avec ton code serveur.', 403);
+                update('pos_devices', ['bar_id' => $bar ?: null, 'mode' => $mode, 'staff_name' => $staff['name'] ?? (mb_substr(trim((string)($in['staff'] ?? '')), 0, 60) ?: null), 'station_at' => now()], 'id = ?', [$d['id']]);
+                json_out(['ok' => true, 'config' => Pos::config(one('SELECT * FROM pos_devices WHERE id = ?', [$d['id']]))]);
             case 'config':
             case 'ping':
                 json_out(['ok' => true, 'config' => Pos::config($d)]);
@@ -30,7 +42,11 @@ function pos_api(): never
                 if (!$w) $fail(!empty($in['nfc']) ? 'Bracelet non associé.' : 'Billet inconnu pour cet événement.', 404);
                 json_out(['ok' => true, 'balance' => (int)$w['balance'], 'name' => Pos::holder($w), 'status' => $w['status'], 'nfc' => (bool)$w['nfc_uid']]);
             case 'sale':
-                json_out(Pos::sale($d, $in));
+            case 'topup':
+            case 'cashout':
+                // caisse du point de vente clôturée depuis un autre appareil : l'appli revient à l'ouverture
+                if (Till::settings($ev)['sessions'] && !Till::session($d)) json_out(['ok' => false, 'till_closed' => true, 'error' => 'La caisse de ce point de vente est clôturée.'], 409);
+                json_out($a === 'sale' ? Pos::sale($d, $in) : ($a === 'topup' ? Pos::topup($d, $in) : Pos::cashout($d, $in)));
             case 'sync':
                 $done = [];
                 foreach (array_slice((array)($in['sales'] ?? []), 0, 200) as $s) {
@@ -64,16 +80,19 @@ function pos_api(): never
                 $u = Till::allowanceUsed($a);
                 json_out(['ok' => true, 'holder' => $a['holder'], 'group' => Till::GROUPS[$a['grp']] ?? '', 'mode' => $a['mode'], 'left' => $u['left'] === PHP_INT_MAX ? null : $u['left'], 'label' => $u['left'] === PHP_INT_MAX ? 'illimité' : Till::allowanceLabel($a, $u['left'])]);
             case 'session_open':
-                if (Till::session($d)) $fail('Une caisse est déjà ouverte sur cet appareil.');
+                // une seule caisse ouverte par point de vente : si un autre appareil l'a déjà ouverte, on la rejoint
+                if (Till::session($d)) json_out(['ok' => true, 'joined' => true, 'config' => Pos::config($d)]);
                 $staff = Till::staffFrom($d, $in);
                 $by = Till::settings($ev)['require_staff'] ? Till::authorize((int)$ev['organizer_id'], $staff, 'close', $in['approver_pin'] ?? null, true) : $staff;
-                $bar = (int)($d['bar_id'] ?: ($in['bar_id'] ?? 0));
-                if (!val('SELECT id FROM bars WHERE id = ? AND event_id = ?', [$bar, $ev['id']])) $fail('Choisis ton bar.');
+                $bar = (int)$d['bar_id'];
+                if (!val('SELECT id FROM bars WHERE id = ? AND event_id = ?', [$bar, $ev['id']])) $fail('Choisis ton point de vente.');
                 insert('pos_sessions', ['event_id' => $ev['id'], 'bar_id' => $bar, 'device_id' => $d['id'], 'opened_by' => $by['id'] ?? null, 'opened_at' => now(), 'float_amount' => max(0, (int)($in['float'] ?? 0))]);
                 json_out(['ok' => true, 'config' => Pos::config($d)]);
             case 'session':
                 $se = Till::session($d);
-                json_out(['ok' => true, 'session' => $se ? ['id' => (int)$se['id'], 'opened_at' => $se['opened_at']] + Till::sessionTotals($se) : null]);
+                $devs = $se ? all('SELECT DISTINCT d.name FROM pos_sales s JOIN pos_devices d ON d.id = s.device_id WHERE s.session_id = ?', [$se['id']]) : [];
+                json_out(['ok' => true, 'session' => $se ? ['id' => (int)$se['id'], 'opened_at' => $se['opened_at'], 'bar' => (string)val('SELECT name FROM bars WHERE id = ?', [$se['bar_id']]),
+                    'opener' => $se['opened_by'] ? (string)val('SELECT name FROM pos_staff WHERE id = ?', [$se['opened_by']]) : null, 'devices' => array_column($devs, 'name')] + Till::sessionTotals($se) : null]);
             case 'cash_move':
                 $se = Till::session($d);
                 if (!$se) $fail('Aucune caisse ouverte.');
@@ -94,13 +113,9 @@ function pos_api(): never
                 update('pos_sessions', ['closed_at' => now(), 'closed_by' => $by['id'] ?? ($staff['id'] ?? null), 'expected_cash' => $tot['expected_cash'], 'counted_cash' => isset($in['counted']) ? max(0, (int)$in['counted']) : null,
                     'z_number' => $z, 'totals_json' => json_encode($tot, JSON_UNESCAPED_UNICODE), 'note' => mb_substr(trim((string)($in['note'] ?? '')), 0, 500) ?: null], 'id = ?', [$se['id']]);
                 json_out(['ok' => true, 'z' => $z, 'totals' => $tot, 'counted' => isset($in['counted']) ? (int)$in['counted'] : null]);
-            case 'topup':
-                json_out(Pos::topup($d, $in));
             case 'new_wallet':
                 $w = Pos::newWallet($d, $in);
                 json_out(['ok' => true, 'code' => $w['code'], 'balance' => 0]);
-            case 'cashout':
-                json_out(Pos::cashout($d, $in));
             case 'prep_list':
                 json_out(['ok' => true, 'orders' => Pos::prepList($d), 'time' => date('H:i:s')]);
             case 'prep_set':

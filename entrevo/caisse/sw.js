@@ -1,5 +1,5 @@
 /* Entrevo Caisse — service worker : l'application s'ouvre même sans réseau (les ventes carte et espèces sont gardées et envoyées plus tard). */
-var CACHE = 'entrevo-caisse-v2';
+var CACHE = 'entrevo-caisse-v3';
 var SHELL = ['./', 'index.html', 'app.css', 'app.js', 'jsQR.js', 'icon.svg', 'icon-192.png', 'manifest.webmanifest'];
 self.addEventListener('install', function (e) {
   e.waitUntil(caches.open(CACHE).then(function (c) { return Promise.all(SHELL.map(function (p) { return c.add(p).catch(function () {}); })); }).then(function () { return self.skipWaiting(); }));

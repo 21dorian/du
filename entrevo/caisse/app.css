@@ -191,3 +191,25 @@ body.big-keys .grid{grid-template-columns:repeat(auto-fill,minmax(210px,1fr))}bo
 #ds-ready b.fresh{animation:pop 1s 3}@keyframes pop{50%{background:var(--green);color:#000}}
 #ds-prep{display:flex;flex-wrap:wrap;gap:12px}#ds-prep span{font-size:clamp(30px,4vw,56px);font-weight:700;color:var(--muted);font-variant-numeric:tabular-nums}
 .tp-left .row{flex-wrap:nowrap}.tp-left .row .input-big{min-width:0}
+
+/* 2.9 : poste (point de vente + rôle), attente d'ouverture, « Autre » paiement */
+.pair-wide{max-width:620px;text-align:left}.pair-wide h1,.pair-wide .eyebrow{text-align:center}
+.places{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:8px}
+.place{border:1px solid var(--line);background:var(--panel);border-radius:16px;padding:14px;text-align:left;display:flex;flex-direction:column;gap:4px;cursor:pointer;color:var(--text)}
+.place b{font-size:16px}.place span{font-size:12.5px;color:var(--muted);display:flex;align-items:center;gap:6px}
+.place span i{width:7px;height:7px;border-radius:50%;background:var(--muted);opacity:.5}.place span.ok i{background:var(--green);opacity:1}
+.place.on{border-color:var(--accent);box-shadow:0 0 0 2px var(--accent) inset}
+.place-all{border-style:dashed}
+.roles{display:grid;grid-template-columns:repeat(2,1fr);gap:8px}
+.role{border:1px solid var(--line);background:var(--panel);border-radius:18px;padding:16px;text-align:left;display:grid;grid-template-columns:36px 1fr;column-gap:12px;align-items:center;cursor:pointer;color:var(--text)}
+.role svg{grid-row:span 2;width:30px;height:30px;fill:none;stroke:currentColor;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round;color:var(--accent)}
+.role b{font-size:16px}.role span{font-size:12.5px;color:var(--muted)}
+.role.on{border-color:var(--accent);box-shadow:0 0 0 2px var(--accent) inset}.role:disabled{opacity:.35}
+.wait-dot{width:14px;height:14px;border-radius:50%;background:var(--orange);margin:18px auto 10px;animation:waitp 1.4s ease-in-out infinite}
+@keyframes waitp{50%{transform:scale(1.6);opacity:.4}}
+.pay-more{background:var(--panel2);color:var(--text)}
+.more-list{display:flex;flex-direction:column;gap:8px}
+.more{display:flex;gap:14px;align-items:center;text-align:left;border:1px solid var(--line);background:var(--panel);border-radius:16px;padding:14px;cursor:pointer;color:var(--text)}
+.more svg{width:28px;height:28px;flex:0 0 28px;fill:none;stroke:currentColor;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round;color:var(--accent)}
+.more b{display:block}.more small{color:var(--muted)}.more:disabled{opacity:.35}
+@media (max-width:520px){.roles{grid-template-columns:1fr}}

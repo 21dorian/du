@@ -5,8 +5,11 @@ declare(strict_types=1);
 
 require_once APP . '/controllers/pro.php';
 
-const BARS_TABS = ['' => 'Tableau de bord', 'catalogue' => 'Catalogue', 'consignes' => 'Consignes', 'equipe' => 'Équipe', 'remises' => 'Happy hours & remises',
-    'credits' => 'Crédits offerts', 'caisses' => 'Caisses & clôtures', 'stocks' => 'Stocks', 'ventes' => 'Ventes', 'rapport' => 'Rapport', 'appareils' => 'Appareils', 'reglages' => 'Réglages'];
+const BARS_TABS = ['' => 'En direct', 'catalogue' => 'Produits', 'consignes' => 'Consignes', 'remises' => 'Happy hours & remises', 'appareils' => 'Points de vente & appareils',
+    'caisses' => 'Caisses & clôtures', 'stocks' => 'Stocks', 'equipe' => 'Serveurs & droits', 'credits' => 'Crédits offerts', 'rapport' => 'Rapport', 'ventes' => 'Journal des ventes', 'reglages' => 'Réglages'];
+/** 2.9 : six rubriques au lieu de douze onglets ; chaque rubrique garde ses pages. */
+const BARS_GROUPS = ['' => ['En direct', ['']], 'catalogue' => ['Carte', ['catalogue', 'consignes', 'remises']], 'appareils' => ['Points de vente', ['appareils', 'caisses', 'stocks']],
+    'equipe' => ['Équipe', ['equipe', 'credits']], 'rapport' => ['Ventes', ['rapport', 'ventes']], 'reglages' => ['Réglages', ['reglages']]];
 
 function bars_page(string $id, string $tab = ''): string
 {
@@ -69,7 +72,7 @@ function bars_live(array $ev): array
     unset($b);
     $alertCash = (int)Till::settings($ev)['drop_alert'];
     $sessions = [];
-    foreach (all('SELECT s.*, b.name bar, d.name device FROM pos_sessions s JOIN bars b ON b.id = s.bar_id LEFT JOIN pos_devices d ON d.id = s.device_id WHERE s.event_id = ? AND s.closed_at IS NULL ORDER BY s.id', [$ev['id']]) as $se) {
+    foreach (all('SELECT s.*, b.name bar, (SELECT GROUP_CONCAT(DISTINCT d2.name SEPARATOR \', \') FROM pos_sales x JOIN pos_devices d2 ON d2.id = x.device_id WHERE x.session_id = s.id) device FROM pos_sessions s JOIN bars b ON b.id = s.bar_id WHERE s.event_id = ? AND s.closed_at IS NULL ORDER BY s.id', [$ev['id']]) as $se) {
         $t = Till::sessionTotals($se);
         $sessions[] = ['id' => (int)$se['id'], 'bar' => $se['bar'], 'device' => $se['device'], 'since' => $se['opened_at'], 'cash' => $t['expected_cash'], 'total' => $t['total'], 'full' => $alertCash > 0 && $t['expected_cash'] >= $alertCash];
     }
@@ -364,7 +367,7 @@ function bars_caisses(array $ev, array $org, string $base): array
         back(['success' => 'Caisse clôturée.']);
     }
     if (($zid = (int)input('z'))) bars_z_pdf($ev, $org, $zid);
-    $sessions = all('SELECT s.*, b.name bar, d.name device, o.name opener, c.name closer FROM pos_sessions s JOIN bars b ON b.id = s.bar_id LEFT JOIN pos_devices d ON d.id = s.device_id LEFT JOIN pos_staff o ON o.id = s.opened_by LEFT JOIN pos_staff c ON c.id = s.closed_by WHERE s.event_id = ? ORDER BY s.closed_at IS NULL DESC, s.id DESC', [$ev['id']]);
+    $sessions = all('SELECT s.*, b.name bar, (SELECT GROUP_CONCAT(DISTINCT d2.name SEPARATOR \', \') FROM pos_sales x JOIN pos_devices d2 ON d2.id = x.device_id WHERE x.session_id = s.id) device, o.name opener, c.name closer FROM pos_sessions s JOIN bars b ON b.id = s.bar_id LEFT JOIN pos_staff o ON o.id = s.opened_by LEFT JOIN pos_staff c ON c.id = s.closed_by WHERE s.event_id = ? ORDER BY s.closed_at IS NULL DESC, s.id DESC', [$ev['id']]);
     foreach ($sessions as &$se) { $se['t'] = $se['closed_at'] && $se['totals_json'] ? json_decode((string)$se['totals_json'], true) : Till::sessionTotals($se); $se['moves'] = all('SELECT m.*, st.name staff FROM pos_cash_moves m LEFT JOIN pos_staff st ON st.id = m.staff_id WHERE m.session_id = ? ORDER BY m.id', [$se['id']]); }
     unset($se);
     return compact('sessions');
@@ -372,7 +375,7 @@ function bars_caisses(array $ev, array $org, string $base): array
 
 function bars_z_pdf(array $ev, array $org, int $sid): never
 {
-    $se = one('SELECT s.*, b.name bar, d.name device, o.name opener, c.name closer FROM pos_sessions s JOIN bars b ON b.id = s.bar_id LEFT JOIN pos_devices d ON d.id = s.device_id LEFT JOIN pos_staff o ON o.id = s.opened_by LEFT JOIN pos_staff c ON c.id = s.closed_by WHERE s.id = ? AND s.event_id = ?', [$sid, $ev['id']]);
+    $se = one('SELECT s.*, b.name bar, (SELECT GROUP_CONCAT(DISTINCT d2.name SEPARATOR \', \') FROM pos_sales x JOIN pos_devices d2 ON d2.id = x.device_id WHERE x.session_id = s.id) device, o.name opener, c.name closer FROM pos_sessions s JOIN bars b ON b.id = s.bar_id LEFT JOIN pos_staff o ON o.id = s.opened_by LEFT JOIN pos_staff c ON c.id = s.closed_by WHERE s.id = ? AND s.event_id = ?', [$sid, $ev['id']]);
     if (!$se) abort(404);
     $tt = $se['closed_at'] && $se['totals_json'] ? json_decode((string)$se['totals_json'], true) : Till::sessionTotals($se);
     $t = fn($s) => PdfDoc::t((string)$s);
@@ -472,26 +475,27 @@ function bars_appareils(array $ev, array $org, string $base): array
 {
     if (is_post()) {
         $a = (string)input('action');
+        if ($a === 'bar' || $a === 'bar_toggle') return bars_reglages($ev, $org, $base);
         if ($a === 'device_add') {
-            $bar = (int)input('bar_id') ? one('SELECT id FROM bars WHERE id = ? AND event_id = ?', [(int)input('bar_id'), $ev['id']]) : null;
-            $d = Pos::createDevice((int)$ev['id'], $bar ? (int)$bar['id'] : null, trim((string)input('name')) ?: 'Caisse ' . ((int)val('SELECT COUNT(*) FROM pos_devices WHERE event_id = ?', [$ev['id']]) + 1), (int)user()['id']);
-            if (in_array(input('mode_app'), ['topup', 'prep', 'display'], true)) update('pos_devices', ['mode' => (string)input('mode_app')], 'id = ?', [$d['id']]);
-            redirect($base . '?d=' . $d['id'], ['success' => 'Appareil créé : scanne le QR code avec la tablette ou le téléphone du bar.']);
+            // 2.9 : l'organisateur appaire seulement ; point de vente et rôle se choisissent sur l'appareil
+            $d = Pos::createDevice((int)$ev['id'], null, trim((string)input('name')) ?: 'Appareil ' . ((int)val('SELECT COUNT(*) FROM pos_devices WHERE event_id = ?', [$ev['id']]) + 1), (int)user()['id']);
+            redirect($base . '?d=' . $d['id'], ['success' => 'Appareil créé : scanne le QR code avec la tablette ou le téléphone.']);
         }
         $dev = one('SELECT * FROM pos_devices WHERE id = ? AND event_id = ?', [(int)input('device_id'), $ev['id']]);
         if ($dev && $a === 'device_code') { Pos::renewCode($dev); redirect($base . '?d=' . $dev['id'], ['success' => 'Nouveau code d\'appairage (valable 30 minutes).']); }
         if ($dev && $a === 'device_revoke') { update('pos_devices', ['revoked' => 1, 'token_hash' => null, 'pair_code' => null], 'id = ?', [$dev['id']]); back(['success' => 'Appareil déconnecté.']); }
         if ($dev && $a === 'device_tpe') {
             $t = ['mode' => input('mode') === 'nepting' ? 'nepting' : 'manual', 'host' => trim((string)input('host')), 'port' => (int)input('port') ?: 8888, 'cj' => (string)input('cj'), 'ca' => (string)input('ca'), 'cz' => (string)input('cz') ?: '0320', 'crlf' => checked('crlf'), 'timeout' => (int)input('timeout') ?: 120];
-            update('pos_devices', ['tpe_json' => json_encode($t), 'bar_id' => (int)input('bar_id') ?: null, 'name' => mb_substr(trim((string)input('name')) ?: $dev['name'], 0, 80),
-                'mode' => in_array(input('mode_app'), ['bar', 'topup', 'prep', 'display'], true) ? (string)input('mode_app') : 'bar'], 'id = ?', [$dev['id']]);
+            update('pos_devices', ['tpe_json' => json_encode($t), 'name' => mb_substr(trim((string)input('name')) ?: $dev['name'], 0, 80)], 'id = ?', [$dev['id']]);
             back(['success' => 'Réglages de l\'appareil enregistrés.']);
         }
         back();
     }
     $devices = all('SELECT d.*, b.name bar_name, (SELECT COUNT(*) FROM pos_sales s WHERE s.device_id = d.id AND s.undone = 0) sales FROM pos_devices d LEFT JOIN bars b ON b.id = d.bar_id WHERE d.event_id = ? AND d.revoked = 0 ORDER BY d.id', [$ev['id']]);
-    $bars = all('SELECT * FROM bars WHERE event_id = ? ORDER BY id', [$ev['id']]);
-    return ['devices' => $devices, 'bars' => $bars, 'focus' => (int)input('d')];
+    $bars = all('SELECT * FROM bars WHERE event_id = ? ORDER BY active DESC, id', [$ev['id']]);
+    $tills = [];
+    foreach (all('SELECT s.*, o.name opener FROM pos_sessions s LEFT JOIN pos_staff o ON o.id = s.opened_by WHERE s.event_id = ? AND s.closed_at IS NULL', [$ev['id']]) as $se) $tills[(int)$se['bar_id']] = $se + ['tot' => Till::sessionTotals($se)];
+    return ['devices' => $devices, 'bars' => $bars, 'tills' => $tills, 'focus' => (int)input('d'), 'sessionsOn' => (bool)Till::settings($ev)['sessions']];
 }
 
 // ---------- Réglages ----------
@@ -505,7 +509,10 @@ function bars_reglages(array $ev, array $org, string $base): array
             else insert('bars', ['event_id' => $ev['id'], 'name' => $name, 'active' => 1]);
             back(['success' => 'Point de vente enregistré.']);
         }
-        if (input('action') === 'bar_toggle') { q('UPDATE bars SET active = 1 - active WHERE id = ? AND event_id = ?', [(int)input('bar_id'), $ev['id']]); back(); }
+        if (input('action') === 'bar_toggle') {
+            if (Till::barSession((int)$ev['id'], (int)input('bar_id'))) back(['error' => 'Clôture d\'abord la caisse de ce point de vente (depuis l\'appli, menu › Caisse).']);
+            q('UPDATE bars SET active = 1 - active WHERE id = ? AND event_id = ?', [(int)input('bar_id'), $ev['id']]); back();
+        }
         $s = Till::settings($ev);
         $s['methods'] = array_values(array_intersect((array)($_POST['methods'] ?? []), ['cashless', 'card', 'cash', 'allowance']));
         foreach (['require_staff', 'sessions', 'photos', 'big_buttons'] as $k) $s[$k] = checked($k);

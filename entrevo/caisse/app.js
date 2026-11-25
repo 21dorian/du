@@ -35,16 +35,22 @@
   function api(action, data, timeout) {
     var ctl = window.AbortController ? new AbortController() : null;
     var t = setTimeout(function () { ctl && ctl.abort(); }, timeout || 15000);
-    var body = Object.assign({ action: action }, staffPayload(), data || {});
+    var body = Object.assign({ action: action }, staffPayload(), S.shift && S.shift.bar_id ? { bar_id: S.shift.bar_id } : {}, data || {});
     return fetch(S.server + '/api/caisse', { method: 'POST', headers: { 'Content-Type': 'application/json', 'X-Pos-Token': S.token || '' }, body: JSON.stringify(body), signal: ctl ? ctl.signal : undefined, credentials: 'omit' })
       .then(function (r) {
         clearTimeout(t);
         return r.json().catch(function () { return { ok: false, error: 'Réponse illisible du serveur.' }; }).then(function (j) {
           if (r.status === 401) unpair(true);
-          if (!j.ok) { var e = new Error(j.error || 'Erreur'); e.server = true; e.status = r.status; throw e; }
+          if (!j.ok) { var e = new Error(j.error || 'Erreur'); e.server = true; e.status = r.status; if (j.till_closed) tillClosed(); throw e; }
           setOnline(true); return j;
         });
       }, function () { clearTimeout(t); setOnline(false); var e = new Error('Pas de réseau.'); e.network = true; throw e; });
+  }
+
+  /** La caisse du point de vente a été clôturée depuis un autre appareil : on revient à l'ouverture. */
+  function tillClosed() {
+    if (S.config) S.config.session = null;
+    setTimeout(function () { closeSheet(); toast('La caisse de ce point de vente a été clôturée.', 'ko'); api('config').then(function (j) { S.config = j.config; save(); enterStation(); }, function () { openSessionScreen(); }); }, 50);
   }
 
   // ---------- écrans ----------
@@ -88,24 +94,29 @@
     show('s-pair');
   }
 
-  // ---------- début de service : point de vente puis serveur ----------
+  // ---------- 2.9 : démarrage. 1) qui es-tu (code) 2) ton poste (point de vente + rôle) 3) caisse du point de vente ----------
   var pin = '';
+  var ROLES = [
+    { id: 'bar', t: 'Vendre', s: 'Encaisser les consommations', till: true, ic: '<rect x="3" y="5" width="18" height="14" rx="2.5"/><path d="M3 10h18M7 15h4"/>' },
+    { id: 'topup', t: 'Recharger', s: 'Créditer billets et bracelets', till: true, ic: '<rect x="3" y="6" width="18" height="13" rx="3"/><path d="M12 9.5v6M9 12.5h6"/>' },
+    { id: 'prep', t: 'Préparer', s: 'Écran cuisine ou comptoir', ic: '<path d="M5 11h14v3a6 6 0 0 1-6 6h-2a6 6 0 0 1-6-6z"/><path d="M9 4v4M12 3v5M15 4v4"/>' },
+    { id: 'display', t: 'Écran d\'appel', s: 'Numéros prêts, sur une TV', ic: '<rect x="3" y="4" width="18" height="12" rx="2"/><path d="M8 20h8M12 16v4"/>' }
+  ];
   function keypad(el, keys, onKey) {
     el.innerHTML = keys.map(function (k) { return '<button type="button" data-k="' + k + '">' + k + '</button>'; }).join('');
     $$('button', el).forEach(function (b) { b.onclick = function () { buzz(6); onKey(b.dataset.k); }; });
   }
+  /** Étape 1 : la personne qui prend l'appareil (code serveur, ou prénom si l'équipe n'est pas configurée). */
   function startShift(lockOnly) {
     var c = C(); if (!c) return show('s-pair');
-    var fixed = c.device.bar_id, need = c.settings.require_staff;
+    var need = c.settings.require_staff;
+    stopPoll(); stopOpenPoll();
     $('#shift-event').textContent = c.event.name;
-    $('#shift-title').textContent = lockOnly ? 'Caisse verrouillée' : 'Début de service';
-    var sel = fixed || (S.shift && S.shift.bar_id) || (c.bars.length === 1 ? c.bars[0].id : null);
-    $('#shift-bar-row').hidden = !!fixed || !!lockOnly;
-    $('#shift-bars').innerHTML = c.bars.map(function (b) { return '<button class="chip' + (b.id === sel ? ' on' : '') + '" data-bar="' + b.id + '">' + esc(b.name) + '</button>'; }).join('') || '<p class="muted">Aucun point de vente ouvert.</p>';
-    $('#shift-go').dataset.bar = sel || '';
-    $('#shift-pin').hidden = !need; $('#shift-name-row').hidden = !!need; $('#shift-go').hidden = !!need && !!sel;
-    $('#shift-go').disabled = !sel; $('#shift-go').textContent = need ? 'Continuer' : 'Ouvrir la caisse';
+    $('#shift-title').textContent = lockOnly ? 'Appareil verrouillé' : 'Bonjour';
+    $('#shift-sub').textContent = lockOnly && S.shift && S.shift.bar_id ? 'Poste : ' + ((bar() || {}).name || '') + ' · ' + roleName(S.shift.mode) + '. Tape ton code pour continuer.' : (need ? 'Tape ton code personnel.' : 'Indique ton prénom pour le récapitulatif de caisse.');
+    $('#shift-pin').hidden = !need; $('#shift-name-row').hidden = !!need; $('#shift-go').hidden = !!need;
     $('#shift-staff').value = (S.shift && S.shift.name) || '';
+    S.lockOnly = !!lockOnly;
     pin = ''; renderPin(); $('#pin-err').textContent = '';
     keypad($('#pin-keys'), ['1', '2', '3', '4', '5', '6', '7', '8', '9', '', '0', '⌫'], function (k) {
       if (k === '⌫') pin = pin.slice(0, -1); else if (k && pin.length < 6) pin += k;
@@ -119,48 +130,107 @@
   function login() {
     clearTimeout(loginT);
     loginT = setTimeout(function () {
-      var bar = parseInt($('#shift-go').dataset.bar, 10); if (!bar) { $('#pin-err').textContent = 'Choisis d\'abord ton point de vente.'; return; }
       var tried = pin;
       fetch(S.server + '/api/caisse', { method: 'POST', headers: { 'Content-Type': 'application/json', 'X-Pos-Token': S.token }, body: JSON.stringify({ action: 'staff_login', pin: tried }), credentials: 'omit' })
         .then(function (r) { return r.json(); }).then(function (j) {
           if (!j.ok) { if (tried.length >= 6 || tried === pin) { $('#pin-err').textContent = j.error; buzz([60, 40, 60]); pin = ''; renderPin(); } return; }
-          setOnline(true); beginShift(bar, j.staff, j.staff.name);
+          setOnline(true); signedIn(j.staff, j.staff.name);
         }, function () { $('#pin-err').textContent = 'Pas de réseau : la connexion par code a besoin du réseau.'; });
     }, pin.length < 6 ? 450 : 0);
   }
-  function beginShift(bar, st, name) {
-    var keep = S.shift && S.shift.bar_id === bar;
-    S.shift = { bar_id: bar, staff: st || null, name: name || '', since: keep && S.shift.since ? S.shift.since : new Date().toISOString() };
+  function signedIn(st, name) {
+    var keep = S.lockOnly && S.shift && S.shift.bar_id && S.shift.mode;
+    S.shift = Object.assign({}, S.shift || {}, { staff: st || null, name: name || '' });
+    if (!keep) S.shift.since = new Date().toISOString();
     save(); buzz(30);
-    if (C().settings.sessions && !C().session) return openSessionScreen();
+    if (keep) return saveStation(S.shift.bar_id, S.shift.mode, true);
+    openStation();
+  }
+  function roleName(id) { var r = ROLES.filter(function (x) { return x.id === id; })[0]; return r ? r.t : 'Vendre'; }
+
+  /** Étape 2 : le poste. Le point de vente puis ce que fait l'appareil ; rien n'est imposé depuis le site. */
+  var ST = { bar: null, mode: null };
+  function openStation() {
+    var c = C(), open = c.open_bars || [];
+    stopPoll(); stopOpenPoll();
+    ST.bar = (S.shift && S.shift.bar_id) || c.device.bar_id || (c.bars.length === 1 ? c.bars[0].id : null);
+    ST.mode = (S.shift && S.shift.mode) || null;
+    $('#st-who').textContent = (staff() ? staff().name : (S.shift && S.shift.name) || 'Ton poste') + ' · ' + c.event.name;
+    var renderSt = function () {
+      var all = ST.bar === 0;
+      $('#st-bars').innerHTML = c.bars.map(function (b) {
+        var o = open.indexOf(b.id) >= 0;
+        return '<button class="place' + (ST.bar === b.id ? ' on' : '') + '" data-stbar="' + b.id + '"><b>' + esc(b.name) + '</b>' + (c.settings.sessions ? '<span class="' + (o ? 'ok' : '') + '"><i></i>' + (o ? 'Caisse ouverte' : 'Caisse fermée') + '</span>' : '') + '</button>';
+      }).join('') + (c.bars.length > 1 ? '<button class="place place-all' + (all ? ' on' : '') + '" data-stbar="0"><b>Tous</b><span>Préparation et écran d\'appel</span></button>' : '')
+        || '<p class="muted">Aucun point de vente : l\'organisateur doit en créer un.</p>';
+      var roles = ROLES.filter(function (r) { return r.id !== 'topup' || c.event.cashless; });
+      if (ST.mode && !roles.some(function (r) { return r.id === ST.mode; })) ST.mode = null;
+      $('#st-roles').innerHTML = roles.map(function (r) {
+        var off = all && r.till;
+        return '<button class="role' + (ST.mode === r.id ? ' on' : '') + '" data-strole="' + r.id + '"' + (off ? ' disabled' : '') + '><svg viewBox="0 0 24 24">' + r.ic + '</svg><b>' + r.t + '</b><span>' + r.s + '</span></button>';
+      }).join('');
+      if (all && ST.mode && ROLES.filter(function (r) { return r.id === ST.mode; })[0].till) ST.mode = null;
+      $('#st-go').disabled = ST.bar === null || !ST.mode;
+      $('#st-err').textContent = '';
+    };
+    S.renderStation = renderSt;
+    renderSt(); show('s-station');
+  }
+  /** Enregistre le poste sur le serveur (l'organisateur le voit dans « Appareils »), puis ouvre l'écran. */
+  function saveStation(barId, mode, quiet) {
+    var go = function () { S.shift.bar_id = barId || null; S.shift.mode = mode; save(); enterStation(); };
+    api('station', { bar_id: barId || 0, mode: mode }).then(function (j) { S.config = j.config; go(); }, function (e) {
+      if (e.network) return go(); // hors ligne : le poste sera envoyé avec les ventes
+      if (quiet) return openStation();
+      $('#st-err').textContent = e.message;
+    });
+  }
+  /** Étape 3 : vendre et recharger demandent la caisse du point de vente ouverte (une fois, par un responsable). */
+  function enterStation() {
+    var mode = (S.shift && S.shift.mode) || 'bar', role = ROLES.filter(function (r) { return r.id === mode; })[0];
+    if (role && role.till && C().settings.sessions && !C().session) return openSessionScreen();
     openMain();
   }
-  /** Écran principal selon le rôle de l'appareil (caisse, recharge, préparation, écran d'appel). */
+  /** Écran principal selon le poste choisi (vente, recharge, préparation, écran d'appel). */
   function openMain() {
-    var mode = C().device.mode || 'bar';
-    stopPoll();
+    var mode = (S.shift && S.shift.mode) || C().device.mode || 'bar';
+    stopPoll(); stopOpenPoll();
     if (mode === 'topup') return openTopup();
     if (mode === 'prep') return openPrep();
     if (mode === 'display') return openDisplay();
     openPos();
   }
 
-  // ---------- ouverture de caisse ----------
+  // ---------- ouverture de la caisse du point de vente ----------
+  var openPoll = null;
+  function stopOpenPoll() { if (openPoll) { clearInterval(openPoll); openPoll = null; } }
   function openSessionScreen() {
-    var f = '';
-    $('#open-bar').textContent = (bar() || {}).name || '';
+    var f = '', b = bar() || {};
+    stopPoll(); stopOpenPoll();
+    $('#open-bar').textContent = b.name || '';
+    var boss = !C().settings.has_staff || can('close');
+    var form = function (on) { $('#open-form').hidden = !on; $('#open-wait').hidden = on; };
+    form(boss);
+    $('#open-hint').textContent = boss ? 'La caisse de ' + (b.name || 'ce point de vente') + ' est fermée. Ouvre-la une fois : tous les appareils de ce point de vente vendront dedans jusqu\'à la clôture.' : 'Un responsable ouvre la caisse une fois pour tout le point de vente. Dès qu\'elle est ouverte, sur cet appareil ou un autre, tu peux encaisser.';
     var render = function () { $('#open-float').textContent = money(f ? parseInt(f, 10) : 0); };
     keypad($('#open-keys'), ['1', '2', '3', '4', '5', '6', '7', '8', '9', '00', '0', '⌫'], function (k) { f = k === '⌫' ? f.slice(0, -1) : (f + k).replace(/^0+/, '').slice(0, 7); render(); });
     var go = function (amount) {
       $('#open-err').textContent = '';
       withPerm('close', 'Ouvrir la caisse', function (approver) {
-        api('session_open', { float: amount, bar_id: S.shift.bar_id, approver_pin: approver }).then(function (j) { S.config = j.config; save(); toast('Caisse ouverte.', 'ok'); openMain(); },
-          function (e) { if (e.message.indexOf('déjà ouverte') >= 0) return api('config').then(function (j) { S.config = j.config; save(); openMain(); }); $('#open-err').textContent = e.message; });
+        api('session_open', { float: amount, approver_pin: approver }).then(function (j) { S.config = j.config; save(); toast(j.joined ? 'La caisse était déjà ouverte : tu la rejoins.' : 'Caisse ouverte.', 'ok'); openMain(); },
+          function (e) { $('#open-err').textContent = e.message; });
       });
     };
     $('#open-go').onclick = function () { go(f ? parseInt(f, 10) : 0); };
     $('#open-skip').onclick = function () { go(0); };
+    $('#open-mgr').onclick = function () { form(true); };
+    $('#open-back').onclick = function () { stopOpenPoll(); openStation(); };
+    var check = function (manual) {
+      api('config', {}, 8000).then(function (j) { S.config = j.config; save(); if (j.config.session) { toast('La caisse est ouverte.', 'ok'); openMain(); } else if (manual) toast('Toujours fermée.'); }, function (e) { if (manual) toast(e.message, 'ko'); });
+    };
+    $('#open-check').onclick = function () { check(true); };
     render(); show('s-open');
+    openPoll = setInterval(function () { if (!$('#s-open').hidden) check(false); else stopOpenPoll(); }, 8000);
   }
 
   /** Action protégée : faite directement si le serveur a le droit, sinon code d'un responsable. */
@@ -185,7 +255,7 @@
   }
 
   // ---------- catalogue et prix (le serveur recalcule tout, ceci sert à l'affichage et au hors ligne) ----------
-  function bar() { var id = C().device.bar_id || (S.shift && S.shift.bar_id); return C().bars.filter(function (b) { return b.id === id; })[0] || null; }
+  function bar() { var id = S.shift && S.shift.mode ? S.shift.bar_id : C().device.bar_id; return C().bars.filter(function (b) { return b.id === id; })[0] || null; }
   function product(id) { return C().products.filter(function (p) { return p.id === id; })[0]; }
   function products() { var b = bar(); return C().products.filter(function (p) { return !p.bars.length || (b && p.bars.indexOf(b.id) >= 0); }); }
   function stockLeft(p) { if (!p.stock) return null; var b = bar(); var q = p.stock[b.id]; return q == null ? 0 : q; }
@@ -247,7 +317,7 @@
   // ---------- caisse ----------
   function openPos() {
     var c = C(), b = bar();
-    if (!b) return startShift();
+    if (!b) return openStation();
     if (c.settings.require_staff && !staff()) return startShift(true);
     $('#pos-bar').textContent = b.name;
     $('#pos-event').textContent = c.event.name;
@@ -261,6 +331,7 @@
     $('#cats').innerHTML = cats.length > 1 ? cats.map(function (k) { return '<button data-cat="' + k.id + '" class="' + (k.id === S.cat ? 'on' : '') + '" style="--c:' + esc(k.color || '#8e8e93') + '"><i></i>' + esc(k.name) + '</button>'; }).join('') : '';
     $('#cats').hidden = cats.length < 2;
     $$('[data-pay]').forEach(function (btn) { if (btn.dataset.pay !== 'offered') btn.hidden = c.methods.indexOf(btn.dataset.pay) < 0; });
+
     $('#t-return').hidden = !c.deposits.some(function (d) { return d.refundable; });
     renderGrid(); renderCart(); setOnline(S.online); show('s-pos'); keepAwake();
   }
@@ -298,12 +369,12 @@
     $$('[data-pay]').forEach(function (b) {
       var m = b.dataset.pay;
       if (m === 'offered') { b.hidden = !free; return; }
-      if (m === 'split') { b.hidden = free || refund || empty || C().methods.filter(function (x) { return x !== 'allowance'; }).length < 2; return; }
       if (C().methods.indexOf(m) < 0) { b.hidden = true; return; }
       b.hidden = free || (refund && (m === 'card' || m === 'allowance'));
       b.disabled = empty || ((m === 'cashless' || m === 'allowance') && !S.online);
     });
-    $('#t-discount').classList.toggle('on', !!cart.discount); $('#t-offer').classList.toggle('on', !!cart.offerAll);
+    $('#pay-more').hidden = free || refund; $('#pay-more').disabled = empty;
+    $('#t-discount').classList.toggle('on', !!cart.discount);
   }
   function addProduct(p, variant, opts, picks) {
     opts = (opts || []).slice().sort(); picks = picks || [];
@@ -631,6 +702,26 @@
     api('sale', sale).then(function (j) { remember(sale, j.sale, false); afterSale(); done(j, 'Offert : ' + money(j.sale.offered)); }, function (e) { if (e.network) { S.queue.push(sale); remember(sale, null, true); save(); afterSale(); closeSheet(); toast('Gardé, envoi au retour du réseau.', 'ok'); } else fail(e); });
   }
 
+  /** 2.9 : les paiements moins courants regroupés derrière « Autre » (le bar garde trois gros boutons). */
+  function payMore() {
+    var q = quoteLocal(); if (!q.lines.length) return;
+    var m = C().methods, opts = [];
+    if (m.indexOf('allowance') >= 0) opts.push(['allowance', 'Crédit staff ou artiste', 'Scanne le badge : les consommations sont décomptées de son crédit.', '<rect x="4" y="3" width="16" height="18" rx="3"/><path d="M9 8h6M9 12h6M9 16h3"/>']);
+    if (m.filter(function (x) { return x !== 'allowance'; }).length >= 2) opts.push(['split', 'Plusieurs moyens', 'Par exemple le solde cashless puis le reste en espèces.', '<path d="M4 12h6M14 12h6M12 4v16"/>']);
+    opts.push(['offer', 'Offrir la commande', 'Avec un motif ; un responsable valide si besoin.', '<rect x="4" y="9" width="16" height="11" rx="2"/><path d="M12 9v11M4 13h16"/>']);
+    sheet('<h2>Autre paiement · ' + money(q.total) + '</h2><div class="more-list">' + opts.map(function (o) {
+      return '<button class="more" data-more="' + o[0] + '"' + (o[0] === 'allowance' && !S.online ? ' disabled' : '') + '><svg viewBox="0 0 24 24">' + o[3] + '</svg><span><b>' + o[1] + '</b><small>' + o[2] + '</small></span></button>';
+    }).join('') + '</div><button class="btn" data-close>Annuler</button>');
+    $$('[data-more]').forEach(function (b) {
+      b.onclick = function () {
+        var k = b.dataset.more; closeSheet();
+        if (k === 'allowance') return scanPay('allowance');
+        if (k === 'split') return paySplit();
+        offerFlow('Offrir la commande', function () { S.cart.offerAll = true; renderCart(); payOffered(); });
+      };
+    });
+  }
+
   // ---------- 2.8 : paiement en plusieurs fois ----------
   function paySplit() {
     sheet('<h2>Paiement en plusieurs fois</h2><p class="muted" style="margin:0">Calcul du montant…</p>');
@@ -690,7 +781,7 @@
   // ---------- 2.8 : point de recharge ----------
   var TOP = { who: null, info: null };
   function openTopup() {
-    var b = bar(); if (!b) return startShift();
+    var b = bar(); if (!b) return openStation();
     $('#tp-bar').textContent = b.name + ' · ' + C().event.name;
     $('#tp-staff').textContent = staff() ? staff().name : (S.shift && S.shift.name) || '';
     $('#tp-cash').hidden = C().methods.indexOf('cash') < 0; $('#tp-card').hidden = C().methods.indexOf('card') < 0;
@@ -781,7 +872,7 @@
       return orders.filter(function (o) { return o.status === st; }).map(function (o) {
         var fresh = !seen[o.id]; seen[o.id] = 1;
         return '<button class="prep-card' + (fresh ? ' fresh' : '') + '" data-prep="' + o.id + '" data-st="' + o.status + '"><div class="prep-top"><b>' + o.order + '</b><span>' + ago2(o.at) + '</span></div>'
-          + (C().device.bar_id ? '' : '<small>' + esc(o.bar) + '</small>') + '<ul>' + o.lines.map(function (l) { return '<li><b>' + l.qty + '×</b> ' + esc(l.name) + '</li>'; }).join('') + '</ul>'
+          + (bar() ? '' : '<small>' + esc(o.bar) + '</small>') + '<ul>' + o.lines.map(function (l) { return '<li><b>' + l.qty + '×</b> ' + esc(l.name) + '</li>'; }).join('') + '</ul>'
           + '<span class="prep-act">' + (o.status === 'new' ? 'Marquer prêt' : 'Servi') + '</span></button>';
       }).join('') || '<p class="muted">Rien pour l\'instant.</p>';
     };
@@ -820,9 +911,11 @@
     $('#dr-device').textContent = C().device.name;
     $('#dr-staff').textContent = ((bar() || {}).name || '') + (staff() ? ' · ' + staff().name : (S.shift && S.shift.name ? ' · ' + S.shift.name : ''));
     $('#dr-foot').textContent = (NATIVE ? 'Application' : 'Web app') + ' · ' + S.server.replace(/^https?:\/\//, '') + (S.queue.length ? ' · ' + S.queue.length + ' vente(s) en attente' : '');
-    $('[data-menu="session"]').hidden = !C().settings.sessions;
+    var mode = (S.shift && S.shift.mode) || 'bar', till = mode === 'bar' || mode === 'topup';
+    $('[data-menu="session"]').hidden = !C().settings.sessions || !till || !bar();
+    $('[data-menu="history"]').hidden = !till;
     $('[data-menu="credit"]').hidden = C().methods.indexOf('allowance') < 0;
-    $('[data-menu="lock"]').hidden = !C().settings.require_staff;
+    $('[data-menu="lock"]').hidden = !C().settings.require_staff || !till;
     $('#drawer').hidden = false; $('#sheet-bg').hidden = false;
   }
   function scanSheet(title, hint, onWho) {
@@ -859,15 +952,15 @@
       sheet('<h2>Caisse</h2><p class="muted" style="margin:0">Chargement…</p>');
       api('session').then(function (j) {
         var s = j.session;
-        if (!s) { sheet('<h2>Caisse</h2><p class="muted">Aucune caisse ouverte sur cet appareil.</p><button class="btn btn-primary" id="se-open">Ouvrir la caisse</button><button class="btn" data-close>Fermer</button>'); $('#se-open').onclick = function () { closeSheet(); openSessionScreen(); }; return; }
+        if (!s) { sheet('<h2>Caisse</h2><p class="muted">La caisse de ce point de vente est fermée.</p><button class="btn btn-primary" id="se-open">Ouvrir la caisse</button><button class="btn" data-close>Fermer</button>'); $('#se-open').onclick = function () { closeSheet(); openSessionScreen(); }; return; }
         var m = function (k) { return (s.methods[k] || { total: 0, n: 0 }); };
         var prods = Object.keys(s.products).slice(0, 12).map(function (k) { return '<div class="it"><div class="g">' + esc(k) + '</div><span class="muted">× ' + s.products[k].qty + '</span><b style="min-width:80px;text-align:right">' + money(s.products[k].total) + '</b></div>'; }).join('');
-        sheet('<h2>Caisse · ' + esc((bar() || {}).name || '') + '</h2><p class="muted" style="margin:0">Ouverte ' + new Date(s.opened_at.replace(' ', 'T')).toLocaleString('fr-FR', { weekday: 'short', hour: '2-digit', minute: '2-digit' }) + ' · ' + s.count + ' vente(s)</p>'
+        sheet('<h2>Caisse · ' + esc((bar() || {}).name || '') + '</h2><p class="muted" style="margin:0">Ouverte ' + new Date(s.opened_at.replace(' ', 'T')).toLocaleString('fr-FR', { weekday: 'short', hour: '2-digit', minute: '2-digit' }) + ' · ' + s.count + ' vente(s)' + (s.opener ? ' · par ' + esc(s.opener) : '') + '</p>' + (s.devices && s.devices.length > 1 ? '<p class="muted" style="margin:0">Caisse partagée par ' + s.devices.map(esc).join(', ') + '</p>' : '')
           + '<div class="sum-grid"><div><span>Cashless</span><b>' + money(m('cashless').total) + '</b></div><div><span>Carte</span><b>' + money(m('card').total) + '</b></div><div><span>Espèces</span><b>' + money(m('cash').total) + '</b></div><div><span>Offert</span><b>' + money(s.offered) + '</b></div><div><span>Fond</span><b>' + money(s.float) + '</b></div><div><span>En banque</span><b>' + money(s.moves.drop) + '</b></div></div>'
           + '<div class="change"><span>Espèces attendues dans le tiroir</span><b>' + money(s.expected_cash) + '</b></div>'
           + '<div class="row"><button class="btn" id="se-drop">Remise en banque</button><button class="btn" id="se-add">Apport</button></div>'
           + '<details><summary class="linklike">Articles vendus</summary><div class="list">' + (prods || '<p class="muted">Aucun.</p>') + '</div></details>'
-          + '<button class="btn btn-primary" id="se-close">Clôturer la caisse (Z)</button><button class="btn" data-close>Fermer</button>');
+          + '<button class="btn btn-primary" id="se-close">Clôturer la caisse du point de vente (Z)</button><button class="btn" data-close>Fermer</button>');
         var move = function (kind) {
           withPerm('cash', kind === 'drop' ? 'Remise en banque' : 'Apport d\'espèces', function (approver) {
             amountSheet(kind === 'drop' ? 'Remise en banque' : 'Apport d\'espèces', kind === 'drop' ? 'Espèces retirées du tiroir et mises en lieu sûr.' : 'Espèces ajoutées dans le tiroir (monnaie).', function (amt, note) {
@@ -878,13 +971,13 @@
         $('#se-drop').onclick = function () { move('drop'); }; $('#se-add').onclick = function () { move('add'); };
         $('#se-close').onclick = function () {
           withPerm('close', 'Clôturer la caisse', function (approver) {
-            amountSheet('Clôture de caisse', 'Compte les espèces du tiroir (attendu : ' + money(s.expected_cash) + ').', function (amt, note) {
+            amountSheet('Clôture de caisse', 'Clôture pour tous les appareils de ce point de vente. Compte les espèces du tiroir (attendu : ' + money(s.expected_cash) + ').', function (amt, note) {
               api('session_close', { counted: amt, note: note, approver_pin: approver || undefined }).then(function (r) {
                 var gap = r.counted - r.totals.expected_cash;
                 S.config.session = null; S.shift.since = new Date().toISOString(); save();
-                sheet(resultView(gap === 0, 'Caisse clôturée · Z' + r.z, 'Attendu ' + money(r.totals.expected_cash) + ' · compté ' + money(r.counted) + '<br>' + (gap === 0 ? 'Aucun écart.' : 'Écart ' + (gap > 0 ? '+' : '') + money(gap)), '<button class="btn btn-primary btn-xl" id="z-next">Ouvrir une nouvelle caisse</button><button class="btn" id="z-end">Terminer</button>'));
+                sheet(resultView(gap === 0, 'Caisse clôturée · Z' + r.z, 'Attendu ' + money(r.totals.expected_cash) + ' · compté ' + money(r.counted) + '<br>' + (gap === 0 ? 'Aucun écart.' : 'Écart ' + (gap > 0 ? '+' : '') + money(gap)), '<button class="btn btn-primary btn-xl" id="z-next">Ouvrir une nouvelle caisse</button><button class="btn" id="z-end">Terminer mon service</button>'));
                 $('#z-next').onclick = function () { closeSheet(); openSessionScreen(); };
-                $('#z-end').onclick = function () { closeSheet(); S.shift = null; save(); startShift(); };
+                $('#z-end').onclick = function () { closeSheet(); S.shift = { bar_id: S.shift.bar_id, mode: S.shift.mode }; save(); startShift(); };
               }, function (e) { toast(e.message, 'ko'); });
             }, true);
           });
@@ -919,8 +1012,8 @@
       stop = startCam($('#sheet video'), step2);
       $('#ln-ok').onclick = function () { var v = $('#ln-code').value.trim(); if (v) step2(v); };
     },
-    lock: function () { if (S.cart.items.length && !confirm('Le panier en cours sera vidé. Continuer ?')) return; emptyCart(); if (S.shift) S.shift.staff = null; save(); startShift(true); },
-    shift: function () { closeSheet(); startShift(); },
+    lock: function () { if (S.cart.items.length && !confirm('Le panier en cours sera vidé. Continuer ?')) return; emptyCart(); if (S.shift) { S.shift.staff = null; S.shift.name = ''; } save(); startShift(true); },
+    shift: function () { if (S.cart.items.length && !confirm('Le panier en cours sera vidé. Continuer ?')) return; emptyCart(); closeSheet(); openStation(); },
     refresh: function () { api('config').then(function (j) { S.config = j.config; save(); openMain(); toast('Carte à jour.', 'ok'); }, function (e) { toast(e.message, 'ko'); }); },
     unpair: function () {
       if (S.queue.length && !confirm(S.queue.length + ' vente(s) ne sont pas encore envoyées et seront perdues. Déconnecter quand même ?')) return;
@@ -952,7 +1045,8 @@
     if (t.dataset.pay) { var q = quoteLocal(); if (!q.lines.length) return; return { cashless: function () { scanPay('cashless'); }, card: payCard, cash: payCash, allowance: function () { scanPay('allowance'); }, offered: payOffered, split: paySplit }[t.dataset.pay](); }
     if (t.dataset.amt && t.closest('#tp-amounts')) { TOP.amount = +t.dataset.amt; topAmount(); return; }
     if (t.dataset.prep) return prepTap(+t.dataset.prep, t.dataset.st);
-    if (t.dataset.bar && t.closest('#shift-bars')) { $$('#shift-bars .chip').forEach(function (b) { b.classList.toggle('on', b === t); }); $('#shift-go').disabled = false; $('#shift-go').dataset.bar = t.dataset.bar; if (C().settings.require_staff) $('#shift-go').hidden = true; return; }
+    if (t.dataset.stbar !== undefined) { ST.bar = parseInt(t.dataset.stbar, 10); buzz(6); return S.renderStation(); }
+    if (t.dataset.strole) { ST.mode = t.dataset.strole; buzz(6); return S.renderStation(); }
     if (t.dataset.menu) { closeDrawer(); return MENU[t.dataset.menu](); }
   });
   $('#menu-btn').onclick = openDrawer;
@@ -966,11 +1060,7 @@
   $('#staff-pill').onclick = function () { if (C().settings.require_staff) MENU.lock(); };
   $('#t-return').onclick = returnFlow;
   $('#t-discount').onclick = function () { if (!S.cart.items.length && !S.cart.discount) return toast('Ajoute d\'abord des produits.'); discountFlow(); };
-  $('#t-offer').onclick = function () {
-    if (S.cart.offerAll) { S.cart.offerAll = false; renderCart(); return; }
-    if (!S.cart.items.length) return toast('Ajoute d\'abord des produits.');
-    offerFlow('Offrir tout le panier', function () { S.cart.offerAll = true; renderCart(); });
-  };
+  $('#pay-more').onclick = payMore;
   $('#cart-clear').onclick = function () { if ((S.cart.items.length || Object.keys(S.cart.returns).length) && confirm('Vider le panier ?')) { emptyCart(); renderGrid(); renderCart(); } };
   $('#pair-go').onclick = function () { var p = parsePair($('#pair-code').value); if (!p) { $('#pair-err').textContent = 'Le code fait 6 chiffres.'; return; } pair(p.code, p.server); };
   $('#pair-code').oninput = function () { this.value = this.value.replace(/\D/g, '').slice(0, 6); if (this.value.length === 6 && (!NATIVE || $('#pair-server').value)) $('#pair-go').click(); };
@@ -984,7 +1074,8 @@
       $('#pair-code').value = p.code; pair(p.code, p.server);
     });
   };
-  $('#shift-go').onclick = function () { var b = parseInt(this.dataset.bar, 10); if (!b) return; beginShift(b, null, $('#shift-staff').value.trim().slice(0, 40)); };
+  $('#shift-go').onclick = function () { signedIn(null, $('#shift-staff').value.trim().slice(0, 40)); };
+  $('#st-go').onclick = function () { if (ST.bar === null || !ST.mode) return; saveStation(ST.bar, ST.mode); };
   window.addEventListener('online', function () { setOnline(true); sync(); });
   window.addEventListener('offline', function () { setOnline(false); });
   document.addEventListener('visibilitychange', function () { if (!document.hidden) { keepAwake(); sync(); } });
@@ -999,9 +1090,14 @@
   if (hp && /#pair=/.test(location.hash)) { show('s-pair'); $('#pair-code').value = hp.code; pair(hp.code, hp.server); return; }
   if (!S.token || !S.config) return show('s-pair');
   var resume = function () {
-    var mode = C().device.mode || 'bar';
-    if (mode === 'prep' || mode === 'display') return openMain();
-    if (!S.shift) return startShift(); if (C().settings.require_staff && !staff()) return startShift(true); if (C().settings.sessions && !C().session) return openSessionScreen(); openMain();
+    var sh = S.shift, mode = sh && sh.mode;
+    if (!$('#sheet').hidden) return; // ne pas couper une action en cours
+    if (mode === 'prep' || mode === 'display') return openMain(); // un écran reste sur son poste
+    if (!sh || (!sh.staff && !sh.name && !C().settings.require_staff && !mode)) return startShift();
+    if (C().settings.require_staff && !staff()) return startShift(!!mode);
+    if (!mode) return openStation();
+    if (!$('#s-pos').hidden || !$('#s-topup').hidden) { if (C().settings.sessions && !C().session) return openSessionScreen(); return; }
+    enterStation();
   };
   if (S.config.settings) resume(); else show('s-pair');
   api('config').then(function (j) { S.config = j.config; save(); resume(); }, function () { /* hors ligne : configuration en cache */ });

@@ -1,18 +1,36 @@
-<?php /** @var array $devices, $bars; int $focus; string $btab, $bbase */ echo view('pro/bars/_nav', compact('btab', 'bbase')); $pos = url('/caisse/'); ?>
-<section class="card pos-card">
-  <div class="card-head"><div><h2>Appareils</h2><p class="muted mb0">Une application dédiée pour les bars : cashless (QR du billet ou bracelet NFC), carte bancaire (terminal autonome ou Nepting) et espèces, même sans réseau pour la carte et les espèces.</p></div>
+<?php /** @var array $devices, $bars, $tills; int $focus; bool $sessionsOn; string $btab, $bbase */ echo view('pro/bars/_nav', compact('btab', 'bbase')); $pos = url('/caisse/');
+$byBar = []; foreach ($devices as $d) if ($d['bar_id'] && $d['last_seen'] && strtotime($d['last_seen']) > time() - 900) $byBar[(int)$d['bar_id']][] = $d; ?>
+<div class="notice info mb"><b>Comment ça marche.</b> Tu crées les points de vente et tu appaires les appareils. Sur place, chaque serveur tape son code, choisit son point de vente et ce qu'il fait (vendre, recharger, préparer, écran d'appel). <?= $sessionsOn ? 'Un responsable ouvre la caisse une fois par point de vente : tous ses appareils vendent dedans, et la clôture (Z) est unique.' : '' ?></div>
+<section class="card">
+  <div class="card-head"><div><h2>Points de vente</h2><p class="muted mb0">Bar, stand de restauration, merch, point de recharge…</p></div></div>
+  <div class="pv-list">
+    <?php foreach ($bars as $b): $t = $tills[(int)$b['id']] ?? null; $on = $byBar[(int)$b['id']] ?? []; ?>
+      <div class="pv<?= (int)$b['active'] ? '' : ' off' ?>">
+        <div class="pv-head"><b class="grow"><?= e($b['name']) ?></b>
+          <?php if (!(int)$b['active']): ?><span class="badge">fermé</span>
+          <?php elseif ($sessionsOn): ?><span class="badge <?= $t ? 'badge-green' : '' ?>"><?= $t ? 'Caisse ouverte' : 'Caisse fermée' ?></span><?php endif; ?></div>
+        <?php if ($t): ?><p class="muted mb0"><small>Ouverte <?= e(fr_date($t['opened_at'])) ?><?= $t['opener'] ? ' par ' . e($t['opener']) : '' ?> · fond <?= e(money((int)$t['float_amount'])) ?> · <?= (int)$t['tot']['count'] ?> vente(s), <?= e(money((int)$t['tot']['total'])) ?> · espèces attendues <?= e(money((int)$t['tot']['expected_cash'])) ?></small></p><?php endif; ?>
+        <p class="muted mb0"><small><?= $on ? 'En ce moment : ' . e(implode(', ', array_map(fn($d) => $d['name'] . ' (' . (Pos::MODE_LABELS[$d['mode']] ?? 'Vente') . ($d['staff_name'] ? ', ' . $d['staff_name'] : '') . ')', array_slice($on, 0, 4))) . (count($on) > 4 ? ' et ' . (count($on) - 4) . ' autre(s)' : '')) : 'Aucun appareil sur ce point de vente.' ?></small></p>
+        <details class="pos-set"><summary class="linklike">Renommer, fermer</summary>
+          <form method="post" class="row mt"><?= csrf_field() ?><input type="hidden" name="bar_id" value="<?= (int)$b['id'] ?>"><input type="hidden" name="action" value="bar"><input name="name" value="<?= e($b['name']) ?>" class="grow"><button class="btn btn-sm btn-light">Renommer</button><button class="btn btn-sm btn-ghost" name="action" value="bar_toggle"><?= (int)$b['active'] ? 'Fermer le point de vente' : 'Rouvrir' ?></button></form></details>
+      </div>
+    <?php endforeach; ?>
+    <form method="post" class="pv pv-add"><?= csrf_field() ?><input type="hidden" name="action" value="bar"><b>Ajouter un point de vente</b><div class="row"><input name="name" placeholder="Bar principal, food truck, stand merch…" required class="grow"><button class="btn btn-sm">Ajouter</button></div></form>
+  </div>
+</section>
+
+<section class="card pos-card mt">
+  <div class="card-head"><div><h2>Appareils</h2><p class="muted mb0">Tablettes, téléphones et écrans appairés. Tu n'as rien d'autre à régler : le poste se choisit sur l'appareil.</p></div>
     <a class="btn btn-sm btn-light" href="<?= $pos ?>" target="_blank">Ouvrir l'application</a></div>
   <div class="pos-devs">
     <?php foreach ($devices as $d): $t = Pos::tpe($d); $pairing = $d['pair_code'] && strtotime((string)$d['pair_expires']) > time(); $online = $d['last_seen'] && strtotime($d['last_seen']) > time() - 300; ?>
       <div class="pos-dev<?= $focus === (int)$d['id'] ? ' on' : '' ?>">
-        <div class="pos-dev-head"><span class="dot <?= $pairing ? 'wait' : ($online ? 'ok' : '') ?>"></span><div class="grow"><b><?= e($d['name']) ?></b><small class="muted"><?= $d['bar_name'] ? e($d['bar_name']) : 'Bar choisi sur l\'appareil' ?> · <?= e(['bar' => 'Caisse', 'topup' => 'Recharge', 'prep' => 'Préparation', 'display' => 'Écran d\'appel'][$d['mode'] ?? 'bar'] ?? 'Caisse') ?> · <?= $t['mode'] === 'nepting' ? 'Nepting ' . e($t['host']) : 'TPE autonome' ?></small></div>
-          <small class="muted"><?= $pairing ? 'à appairer' : ($d['last_seen'] ? 'vue ' . e(ago($d['last_seen'])) : 'jamais connectée') ?> · <?= (int)$d['sales'] ?> vente(s)</small></div>
-        <?php if ($pairing): ?><div class="pos-pair"><div class="pos-qr"><?= Qr::svg(Pos::pairUrl($d), 168) ?></div><div><small class="muted">Code d'appairage</small><div class="pos-code"><?= e(chunk_split($d['pair_code'], 3, ' ')) ?></div><small class="muted">Scanne le QR avec l'appareil du bar (ou ouvre <span class="mono"><?= e(abs_url('/caisse/')) ?></span> et saisis le code). Valable jusqu'à <?= e(date('H:i', strtotime($d['pair_expires']))) ?>.</small></div></div><?php endif; ?>
-        <details class="pos-set"><summary class="linklike">Réglages, terminal de paiement</summary>
+        <div class="pos-dev-head"><span class="dot <?= $pairing ? 'wait' : ($online ? 'ok' : '') ?>"></span><div class="grow"><b><?= e($d['name']) ?></b><small class="muted"><?= $pairing ? 'En attente d\'appairage' : ($d['station_at'] ? e(($d['bar_name'] ?: 'Tous les points de vente') . ' · ' . (Pos::MODE_LABELS[$d['mode']] ?? 'Vente') . ($d['staff_name'] ? ' · ' . $d['staff_name'] : '')) : 'Poste pas encore choisi') ?><?= $t['mode'] === 'nepting' ? ' · Nepting ' . e($t['host']) : '' ?></small></div>
+          <small class="muted"><?= $pairing ? 'à appairer' : ($d['last_seen'] ? 'vu ' . e(ago($d['last_seen'])) : 'jamais connecté') ?> · <?= (int)$d['sales'] ?> vente(s)</small></div>
+        <?php if ($pairing): ?><div class="pos-pair"><div class="pos-qr"><?= Qr::svg(Pos::pairUrl($d), 168) ?></div><div><small class="muted">Code d'appairage</small><div class="pos-code"><?= e(chunk_split($d['pair_code'], 3, ' ')) ?></div><small class="muted">Scanne le QR avec l'appareil (ou ouvre <span class="mono"><?= e(abs_url('/caisse/')) ?></span> et saisis le code). Valable jusqu'à <?= e(date('H:i', strtotime($d['pair_expires']))) ?>.</small></div></div><?php endif; ?>
+        <details class="pos-set"><summary class="linklike">Nom, terminal de paiement</summary>
           <form method="post" class="mt"><?= csrf_field() ?><input type="hidden" name="action" value="device_tpe"><input type="hidden" name="device_id" value="<?= (int)$d['id'] ?>">
-            <div class="grid2"><div class="field"><label>Nom</label><input name="name" value="<?= e($d['name']) ?>"></div>
-              <div class="field"><label>Bar</label><select name="bar_id"><option value="">Choisi sur l'appareil</option><?php foreach ($bars as $b): ?><option value="<?= (int)$b['id'] ?>" <?= (int)$d['bar_id'] === (int)$b['id'] ? 'selected' : '' ?>><?= e($b['name']) ?></option><?php endforeach; ?></select></div></div>
-            <div class="field"><label>Rôle de l'appareil</label><select name="mode_app"><?php foreach (['bar' => 'Caisse (vente)', 'topup' => 'Point de recharge cashless', 'prep' => 'Écran de préparation (cuisine)', 'display' => 'Écran d\'appel des commandes (TV)'] as $mk => $ml): ?><option value="<?= $mk ?>" <?= ($d['mode'] ?? 'bar') === $mk ? 'selected' : '' ?>><?= $ml ?></option><?php endforeach; ?></select></div>
+            <div class="field"><label>Nom</label><input name="name" value="<?= e($d['name']) ?>"></div>
             <div class="field"><label>Paiement par carte</label><select name="mode"><option value="manual">Terminal autonome (le serveur confirme sur l'appli)</option><option value="nepting" <?= $t['mode'] === 'nepting' ? 'selected' : '' ?>>Terminal Nepting piloté par l'appli (Android)</option></select></div>
             <div class="grid2" data-show-if="mode=nepting"><div class="field"><label>Adresse IP du terminal</label><input name="host" value="<?= e($t['host']) ?>" placeholder="192.168.1.50"></div><div class="field"><label>Port</label><input name="port" inputmode="numeric" value="<?= (int)$t['port'] ?>"></div>
               <div class="field"><label>Identifiant caisse (12 chiffres)</label><input name="cj" inputmode="numeric" maxlength="12" value="<?= e($t['cj']) ?>"></div><div class="field"><label>Numéro de caisse</label><input name="ca" inputmode="numeric" maxlength="2" value="<?= e($t['ca']) ?>"></div>
@@ -25,8 +43,8 @@
         </details>
       </div>
     <?php endforeach; ?>
-    <form method="post" class="pos-dev pos-add"><?= csrf_field() ?><input type="hidden" name="action" value="device_add"><b>Ajouter un appareil</b><small class="muted">Tablette ou téléphone d'un bar. Un QR code d'appairage s'affiche ensuite.</small>
-      <input name="name" placeholder="Caisse bar principal"><select name="mode_app"><option value="bar">Caisse (vente)</option><option value="topup">Point de recharge cashless</option><option value="prep">Écran de préparation (cuisine)</option><option value="display">Écran d'appel des commandes (TV)</option></select><select name="bar_id"><option value="">Bar choisi sur l'appareil</option><?php foreach ($bars as $b): ?><option value="<?= (int)$b['id'] ?>"><?= e($b['name']) ?></option><?php endforeach; ?></select><button class="btn btn-sm">Créer</button></form>
+    <form method="post" class="pos-dev pos-add"><?= csrf_field() ?><input type="hidden" name="action" value="device_add"><b>Appairer un appareil</b><small class="muted">Tablette, téléphone ou écran. Un QR code d'appairage s'affiche ensuite.</small>
+      <input name="name" placeholder="Tablette 1"><button class="btn btn-sm">Créer le code</button></form>
   </div>
 </section>
 

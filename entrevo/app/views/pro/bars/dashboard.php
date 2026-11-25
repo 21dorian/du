@@ -21,7 +21,7 @@ $L = $live; $M = fn($k) => $L['methods'][$k] ?? ['n' => 0, 't' => 0, 'o' => 0]; 
     <div class="card"><h2>Points de vente</h2>
       <?php foreach ($L['bars'] as $b): ?><div class="list-item"><span class="grow"><b><?= e($b['name']) ?></b><br><small class="muted"><?= (int)$b['n'] ?> ventes · <?= (int)$b['rate'] ?> sur 15 min<?= $b['last'] ? ' · dernière ' . e(ago($b['last'])) : '' ?></small></span><b><?= e(money((int)$b['t'])) ?></b></div><?php endforeach; ?></div>
     <div class="card"><h2>Caisses ouvertes</h2>
-      <?php foreach ($L['sessions'] as $s): ?><div class="list-item"><span class="grow"><b><?= e($s['bar']) ?></b><?= $s['full'] ? ' <span class="badge red">caisse pleine</span>' : '' ?><br><small class="muted"><?= e((string)$s['device']) ?> · depuis <?= e(date('H:i', strtotime($s['since']))) ?></small></span><span class="num"><small class="muted">espèces</small><br><b><?= e(money($s['cash'])) ?></b></span></div><?php endforeach; ?>
+      <?php foreach ($L['sessions'] as $s): ?><div class="list-item"><span class="grow"><b><?= e($s['bar']) ?></b><?= $s['full'] ? ' <span class="badge red">caisse pleine</span>' : '' ?><br><small class="muted"><?= $s['device'] ? e((string)$s['device']) . ' · ' : '' ?>depuis <?= e(date('H:i', strtotime($s['since']))) ?></small></span><span class="num"><small class="muted">espèces</small><br><b><?= e(money($s['cash'])) ?></b></span></div><?php endforeach; ?>
       <?php if (!$L['sessions']): ?><p class="muted mb0">Aucune caisse ouverte.</p><?php endif; ?>
       <a class="btn btn-sm btn-light mt" href="<?= url($bbase . '/caisses') ?>">Caisses & clôtures</a></div>
     <div class="card"><h2>Alertes</h2>

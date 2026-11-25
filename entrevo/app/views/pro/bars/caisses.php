@@ -3,7 +3,7 @@
 <?php foreach ($sessions as $s): $t = $s['t']; $open = !$s['closed_at']; $gap = $s['counted_cash'] !== null ? (int)$s['counted_cash'] - (int)$s['expected_cash'] : null; ?>
   <div class="card z-card<?= $open ? ' open' : '' ?>">
     <div class="z-head"><div class="grow"><b><?= $open ? 'En cours' : 'Z' . (int)$s['z_number'] ?> · <?= e($s['bar']) ?></b> <?= $open ? '<span class="badge green">ouverte</span>' : '' ?><br>
-      <small class="muted"><?= e((string)$s['device']) ?> · <?= e(date('d/m H:i', strtotime($s['opened_at']))) ?><?= $s['opener'] ? ' (' . e($s['opener']) . ')' : '' ?><?= $s['closed_at'] ? ' → ' . e(date('d/m H:i', strtotime($s['closed_at']))) . ($s['closer'] ? ' (' . e($s['closer']) . ')' : '') : '' ?></small></div>
+      <small class="muted"><?= $s['device'] ? e((string)$s['device']) . ' · ' : '' ?><?= e(date('d/m H:i', strtotime($s['opened_at']))) ?><?= $s['opener'] ? ' (' . e($s['opener']) . ')' : '' ?><?= $s['closed_at'] ? ' → ' . e(date('d/m H:i', strtotime($s['closed_at']))) . ($s['closer'] ? ' (' . e($s['closer']) . ')' : '') : '' ?></small></div>
       <a class="btn btn-sm btn-light" target="_blank" href="<?= url($bbase . '/caisses', ['z' => $s['id']]) ?>"><?= $open ? 'Ticket X (PDF)' : 'Ticket Z (PDF)' ?></a></div>
     <div class="z-grid">
       <div><span>Cashless</span><b><?= e(money((int)($t['methods']['cashless']['total'] ?? 0))) ?></b></div>

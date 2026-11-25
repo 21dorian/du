@@ -79,6 +79,28 @@ Couleurs : **vert** = entre, **orange** = déjà entré / pas entré (sortie), *
 
 ---
 
+## Nouveautés 2.9 — des parcours de caisse repensés
+
+**Démarrage de l'appli : tout se fait sur l'appareil**
+- L'organisateur ne fait plus qu'**appairer** l'appareil (QR code). Plus de point de vente ni de rôle à fixer depuis le site.
+- Sur place, en trois étapes : 1) le serveur tape **son code** ; 2) il choisit **son poste** : le point de vente (avec l'état de sa caisse : ouverte ou fermée) et ce qu'il fait — **Vendre, Recharger, Préparer, Écran d'appel** ; 3) il vend.
+- Préparation et écran d'appel peuvent suivre **tous les points de vente** à la fois. Un écran garde son poste après un redémarrage.
+- Menu : « Changer de poste » et « Changer de serveur » (le poste est conservé, le serveur suivant tape juste son code).
+
+**Une caisse par point de vente**
+- La caisse (fond, ventes, apports, remises en banque, clôture Z) appartient désormais au **point de vente**, plus à l'appareil : tous les appareils d'un même bar vendent dans la même caisse, avec **une seule clôture**.
+- Elle est **ouverte une fois** par un responsable (ou un serveur qui en a le droit). Un serveur qui arrive sur une caisse fermée voit un écran d'attente qui passe tout seul à la vente dès l'ouverture, sur n'importe quel appareil du bar ; un responsable peut aussi l'ouvrir sur place avec son code.
+- Après une clôture faite sur un appareil, les autres appareils du bar reviennent à l'écran d'ouverture au lieu de continuer à vendre hors caisse.
+- Le menu Caisse indique qui a ouvert et quels appareils partagent la caisse.
+
+**Encaissement plus simple**
+- Trois gros boutons : **Cashless, Carte, Espèces**, plus **« Autre »** qui regroupe crédit staff/artiste, paiement en plusieurs moyens et **offrir la commande** (motif, validation d'un responsable si besoin).
+- « Tout offrir » n'existe plus en double : offrir une ligne se fait en touchant la ligne, offrir toute la commande par « Autre ». Les outils du panier se limitent à **Consigne rendue** et **Remise**.
+
+**Espace organisateur regroupé** (Bars & caisses)
+- Six rubriques au lieu de douze onglets : **En direct, Carte** (produits, consignes, happy hours), **Points de vente** (points de vente & appareils, caisses & clôtures, stocks), **Équipe** (serveurs & droits, crédits offerts), **Ventes** (rapport, journal), **Réglages**.
+- Nouvelle page **Points de vente & appareils** : chaque point de vente avec l'état de sa caisse (ouverte par qui, ventes, espèces attendues) et les appareils qui y travaillent en ce moment ; les appareils indiquent leur poste actuel (point de vente, rôle, serveur).
+
 ## Nouveautés 2.8 — la caisse pour la restauration, la recharge et la comptabilité
 
 **Carte et vente**

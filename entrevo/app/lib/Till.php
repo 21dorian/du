@@ -322,7 +322,13 @@ final class Till
         return (int)val('SELECT LAST_INSERT_ID()');
     }
 
-    public static function session(array $d): ?array { return one('SELECT * FROM pos_sessions WHERE device_id = ? AND closed_at IS NULL ORDER BY id DESC LIMIT 1', [$d['id']]); }
+    /** 2.9 : la caisse (fond, ventes, clôture Z) appartient au point de vente ; tous ses appareils y vendent. */
+    public static function session(array $d): ?array { return self::barSession((int)$d['event_id'], (int)($d['bar_id'] ?? 0)); }
+
+    public static function barSession(int $eventId, int $barId): ?array
+    {
+        return $barId ? one('SELECT * FROM pos_sessions WHERE event_id = ? AND bar_id = ? AND closed_at IS NULL ORDER BY id DESC LIMIT 1', [$eventId, $barId]) : null;
+    }
 
     /**
      * Totaux par moyen de paiement à partir de lignes de pos_sales (les paiements fractionnés sont répartis).
