@@ -67,6 +67,8 @@ final class Store
                     $id = insert('passes', ['pass_type_id' => $type['id'], 'organizer_id' => $org['id'], 'order_id' => $o['id'], 'code' => self::uniqueCode('passes', 'AB'), 'token' => token(20),
                         'first_name' => $o['first_name'], 'last_name' => $o['last_name'], 'email' => $o['email'], 'uses_left' => $type['kind'] === 'carnet' ? (int)$type['entries'] : null, 'created_at' => now()]);
                     self::mailPass(one('SELECT * FROM passes WHERE id = ?', [$id]), $type, $org);
+                } elseif ($it['kind'] === 'topup' && class_exists('Cashless')) {
+                    Cashless::creditOrder($o, $it);
                 }
             }
         }

@@ -114,3 +114,13 @@ function artist_portal(string $token): string
     $perfs = all('SELECT * FROM performances WHERE artist_id = ? ORDER BY starts_at', [$a['id']]);
     return pub('artist_portal', compact('a', 'ev', 'org', 'perfs'), $a['name'] . ' · ' . $ev['name']);
 }
+
+/** Menu « Cashless & bars » : ouvre l'événement à venir le plus proche. */
+function cashless_choose(): never
+{
+    $org = require_org();
+    $ev = one("SELECT id FROM events WHERE organizer_id = ? AND COALESCE(ends_at, starts_at) >= NOW() ORDER BY starts_at LIMIT 1", [$org['id']])
+        ?: one('SELECT id FROM events WHERE organizer_id = ? ORDER BY starts_at DESC LIMIT 1', [$org['id']]);
+    if (!$ev) redirect('/pro/evenements', ['info' => 'Crée d\'abord un événement.']);
+    redirect('/pro/evenements/' . $ev['id'] . '/cashless');
+}

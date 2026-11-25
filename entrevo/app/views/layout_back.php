@@ -73,7 +73,7 @@ if ($area === 'admin') {
             ['litiges', '/admin/litiges', 'Litiges & impayés', $I['alert']],
             ['factures-commission', '/admin/factures', 'Factures de commission', $I['invoice']],
             ['fraude', '/admin/fraude', 'Fraude & risques', $I['shield']],
-            $soonA('revendeurs', 'Revendeurs', 'bag'),
+            ['revendeurs', '/admin/revendeurs', 'Revendeurs', $I['bag']],
         ]],
         ['Plateforme', [
             ['users', '/admin/utilisateurs', 'Utilisateurs', $I['user']],
@@ -111,6 +111,7 @@ if ($area === 'admin') {
             ['abonnements', '/pro/abonnements', 'Abonnements', $I['card']],
             ['cartes-cadeaux', '/pro/cartes-cadeaux', 'Cartes cadeaux', $I['gift']],
             ['devis', '/pro/devis', 'Groupes & devis', $I['quote']],
+            ['revendeurs', '/pro/revendeurs', 'Revendeurs', $I['handshake']],
         ]],
         ['Faire venir du monde', [
             ['campagnes', '/pro/campagnes', 'Campagnes e-mail', $I['mail']],
@@ -118,14 +119,14 @@ if ($area === 'admin') {
             ['liens', '/pro/liens', 'Liens & ambassadeurs', $I['share']],
             ['sms', '/pro/sms', 'Campagnes SMS', $I['sms']],
             $soonP('mini-site', 'Mini-site', 'globe'),
-            $soonP('reseaux', 'Réseaux sociaux', 'share'),
+            ['visuels', '/pro/visuels', 'Visuels réseaux sociaux', $I['share']],
         ]],
         ['Le jour J', [
             ['scan', '/scan', 'Contrôle d\'accès', $I['scan']],
             ['controle-pro', '/pro/pc', 'PC sécurité', $I['radar']],
             ['staff', '/pro/benevoles', 'Bénévoles & staff', $I['hand']],
             ['artistes', '/pro/artistes', 'Artistes & planning', $I['mic']],
-            $soonP('cashless', 'Cashless & bars', 'wallet'),
+            ['cashless', '/pro/cashless', 'Cashless & bars', $I['wallet']],
             ['objets-trouves', '/pro/objets-trouves', 'Objets trouvés', $I['box']],
         ]],
         ['Gestion', [
@@ -141,18 +142,18 @@ if ($area === 'admin') {
             ['audit', '/pro/journal', 'Journal d\'activité', $I['audit']],
             ['org', '/pro/organisation', 'Réglages', $I['org']],
             ['kyc', '/pro/verification', 'Vérification du compte', $I['kyc']],
-            $soonP('zapier', 'Intégrations', 'plug'),
+            ['integrations', '/pro/integrations', 'Intégrations', $I['plug']],
             ['aide', '/pro/aide', 'Aide & support', $I['help']],
         ]],
     ];
     // 2.2 : cadenas sur les modules hors formule
     $curOrg = current_org();
     if ($curOrg && class_exists('Billing')) {
-        $modMap = ['artistes' => 'artistes', 'devis' => 'devis', 'boutique' => 'boutique', 'abonnements' => 'abonnements', 'cartes-cadeaux' => 'cartes-cadeaux', 'campagnes' => 'campagnes', 'sms' => 'sms', 'liens' => 'liens', 'staff' => 'benevoles', 'controle-pro' => 'pc'];
+        $modMap = ['cashless' => 'cashless', 'artistes' => 'artistes', 'devis' => 'devis', 'boutique' => 'boutique', 'abonnements' => 'abonnements', 'cartes-cadeaux' => 'cartes-cadeaux', 'campagnes' => 'campagnes', 'sms' => 'sms', 'liens' => 'liens', 'staff' => 'benevoles', 'controle-pro' => 'pc'];
         foreach ($navGroups as &$g) foreach ($g[1] as &$n) if (isset($modMap[$n[0]]) && empty($n[4]) && !Billing::allows($curOrg, $modMap[$n[0]])) $n[5] = true;
         unset($g, $n);
     }
-    if ($u['role'] === 'manager') foreach ($navGroups as &$g) $g[1] = array_values(array_filter($g[1], fn($n) => !in_array($n[0], ['team', 'org', 'finances', 'audit', 'factures', 'zapier', 'kyc'], true)));
+    if ($u['role'] === 'manager') foreach ($navGroups as &$g) $g[1] = array_values(array_filter($g[1], fn($n) => !in_array($n[0], ['team', 'org', 'finances', 'audit', 'factures', 'zapier', 'integrations', 'kyc'], true)));
     unset($g);
 }
 $nav = [];

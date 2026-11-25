@@ -16,7 +16,7 @@ final class Security
     private const AREA_PATHS = ['/admin/organisateurs' => 'organisateurs', '/admin/kyc' => 'organisateurs', '/admin/commandes' => 'argent', '/admin/reversements' => 'argent',
         '/admin/litiges' => 'argent', '/admin/factures' => 'argent', '/admin/contrats' => 'argent', '/admin/formules' => 'argent', '/admin/support' => 'support', '/admin/rgpd' => 'support',
         '/admin/reglages' => 'plateforme', '/admin/utilisateurs' => 'plateforme', '/admin/mises-a-jour' => 'plateforme', '/admin/sante' => 'plateforme', '/admin/sauvegarde' => 'plateforme',
-        '/admin/modules' => 'plateforme', '/admin/sauvegardes' => 'plateforme', '/admin/alertes' => 'plateforme', '/admin/fraude' => 'argent', '/admin/contenus' => 'plateforme', '/admin/prospection' => 'organisateurs', '/admin/statistiques' => 'stats'];
+        '/admin/modules' => 'plateforme', '/admin/sauvegardes' => 'plateforme', '/admin/alertes' => 'plateforme', '/admin/fraude' => 'argent', '/admin/contenus' => 'plateforme', '/admin/prospection' => 'organisateurs', '/admin/revendeurs' => 'argent', '/admin/statistiques' => 'stats'];
 
     // ---------- TOTP ----------
     private const B32 = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ234567';

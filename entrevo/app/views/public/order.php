@@ -32,6 +32,10 @@
 
 <?php if ($tickets): $n = count($tickets); $start = $session['starts_at'] ?? $ev['starts_at']; ?>
 <div style="max-width:860px;margin:0 auto">
+  <?php if (!empty($paid) && (int)($ev['cashless_enabled'] ?? 0) && strtotime((string)($ev['ends_at'] ?: $ev['starts_at'])) + 6 * 3600 > time()): $cv = array_values(array_filter($tickets, fn($t) => $t['status'] === 'valid')); ?>
+  <div class="card no-print cashless-box"><div><b>Paiement sans espèces aux bars</b><br><small class="muted">Recharge ton billet à l'avance : au bar, ton QR code suffit.</small></div>
+    <div class="row"><?php foreach (array_slice($cv, 0, 6) as $t): $wb = (int)val('SELECT balance FROM wallets WHERE ticket_id = ?', [$t['id']]); ?><a class="btn btn-sm btn-light" href="<?= url('/commande/' . $o['ref'] . '/cashless/' . $t['code'], ['t' => $o['token']]) ?>"><?= e(trim($t['first_name']) ?: $t['code']) ?> · <?= e(money($wb)) ?></a><?php endforeach; ?></div></div>
+  <?php endif; ?>
   <?php if ($paid && strtotime((string)($ev['ends_at'] ?: $ev['starts_at'])) > time()): $inv = Buyers::inviteUrl($ev, $o); $nRef = Buyers::referralCount((int)$o['id']);
     $msg = 'Je vais à « ' . $ev['name'] . ' » le ' . fr_date((string)$start, false) . ', tu viens ? ' . $inv; ?>
   <div class="card invite-box no-print">

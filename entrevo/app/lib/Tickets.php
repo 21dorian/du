@@ -490,6 +490,7 @@ final class Tickets
     public static function cancelOrder(array $o, string $status = 'cancelled'): void
     {
         update('orders', ['status' => $status, 'cancelled_at' => now()], 'id = ?', [$o['id']]);
+        if (class_exists('Hooks')) Hooks::fire((int)$o['organizer_id'], $status === 'refunded' ? 'order.refunded' : 'order.cancelled', Hooks::orderPayload(one('SELECT * FROM orders WHERE id = ?', [$o['id']]) ?: $o));
         q("UPDATE tickets SET status = 'cancelled', updated_at = NOW() WHERE order_id = ? AND status = 'valid'", [$o['id']]);
         q('DELETE FROM seat_holds WHERE order_id = ?', [$o['id']]);
         if ($o['promo_code'] && $o['status'] === 'paid') q('UPDATE promos SET used = GREATEST(used - 1, 0) WHERE event_id = ? AND code = ?', [$o['event_id'], $o['promo_code']]);
@@ -608,6 +609,8 @@ final class Tickets
             throw $e;
         }
         $t = $t ? one('SELECT * FROM tickets WHERE id = ?', [$t['id']]) : null;
+        if ($t && $result === 'ok' && class_exists('Hooks')) Hooks::fire((int)$p['event']['organizer_id'], 'ticket.checked_in', ['code' => $t['code'], 'event_id' => (int)$t['event_id'], 'first_name' => $t['first_name'], 'last_name' => $t['last_name'],
+            'rate_name' => $t['rate_name'], 'access_point' => $ap['name'] ?? null, 'scanned_at' => date('c', strtotime($at)), 'offline' => !empty($p['offline'])]);
         return self::scanResponse($scan, $t, $info);
     }
 

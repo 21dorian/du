@@ -82,6 +82,33 @@ final class Seating
         return true;
     }
 
+    /**
+     * 2.4 : meilleures places libres pour un tarif (vente sans plan : revendeurs).
+     * Cherche d'abord $n places côte à côte dans un même rang, en partant des premiers rangs ; sinon prend les premières libres.
+     * @param string[] $exclude places déjà retenues dans la même commande
+     * @return string[]|null null s'il n'y a pas assez de places
+     */
+    public static function best(array $ev, ?array $session, array $rate, int $n, array $exclude = []): ?array
+    {
+        $map = self::map($ev);
+        if (!$map || $n <= 0) return $n <= 0 ? [] : null;
+        $taken = self::taken($ev, $session ? (int)$session['id'] : null) + array_flip($exclude);
+        $free = array_filter(self::seats($map), fn($s) => !$s['off'] && !isset($taken[$s['key']]) && (!$rate['seat_category'] || $s['cat'] === $rate['seat_category']));
+        if (count($free) < $n) return null;
+        $rows = [];
+        foreach ($free as $s) $rows[$s['block'] . '|' . $s['y']][$s['x']] = $s['key'];
+        uksort($rows, fn($a, $b) => (int)explode('|', $a)[1] <=> (int)explode('|', $b)[1] ?: strcmp($a, $b));
+        foreach ($rows as $row) {
+            ksort($row); $run = []; $prev = null;
+            foreach ($row as $x => $key) {
+                $run = ($prev !== null && $x === $prev + 1) ? [...$run, $key] : [$key];
+                $prev = $x;
+                if (count($run) === $n) return $run;
+            }
+        }
+        return array_slice(array_merge(...array_map('array_values', array_values($rows))), 0, $n);
+    }
+
     /** Données envoyées au plan interactif (public ou éditeur). */
     public static function payload(array $ev, ?int $sessionId): array
     {

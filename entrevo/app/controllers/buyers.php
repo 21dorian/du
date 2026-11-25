@@ -133,7 +133,9 @@ function review_page(string $ref): string
         else insert('reviews', $data + ['order_id' => $o['id'], 'event_id' => $ev['id'], 'organizer_id' => $org['id'], 'created_at' => now(), 'visible' => 1,
             'author' => $data['author'] ?? mb_substr(trim($o['first_name'] . ' ' . mb_substr((string)$o['last_name'], 0, 1) . '.'), 0, 120),
             'verified' => (int)(bool)val('SELECT 1 FROM tickets WHERE order_id = ? AND entries > 0 LIMIT 1', [$o['id']])]);
+        $isNew = !$rev;
         $rev = one('SELECT * FROM reviews WHERE order_id = ?', [$o['id']]);
+        if ($isNew && $rev) Hooks::fire((int)$org['id'], 'review.created', ['event_id' => (int)$ev['id'], 'rating' => (int)$rev['rating'], 'comment' => $rev['comment'], 'author' => $rev['author'], 'order' => $o['ref']]);
         $done = is_post();
     }
     return pub('review', compact('o', 'ev', 'org', 'rev', 'done'), 'Ton avis · ' . $ev['name']);

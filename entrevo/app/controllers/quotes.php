@@ -20,6 +20,7 @@ function quote_request(string $slug): string
         if (trim((string)input('website')) !== '' || !throttle_ok_pub('devis')) $errors[] = 'Requête refusée.';
         if (!$errors) {
             $q = Quotes::create($ev, $v + ['lines' => []]);
+            Hooks::fire((int)$org['id'], 'quote.requested', ['ref' => $q['ref'], 'event_id' => (int)$ev['id'], 'company' => $q['company'], 'contact_name' => $q['contact_name'], 'email' => $q['email'], 'qty' => (int)$q['qty_wanted'], 'message' => $q['message']]);
             try { Mailer::send((string)$org['email'], 'Demande de devis groupe · ' . $ev['name'], '<p><b>' . e($v['company'] ?: $v['contact_name']) . '</b> demande un devis pour <b>' . (int)$v['qty'] . ' places</b>.</p>' . ($v['message'] ? '<blockquote>' . nl2br(e($v['message'])) . '</blockquote>' : '') . '<p><a href="' . e(abs_url('/pro/devis/' . $q['id'])) . '">Préparer le devis</a></p>', [], $v['email']); } catch (Throwable $e) { log_line('emails', $e->getMessage()); }
             $done = $q;
         }

@@ -4,10 +4,10 @@ $groups = [
     'apercu' => ['Vue d\'ensemble', ['overview' => ['Vue d\'ensemble', '']]],
     'vendre' => ['Vendre', ['rates' => ['Tarifs', '/tarifs'], 'sessions' => ['Dates', '/dates'], 'products' => ['Options', '/options'], 'promos' => ['Codes promo', '/promos'],
         'seating' => ['Plan de salle', '/plan'], 'waitlist' => ['Attente & revente', '/attente'], 'box' => ['Guichet', '/guichet']]],
-    'communiquer' => ['Communiquer', ['page' => ['Page publique', '/page'], 'form' => ['Formulaire', '/formulaire'], 'links' => ['Liens & ambassadeurs', '/liens'], 'messages' => ['Messages', '/messages']]],
+    'communiquer' => ['Communiquer', ['page' => ['Page publique', '/page'], 'form' => ['Formulaire', '/formulaire'], 'links' => ['Liens & ambassadeurs', '/liens'], 'visuals' => ['Visuels', '/visuels'], 'messages' => ['Messages', '/messages']]],
     'public' => ['Participants', ['attendees' => ['Participants', '/participants'], 'invites' => ['Invitations & partenaires', '/invitations'], 'accred' => ['Accréditations', '/accreditations']]],
     'organiser' => ['Organiser', ['edit' => ['Infos & réglages', '/modifier'], 'budget' => ['Budget', '/budget'], 'tasks' => ['Tâches', '/taches'], 'artists' => ['Artistes', '/artistes'], 'staff' => ['Bénévoles', '/benevoles'], 'docs' => ['Documents', '/documents']]],
-    'jourj' => ['Jour J', ['access' => ['Points d\'accès', '/acces'], 'live' => ['En direct', '/controle'], 'pc' => ['PC sécurité', '/pc']]],
+    'jourj' => ['Jour J', ['access' => ['Points d\'accès', '/acces'], 'live' => ['En direct', '/controle'], 'cashless' => ['Cashless & bars', '/cashless'], 'pc' => ['PC sécurité', '/pc']]],
     'stats' => ['Stats', ['stats' => ['Statistiques', '/stats']]],
 ];
 $cur = 'apercu';

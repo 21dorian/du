@@ -32,6 +32,7 @@ final class Jobs
             'rgpd' => fn() => class_exists('Gdpr') ? Gdpr::retention() : 0,
             'sauvegarde' => fn() => class_exists('Backups') ? Backups::auto() : 0,
             'alertes' => fn() => class_exists('Alerts') ? Alerts::check() : 0,
+            'webhooks' => fn() => class_exists('Hooks') ? Hooks::deliver() : 0,
             'invoices' => fn() => (setting('invoice_auto') === '1' && class_exists('Invoices') && setting('invoices_auto_last') !== date('Y-m', strtotime('first day of last month')) && trim((string)setting('invoice_name')) !== '')
                 ? (set_setting('invoices_auto_last', date('Y-m', strtotime('first day of last month'))) ?? count(Invoices::generate(date('Y-m', strtotime('first day of last month')))))
                 : 0,

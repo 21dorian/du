@@ -68,16 +68,6 @@ function admin_home(): string
 }
 
 // ---------- Reversements ----------
-function iban_valid(?string $iban): bool
-{
-    $i = strtoupper(preg_replace('~\s+~', '', (string)$iban));
-    if (!preg_match('~^[A-Z]{2}\d{2}[A-Z0-9]{10,30}$~', $i)) return false;
-    $r = substr($i, 4) . substr($i, 0, 4);
-    $num = preg_replace_callback('~[A-Z]~', fn($m) => (string)(ord($m[0]) - 55), $r);
-    $mod = 0;
-    foreach (str_split($num, 7) as $part) $mod = (int)(($mod . $part) % 97);
-    return $mod === 1;
-}
 
 /** Organisateurs à qui on doit de l'argent. */
 function payouts_due(): array

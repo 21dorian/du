@@ -186,6 +186,7 @@ function event_status(string $id): never
     if ($st === 'published' && (current_org()['status'] ?? '') === 'pending') back(['warning' => 'Ton compte est en cours de validation par l\'équipe ' . setting('platform_name') . '. Tu pourras publier dès qu\'il est validé (on te prévient par e-mail).']);
     if ($st === 'published' && !val('SELECT id FROM rates WHERE event_id = ? AND active = 1', [$ev['id']])) back(['error' => 'Ajoute au moins un tarif actif avant de publier. Sans billets, ça marche moins bien']);
     update('events', ['status' => $st], 'id = ?', [$ev['id']]);
+    if ($st === 'published' && $ev['status'] !== 'published' && class_exists('Hooks')) Hooks::fire((int)$ev['organizer_id'], 'event.published', ['id' => (int)$ev['id'], 'name' => $ev['name'], 'starts_at' => $ev['starts_at'], 'url' => abs_url('/e/' . $ev['slug'])]);
     Audit::log('event.status', $ev['name'] . ' → ' . $st, (int)$ev['id']);
     back(['success' => ['draft' => 'Retour en brouillon Plus personne ne le voit.', 'published' => 'C\'est en ligne ! La billetterie est ouverte.', 'closed' => 'Ventes clôturées. Les billets vendus restent valables.'][$st]]);
 }

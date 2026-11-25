@@ -79,7 +79,7 @@ $presence = $stats['sold'] ? round($stats['checked'] / $stats['sold'] * 100) : 0
       <div class="row mt"><button type="button" class="btn btn-sm btn-light" data-copy="<?= e($link) ?>">Copier</button><a class="btn btn-sm btn-light" href="https://www.facebook.com/sharer/sharer.php?u=<?= urlencode($link) ?>" target="_blank" rel="noopener">Facebook</a><a class="btn btn-sm btn-light" href="https://wa.me/?text=<?= urlencode($ev['name'] . ' ' . $link) ?>" target="_blank" rel="noopener">WhatsApp</a></div>
       <div class="center mt"><?= Qr::svg($link . '?utm_source=affiche', 130) ?><br><small>QR code pour tes affiches (suivi « affiche » dans les stats)</small></div>
       <?php $w = '<iframe src="' . abs_url('/widget/e/' . $ev['slug']) . '" style="width:100%;max-width:480px;min-height:460px;border:0" loading="lazy" title="Billetterie"></iframe>'; ?>
-      <div class="soon-row"><?= soon_btn('reseaux', 'Visuels réseaux sociaux') ?><?= soon_btn('partage-stats', 'Partager les stats') ?><?= soon_btn('rapport-fin', 'Rapport de fin') ?><?= soon_btn('mini-site', 'Mini-site') ?></div>
+      <div class="soon-row"><a class="btn btn-sm btn-light" href="<?= url('/pro/evenements/' . $ev['id'] . '/visuels') ?>">Visuels réseaux sociaux</a><?= soon_btn('partage-stats', 'Partager les stats') ?><?= soon_btn('rapport-fin', 'Rapport de fin') ?><?= soon_btn('mini-site', 'Mini-site') ?></div>
       <details class="mt"><summary class="linklike">Code du widget pour ton site</summary><textarea readonly rows="3" onclick="this.select()" class="mono mt" style="font-size:12px"><?= e($w) ?></textarea></details>
     </div>
   </div>
