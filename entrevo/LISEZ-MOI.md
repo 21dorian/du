@@ -79,6 +79,19 @@ Couleurs : **vert** = entre, **orange** = déjà entré / pas entré (sortie), *
 
 ---
 
+## Nouveautés 2.6 — Entrevo Caisse, l'application des bars
+
+Une **application dédiée** aux bars et points de vente, séparée du site : le site y renvoie (Cashless & bars, et l'ancienne adresse /bar/…).
+
+- **Deux versions, mêmes écrans** : web app installable sur tablette ou téléphone (`/caisse/`, « Ajouter à l'écran d'accueil », plein écran, s'ouvre sans réseau) et application native Android / iOS (dossier `entrevo-caisse-native`, construite avec Capacitor).
+- **Appairage des appareils** depuis *Cashless & bars* : QR code ou code à 6 chiffres, appareil lié à un bar ou au choix, dernière activité, déconnexion à distance. Pas besoin de compte pour les bénévoles.
+- **Trois moyens de paiement** : porte-monnaie **cashless** (QR du billet à la caméra ou **bracelet NFC**), **carte bancaire** et **espèces** (montant reçu, monnaie à rendre).
+- **Bracelets NFC** : association d'un bracelet à un billet en deux gestes (QR du billet puis contact du bracelet) ; paiement en approchant le bracelet. Application Android, ou Chrome sur Android.
+- **Terminal de paiement Nepting** piloté par l'application Android (protocole Caisse-AP, réseau local) : le montant part sur le terminal, la réponse (acceptée / refusée, autorisation) revient dans la caisse. Sinon, terminal autonome avec confirmation sur l'appli.
+- **Hors connexion** : les ventes carte et espèces sont gardées sur l'appareil et envoyées au retour du réseau, sans doublon. Le cashless demande le réseau (solde toujours exact).
+- **Au bar** : catégories, grille de produits avec consignes, panier, dernières ventes avec annulation pendant 10 minutes (cashless recrédité), solde d'un billet, **récapitulatif de caisse** (cashless, carte, espèces attendues, meilleures ventes) et clôture de session, écran toujours allumé.
+- **Côté organisateur** : ventes par bar et par moyen de paiement dans *Cashless & bars*.
+
 ## Nouveautés 2.5 — la gestion et la vitrine de l'organisateur
 
 **Organisateurs**
