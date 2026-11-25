@@ -79,6 +79,16 @@ Couleurs : **vert** = entre, **orange** = déjà entré / pas entré (sortie), *
 
 ---
 
+## Nouveautés 2.5 — la gestion et la vitrine de l'organisateur
+
+**Organisateurs**
+- **Factures & compta** : registre de toutes les factures et avoirs du mois, PDF en un clic, archive ZIP du mois avec le registre en CSV. Une facture émise n'est jamais modifiée : chaque remboursement sur une commande facturée crée un **avoir numéroté** (AV-AAAA-nnnn), automatiquement, quel que soit le chemin du remboursement ; l'acheteur le retrouve sur sa commande. **Facturation en lot** des ventes d'un mois, ou facturation automatique de chaque vente. **Plan comptable réglable** (comptes et journaux) utilisé par l'export FEC. Alerte si une mention obligatoire manque (raison sociale, adresse, SIRET).
+- **Bilans & subventions** : bilan d'activité par événement ou par saison, prêt à joindre à un dossier de subvention. Chiffres calculés tout seuls : fréquentation, remplissage, présence, tarifs réduits, nouveaux et fidèles, âge et provenance du public, canaux de vente, recettes, budget prévu et réalisé, bénévolat, artistes. Textes à rédiger (présentation, objectifs, actions, publics, partenaires, perspectives) avec enregistrement automatique. PDF mis en page et CSV.
+- **Mini-site** : ta page publique gagne un menu, des pages libres (Qui sommes-nous, Infos pratiques…), des actualités avec image et publication programmée, un texte d'accueil, un pied de page, un **formulaire de contact** (messages reçus par e-mail et dans ton espace) et l'**inscription à ta lettre d'information** ; les abonnés rejoignent l'audience de tes campagnes e-mail.
+
+**Super-admin**
+- **Marque blanche** : la billetterie d'un organisateur servie sur **son propre domaine** (billetterie.sonfestival.fr), à ses couleurs, avec son logo et sans la marque de la plateforme ; e-mails de commande à son nom avec des liens vers son domaine. Vérification DNS, instructions de mise en place (CNAME, alias cPanel, HTTPS), activation et coupure.
+
 ## Nouveautés 2.4 — vendre partout, encaisser sur place
 
 **Organisateurs**
