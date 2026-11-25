@@ -691,8 +691,9 @@ function finances_export(): never
         // Format FEC (article A47 A-1 du LPF), séparateur tabulation. Comptes par défaut, à adapter par ton comptable.
         $head = ['JournalCode', 'JournalLib', 'EcritureNum', 'EcritureDate', 'CompteNum', 'CompteLib', 'CompAuxNum', 'CompAuxLib', 'PieceRef', 'PieceDate', 'EcritureLib', 'Debit', 'Credit', 'EcritureLet', 'DateLet', 'ValidDate', 'Montantdevise', 'Idevise'];
         $rows = [$head]; $n = 0;
-        $add = function (string $num, string $date, string $acc, string $accLib, string $ref, string $lib, int $debit, int $credit) use (&$rows, $amt) {
-            $rows[] = ['VT', 'Ventes billetterie', $num, $date, $acc, $accLib, '', '', $ref, $date, mb_substr($lib, 0, 100), $amt($debit), $amt($credit), '', '', $date, '', ''];
+        $A = fn(string $k) => str_starts_with($k, 'journal_') ? Accounting::journal($org, substr($k, 8)) : Accounting::account($org, $k);
+        $add = function (string $num, string $date, string $acc, string $accLib, string $ref, string $lib, int $debit, int $credit) use (&$rows, $amt, $A) {
+            $rows[] = [$A('journal_sales'), 'Ventes billetterie', $num, $date, $acc, $accLib, '', '', $ref, $date, mb_substr($lib, 0, 100), $amt($debit), $amt($credit), '', '', $date, '', ''];
         };
         foreach ($orders as $o) {
             $n++; $num = 'VT' . str_pad((string)$n, 6, '0', STR_PAD_LEFT); $d = date('Ymd', strtotime((string)($o['paid_at'] ?: $o['created_at'])));
@@ -700,19 +701,19 @@ function finances_export(): never
             $comm = $online && $o['fee_mode'] !== 'buyer' ? (int)$o['commission'] : 0;
             $gross = array_sum(array_column($o['vat'], 'ttc'));
             $lib = 'Commande ' . $o['ref'] . ' - ' . $o['ev_name'];
-            $add($num, $d, $online ? '467000' : '530000', $online ? 'Plateforme de billetterie' : 'Caisse', $o['ref'], $lib, $gross - $comm, 0);
-            if ($comm) $add($num, $d, '622600', 'Commissions billetterie', $o['ref'], $lib, $comm, 0);
+            $add($num, $d, $online ? $A('platform') : $A('cash'), $online ? 'Plateforme de billetterie' : 'Caisse', $o['ref'], $lib, $gross - $comm, 0);
+            if ($comm) $add($num, $d, $A('commission'), 'Commissions billetterie', $o['ref'], $lib, $comm, 0);
             foreach ($o['vat'] as $k => $v) {
-                if ($k === 'don') { $add($num, $d, '754000', 'Dons', $o['ref'], $lib, 0, $v['ttc']); continue; }
-                $add($num, $d, '706000', 'Ventes billetterie' . ($k === 'none' ? '' : ' ' . Vat::label((float)$k)), $o['ref'], $lib, 0, $v['ht']);
-                if ($v['vat']) $add($num, $d, '445710', 'TVA collectée ' . Vat::label((float)$k), $o['ref'], $lib, 0, $v['vat']);
+                if ($k === 'don') { $add($num, $d, $A('donations'), 'Dons', $o['ref'], $lib, 0, $v['ttc']); continue; }
+                $add($num, $d, $A('sales'), 'Ventes billetterie' . ($k === 'none' ? '' : ' ' . Vat::label((float)$k)), $o['ref'], $lib, 0, $v['ht']);
+                if ($v['vat']) $add($num, $d, $A('vat'), 'TVA collectée ' . Vat::label((float)$k), $o['ref'], $lib, 0, $v['vat']);
             }
-            if ((int)$o['refunded_amount']) { $n++; $rn = 'VT' . str_pad((string)$n, 6, '0', STR_PAD_LEFT); $add($rn, $d, '709000', 'Remboursements', $o['ref'], 'Remboursement ' . $o['ref'], (int)$o['refunded_amount'], 0); $add($rn, $d, $online ? '467000' : '530000', $online ? 'Plateforme de billetterie' : 'Caisse', $o['ref'], 'Remboursement ' . $o['ref'], 0, (int)$o['refunded_amount']); }
+            if ((int)$o['refunded_amount']) { $n++; $rn = 'VT' . str_pad((string)$n, 6, '0', STR_PAD_LEFT); $add($rn, $d, $A('refunds'), 'Remboursements', $o['ref'], 'Remboursement ' . $o['ref'], (int)$o['refunded_amount'], 0); $add($rn, $d, $online ? $A('platform') : $A('cash'), $online ? 'Plateforme de billetterie' : 'Caisse', $o['ref'], 'Remboursement ' . $o['ref'], 0, (int)$o['refunded_amount']); }
         }
         foreach (all('SELECT * FROM payouts WHERE organizer_id = ? AND created_at BETWEEN ? AND ? ORDER BY created_at', [$org['id'], $from . ' 00:00:00', $to . ' 23:59:59']) as $p) {
             $n++; $num = 'BQ' . str_pad((string)$n, 6, '0', STR_PAD_LEFT); $d = date('Ymd', strtotime($p['created_at']));
-            $rows[] = ['BQ', 'Banque', $num, $d, '512000', 'Banque', '', '', (string)($p['reference'] ?: $p['id']), $d, 'Reversement plateforme', $amt((int)$p['amount']), '0,00', '', '', $d, '', ''];
-            $rows[] = ['BQ', 'Banque', $num, $d, '467000', 'Plateforme de billetterie', '', '', (string)($p['reference'] ?: $p['id']), $d, 'Reversement plateforme', '0,00', $amt((int)$p['amount']), '', '', $d, '', ''];
+            $rows[] = [$A('journal_bank'), 'Banque', $num, $d, $A('bank'), 'Banque', '', '', (string)($p['reference'] ?: $p['id']), $d, 'Reversement plateforme', $amt((int)$p['amount']), '0,00', '', '', $d, '', ''];
+            $rows[] = [$A('journal_bank'), 'Banque', $num, $d, $A('platform'), 'Plateforme de billetterie', '', '', (string)($p['reference'] ?: $p['id']), $d, 'Reversement plateforme', '0,00', $amt((int)$p['amount']), '', '', $d, '', ''];
         }
         header('Content-Type: text/plain; charset=utf-8');
         header('Content-Disposition: attachment; filename="' . preg_replace('~\D~', '', (string)$org['siret']) . 'FEC' . str_replace('-', '', $to) . '.txt"');

@@ -143,7 +143,8 @@
   <?php endif; ?>
   <?php if (in_array($o['status'], ['paid', 'refunded'], true) && (int)$o['total'] > 0): ?>
     <details class="card mt no-print invoice-box"><summary class="linklike" style="cursor:pointer"><?= $o['invoice_number'] ? 'Ta facture ' . e($o['invoice_number']) : 'Besoin d\'une facture ?' ?></summary>
-      <?php if ($o['invoice_number']): ?><p class="mt mb0"><a class="btn btn-light" href="<?= url('/commande/' . $o['ref'] . '/facture', ['t' => $o['token']]) ?>" target="_blank">Télécharger la facture (PDF)</a></p>
+      <?php if ($o['invoice_number']): ?><p class="mt mb0 row"><a class="btn btn-light" href="<?= url('/commande/' . $o['ref'] . '/facture', ['t' => $o['token']]) ?>" target="_blank">Télécharger la facture (PDF)</a>
+        <?php foreach (class_exists('Accounting') ? all('SELECT id, number FROM credit_notes WHERE order_id = ? ORDER BY id', [$o['id']]) : [] as $cn): ?><a class="btn btn-light" href="<?= url('/commande/' . $o['ref'] . '/avoir/' . $cn['id'], ['t' => $o['token']]) ?>" target="_blank">Avoir <?= e($cn['number']) ?></a><?php endforeach; ?></p>
       <?php else: ?><form method="post" action="<?= url('/commande/' . $o['ref'] . '/facture', ['t' => $o['token']]) ?>" class="mt"><?= csrf_field() ?>
         <p class="muted" style="font-size:14px">Pour ton entreprise, ton comité d'entreprise ou tes notes de frais. Attention : une fois émise, la facture ne peut plus être modifiée.</p>
         <div class="grid2"><div class="field"><label>Société <small class="muted">(facultatif)</small></label><input name="invoice_company" value="<?= e((string)$o['invoice_company']) ?>"></div>

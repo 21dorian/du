@@ -121,12 +121,7 @@ final class Quotes
     public static function invoice(array $o): string
     {
         $org = one('SELECT * FROM organizers WHERE id = ?', [$o['organizer_id']]);
-        if (!$o['invoice_number']) {
-            q('UPDATE organizers SET invoice_seq = invoice_seq + 1 WHERE id = ?', [$org['id']]);
-            $n = 'FA-' . date('Y') . '-' . str_pad((string)val('SELECT invoice_seq FROM organizers WHERE id = ?', [$org['id']]), 4, '0', STR_PAD_LEFT);
-            update('orders', ['invoice_number' => $n, 'invoice_at' => now()], 'id = ?', [$o['id']]);
-            $o = one('SELECT * FROM orders WHERE id = ?', [$o['id']]);
-        }
+        if (!$o['invoice_number']) $o = Accounting::assign($o);
         $ev = $o['event_id'] ? one('SELECT * FROM events WHERE id = ?', [$o['event_id']]) : null;
         $rows = array_map(fn($i) => [$i['name'], (int)$i['qty'], (int)$i['unit_price'], (int)$i['unit_price'] * (int)$i['qty']], all('SELECT * FROM order_items WHERE order_id = ?', [$o['id']]));
         $tot = [['Sous-total', (int)$o['subtotal']]];
@@ -135,7 +130,7 @@ final class Quotes
         if ((int)$o['fees']) $tot[] = ['Frais de service', (int)$o['fees']];
         if ((int)$o['donation']) $tot[] = ['Don', (int)$o['donation']];
         $tot[] = ['Total TTC payé', (int)$o['total']];
-        if ((int)$o['refunded_amount']) $tot[] = ['Remboursé', -(int)$o['refunded_amount']];
+        // 2.5 : une facture émise n'est jamais modifiée ; les remboursements font l'objet d'avoirs (Accounting::syncCredits).
         $vat = $ev ? Vat::orders($org, (string)$o['created_at'], (string)$o['created_at']) : [];
         $vatLine = '';
         foreach ($vat as $vo) if ((int)$vo['id'] === (int)$o['id']) foreach ($vo['vat'] as $k => $v) if ($k !== 'don' && (int)$v['vat']) $vatLine .= 'TVA ' . $k . ' % : ' . money((int)$v['vat']) . ' (HT ' . money((int)$v['ht']) . ').  ';
@@ -145,7 +140,7 @@ final class Quotes
             date('d/m/Y', strtotime((string)$o['invoice_at'])));
     }
 
-    private static function doc(string $kind, string $number, array $org, array $client, string $subject, array $rows, array $totals, string $notes, string $date): string
+    public static function doc(string $kind, string $number, array $org, array $client, string $subject, array $rows, array $totals, string $notes, string $date): string
     {
         $t = fn($s) => PdfDoc::t((string)$s);
         $pdf = new PdfDoc('P', 'mm', 'A4');

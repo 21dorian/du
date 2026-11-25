@@ -18,6 +18,7 @@ final class Billing
         'campagnes' => 'Campagnes e-mail', 'sms' => 'Campagnes SMS', 'liens' => 'Liens & ambassadeurs', 'boutique' => 'Boutique & merch',
         'cartes-cadeaux' => 'Cartes cadeaux', 'abonnements' => 'Abonnements & pass', 'placement' => 'Plan de salle numéroté', 'guichet' => 'Guichet & caisse',
         'benevoles' => 'Bénévoles & staff', 'artistes' => 'Artistes & planning', 'cashless' => 'Cashless & bars', 'devis' => 'Groupes & devis', 'pc' => 'PC sécurité', 'api' => 'API & webhooks',
+        'compta' => 'Factures & compta', 'bilans' => 'Bilans & subventions', 'minisite' => 'Mini-site',
     ];
     public const CHARGE_KINDS = ['formule' => 'Abonnement', 'sms' => 'SMS', 'litige' => 'Litige', 'ajustement' => 'Ajustement', 'avoir' => 'Avoir'];
 

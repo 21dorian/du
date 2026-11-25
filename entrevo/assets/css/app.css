@@ -2386,3 +2386,9 @@ input[type=color]{width:64px!important;height:40px!important;padding:4px!importa
 .rs-sell{padding-bottom:8px}.rs-sell .card:last-of-type{margin-bottom:96px}
 .rs-bar .btn,.rs-bar button.btn{background:#fff!important;color:#1d1d1f!important}
 .rs-copy{display:flex;gap:8px;align-items:center}.rs-copy input{flex:1;min-width:0}
+
+/* 2.5 — factures & compta */
+.cp-filters{flex-wrap:wrap;gap:8px}.cp-filters select{width:auto;padding-top:8px;padding-bottom:8px}
+.cp-todo{display:flex;align-items:center;justify-content:space-between;gap:12px;margin:0 24px 8px;padding:12px 16px;border-radius:14px;background:rgba(255,149,0,.1);color:#8a4b00}
+.cp-acc{display:grid;grid-template-columns:1fr 130px;gap:12px;align-items:center;padding:6px 0;border-top:1px solid var(--line,rgba(0,0,0,.06))}
+.cp-acc label{font-size:14px;margin:0}.cp-acc input{font-family:var(--mono,ui-monospace,monospace);text-align:right}

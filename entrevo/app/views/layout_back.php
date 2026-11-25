@@ -131,7 +131,7 @@ if ($area === 'admin') {
         ]],
         ['Gestion', [
             ['finances', '/pro/finances', 'Finances', $I['money']],
-            $soonP('factures', 'Factures & compta', 'invoice'),
+            ['factures', '/pro/factures', 'Factures & compta', $I['invoice']],
             ['budget', '/pro/budget', 'Budget prévisionnel', $I['budget']],
             $soonP('subventions', 'Bilans & subventions', 'chart'),
             ['taches', '/pro/taches', 'Tâches & rétroplanning', $I['check']],
@@ -149,7 +149,7 @@ if ($area === 'admin') {
     // 2.2 : cadenas sur les modules hors formule
     $curOrg = current_org();
     if ($curOrg && class_exists('Billing')) {
-        $modMap = ['cashless' => 'cashless', 'artistes' => 'artistes', 'devis' => 'devis', 'boutique' => 'boutique', 'abonnements' => 'abonnements', 'cartes-cadeaux' => 'cartes-cadeaux', 'campagnes' => 'campagnes', 'sms' => 'sms', 'liens' => 'liens', 'staff' => 'benevoles', 'controle-pro' => 'pc'];
+        $modMap = ['factures' => 'compta', 'subventions' => 'bilans', 'mini-site' => 'minisite', 'cashless' => 'cashless', 'artistes' => 'artistes', 'devis' => 'devis', 'boutique' => 'boutique', 'abonnements' => 'abonnements', 'cartes-cadeaux' => 'cartes-cadeaux', 'campagnes' => 'campagnes', 'sms' => 'sms', 'liens' => 'liens', 'staff' => 'benevoles', 'controle-pro' => 'pc'];
         foreach ($navGroups as &$g) foreach ($g[1] as &$n) if (isset($modMap[$n[0]]) && empty($n[4]) && !Billing::allows($curOrg, $modMap[$n[0]])) $n[5] = true;
         unset($g, $n);
     }
