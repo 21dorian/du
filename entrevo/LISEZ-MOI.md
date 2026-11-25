@@ -79,6 +79,21 @@ Couleurs : **vert** = entre, **orange** = déjà entré / pas entré (sortie), *
 
 ---
 
+## Nouveautés 2.3 — exploiter la plateforme sereinement
+
+**Super-admin**
+- **Sauvegardes automatiques** chaque nuit (compressées, rangées hors d'atteinte du web), rotation (les N dernières + une par mois sur 12 mois), copie par e-mail facultative, téléchargement et **restauration protégée** (l'état actuel est sauvegardé juste avant).
+- **Alertes** par e-mail et sur Slack, Discord, Teams ou webhook : tâche planifiée arrêtée, sauvegarde en échec, erreurs de paiement en série, pic d'erreurs, disque presque plein, e-mails bloqués, nouveau litige, demande urgente, commande suspecte. Message « rétabli » quand le problème disparaît.
+- **Fraude & risques** : score de risque explicable pour chaque commande (e-mail jetable, rafale depuis une même adresse IP, litiges passés, gros montant d'un nouvel acheteur…), file « à vérifier », blocage d'e-mails, de domaines et d'adresses IP, refus optionnel des e-mails jetables.
+- **Contenus & e-mails** : pages éditables (FAQ, à propos…) en ligne sur /page/… avec lien en pied de page ; nouvel habillage des e-mails (en-tête clair, noir ou couleur, logo, signature, pied de page) avec aperçu en direct.
+- **Prospection** : tableau des organisateurs à démarcher par étape (glisser-déposer), fiche, historique des appels et e-mails, relances du jour, import d'une liste, lien d'inscription, passage en « gagné ».
+
+**Organisateurs**
+- **Groupes & devis** : bouton « Venir en groupe » sur la page de l'événement, devis préparé en quelques clics (tarifs, remise, validité, date), envoyé avec son PDF, accepté en ligne ; paiement par carte (remise appliquée automatiquement) ou par virement (billets envoyés dès que tu confirmes la réception, sans commission).
+- **Factures acheteurs** : l'acheteur obtient sa facture PDF (société, adresse, n° de TVA) depuis sa commande ; numérotation continue par organisateur.
+- **Artistes & planning** : fiches artistes (cachet, statut, fiche technique, accueil), passages par scène avec arrivée et balance, **planning visuel**, alerte de chevauchement, feuille de route PDF, espace artiste avec ses horaires, publication du programme sur la page publique.
+- **Objets trouvés** : registre avec référence et photo, page publique de déclaration de perte, **rapprochement automatique** des pertes et des objets, e-mail au propriétaire, restitution.
+
 ## Nouveautés 2.2 — un super-admin complet, une gestion plus profonde
 
 **Super-admin**
