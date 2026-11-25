@@ -52,6 +52,7 @@ Puis ouvrir http://127.0.0.1:8080/install.php.
 | 2.5.0 | `eb11403` | `livraisons/entrevo-v2.5.0.zip`, `livraisons/maj-2.5.0.zip` |
 | 2.6.0 | `8aebff5` | `livraisons/entrevo-v2.6.0.zip`, `livraisons/maj-2.6.0.zip`, `livraisons/entrevo-caisse-2.6.0-test.apk` (appli Android de test, signature de débogage) |
 | 2.7.0 | `d5d1112` | `livraisons/entrevo-v2.7.0.zip`, `livraisons/maj-2.7.0.zip`, `livraisons/entrevo-caisse-2.7.0-test.apk` (appli Android de test) |
+| 2.8.0 | `24f2841` | `livraisons/entrevo-v2.8.0.zip`, `livraisons/maj-2.8.0.zip`, `livraisons/entrevo-caisse-2.8.0-test.apk` (appli Android de test) |
 
 Pour un paquet de mise à jour, passer ce commit comme référence de départ à `creer-maj.php` (les étiquettes git ne sont pas poussées).
 
