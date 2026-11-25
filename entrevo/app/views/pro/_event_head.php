@@ -7,7 +7,7 @@ $groups = [
     'communiquer' => ['Communiquer', ['page' => ['Page publique', '/page'], 'form' => ['Formulaire', '/formulaire'], 'links' => ['Liens & ambassadeurs', '/liens'], 'visuals' => ['Visuels', '/visuels'], 'messages' => ['Messages', '/messages']]],
     'public' => ['Participants', ['attendees' => ['Participants', '/participants'], 'invites' => ['Invitations & partenaires', '/invitations'], 'accred' => ['Accréditations', '/accreditations']]],
     'organiser' => ['Organiser', ['edit' => ['Infos & réglages', '/modifier'], 'budget' => ['Budget', '/budget'], 'tasks' => ['Tâches', '/taches'], 'artists' => ['Artistes', '/artistes'], 'staff' => ['Bénévoles', '/benevoles'], 'docs' => ['Documents', '/documents']]],
-    'jourj' => ['Jour J', ['access' => ['Points d\'accès', '/acces'], 'live' => ['En direct', '/controle'], 'cashless' => ['Cashless & bars', '/cashless'], 'pc' => ['PC sécurité', '/pc']]],
+    'jourj' => ['Jour J', ['access' => ['Points d\'accès', '/acces'], 'live' => ['En direct', '/controle'], 'bars' => ['Bars & caisses', '/bars'], 'cashless' => ['Cashless', '/cashless'], 'pc' => ['PC sécurité', '/pc']]],
     'stats' => ['Stats', ['stats' => ['Statistiques', '/stats']]],
 ];
 $cur = 'apercu';

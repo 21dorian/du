@@ -11,7 +11,7 @@ declare(strict_types=1);
  */
 final class Pos
 {
-    public const METHODS = ['cashless' => 'Cashless', 'card' => 'Carte bancaire', 'cash' => 'Espèces'];
+    public const METHODS = Till::METHODS;
 
     public static function nfc(string $uid): string { return substr(strtoupper(preg_replace('~[^0-9A-Fa-f]~', '', $uid)), 0, 40); }
 
@@ -76,15 +76,15 @@ final class Pos
         $ev = one('SELECT * FROM events WHERE id = ?', [$d['event_id']]);
         $org = one('SELECT id, name, logo, accent FROM organizers WHERE id = ?', [$ev['organizer_id']]);
         $bars = all('SELECT id, name FROM bars WHERE event_id = ? AND active = 1 ORDER BY id', [$ev['id']]);
-        $products = array_map(fn($p) => ['id' => (int)$p['id'], 'name' => $p['name'], 'category' => $p['category'], 'price' => (int)$p['price'], 'deposit' => (int)$p['deposit'],
-            'bars' => $p['bar_ids'] ? array_map('intval', explode(',', (string)$p['bar_ids'])) : []], all('SELECT * FROM bar_products WHERE event_id = ? AND active = 1 ORDER BY category, sort, name', [$ev['id']]));
-        $methods = array_keys(self::METHODS);
-        if (!(int)$ev['cashless_enabled']) $methods = array_values(array_diff($methods, ['cashless']));
+        $st = Till::settings($ev);
+        $se = Till::session($d);
         return ['device' => ['id' => (int)$d['id'], 'name' => $d['name'], 'bar_id' => $d['bar_id'] ? (int)$d['bar_id'] : null], 'tpe' => self::tpe($d),
             'event' => ['id' => (int)$ev['id'], 'name' => $ev['name'], 'starts_at' => $ev['starts_at'], 'cashless' => (bool)$ev['cashless_enabled']],
             'org' => ['name' => $org['name'], 'logo' => $org['logo'] ? abs_url('/' . ltrim($org['logo'], '/')) : null, 'accent' => $org['accent'] ?: null],
-            'bars' => array_map(fn($b) => ['id' => (int)$b['id'], 'name' => $b['name']], $bars), 'products' => $products, 'methods' => $methods,
-            'platform' => (string)setting('platform_name', 'Entrevo'), 'server_time' => date('c')];
+            'bars' => array_map(fn($b) => ['id' => (int)$b['id'], 'name' => $b['name']], $bars), 'methods' => $st['methods'],
+            'settings' => ['require_staff' => (bool)$st['require_staff'], 'sessions' => (bool)$st['sessions'], 'receipt' => $st['receipt'], 'photos' => (bool)$st['photos'], 'big' => (bool)$st['big_buttons'], 'reasons' => Till::reasons($st)],
+            'session' => $se ? ['id' => (int)$se['id'], 'bar_id' => (int)$se['bar_id'], 'opened_at' => $se['opened_at'], 'float' => (int)$se['float_amount']] : null,
+            'platform' => (string)setting('platform_name', 'Entrevo'), 'server_time' => date('c')] + Till::catalog($ev);
     }
 
     // ---------- Porte-monnaie ----------
@@ -116,79 +116,114 @@ final class Pos
     }
 
     // ---------- Ventes ----------
-    /** Lignes de vente au prix du serveur ; un produit retiré depuis garde le prix envoyé par l'appli (vente hors ligne). */
-    private static function lines(int $eventId, array $items): array
-    {
-        $lines = []; $total = 0;
-        foreach ($items as $it) {
-            $pid = (int)($it['id'] ?? $it[0] ?? 0); $qty = (int)($it['qty'] ?? $it[1] ?? 0);
-            if ($qty === 0 || abs($qty) > 200) continue;
-            $p = one('SELECT * FROM bar_products WHERE id = ? AND event_id = ?', [$pid, $eventId]);
-            $unit = $p ? (int)$p['price'] + (int)$p['deposit'] : max(0, min(100000, (int)($it['unit'] ?? 0)));
-            $name = $p ? $p['name'] : mb_substr((string)($it['name'] ?? 'Article'), 0, 80);
-            $lines[] = ['id' => $pid, 'name' => $name, 'qty' => $qty, 'unit' => $unit];
-            $total += $unit * $qty;
-        }
-        return [$lines, $total];
-    }
-
     /**
-     * Enregistre une vente. $in : method, items, bar_id, client_id, code|nfc (cashless), cash_given, staff, at (horodatage hors ligne), offline.
-     * Idempotente sur client_id.
+     * Enregistre une vente (ou un retour de consigne). Idempotente sur client_id.
+     * $in : method, items, returns, discount_pct, offer_all, offer_reason, approver_pin, bar_id, client_id, code|nfc, cash_given,
+     *       payment (carte), staff_id + staff_token, at (vente hors ligne), offline.
      */
     public static function sale(array $d, array $in): array
     {
         $cid = substr(preg_replace('~[^A-Za-z0-9_-]~', '', (string)($in['client_id'] ?? '')), 0, 40) ?: null;
         if ($cid && ($ex = one('SELECT * FROM pos_sales WHERE client_id = ?', [$cid]))) return self::out($ex) + ['duplicate' => true];
+        $ev = one('SELECT * FROM events WHERE id = ?', [$d['event_id']]);
+        $orgId = (int)$ev['organizer_id'];
+        $set = Till::settings($ev);
         $method = (string)($in['method'] ?? '');
-        if (!isset(self::METHODS[$method])) throw new RuntimeException('Moyen de paiement inconnu.');
+        if (!isset(Till::METHODS[$method])) throw new RuntimeException('Moyen de paiement inconnu.');
+        if (in_array($method, ['cashless', 'card', 'cash', 'allowance'], true) && !in_array($method, $set['methods'], true)) throw new RuntimeException(Till::METHODS[$method] . ' n\'est pas accepté sur cet événement.');
         $barId = (int)($d['bar_id'] ?: ($in['bar_id'] ?? 0));
         if (!val('SELECT id FROM bars WHERE id = ? AND event_id = ?', [$barId, $d['event_id']])) throw new RuntimeException('Choisis ton bar.');
-        $at = now();
-        if (!empty($in['at']) && ($ts = strtotime((string)$in['at'])) && $ts <= time() + 300 && $ts >= time() - 7 * 86400) $at = date('Y-m-d H:i:s', $ts);
-        $row = ['event_id' => $d['event_id'], 'bar_id' => $barId, 'device_id' => $d['id'], 'method' => $method, 'staff' => mb_substr(trim((string)($in['staff'] ?? '')), 0, 60) ?: null,
-            'client_id' => $cid, 'offline' => !empty($in['offline']) ? 1 : 0, 'created_at' => $at, 'received_at' => now()];
-        if ($method === 'cashless') {
-            $ev = one('SELECT cashless_enabled FROM events WHERE id = ?', [$d['event_id']]);
-            if (!(int)$ev['cashless_enabled']) throw new RuntimeException('Le cashless n\'est pas activé pour cet événement.');
-            $w = self::wallet((int)$d['event_id'], $in);
-            if (!$w) throw new RuntimeException(!empty($in['nfc']) ? 'Bracelet non associé : associe-le d\'abord à un billet.' : 'Billet inconnu pour cet événement.');
-            $items = array_map(fn($it) => [(int)($it['id'] ?? $it[0] ?? 0), (int)($it['qty'] ?? $it[1] ?? 0)], (array)($in['items'] ?? []));
-            $r = Cashless::sale($w, $barId, $items, null, 'caisse:' . $d['id']);
-            $id = insert('pos_sales', $row + ['amount' => (int)$r['total'], 'items' => json_encode($r['lines'], JSON_UNESCAPED_UNICODE), 'wallet_id' => $w['id'], 'wallet_tx_id' => $r['tx']]);
-            return self::out(one('SELECT * FROM pos_sales WHERE id = ?', [$id])) + ['balance' => $r['balance'], 'name' => self::holder($w)];
-        }
-        [$lines, $total] = self::lines((int)$d['event_id'], (array)($in['items'] ?? []));
-        if (!$lines || $total <= 0) throw new RuntimeException('Panier vide.');
-        $given = $method === 'cash' && isset($in['cash_given']) ? max(0, (int)$in['cash_given']) : null;
-        $ref = null;
-        if ($method === 'card' && !empty($in['payment']) && is_array($in['payment'])) {
-            $pm = $in['payment'];
-            $ref = mb_substr(json_encode(['via' => mb_substr((string)($pm['via'] ?? ''), 0, 20), 'auth' => mb_substr((string)($pm['auth'] ?? ''), 0, 12), 'app' => mb_substr((string)($pm['app'] ?? ''), 0, 6),
-                'paid' => (int)($pm['paid'] ?? 0), 'ref' => mb_substr((string)($pm['ref'] ?? ''), 0, 40)], JSON_UNESCAPED_UNICODE), 0, 255);
-            // l'argent est déjà pris sur la carte : on enregistre toujours la vente, l'écart éventuel reste visible dans le détail
-        }
-        $id = insert('pos_sales', $row + ['amount' => $total, 'items' => json_encode($lines, JSON_UNESCAPED_UNICODE), 'cash_given' => $given, 'payment_ref' => $ref]);
-        return self::out(one('SELECT * FROM pos_sales WHERE id = ?', [$id]));
+        $staff = Till::staffFrom($d, $in);
+        if ($set['require_staff'] && !$staff && empty($in['offline'])) throw new RuntimeException('Connecte-toi avec ton code serveur.');
+        $ts = time();
+        if (!empty($in['at']) && ($t = strtotime((string)$in['at'])) && $t <= time() + 300 && $t >= time() - 7 * 86400) $ts = $t;
+        $pin = isset($in['approver_pin']) ? (string)$in['approver_pin'] : null;
+        $offline = !empty($in['offline']);
+        // droits
+        $hasOffer = !empty($in['offer_all']) || array_filter((array)($in['items'] ?? []), fn($it) => !empty($it['offered']));
+        $approved = null;
+        if ($hasOffer || $method === 'offered') $approved = Till::authorize($orgId, $staff, 'offer', $pin, !$offline) ?? $approved;
+        if ((float)($in['discount_pct'] ?? 0) > 0) $approved = Till::authorize($orgId, $staff, 'discount', $pin, !$offline) ?? $approved;
+        if (!empty($in['returns'])) Till::authorize($orgId, $staff, 'deposit', $pin, false);
+        if ($method === 'offered') $in['offer_all'] = 1;
+        $pr = Till::price($ev, $barId, $in, $ts);
+        if (!$pr['lines']) throw new RuntimeException('Panier vide.');
+        $session = Till::session($d);
+        $row = ['event_id' => $d['event_id'], 'bar_id' => $barId, 'device_id' => $d['id'], 'method' => $method, 'staff' => $staff['name'] ?? (mb_substr(trim((string)($in['staff'] ?? '')), 0, 60) ?: null),
+            'staff_id' => $staff['id'] ?? null, 'session_id' => $session['id'] ?? null, 'client_id' => $cid, 'offline' => $offline ? 1 : 0, 'created_at' => date('Y-m-d H:i:s', $ts), 'received_at' => now(),
+            'subtotal' => $pr['subtotal'], 'discount' => $pr['discount'], 'offered_value' => $pr['offered'], 'offer_reason' => ($pr['offered'] ? mb_substr(trim((string)($in['offer_reason'] ?? '')), 0, 120) ?: null : null),
+            'approved_by' => $approved && (!$staff || (int)$approved['id'] !== (int)$staff['id']) ? $approved['id'] : null, 'vat_json' => $pr['vat'] ? json_encode($pr['vat']) : null,
+            'items' => json_encode($pr['lines'], JSON_UNESCAPED_UNICODE), 'receipt_token' => bin2hex(random_bytes(12))];
+        $total = $pr['total'];
+        $extra = [];
+        db()->beginTransaction();
+        try {
+            if ($method === 'allowance') {
+                $a = Till::allowance((int)$ev['id'], $in);
+                if (!$a) throw new RuntimeException('Badge de crédit inconnu.');
+                if ($pr['deposits'] < 0) throw new RuntimeException('Un retour de consigne ne se paie pas avec un crédit.');
+                $cats = array_filter(explode(',', (string)$a['category_ids']));
+                if ($cats) foreach ($pr['lines'] as $l) if ($l['kind'] === 'product' && !in_array((string)$l['category_id'], $cats, true)) throw new RuntimeException($l['name'] . ' n\'est pas couvert par ce crédit.');
+                $use = $a['mode'] === 'euros' ? $total : $pr['products'];
+                $u = Till::allowanceUsed($a);
+                if ($use > $u['left']) throw new RuntimeException('Crédit insuffisant : il reste ' . Till::allowanceLabel($a, $u['left'] === PHP_INT_MAX ? 0 : $u['left']) . ' aujourd\'hui pour ' . $a['holder'] . '.');
+                $row['allowance_id'] = $a['id']; $row['offered_value'] += $total; $row['offer_reason'] = $row['offer_reason'] ?: (Till::GROUPS[$a['grp']] ?? 'Crédit') . ' · ' . $a['holder'];
+                $total = 0;
+                $extra = ['holder' => $a['holder'], 'left' => Till::allowanceLabel($a, $u['left'] === PHP_INT_MAX ? 0 : $u['left'] - $use), 'unlimited' => $u['left'] === PHP_INT_MAX];
+            } elseif ($method === 'offered') {
+                $row['offered_value'] += $total; $total = 0;
+            } elseif ($method === 'cashless') {
+                if (!(int)$ev['cashless_enabled']) throw new RuntimeException('Le cashless n\'est pas activé pour cet événement.');
+                $w = self::wallet((int)$d['event_id'], $in);
+                if (!$w) throw new RuntimeException(!empty($in['nfc']) ? 'Bracelet non associé : associe-le d\'abord à un billet.' : 'Billet inconnu pour cet événement.');
+                $r = Cashless::charge($w, $total, (int)$barId, $pr['lines'], 'caisse:' . $d['id']);
+                $row['wallet_id'] = $w['id']; $row['wallet_tx_id'] = $r['tx'];
+                $extra = ['balance' => $r['balance'], 'name' => self::holder($w)];
+            } elseif ($method === 'card') {
+                if ($total < 0) throw new RuntimeException('Un remboursement de consigne se fait en espèces ou en cashless.');
+                if (!empty($in['payment']) && is_array($in['payment'])) { $pm = $in['payment'];
+                    $row['payment_ref'] = mb_substr(json_encode(['via' => mb_substr((string)($pm['via'] ?? ''), 0, 20), 'auth' => mb_substr((string)($pm['auth'] ?? ''), 0, 12), 'app' => mb_substr((string)($pm['app'] ?? ''), 0, 6), 'paid' => (int)($pm['paid'] ?? 0), 'ref' => mb_substr((string)($pm['ref'] ?? ''), 0, 40)], JSON_UNESCAPED_UNICODE), 0, 255); }
+            } elseif ($method === 'cash') {
+                $row['cash_given'] = isset($in['cash_given']) ? max(0, (int)$in['cash_given']) : null;
+            }
+            $row['amount'] = $total;
+            $row['ticket_no'] = Till::nextTicket((int)$d['event_id']);
+            $id = insert('pos_sales', $row);
+            foreach ($pr['lines'] as $l) if ($l['kind'] === 'product' && $l['stock']) Till::stockMove((int)$d['event_id'], $l['id'], $barId, -$l['qty'], 'sale', $id);
+            db()->commit();
+        } catch (Throwable $e) { if (db()->inTransaction()) db()->rollBack(); throw $e; }
+        $sale = one('SELECT * FROM pos_sales WHERE id = ?', [$id]);
+        if (!empty($in['receipt_email']) && is_email((string)$in['receipt_email'])) { try { Till::sendReceipt($sale, (string)$in['receipt_email']); } catch (Throwable $e) { log_line('caisse', 'Reçu : ' . $e->getMessage()); } }
+        return self::out($sale) + $extra;
     }
 
     private static function out(array $s): array
     {
-        return ['ok' => true, 'sale' => ['id' => (int)$s['id'], 'method' => $s['method'], 'amount' => (int)$s['amount'], 'at' => $s['created_at'], 'client_id' => $s['client_id'], 'undone' => (bool)$s['undone']]];
+        return ['ok' => true, 'sale' => ['id' => (int)$s['id'], 'ticket' => (int)$s['ticket_no'], 'method' => $s['method'], 'amount' => (int)$s['amount'], 'offered' => (int)$s['offered_value'], 'discount' => (int)$s['discount'],
+            'at' => $s['created_at'], 'client_id' => $s['client_id'], 'undone' => (bool)$s['undone'], 'receipt' => $s['receipt_token'] ? Till::receiptUrl($s) : null,
+            'lines' => array_map(fn($l) => ['name' => $l['name'], 'qty' => (int)$l['qty'], 'total' => (int)$l['total'], 'offered' => !empty($l['offered']), 'promo' => $l['promo'] ?? null], json_decode((string)$s['items'], true) ?: [])]];
     }
 
-    /** Annulation d'une vente (erreur de saisie) dans les 10 minutes, depuis le même bar. */
-    public static function undo(array $d, int $saleId): array
+    /** Annulation d'une vente dans les 10 minutes (droit « annuler » ou code d'un responsable). */
+    public static function undo(array $d, int $saleId, array $in = []): array
     {
         $s = one('SELECT * FROM pos_sales WHERE id = ? AND event_id = ? AND undone = 0 AND received_at >= NOW() - INTERVAL 10 MINUTE', [$saleId, $d['event_id']]);
         if (!$s || ($d['bar_id'] && (int)$s['bar_id'] !== (int)$d['bar_id'])) throw new RuntimeException('Vente introuvable ou trop ancienne pour être annulée (10 minutes).');
+        $ev = one('SELECT * FROM events WHERE id = ?', [$d['event_id']]);
+        $staff = Till::staffFrom($d, $in);
+        if (Till::settings($ev)['require_staff'] || isset($in['approver_pin'])) Till::authorize((int)$ev['organizer_id'], $staff, 'undo', $in['approver_pin'] ?? null, true);
         $balance = null;
-        if ($s['method'] === 'cashless' && $s['wallet_tx_id']) $balance = Cashless::undo((int)$s['wallet_tx_id'], (int)$d['event_id'], null)['balance'];
-        update('pos_sales', ['undone' => 1], 'id = ?', [$s['id']]);
+        db()->beginTransaction();
+        try {
+            if ($s['method'] === 'cashless' && $s['wallet_tx_id']) $balance = Cashless::undo((int)$s['wallet_tx_id'], (int)$d['event_id'], null)['balance'];
+            update('pos_sales', ['undone' => 1], 'id = ?', [$s['id']]);
+            foreach (json_decode((string)$s['items'], true) ?: [] as $l) if (($l['kind'] ?? '') === 'product' && !empty($l['stock'])) Till::stockMove((int)$d['event_id'], (int)$l['id'], (int)$s['bar_id'], (int)$l['qty'], 'undo', (int)$s['id']);
+            db()->commit();
+        } catch (Throwable $e) { if (db()->inTransaction()) db()->rollBack(); throw $e; }
         return ['ok' => true, 'balance' => $balance];
     }
 
-    /** Récapitulatif de caisse (fond de caisse, clôture) depuis $since. */
+    /** Récapitulatif (session de caisse ouverte, ou ventes depuis $since). */
     public static function summary(int $eventId, ?int $barId, ?int $deviceId, string $since): array
     {
         $w = 'event_id = ? AND undone = 0 AND created_at >= ?'; $p = [$eventId, $since];
@@ -198,20 +233,19 @@ final class Pos
         foreach (all("SELECT method, COUNT(*) n, SUM(amount) total FROM pos_sales WHERE $w GROUP BY method", $p) as $r) $by[$r['method']] = ['n' => (int)$r['n'], 'total' => (int)$r['total']];
         $prod = [];
         foreach (all("SELECT items FROM pos_sales WHERE $w", $p) as $r) foreach (json_decode((string)$r['items'], true) ?: [] as $l) {
-            $k = (string)$l['name']; $prod[$k]['qty'] = ($prod[$k]['qty'] ?? 0) + (int)$l['qty']; $prod[$k]['total'] = ($prod[$k]['total'] ?? 0) + (int)$l['qty'] * (int)$l['unit'];
+            $k = (string)$l['name']; $prod[$k]['qty'] = ($prod[$k]['qty'] ?? 0) + (int)$l['qty']; $prod[$k]['total'] = ($prod[$k]['total'] ?? 0) + (int)($l['total'] ?? $l['qty'] * $l['unit']);
         }
         uasort($prod, fn($a, $b) => $b['total'] <=> $a['total']);
         return ['since' => $since, 'methods' => $by, 'total' => array_sum(array_column($by, 'total')), 'count' => array_sum(array_column($by, 'n')), 'products' => array_slice($prod, 0, 15, true)];
     }
 
-    /** Totaux pour l'organisateur (onglet cashless). */
+    /** Totaux pour l'organisateur. */
     public static function stats(int $eventId): array
     {
         $by = [];
-        foreach (all('SELECT method, COUNT(*) n, SUM(amount) total FROM pos_sales WHERE event_id = ? AND undone = 0 GROUP BY method', [$eventId]) as $r) $by[$r['method']] = ['n' => (int)$r['n'], 'total' => (int)$r['total']];
-        $bars = all('SELECT b.id, b.name, SUM(CASE WHEN s.method = \'cashless\' THEN s.amount END) cashless, SUM(CASE WHEN s.method = \'card\' THEN s.amount END) card, SUM(CASE WHEN s.method = \'cash\' THEN s.amount END) cash, COUNT(s.id) n
-            FROM bars b LEFT JOIN pos_sales s ON s.bar_id = b.id AND s.undone = 0 WHERE b.event_id = ? GROUP BY b.id, b.name ORDER BY b.id', [$eventId]);
-        return ['methods' => $by, 'total' => array_sum(array_column($by, 'total')), 'bars' => $bars,
-            'offline' => (int)val('SELECT COUNT(*) FROM pos_sales WHERE event_id = ? AND offline = 1', [$eventId])];
+        foreach (all('SELECT method, COUNT(*) n, SUM(amount) total, SUM(offered_value) offered FROM pos_sales WHERE event_id = ? AND undone = 0 GROUP BY method', [$eventId]) as $r) $by[$r['method']] = ['n' => (int)$r['n'], 'total' => (int)$r['total'], 'offered' => (int)$r['offered']];
+        $bars = all("SELECT b.id, b.name, SUM(CASE WHEN s.method = 'cashless' THEN s.amount END) cashless, SUM(CASE WHEN s.method = 'card' THEN s.amount END) card, SUM(CASE WHEN s.method = 'cash' THEN s.amount END) cash,
+                SUM(s.offered_value) offered, COUNT(s.id) n FROM bars b LEFT JOIN pos_sales s ON s.bar_id = b.id AND s.undone = 0 WHERE b.event_id = ? GROUP BY b.id, b.name ORDER BY b.id", [$eventId]);
+        return ['methods' => $by, 'total' => array_sum(array_column($by, 'total')), 'bars' => $bars, 'offline' => (int)val('SELECT COUNT(*) FROM pos_sales WHERE event_id = ? AND offline = 1', [$eventId])];
     }
 }

@@ -1,0 +1,65 @@
+<?php /** @var array $cats, $products, $bars, $deps, $others, $sold, $settings, $ev; ?array $sel; string $btab, $bbase */ echo view('pro/bars/_nav', compact('btab', 'bbase'));
+$catName = array_column($cats, 'name', 'id'); $catColor = array_column($cats, 'color', 'id'); $depName = array_column($deps, 'name', 'id'); ?>
+<div class="row between mb"><p class="muted mb0">La carte de tes bars. Glisse les produits pour changer leur ordre d'affichage sur les caisses.</p>
+  <div class="row"><a class="btn btn-sm" href="<?= url($bbase . '/catalogue', ['p' => 'new']) ?>#fiche">+ Produit</a>
+  <?php if ($others): ?><details class="row-menu"><summary class="btn btn-sm btn-light">Importer une carte</summary><div class="row-menu-pop"><form method="post" class="perm-form"><?= csrf_field() ?><input type="hidden" name="action" value="copy_from"><b>Reprendre la carte d'un autre événement</b><small class="muted">Catégories, consignes et produits sont copiés ; les prix par bar ne le sont pas.</small><select name="event_id"><?php foreach ($others as $o): ?><option value="<?= (int)$o['id'] ?>"><?= e($o['name']) ?></option><?php endforeach; ?></select><button class="btn btn-sm">Importer</button></form></div></details><?php endif; ?></div></div>
+<div class="cat-chips">
+  <?php foreach ($cats as $c): ?><details class="row-menu"><summary class="cat-chip" style="--c:<?= e($c['color'] ?: '#8e8e93') ?>"><i></i><?= e($c['name']) ?> <small><?= (int)$c['n'] ?></small></summary><div class="row-menu-pop"><form method="post" class="perm-form"><?= csrf_field() ?><input type="hidden" name="action" value="category"><input type="hidden" name="category_id" value="<?= (int)$c['id'] ?>">
+    <b>Catégorie</b><input name="name" value="<?= e($c['name']) ?>"><div class="row"><input type="color" name="color" value="<?= e($c['color'] ?: '#8e8e93') ?>"><div class="input-suffix"><input name="vat_rate" inputmode="decimal" placeholder="TVA <?= e((string)$settings['default_vat']) ?>" value="<?= $c['vat_rate'] !== null ? e(str_replace('.', ',', (string)(float)$c['vat_rate'])) : '' ?>"><span>%</span></div></div>
+    <div class="row"><button class="btn btn-sm">Enregistrer</button><button class="btn btn-sm btn-light danger" name="action" value="category_delete">Supprimer</button></div></form></div></details><?php endforeach; ?>
+  <details class="row-menu"><summary class="cat-chip cat-add">+ Catégorie</summary><div class="row-menu-pop"><form method="post" class="perm-form"><?= csrf_field() ?><input type="hidden" name="action" value="category"><b>Nouvelle catégorie</b><input name="name" placeholder="Bières, Softs, Food…" required><div class="row"><input type="color" name="color" value="#0a84ff"><div class="input-suffix"><input name="vat_rate" inputmode="decimal" placeholder="TVA <?= e((string)$settings['default_vat']) ?>"><span>%</span></div></div><button class="btn btn-sm">Créer</button></form></div></details>
+</div>
+<div class="prod-grid" data-sort="<?= url($bbase . '/catalogue') ?>">
+  <?php foreach ($products as $p): $vs = Till::variants($p); ?>
+    <div class="prod-card<?= (int)$p['active'] ? '' : ' off' ?><?= $sel && (int)($sel['id'] ?? 0) === (int)$p['id'] ? ' on' : '' ?>" draggable="true" data-id="<?= (int)$p['id'] ?>">
+      <a href="<?= url($bbase . '/catalogue', ['p' => $p['id']]) ?>#fiche" class="prod-ph" style="--c:<?= e($p['color'] ?: ($catColor[$p['category_id']] ?? '#8e8e93')) ?>"><?php if ($p['photo']): ?><img src="<?= e(url($p['photo'])) ?>" alt="" loading="lazy"><?php else: ?><span><?= e(mb_strtoupper(mb_substr($p['name'], 0, 2))) ?></span><?php endif; ?></a>
+      <div class="prod-body"><b><?= e($p['name']) ?></b><small class="muted"><?= e($catName[$p['category_id']] ?? 'Sans catégorie') ?></small>
+        <span class="prod-price"><?= $vs ? e(implode(' · ', array_map(fn($v) => $v['name'] . ' ' . money((int)$v['price']), $vs))) : e(money((int)$p['price'])) ?></span>
+        <small class="muted"><?= $p['deposit_type_id'] ? '+ ' . e($depName[$p['deposit_type_id']] ?? 'consigne') . ' · ' : '' ?><?= (int)($sold[(int)$p['id']] ?? 0) ?> vendu(s)<?= (int)$p['track_stock'] ? ' · stock suivi' : '' ?><?= $p['bar_ids'] ? ' · certains bars' : '' ?></small></div>
+      <form method="post" class="prod-tog"><?= csrf_field() ?><input type="hidden" name="product_id" value="<?= (int)$p['id'] ?>"><button class="btn btn-sm btn-ghost" name="action" value="toggle"><?= (int)$p['active'] ? 'Retirer' : 'Remettre' ?></button></form>
+    </div>
+  <?php endforeach; ?>
+  <?php if (!$products): ?><div class="card empty">Pas encore de produit. Commence par créer tes catégories, puis ajoute tes produits avec leur photo.</div><?php endif; ?>
+</div>
+<?php if ($sel !== null): $p = $sel ?: ['id' => 0, 'name' => '', 'description' => '', 'category_id' => null, 'price' => 0, 'deposit_type_id' => null, 'vat_rate' => null, 'variants_json' => null, 'bar_prices_json' => null, 'bar_ids' => null, 'track_stock' => 0, 'stock_alert' => null, 'photo' => null, 'color' => null];
+  $vs = Till::variants($p); $bp = Till::barPrices($p); $pb = array_filter(explode(',', (string)$p['bar_ids'])); ?>
+<form method="post" enctype="multipart/form-data" class="card mt prod-form-big" id="fiche"><?= csrf_field() ?><input type="hidden" name="action" value="product"><input type="hidden" name="product_id" value="<?= (int)$p['id'] ?>">
+  <div class="card-head"><h2><?= $p['id'] ? e($p['name']) : 'Nouveau produit' ?></h2><?php if ($p['id']): ?><div class="row"><button class="btn btn-sm btn-light" name="action" value="duplicate" formnovalidate>Dupliquer</button><button class="btn btn-sm btn-light danger" name="action" value="delete" formnovalidate onclick="return confirm('Supprimer ce produit ?')">Supprimer</button></div><?php endif; ?></div>
+  <div class="pf-grid">
+    <div class="pf-photo"><label class="pf-drop" style="--c:<?= e($p['color'] ?: '#8e8e93') ?>"><?php if ($p['photo']): ?><img src="<?= e(url($p['photo'])) ?>" alt=""><?php else: ?><span>Ajouter une photo</span><?php endif; ?><input type="file" name="photo" accept="image/*" data-preview></label>
+      <?php if ($p['photo']): ?><label class="check"><input type="checkbox" name="remove_photo" value="1"> <span>Retirer la photo</span></label><?php endif; ?>
+      <label class="check"><input type="checkbox" name="use_color" value="1" <?= $p['color'] ? 'checked' : '' ?>> <span>Couleur de la touche</span> <input type="color" name="color" value="<?= e($p['color'] ?: '#0a84ff') ?>"></label></div>
+    <div>
+      <div class="grid2">
+        <div class="field"><label>Nom</label><input name="name" required maxlength="80" value="<?= e($p['name']) ?>" placeholder="Bière blonde pression"></div>
+        <div class="field"><label>Catégorie</label><select name="category_id"><option value="">—</option><?php foreach ($cats as $c): ?><option value="<?= (int)$c['id'] ?>" <?= (int)$p['category_id'] === (int)$c['id'] ? 'selected' : '' ?>><?= e($c['name']) ?></option><?php endforeach; ?></select></div>
+        <div class="field"><label>Prix</label><div class="input-suffix"><input name="price" inputmode="decimal" value="<?= (int)$p['price'] ? e(money_input((int)$p['price'])) : '' ?>"><span>€</span></div><small class="muted">TTC, consigne non comprise.</small></div>
+        <div class="field"><label>Consigne</label><select name="deposit_type_id"><option value="">Aucune</option><?php foreach ($deps as $d): ?><option value="<?= (int)$d['id'] ?>" <?= (int)$p['deposit_type_id'] === (int)$d['id'] ? 'selected' : '' ?>><?= e($d['name']) ?> (<?= e(money((int)$d['amount'])) ?>)</option><?php endforeach; ?></select><small class="muted"><a href="<?= url($bbase . '/consignes') ?>">Gérer les consignes</a></small></div>
+        <div class="field"><label>TVA</label><div class="input-suffix"><input name="vat_rate" inputmode="decimal" placeholder="celle de la catégorie" value="<?= $p['vat_rate'] !== null ? e(str_replace('.', ',', (string)(float)$p['vat_rate'])) : '' ?>"><span>%</span></div></div>
+        <div class="field"><label>Description <small class="muted">facultatif</small></label><input name="description" maxlength="255" value="<?= e((string)$p['description']) ?>" placeholder="Brasserie locale, 5 %"></div>
+      </div>
+      <h3 class="mt">Variantes <small class="muted">tailles, parfums… chaque variante a son prix</small></h3>
+      <div class="var-rows" data-rows><?php foreach (array_merge($vs, [['name' => '', 'price' => 0]]) as $v): ?><div class="row var-row"><input name="var_name[]" value="<?= e($v['name']) ?>" placeholder="50 cl"><div class="input-suffix"><input name="var_price[]" inputmode="decimal" value="<?= $v['price'] ? e(money_input((int)$v['price'])) : '' ?>" placeholder="Prix"><span>€</span></div></div><?php endforeach; ?></div>
+      <button type="button" class="btn btn-sm btn-light" data-add-row>+ Variante</button>
+      <?php if (count($bars) > 0): ?><h3 class="mt">Bars</h3><div class="bar-rows">
+        <?php foreach ($bars as $b): ?><div class="row bar-row"><label class="check grow"><input type="checkbox" name="bar_ids[]" value="<?= (int)$b['id'] ?>" <?= !$pb || in_array((string)$b['id'], $pb, true) ? 'checked' : '' ?>> <span><?= e($b['name']) ?></span></label><div class="input-suffix" style="max-width:160px"><input name="bar_price[<?= (int)$b['id'] ?>]" inputmode="decimal" placeholder="prix normal" value="<?= isset($bp[(int)$b['id']]) ? e(money_input($bp[(int)$b['id']])) : '' ?>"><span>€</span></div></div><?php endforeach; ?>
+        <small class="muted">Tous cochés = vendu partout. Un prix par bar remplace le prix normal (bar VIP par exemple).</small></div><?php endif; ?>
+      <h3 class="mt">Stock</h3>
+      <div class="row"><label class="check"><input type="checkbox" name="track_stock" value="1" <?= (int)$p['track_stock'] ? 'checked' : '' ?>> <span>Suivre le stock de ce produit</span></label><div class="input-suffix" style="max-width:200px"><input name="stock_alert" inputmode="numeric" placeholder="10" value="<?= $p['stock_alert'] !== null ? (int)$p['stock_alert'] : '' ?>"><span>alerte</span></div></div>
+    </div>
+  </div>
+  <div class="row mt"><button class="btn">Enregistrer</button><a class="btn btn-light" href="<?= url($bbase . '/catalogue') ?>">Fermer</a></div>
+</form>
+<?php endif; ?>
+<script>
+(() => {
+  const g = document.querySelector('[data-sort]'); let drag = null;
+  if (g) { g.addEventListener('dragstart', e => { drag = e.target.closest('.prod-card'); drag && drag.classList.add('drag'); });
+    g.addEventListener('dragend', () => { if (!drag) return; drag.classList.remove('drag'); drag = null;
+      const fd = new FormData(); fd.append('action', 'sort'); fd.append('_csrf', document.querySelector('[name=_csrf]').value); fd.append('order', [...g.querySelectorAll('.prod-card')].map(c => c.dataset.id).join(','));
+      fetch(g.dataset.sort, { method: 'POST', body: fd, credentials: 'same-origin' }); });
+    g.addEventListener('dragover', e => { e.preventDefault(); const t = e.target.closest('.prod-card'); if (!drag || !t || t === drag) return; const r = t.getBoundingClientRect(); t.parentNode.insertBefore(drag, (e.clientX - r.left) > r.width / 2 ? t.nextSibling : t); }); }
+  document.querySelectorAll('[data-add-row]').forEach(b => b.addEventListener('click', () => { const rows = b.previousElementSibling, last = rows.lastElementChild.cloneNode(true); last.querySelectorAll('input').forEach(i => i.value = ''); rows.appendChild(last); }));
+  document.querySelectorAll('[data-preview]').forEach(i => i.addEventListener('change', () => { const f = i.files[0]; if (!f) return; const lab = i.closest('label'); let img = lab.querySelector('img'); if (!img) { img = document.createElement('img'); lab.prepend(img); const s = lab.querySelector('span'); if (s) s.remove(); } img.src = URL.createObjectURL(f); }));
+})();
+</script>

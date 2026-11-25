@@ -1,0 +1,35 @@
+<?php /** @var array $promos, $products, $cats, $bars, $discounts; ?array $sel; string $btab, $bbase */ echo view('pro/bars/_nav', compact('btab', 'bbase'));
+$pn = array_column($products, 'name', 'id'); $cn = array_column($cats, 'name', 'id'); $bn = array_column($bars, 'name', 'id');
+$desc = function (array $r) use ($pn, $cn, $bn): string {
+    $v = match ($r['kind']) { 'percent' => '−' . (int)$r['value'] . ' %', 'amount' => '−' . money((int)$r['value']), 'price' => 'à ' . money((int)$r['value']), 'second' => '2e offert', default => '' };
+    $on = array_merge(array_map(fn($i) => $cn[(int)$i] ?? '', array_filter(explode(',', (string)$r['category_ids']))), array_map(fn($i) => $pn[(int)$i] ?? '', array_filter(explode(',', (string)$r['product_ids']))));
+    $when = ($r['days'] ? implode(', ', array_map(fn($d) => Till::DAYS[$d] ?? '', explode(',', (string)$r['days']))) . ' ' : '') . ($r['start_time'] ? substr($r['start_time'], 0, 5) . '–' . substr((string)$r['end_time'], 0, 5) : 'toute la journée');
+    return $v . ' sur ' . ($on ? implode(', ', array_filter($on)) : 'toute la carte') . ' · ' . $when . ($r['bar_ids'] ? ' · ' . implode(', ', array_map(fn($i) => $bn[(int)$i] ?? '', explode(',', (string)$r['bar_ids']))) : '');
+}; ?>
+<p class="muted lead-sm">Les règles s'appliquent toutes seules sur les caisses aux heures prévues : le prix affiché et encaissé change, le ticket indique la remise. Si plusieurs règles concernent un article, la plus avantageuse pour le client l'emporte.</p>
+<div class="split">
+  <div class="card"><div class="card-head"><h2>Règles</h2><a class="btn btn-sm" href="<?= url($bbase . '/remises', ['r' => 'new']) ?>#fiche">+ Règle</a></div>
+    <?php foreach ($promos as $r): ?><div class="list-item"><span class="grow"><a href="<?= url($bbase . '/remises', ['r' => $r['id']]) ?>#fiche"><b><?= e($r['name']) ?></b></a> <?= $r['now'] ? '<span class="badge green">en cours</span>' : ((int)$r['active'] ? '' : '<span class="badge grey">désactivée</span>') ?><br><small class="muted"><?= e($desc($r)) ?></small></span>
+      <form method="post"><?= csrf_field() ?><input type="hidden" name="promo_id" value="<?= (int)$r['id'] ?>"><button class="btn btn-sm btn-ghost" name="action" value="toggle"><?= (int)$r['active'] ? 'Désactiver' : 'Activer' ?></button></form></div><?php endforeach; ?>
+    <?php if (!$promos): ?><p class="muted mb0">Aucune règle. Exemple : « Happy hour », −50 % sur les bières, du lundi au vendredi de 18 h à 20 h.</p><?php endif; ?></div>
+  <?php if ($sel !== null): $r = $sel ?: ['id' => 0, 'name' => 'Happy hour', 'kind' => 'percent', 'value' => 50, 'product_ids' => '', 'category_ids' => '', 'bar_ids' => '', 'days' => '', 'start_time' => '18:00:00', 'end_time' => '20:00:00', 'starts_on' => '', 'ends_on' => ''];
+    $has = fn($f, $id) => in_array((string)$id, explode(',', (string)$r[$f]), true); ?>
+  <form method="post" class="card" id="fiche"><?= csrf_field() ?><input type="hidden" name="action" value="save"><input type="hidden" name="promo_id" value="<?= (int)$r['id'] ?>">
+    <h2><?= $r['id'] ? e($r['name']) : 'Nouvelle règle' ?></h2>
+    <div class="grid2"><div class="field"><label>Nom</label><input name="name" required value="<?= e($r['name']) ?>"></div>
+      <div class="field"><label>Type</label><select name="kind"><?php foreach (Till::PROMO_KINDS as $k => $l): ?><option value="<?= $k ?>" <?= $r['kind'] === $k ? 'selected' : '' ?>><?= e($l) ?></option><?php endforeach; ?></select></div>
+      <div class="field" data-show-if="kind=percent|amount|price"><label>Valeur</label><input name="value" inputmode="decimal" value="<?= $r['kind'] === 'percent' ? (int)$r['value'] : e(money_input((int)$r['value'])) ?>"><small class="muted">% pour une remise en %, € sinon.</small></div>
+      <div class="field"><label>Horaires</label><div class="row"><input type="time" name="start_time" value="<?= e(substr((string)$r['start_time'], 0, 5)) ?>"><input type="time" name="end_time" value="<?= e(substr((string)$r['end_time'], 0, 5)) ?>"></div><small class="muted">Vide = toute la journée. 23:00–02:00 fonctionne.</small></div></div>
+    <div class="field"><label>Jours</label><div class="chips-row"><?php foreach (Till::DAYS as $k => $l): ?><label class="chip-check"><input type="checkbox" name="days[]" value="<?= $k ?>" <?= $has('days', $k) ? 'checked' : '' ?>><span><?= $l ?></span></label><?php endforeach; ?></div><small class="muted">Aucun = tous les jours.</small></div>
+    <div class="field"><label>Catégories</label><div class="chips-row"><?php foreach ($cats as $c): ?><label class="chip-check"><input type="checkbox" name="category_ids[]" value="<?= (int)$c['id'] ?>" <?= $has('category_ids', $c['id']) ? 'checked' : '' ?>><span><?= e($c['name']) ?></span></label><?php endforeach; ?></div></div>
+    <div class="field"><label>Ou produits précis</label><div class="chips-row"><?php foreach ($products as $p): ?><label class="chip-check"><input type="checkbox" name="product_ids[]" value="<?= (int)$p['id'] ?>" <?= $has('product_ids', $p['id']) ? 'checked' : '' ?>><span><?= e($p['name']) ?></span></label><?php endforeach; ?></div><small class="muted">Rien de coché = toute la carte.</small></div>
+    <div class="field"><label>Bars</label><div class="chips-row"><?php foreach ($bars as $b): ?><label class="chip-check"><input type="checkbox" name="bar_ids[]" value="<?= (int)$b['id'] ?>" <?= $has('bar_ids', $b['id']) ? 'checked' : '' ?>><span><?= e($b['name']) ?></span></label><?php endforeach; ?></div><small class="muted">Aucun = tous les bars.</small></div>
+    <div class="grid2"><div class="field"><label>Du</label><input type="date" name="starts_on" value="<?= e((string)$r['starts_on']) ?>"></div><div class="field"><label>Au</label><input type="date" name="ends_on" value="<?= e((string)$r['ends_on']) ?>"></div></div>
+    <div class="row"><button class="btn">Enregistrer</button><?php if ($r['id']): ?><button class="btn btn-light danger" name="action" value="delete" formnovalidate onclick="return confirm('Supprimer cette règle ?')">Supprimer</button><?php endif; ?></div>
+  </form>
+  <?php endif; ?>
+</div>
+<div class="card table-card mt"><div class="card-head"><h2>Offerts et remises accordés</h2></div><div class="table-wrap"><table class="table table-sm"><thead><tr><th>Ticket</th><th>Bar</th><th>Par</th><th>Motif</th><th class="num">Offert</th><th class="num">Remise</th></tr></thead><tbody>
+  <?php foreach ($discounts as $d): ?><tr><td>n° <?= (int)$d['ticket_no'] ?> <small class="muted"><?= e(date('d/m H:i', strtotime($d['created_at']))) ?></small></td><td><?= e($d['bar']) ?></td><td><?= e((string)$d['staff']) ?><?= $d['approver'] ? ' <small class="muted">validé par ' . e($d['approver']) . '</small>' : '' ?></td><td><?= e((string)$d['offer_reason']) ?></td><td class="num"><?= (int)$d['offered_value'] ? e(money((int)$d['offered_value'])) : '' ?></td><td class="num"><?= (int)$d['discount'] ? e(money((int)$d['discount'])) : '' ?></td></tr><?php endforeach; ?>
+  <?php if (!$discounts): ?><tr><td colspan="6" class="empty">Aucun pour l'instant.</td></tr><?php endif; ?>
+</tbody></table></div></div>

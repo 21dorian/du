@@ -9,7 +9,7 @@ declare(strict_types=1);
  */
 final class Cashless
 {
-    public const KINDS = ['topup' => 'Recharge en ligne', 'cash' => 'Recharge espèces', 'card' => 'Recharge carte', 'sale' => 'Achat', 'refund' => 'Remboursement', 'undo' => 'Annulation'];
+    public const KINDS = ['topup' => 'Recharge en ligne', 'cash' => 'Recharge espèces', 'card' => 'Recharge carte', 'sale' => 'Achat', 'refund' => 'Remboursement', 'undo' => 'Annulation', 'deposit' => 'Retour de consigne'];
 
     /** Porte-monnaie d'un billet (créé au premier usage). */
     public static function forTicket(array $t): array
@@ -33,15 +33,16 @@ final class Cashless
 
     private static function move(array $w, string $kind, int $amount, array $extra = []): array
     {
-        db()->beginTransaction();
+        $own = !db()->inTransaction(); // 2.7 : peut s'inscrire dans la transaction d'une vente de caisse
+        if ($own) db()->beginTransaction();
         try {
             $cur = one('SELECT * FROM wallets WHERE id = ? FOR UPDATE', [$w['id']]);
             if ($cur['status'] !== 'active' && $kind !== 'refund') throw new RuntimeException('Porte-monnaie bloqué.');
             if ($amount < 0 && (int)$cur['balance'] + $amount < 0) throw new RuntimeException('Solde insuffisant : ' . money((int)$cur['balance']) . ' disponibles.');
             $tx = insert('wallet_tx', ['wallet_id' => $w['id'], 'event_id' => $cur['event_id'], 'kind' => $kind, 'amount' => $amount, 'created_at' => now()] + $extra);
             q('UPDATE wallets SET balance = balance + ? WHERE id = ?', [$amount, $w['id']]);
-            db()->commit();
-        } catch (Throwable $e) { if (db()->inTransaction()) db()->rollBack(); throw $e; }
+            if ($own) db()->commit();
+        } catch (Throwable $e) { if ($own && db()->inTransaction()) db()->rollBack(); throw $e; }
         return ['tx' => $tx, 'balance' => (int)val('SELECT balance FROM wallets WHERE id = ?', [$w['id']])];
     }
 
@@ -66,10 +67,18 @@ final class Cashless
         return self::move($w, 'sale', -$total, ['bar_id' => $barId, 'items' => json_encode($lines, JSON_UNESCAPED_UNICODE), 'user_id' => $userId, 'device' => mb_substr($device, 0, 60)]) + ['total' => $total, 'lines' => $lines];
     }
 
+    /** 2.7 : débit (ou crédit pour un retour de consigne) d'un montant calculé par la caisse. */
+    public static function charge(array $w, int $total, int $barId, array $lines, string $device): array
+    {
+        $items = array_map(fn($l) => ['name' => $l['name'], 'qty' => (int)$l['qty'], 'unit' => (int)$l['unit']], $lines);
+        if ($total === 0) return ['tx' => null, 'balance' => (int)val('SELECT balance FROM wallets WHERE id = ?', [$w['id']])];
+        return self::move($w, $total > 0 ? 'sale' : 'deposit', -$total, ['bar_id' => $barId, 'items' => json_encode($items, JSON_UNESCAPED_UNICODE), 'device' => mb_substr($device, 0, 60)]);
+    }
+
     /** Annule une opération de bar (erreur de saisie) dans les 10 minutes. */
     public static function undo(int $txId, int $eventId, ?int $userId): array
     {
-        $tx = one("SELECT * FROM wallet_tx WHERE id = ? AND event_id = ? AND kind IN ('sale','cash','card') AND undone = 0 AND created_at >= NOW() - INTERVAL 10 MINUTE", [$txId, $eventId]);
+        $tx = one("SELECT * FROM wallet_tx WHERE id = ? AND event_id = ? AND kind IN ('sale','cash','card','deposit') AND undone = 0 AND created_at >= NOW() - INTERVAL 10 MINUTE", [$txId, $eventId]);
         if (!$tx) throw new RuntimeException('Opération introuvable ou trop ancienne pour être annulée.');
         $w = one('SELECT * FROM wallets WHERE id = ?', [$tx['wallet_id']]);
         update('wallet_tx', ['undone' => 1], 'id = ?', [$tx['id']]);

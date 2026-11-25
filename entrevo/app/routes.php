@@ -68,6 +68,8 @@ return [
     ['GET|POST', '/pro/devis', 'quotes@pro_quotes'],
     ['GET|POST', '/pro/integrations', 'integrations@pro_integrations'],
     ['GET|POST', '/pro/evenements/{id}/cashless', 'cashless@cashless_tab'],
+    ['GET|POST', '/pro/evenements/{id}/bars', 'bars@bars_page'],
+    ['GET|POST', '/pro/evenements/{id}/bars/{tab}', 'bars@bars_page'],
     ['GET', '/bar/{id}', 'cashless@bar_pos'],
     ['POST', '/bar/{id}/api', 'cashless@bar_api'],
     ['GET|POST', '/cashless/{token}', 'cashless@wallet_page'],
@@ -247,5 +249,6 @@ return [
     ['POST', '/api/scan/event/{id}/ping', 'scan@api_ping'],
     ['POST|OPTIONS', '/api/caisse', 'pos@pos_api'],
     ['GET', '/caisse', 'pos@pos_app'],
+    ['GET|POST', '/recu/{token}', 'pos@pos_receipt'],
     ['GET', '/sante', 'scan@health'],
 ];
