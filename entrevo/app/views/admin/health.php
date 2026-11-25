@@ -1,7 +1,7 @@
 <?php $icon = ['ok' => '', 'warn' => '', 'bad' => '']; $all = array_merge(...array_values($checks)); $bad = count(array_filter($all, fn($c) => $c['level'] === 'bad')); $warn = count(array_filter($all, fn($c) => $c['level'] === 'warn')); ?>
 <div class="health-hero <?= $bad ? 'bad' : ($warn ? 'warn' : 'ok') ?>">
   <b><?= $bad ? '' . $bad . ' problème(s) à corriger' : ($warn ? '' . $warn . ' point(s) à surveiller' : 'Tout est au vert') ?></b>
-  <div class="row" style="gap:6px"><?= soon_btn('alertes', 'Alertes SMS / Slack', 'admin') ?><?= soon_btn('sauvegardes', 'Sauvegardes auto', 'admin') ?><form method="post"><?= csrf_field() ?><button class="btn btn-sm btn-light" name="action" value="run_jobs">Lancer les tâches maintenant</button></form></div>
+  <div class="row" style="gap:6px"><a class="btn btn-sm btn-light" href="<?= url('/admin/alertes') ?>">Alertes</a><a class="btn btn-sm btn-light" href="<?= url('/admin/sauvegardes') ?>">Sauvegardes</a><form method="post"><?= csrf_field() ?><button class="btn btn-sm btn-light" name="action" value="run_jobs">Lancer les tâches maintenant</button></form></div>
 </div>
 <div class="split">
   <div>

@@ -279,7 +279,7 @@ final class Tickets
                         if ($rate['hidden'] && !in_array((int)$rate['id'], $unlocked, true)) { $errors[] = 'Tarif non disponible.'; continue; }
                         $st = self::onSale($rate, $ev, $session, (int)($waitlist['id'] ?? 0));
                         if (!$st['ok']) { $errors[] = $rate['name'] . ' : ' . $st['why']; continue; }
-                        if ((int)$rate['max_per_order'] > 0 && $qty > (int)$rate['max_per_order']) { $errors[] = $rate['name'] . ' : maximum ' . $rate['max_per_order'] . ' par commande.'; continue; }
+                        if (empty($p['group']) && (int)$rate['max_per_order'] > 0 && $qty > (int)$rate['max_per_order']) { $errors[] = $rate['name'] . ' : maximum ' . $rate['max_per_order'] . ' par commande.'; continue; }
                     }
                     $rem = self::remainingUnits($rate, $ev, $session, (int)($waitlist['id'] ?? 0));
                     if ($qty > $rem && empty($p['force'])) { $errors[] = $rate['name'] . ' : plus que ' . $rem . ' disponible(s).'; continue; }
@@ -324,7 +324,7 @@ final class Tickets
                     'unit_price' => $method === 'invitation' ? 0 : (int)$prod['price'], 'seats' => null, '_pack' => 0];
             }
             if (!$units && !$errors) $errors[] = 'Prends au moins un billet';
-            if (!$staff && !$partner && !$resale && (int)$ev['max_per_order'] > 0 && $units > (int)$ev['max_per_order']) $errors[] = 'Maximum ' . $ev['max_per_order'] . ' billets par commande.';
+            if (!$staff && !$partner && !$resale && empty($p['group']) && (int)$ev['max_per_order'] > 0 && $units > (int)$ev['max_per_order']) $errors[] = 'Maximum ' . $ev['max_per_order'] . ' billets par commande.';
             if ($waitlist && $places > (int)$waitlist['qty']) $errors[] = 'Ta place réservée couvre ' . (int)$waitlist['qty'] . ' billet(s).';
             if ($errors) { db()->rollBack(); return ['errors' => array_values(array_unique($errors))]; }
 
@@ -479,6 +479,7 @@ final class Tickets
         if (!$o || $o['status'] !== 'paid' || ($before['status'] ?? '') === 'paid') return $o;
         try { if (class_exists('Resale') && $o['resale_id']) Resale::settle($o); } catch (Throwable $e) { log_line('revente', $o['ref'] . ' : ' . $e->getMessage()); }
         if ($o['waitlist_id']) q("UPDATE waitlist SET status = 'converted', order_id = ? WHERE id = ?", [$o['id'], $o['waitlist_id']]);
+        if (!empty($o['quote_id'])) q("UPDATE quotes SET status = 'paid', order_id = ? WHERE id = ?", [$o['id'], $o['quote_id']]);
         q('DELETE FROM seat_holds WHERE order_id = ?', [$o['id']]);
         if ((int)$o['event_id'] === 0) { try { Store::fulfil($o); } catch (Throwable $e) { log_line('boutique', $o['ref'] . ' : ' . $e->getMessage()); } }
         elseif ($sendEmail) Mailer::sendOrderSafe((int)$o['id']);

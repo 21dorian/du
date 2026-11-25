@@ -18,11 +18,13 @@ function store_buyer(array &$errors): array
     if ($b['first_name'] === '' || $b['last_name'] === '') $errors[] = 'Indique ton prénom et ton nom.';
     if (!is_email($b['email'])) $errors[] = 'Ton adresse e-mail a l\'air incorrecte.';
     if (trim((string)input('website')) !== '') $errors[] = 'Requête refusée.';
+    if (!$errors && ($blk = Risk::blocked($b['email']))) $errors[] = $blk;
     return $b;
 }
 
 function store_pay(array $order): never
 {
+    try { Risk::assess($order); } catch (Throwable $e) { log_line('fraude', $e->getMessage()); }
     $_SESSION['orders'][] = $order['ref'];
     redirect('/paiement/' . $order['ref'] . '?t=' . $order['token']);
 }

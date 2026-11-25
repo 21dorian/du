@@ -8,6 +8,8 @@ $gesture = min((int)$o['commission'], $left); ?>
   <div class="kpi-mini"><span>Part organisateur</span><b><?= e(money((int)$o['organizer_amount'])) ?></b></div>
 </div>
 <?php if ($o['refund_requested_at'] && $o['status'] === 'paid'): ?><div class="notice info mb"><b>Remboursement demandé</b> le <?= e(fr_date($o['refund_requested_at'])) ?><?= $o['refund_reason'] ? ' : « ' . e($o['refund_reason']) . ' »' : '' ?></div><?php endif; ?>
+<?php if ((int)$o['risk_score'] > 0): ?><div class="notice <?= $o['risk_status'] === 'review' ? 'warn' : 'info' ?> mb">Risque <?= Risk::badge((int)$o['risk_score']) ?> <?= e((string)$o['risk_flags']) ?><?= $o['ip'] ? ' · IP ' . e($o['ip']) : '' ?>
+  <?= $o['risk_status'] === 'review' ? ' · <a href="' . url('/admin/fraude') . '">à vérifier</a>' : ($o['risk_status'] === 'blocked' ? ' · <b>acheteur bloqué</b>' : ($o['risk_status'] === 'ok' ? ' · vérifiée' : '')) ?></div><?php endif; ?>
 <?php foreach ($disputes as $d): ?><div class="notice warn mb">Litige <?= Disputes::badge($d['status']) ?> de <?= e(money((int)$d['amount'])) ?> · <a href="<?= url('/admin/litiges/' . $d['id']) ?>">ouvrir</a></div><?php endforeach; ?>
 <div class="split-3">
   <div>

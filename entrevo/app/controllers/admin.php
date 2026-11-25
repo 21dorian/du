@@ -142,6 +142,7 @@ function admin_orders_where(): array
     if (in_array($st, ['paid', 'pending', 'refunded', 'cancelled', 'expired'], true)) { $w[] = 'o.status = ?'; $p[] = $st; }
     if ($st === 'partial') $w[] = "o.status = 'paid' AND o.refunded_amount > 0";
     if ($st === 'refund_req') $w[] = "o.status = 'paid' AND o.refund_requested_at IS NOT NULL";
+    if ($st === 'review') $w[] = "o.risk_status = 'review'";
     $pv = (string)input('pv');
     if ($pv !== '') { $w[] = 'COALESCE(o.provider, o.method) = ?'; $p[] = $pv; }
     if ((int)input('org')) { $w[] = 'o.organizer_id = ?'; $p[] = (int)input('org'); }

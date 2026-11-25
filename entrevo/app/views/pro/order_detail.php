@@ -132,7 +132,7 @@ $valid = array_filter($tickets, fn($t) => $t['status'] === 'valid');
         <?php endif; ?>
         <button class="btn btn-block btn-light" name="action" value="cancel" data-confirm="Annuler la commande SANS remboursement ? Les billets seront refusés à l'entrée.">Annuler sans rembourser</button>
       </form>
-      <div class="soon-row"><?= soon_btn('factures', 'Facture pro') ?><?= soon_btn('sms', 'Envoyer par SMS') ?></div>
+      <div class="soon-row"><?php if (in_array($o['status'], ['paid', 'refunded'], true) && (int)$o['total'] > 0): ?><a class="btn btn-sm btn-light" href="<?= url('/commande/' . $o['ref'] . '/facture', ['t' => $o['token']]) ?>" target="_blank"><?= $o['invoice_number'] ? 'Facture ' . e($o['invoice_number']) : 'Établir la facture' ?></a><?php endif; ?><?php if (!empty($o['quote_id'])): ?><a class="btn btn-sm btn-ghost" href="<?= url('/pro/devis/' . (int)$o['quote_id']) ?>">Devis lié</a><?php endif; ?></div>
     </div>
     <?php endif; ?>
   </div>

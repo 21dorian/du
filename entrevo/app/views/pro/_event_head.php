@@ -6,7 +6,7 @@ $groups = [
         'seating' => ['Plan de salle', '/plan'], 'waitlist' => ['Attente & revente', '/attente'], 'box' => ['Guichet', '/guichet']]],
     'communiquer' => ['Communiquer', ['page' => ['Page publique', '/page'], 'form' => ['Formulaire', '/formulaire'], 'links' => ['Liens & ambassadeurs', '/liens'], 'messages' => ['Messages', '/messages']]],
     'public' => ['Participants', ['attendees' => ['Participants', '/participants'], 'invites' => ['Invitations & partenaires', '/invitations'], 'accred' => ['Accréditations', '/accreditations']]],
-    'organiser' => ['Organiser', ['edit' => ['Infos & réglages', '/modifier'], 'budget' => ['Budget', '/budget'], 'tasks' => ['Tâches', '/taches'], 'staff' => ['Bénévoles', '/benevoles'], 'docs' => ['Documents', '/documents']]],
+    'organiser' => ['Organiser', ['edit' => ['Infos & réglages', '/modifier'], 'budget' => ['Budget', '/budget'], 'tasks' => ['Tâches', '/taches'], 'artists' => ['Artistes', '/artistes'], 'staff' => ['Bénévoles', '/benevoles'], 'docs' => ['Documents', '/documents']]],
     'jourj' => ['Jour J', ['access' => ['Points d\'accès', '/acces'], 'live' => ['En direct', '/controle'], 'pc' => ['PC sécurité', '/pc']]],
     'stats' => ['Stats', ['stats' => ['Statistiques', '/stats']]],
 ];

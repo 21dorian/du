@@ -64,14 +64,27 @@ final class Mailer
         try { $k = 'mails_' . date('Ymd'); set_setting($k, (string)((int)setting($k, 0) + 1)); } catch (Throwable $e) { /* sans gravité */ }
     }
 
-    private static function wrap(string $title, string $body): string
+    /** 2.3 : habillage des e-mails, réglable dans Super-admin › Contenus & e-mails. */
+    public static function wrap(string $title, string $body): string
     {
-        $c = e(setting('primary_color', '#0071e3'));
-        return '<!doctype html><html><body style="margin:0;background:#f4f4f8;font-family:-apple-system,BlinkMacSystemFont,Helvetica Neue,Helvetica,Arial,sans-serif;color:#1c1c28">'
-            . '<div style="max-width:600px;margin:0 auto;padding:24px 12px">'
-            . '<div style="background:' . $c . ';color:#fff;border-radius:12px 12px 0 0;padding:18px 24px;font-size:20px;font-weight:bold">' . e(setting('platform_name')) . '</div>'
-            . '<div style="background:#fff;border-radius:0 0 12px 12px;padding:24px;line-height:1.5;font-size:15px">' . $body . '</div>'
-            . '<p style="color:#8a8a99;font-size:12px;text-align:center">' . e(setting('platform_name')) . ' · ' . e(abs_url('/')) . '</p>'
+        $name = e((string)setting('platform_name', 'Entrevo'));
+        $style = (string)setting('email_header', 'light');
+        $accent = e((string)(setting('email_accent') ?: '#1d1d1f'));
+        $logo = setting('platform_logo') ? '<img src="' . e(abs_url('/' . ltrim((string)setting('platform_logo'), '/'))) . '" alt="" width="32" height="32" style="border-radius:8px;vertical-align:middle;margin-right:10px">' : '';
+        $head = $style === 'dark' ? 'background:#1d1d1f;color:#fff;' : ($style === 'color' ? 'background:' . $accent . ';color:#fff;' : 'background:#fff;color:#1d1d1f;border-bottom:1px solid #ececf0;');
+        $sig = trim((string)setting('email_signature'));
+        $foot = trim((string)setting('email_footer'));
+        // les boutons noirs des modèles suivent la couleur choisie
+        if ($accent !== '#1d1d1f') $body = str_replace('background:#1d1d1f', 'background:' . $accent, $body);
+        return '<!doctype html><html lang="fr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width"><meta name="color-scheme" content="light"></head>'
+            . '<body style="margin:0;background:#f5f5f7;font-family:-apple-system,BlinkMacSystemFont,Helvetica Neue,Helvetica,Arial,sans-serif;color:#1d1d1f;-webkit-font-smoothing:antialiased">'
+            . '<div style="display:none;max-height:0;overflow:hidden">' . e($title) . '</div>'
+            . '<div style="max-width:600px;margin:0 auto;padding:28px 14px">'
+            . '<div style="' . $head . 'border-radius:18px 18px 0 0;padding:20px 28px;font-size:18px;font-weight:600;letter-spacing:-.01em">' . $logo . $name . '</div>'
+            . '<div style="background:#fff;border-radius:0 0 18px 18px;padding:28px;line-height:1.55;font-size:15px">' . $body
+            . ($sig !== '' ? '<p style="margin-top:24px;color:#424245">' . nl2br(e($sig)) . '</p>' : '') . '</div>'
+            . '<p style="color:#86868b;font-size:12px;line-height:1.5;text-align:center;margin:18px 10px 0">' . ($foot !== '' ? nl2br(e($foot)) . '<br>' : '')
+            . '<a href="' . e(abs_url('/')) . '" style="color:#86868b">' . $name . '</a> · <a href="' . e(abs_url('/mes-billets')) . '" style="color:#86868b">Mes billets</a> · <a href="' . e(abs_url('/contact')) . '" style="color:#86868b">Contact</a></p>'
             . '</div></body></html>';
     }
 

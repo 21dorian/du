@@ -27,6 +27,7 @@
     <?php if ($hasShop): ?><a class="btn btn-light" href="<?= url('/o/' . $org['slug'] . '/boutique') ?>"><?= ui_icon('bag', 18) ?> Boutique</a><?php endif; ?>
   </div>
   <?php endif; ?>
+  <?php if ((int)($org['lost_enabled'] ?? 1) && val('SELECT id FROM events WHERE organizer_id = ? AND starts_at < NOW() LIMIT 1', [$org['id']])): ?><p class="org-lost"><a href="<?= url('/o/' . $org['slug'] . '/objets-trouves') ?>">Objet perdu lors d'un événement ?</a></p><?php endif; ?>
 </section>
 <h2 class="org-h">À venir</h2>
 <?php if (!$events): ?><div class="card empty">Aucun événement en vente pour le moment.</div>

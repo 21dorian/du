@@ -39,6 +39,7 @@
       <?php if (setting('legal')): ?><a href="<?= url('/mentions-legales') ?>">Mentions légales</a><?php endif; ?>
       <a href="<?= url('/contact') ?>">Contact</a>
       <a href="<?= url('/donnees-personnelles') ?>">Mes données</a>
+      <?php try { foreach (all('SELECT slug, title FROM pages WHERE published = 1 AND in_footer = 1 ORDER BY sort, title LIMIT 8') as $fp): ?><a href="<?= url('/page/' . $fp['slug']) ?>"><?= e($fp['title']) ?></a><?php endforeach; } catch (Throwable $ex) { /* avant migration */ } ?>
       <a href="<?= url('/organisateurs') ?>">Vendre mes billets</a>
     </div>
     <div class="footer-links footer-soon">

@@ -209,6 +209,9 @@ $fromPrice = $onSalePrices ? min($onSalePrices) : null;
       </form>
     <?php endif; ?>
     <?php endif; ?>
+    <?php if ((int)($org['quotes_enabled'] ?? 1) && strtotime($ev['starts_at']) > time() && empty($ev['_presale_locked'])): ?>
+      <a class="group-link" href="<?= url('/e/' . $ev['slug'] . '/groupe') ?>"><span><b>Venir en groupe ?</b><small>À partir de <?= (int)setting('quote_min_' . $org['id'], '10') ?> places : devis, tarif de groupe, paiement par virement</small></span><span aria-hidden="true">→</span></a>
+    <?php endif; ?>
   </aside>
 </div>
 <?php if ($seatmap): ?>

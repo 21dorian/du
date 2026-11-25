@@ -342,6 +342,7 @@ function place_order(array $ev, array $org, array $cart, ?array $session, array 
     if (setting('cgv') && empty($_POST['cgv'])) $errors[] = 'Coche les conditions de vente, on sait que tu les as lues';
     $ageErr = Buyers::checkAge($ev, $session, array_keys($cart['q']), (string)input('birth_date') ?: null, !empty($_POST['age_ok']));
     if ($ageErr) $errors[] = $ageErr;
+    if (!$errors && ($blk = Risk::blocked((string)$buyer['email']))) $errors[] = $blk;
     if ($errors) return ['errors' => $errors];
     $r = Tickets::createOrder([
         'event' => $ev, 'org' => $org, 'session' => $session, 'quantities' => $cart['q'], 'prices' => $cart['prices'], 'products' => $cart['products'],
@@ -351,6 +352,7 @@ function place_order(array $ev, array $org, array $cart, ?array $session, array 
     ]);
     if (!empty($r['errors'])) return ['errors' => $r['errors']];
     $o = $r['order'];
+    if ((int)$o['total'] > 0) { try { Risk::assess($o); } catch (Throwable $e) { log_line('fraude', $e->getMessage()); } }
     if (input('birth_date') && Buyers::requiredAge($ev, array_keys($cart['q']))) update('orders', ['birth_date' => (string)input('birth_date')], 'id = ?', [$o['id']]);
     if (!empty($_POST['optin'])) { update('orders', ['marketing_optin' => 1], 'id = ?', [$o['id']]); q('DELETE FROM email_unsubscribes WHERE organizer_id = ? AND email = ?', [$org['id'], strtolower((string)$o['email'])]); }
     if (!empty($_SESSION['ami'][$ev['id']]) && strtolower((string)val('SELECT email FROM orders WHERE id = ?', [$_SESSION['ami'][$ev['id']]])) !== strtolower((string)$o['email'])) update('orders', ['referrer_order_id' => (int)$_SESSION['ami'][$ev['id']]], 'id = ?', [$o['id']]);
@@ -563,8 +565,8 @@ function throttle_ok_pub(string $k): bool
     return true;
 }
 
-function cgv(): string { return pub('text', ['title' => 'Conditions générales de vente', 'text' => (string)setting('cgv')], 'CGV'); }
-function legal(): string { return pub('text', ['title' => 'Mentions légales', 'text' => (string)setting('legal')], 'Mentions légales'); }
+function cgv(): string { return pub('page', ['p' => ['title' => 'Conditions générales de vente', 'body' => (string)setting('cgv'), 'updated_at' => null]], 'CGV'); }
+function legal(): string { return pub('page', ['p' => ['title' => 'Mentions légales', 'body' => (string)setting('legal'), 'updated_at' => null]], 'Mentions légales'); }
 
 // ====================== 1.1.0 : accès privé, file d'attente, liste d'attente, partenaires, revente, remboursement, widget ======================
 

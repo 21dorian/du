@@ -4,7 +4,7 @@ $pages = max(1, (int)ceil((int)$tot['n'] / $per)); ?>
 <form class="card filters-card" method="get">
   <div class="filters-grid">
     <input type="search" name="q" value="<?= e((string)input('q')) ?>" placeholder="Réf., e-mail, nom, téléphone, id paiement…" class="span2">
-    <select name="st"><option value="">Tous statuts</option><?php foreach (['paid' => 'Payées', 'partial' => 'Remboursées en partie', 'refund_req' => 'Remboursement demandé', 'refunded' => 'Remboursées', 'pending' => 'En attente', 'expired' => 'Expirées', 'cancelled' => 'Annulées'] as $k => $l): ?><option value="<?= $k ?>" <?= input('st') === $k ? 'selected' : '' ?>><?= $l ?></option><?php endforeach; ?></select>
+    <select name="st"><option value="">Tous statuts</option><?php foreach (['paid' => 'Payées', 'partial' => 'Remboursées en partie', 'refund_req' => 'Remboursement demandé', 'refunded' => 'Remboursées', 'pending' => 'En attente', 'expired' => 'Expirées', 'cancelled' => 'Annulées', 'review' => 'À vérifier (risque)'] as $k => $l): ?><option value="<?= $k ?>" <?= input('st') === $k ? 'selected' : '' ?>><?= $l ?></option><?php endforeach; ?></select>
     <select name="pv"><option value="">Tous paiements</option><?php foreach ($providers as $pv): ?><option value="<?= e($pv) ?>" <?= input('pv') === $pv ? 'selected' : '' ?>><?= e(provider_label($pv) ?: method_label($pv) ?: $pv) ?></option><?php endforeach; ?></select>
     <select name="org"><option value="">Tous organisateurs</option><?php foreach ($orgs as $g): ?><option value="<?= (int)$g['id'] ?>" <?= (int)input('org') === (int)$g['id'] ? 'selected' : '' ?>><?= e($g['name']) ?></option><?php endforeach; ?></select>
     <select name="kind"><option value="">Billets et boutique</option><option value="tickets" <?= input('kind') === 'tickets' ? 'selected' : '' ?>>Billets</option><option value="store" <?= input('kind') === 'store' ? 'selected' : '' ?>>Boutique, cartes, abonnements</option></select>
@@ -30,7 +30,7 @@ $pages = max(1, (int)ceil((int)$tot['n'] / $per)); ?>
     <td class="num"><b><?= e(money((int)$o['total'])) ?></b><?= (int)$o['refunded_amount'] ? '<br><small class="muted">−' . e(money((int)$o['refunded_amount'])) . '</small>' : '' ?></td>
     <td class="num"><?= e(money((int)$o['commission'])) ?></td>
     <td><small><?= e(provider_label((string)($o['provider'] ?: $o['pay_method'])) ?: method_label((string)$o['method'])) ?></small></td>
-    <td><?= badge($o['status']) ?><?= $o['refund_requested_at'] && $o['status'] === 'paid' ? '<br><span class="badge orange">Rembt demandé</span>' : '' ?><?= (int)$o['disputes'] ? '<br><span class="badge red">Litige</span>' : '' ?></td></tr>
+    <td><?= badge($o['status']) ?><?= $o['refund_requested_at'] && $o['status'] === 'paid' ? '<br><span class="badge orange">Rembt demandé</span>' : '' ?><?= (int)$o['disputes'] ? '<br><span class="badge red">Litige</span>' : '' ?><?= $o['risk_status'] === 'review' ? '<br><span class="badge orange">À vérifier</span>' : '' ?></td></tr>
   <?php endforeach; ?>
   <?php if (!$list): ?><tr><td colspan="7" class="empty">Aucune commande avec ces critères.</td></tr><?php endif; ?>
   </tbody>

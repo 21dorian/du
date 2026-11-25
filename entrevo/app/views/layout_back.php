@@ -64,7 +64,7 @@ if ($area === 'admin') {
             ['orgs', '/admin/organisateurs', 'Organisateurs', $I['orgs']],
             ['kyc', '/admin/kyc', 'Vérification KYC', $I['kyc']],
             ['contrats', '/admin/contrats', 'Contrats & tarifs', $I['handshake']],
-            $soonA('prospection', 'Prospection', 'crm'),
+            ['prospection', '/admin/prospection', 'Prospection', $I['crm']],
             ['formules', '/admin/formules', 'Formules', $I['card']],
         ]],
         ['Argent', [
@@ -72,23 +72,22 @@ if ($area === 'admin') {
             ['payouts', '/admin/reversements', 'Reversements', $I['money']],
             ['litiges', '/admin/litiges', 'Litiges & impayés', $I['alert']],
             ['factures-commission', '/admin/factures', 'Factures de commission', $I['invoice']],
-            $soonA('fraude', 'Fraude & risques', 'shield'),
+            ['fraude', '/admin/fraude', 'Fraude & risques', $I['shield']],
             $soonA('revendeurs', 'Revendeurs', 'bag'),
         ]],
         ['Plateforme', [
             ['users', '/admin/utilisateurs', 'Utilisateurs', $I['user']],
             ['modules', '/admin/modules', 'Feuille de route', $I['apps']],
             ['support', '/admin/support', 'Support', $I['help']],
-            $soonA('contenus', 'Accueil & contenus', 'pages'),
-            $soonA('emails-modeles', 'Modèles d\'e-mails', 'mail'),
+            ['contenus', '/admin/contenus', 'Contenus & e-mails', $I['pages']],
             $soonA('marque-blanche', 'Marque blanche', 'brush'),
             $soonA('langues', 'Langues', 'lang'),
             ['rgpd', '/admin/rgpd', 'Données personnelles', $I['doc']],
         ]],
         ['Technique', [
             ['health', '/admin/sante', 'Santé', $I['health']],
-            $soonA('sauvegardes', 'Sauvegardes auto', 'backup'),
-            $soonA('alertes', 'Alertes', 'alert'),
+            ['sauvegardes', '/admin/sauvegardes', 'Sauvegardes', $I['backup']],
+            ['alertes', '/admin/alertes', 'Alertes', $I['alert']],
             ['updates', '/admin/mises-a-jour', 'Mises à jour', $I['download']],
             ['settings', '/admin/reglages', 'Réglages', $I['settings']],
         ]],
@@ -111,7 +110,7 @@ if ($area === 'admin') {
             ['boutique', '/pro/boutique', 'Boutique & merch', $I['bag']],
             ['abonnements', '/pro/abonnements', 'Abonnements', $I['card']],
             ['cartes-cadeaux', '/pro/cartes-cadeaux', 'Cartes cadeaux', $I['gift']],
-            $soonP('devis', 'Groupes & devis', 'quote'),
+            ['devis', '/pro/devis', 'Groupes & devis', $I['quote']],
         ]],
         ['Faire venir du monde', [
             ['campagnes', '/pro/campagnes', 'Campagnes e-mail', $I['mail']],
@@ -125,9 +124,9 @@ if ($area === 'admin') {
             ['scan', '/scan', 'Contrôle d\'accès', $I['scan']],
             ['controle-pro', '/pro/pc', 'PC sécurité', $I['radar']],
             ['staff', '/pro/benevoles', 'Bénévoles & staff', $I['hand']],
-            $soonP('artistes', 'Artistes & planning', 'mic'),
+            ['artistes', '/pro/artistes', 'Artistes & planning', $I['mic']],
             $soonP('cashless', 'Cashless & bars', 'wallet'),
-            $soonP('objets-trouves', 'Objets trouvés', 'box'),
+            ['objets-trouves', '/pro/objets-trouves', 'Objets trouvés', $I['box']],
         ]],
         ['Gestion', [
             ['finances', '/pro/finances', 'Finances', $I['money']],
@@ -149,7 +148,7 @@ if ($area === 'admin') {
     // 2.2 : cadenas sur les modules hors formule
     $curOrg = current_org();
     if ($curOrg && class_exists('Billing')) {
-        $modMap = ['boutique' => 'boutique', 'abonnements' => 'abonnements', 'cartes-cadeaux' => 'cartes-cadeaux', 'campagnes' => 'campagnes', 'sms' => 'sms', 'liens' => 'liens', 'staff' => 'benevoles', 'controle-pro' => 'pc'];
+        $modMap = ['artistes' => 'artistes', 'devis' => 'devis', 'boutique' => 'boutique', 'abonnements' => 'abonnements', 'cartes-cadeaux' => 'cartes-cadeaux', 'campagnes' => 'campagnes', 'sms' => 'sms', 'liens' => 'liens', 'staff' => 'benevoles', 'controle-pro' => 'pc'];
         foreach ($navGroups as &$g) foreach ($g[1] as &$n) if (isset($modMap[$n[0]]) && empty($n[4]) && !Billing::allows($curOrg, $modMap[$n[0]])) $n[5] = true;
         unset($g, $n);
     }

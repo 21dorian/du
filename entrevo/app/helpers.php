@@ -169,6 +169,7 @@ function setting(string $key, $default = null)
         $cache = setting_defaults();
         try { foreach (all('SELECT k, v FROM settings') as $r) $cache[$r['k']] = $r['v']; } catch (Throwable $e) { /* pas encore installé */ }
     }
+    if (isset($GLOBALS['__setting_override'][$key])) return $GLOBALS['__setting_override'][$key];
     return $cache[$key] ?? $default;
 }
 
@@ -463,4 +464,30 @@ function month_fr(string $ym): string
 {
     $m = ['01' => 'janvier', '02' => 'février', '03' => 'mars', '04' => 'avril', '05' => 'mai', '06' => 'juin', '07' => 'juillet', '08' => 'août', '09' => 'septembre', '10' => 'octobre', '11' => 'novembre', '12' => 'décembre'];
     return ($m[substr($ym, 5, 2)] ?? '') . ' ' . substr($ym, 0, 4);
+}
+
+/**
+ * 2.3 : mise en forme légère pour les pages éditables (aucun HTML accepté) :
+ * « ## Titre », « ### Sous-titre », « - élément », **gras**, *italique*, [texte](https://lien), paragraphes.
+ */
+function rich_text(string $src): string
+{
+    $out = []; $list = false; $para = [];
+    $inline = function (string $t): string {
+        $t = e($t);
+        $t = preg_replace('~\*\*(.+?)\*\*~', '<b>$1</b>', $t);
+        $t = preg_replace('~(?<![\w*])\*(?!\s)(.+?)(?<!\s)\*(?!\w)~', '<i>$1</i>', $t);
+        return preg_replace_callback('~\[([^\]]+)\]\(((?:https?://|/|mailto:)[^\s)]+)\)~', fn($m) => '<a href="' . $m[2] . '"' . (str_starts_with($m[2], 'http') ? ' target="_blank" rel="noopener"' : '') . '>' . $m[1] . '</a>', $t);
+    };
+    $flush = function () use (&$para, &$out, $inline) { if ($para) { $out[] = '<p>' . implode('<br>', array_map($inline, $para)) . '</p>'; $para = []; } };
+    foreach (preg_split('~\R~', $src) as $line) {
+        $l = rtrim($line);
+        if (preg_match('~^\s*[-•]\s+(.+)$~', $l, $m)) { $flush(); if (!$list) { $out[] = '<ul>'; $list = true; } $out[] = '<li>' . $inline($m[1]) . '</li>'; continue; }
+        if ($list) { $out[] = '</ul>'; $list = false; }
+        if ($l === '') { $flush(); continue; }
+        if (preg_match('~^(#{2,3})\s+(.+)$~', $l, $m)) { $flush(); $h = strlen($m[1]); $out[] = "<h$h>" . $inline($m[2]) . "</h$h>"; continue; }
+        $para[] = $l;
+    }
+    $flush(); if ($list) $out[] = '</ul>';
+    return implode("\n", $out);
 }
