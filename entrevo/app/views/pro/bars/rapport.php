@@ -8,6 +8,9 @@ $T = $r['tot']; $q = array_filter(['jour' => $day, 'bar' => $bar]); ?>
   <div class="kpi-mini"><span>Cashless</span><b><?= e(money($T['cashless'])) ?></b></div>
   <div class="kpi-mini"><span>Carte</span><b><?= e(money($T['card'])) ?></b></div>
   <div class="kpi-mini"><span>Espèces</span><b><?= e(money($T['cash'])) ?></b></div>
+  <?php $costed = array_sum(array_map(fn($x) => (int)($x['cht'] ?? 0), $r['prods'])); $marg = $costed - (int)$T['cost']; ?>
+  <div class="kpi-mini"><span>Marge brute</span><b><?= $T['cost'] ? e(money($marg)) : '—' ?></b><small class="muted"><?= $T['cost'] && $costed ? (int)round($marg / $costed * 100) . ' % du HT des produits chiffrés' : 'renseigne les prix d\'achat' ?></small></div>
+  <div class="kpi-mini"><span>Pourboires</span><b><?= e(money((int)$T['tip'])) ?></b><small class="muted">remboursé <?= e(money((int)$T['refund'])) ?></small></div>
   <div class="kpi-mini"><span>Offert / remises</span><b><?= e(money($T['offered'])) ?></b><small class="muted">remises <?= e(money($T['discount'])) ?></small></div>
 </div>
 <p class="muted mt"><small>Le chiffre d'affaires compte les consommations payées (hors consignes, offerts et crédits). Les recharges cashless ne sont pas du chiffre d'affaires : il est compté quand le solde est dépensé au bar.</small></p>
@@ -34,3 +37,6 @@ $T = $r['tot']; $q = array_filter(['jour' => $day, 'bar' => $bar]); ?>
 <div class="card table-card mt"><div class="card-head"><h2>Par serveur</h2></div><div class="table-wrap"><table class="table table-sm"><thead><tr><th>Serveur</th><th class="num">Tickets</th><th class="num">CA TTC</th><th class="num">Cashless</th><th class="num">Carte</th><th class="num">Espèces</th><th class="num">Offert</th><th class="num">Remises</th></tr></thead><tbody>
   <?php foreach ($r['staff'] as $n => $x): ?><tr><td><?= e($n) ?></td><td class="num"><?= (int)$x['n'] ?></td><td class="num"><b><?= e(money($x['ttc'])) ?></b></td><td class="num"><?= e(money($x['cashless'])) ?></td><td class="num"><?= e(money($x['card'])) ?></td><td class="num"><?= e(money($x['cash'])) ?></td><td class="num"><?= e(money($x['offered'])) ?></td><td class="num"><?= e(money($x['discount'])) ?></td></tr><?php endforeach; ?>
   <?php if (!$r['staff']): ?><tr><td colspan="8" class="empty">Aucune vente.</td></tr><?php endif; ?></tbody></table></div></div>
+<div class="card table-card mt"><div class="card-head"><h2>Par produit · marges</h2></div><div class="table-wrap"><table class="table table-sm"><thead><tr><th>Produit</th><th class="num">Qté</th><th class="num">CA TTC</th><th class="num">CA HT</th><th class="num">Coût</th><th class="num">Marge</th><th class="num">Taux</th></tr></thead><tbody>
+  <?php foreach ($r['prods'] as $n => $x): $hasC = isset($x['c']); $mg = $hasC ? (int)$x['cht'] - (int)$x['c'] : null; ?><tr><td><?= e($n) ?></td><td class="num"><?= (int)$x['q'] ?></td><td class="num"><?= e(money((int)$x['t'])) ?></td><td class="num"><?= e(money((int)($x['ht'] ?? 0))) ?></td><td class="num"><?= $hasC ? e(money((int)$x['c'])) : '—' ?></td><td class="num"><b><?= $mg !== null ? e(money($mg)) : '—' ?></b></td><td class="num"><?= $mg !== null && (int)$x['cht'] ? (int)round($mg / (int)$x['cht'] * 100) . ' %' : '—' ?></td></tr><?php endforeach; ?>
+  <?php if (!$r['prods']): ?><tr><td colspan="7" class="empty">Aucune vente.</td></tr><?php endif; ?></tbody></table></div></div>

@@ -29,6 +29,18 @@ function pos_api(): never
                 update('pos_devices', ['battery' => isset($in['battery']) ? max(0, min(100, (int)$in['battery'])) : null, 'charging' => isset($in['charging']) ? (int)(bool)$in['charging'] : null,
                     'app_version' => mb_substr((string)($in['app_version'] ?? ''), 0, 20) ?: null, 'queue_size' => max(0, (int)($in['queue'] ?? 0)), 'last_seen' => now()] + (empty($in['queue']) ? ['last_sync' => now()] : []), 'id = ?', [$d['id']]);
                 json_out(['ok' => true, 'session' => (bool)Till::session($d), 'time' => date('c')]);
+            case 'sale_get':
+                json_out(['ok' => true, 'sale' => Pos::saleGet($d, $in)]);
+            case 'refund':
+                json_out(Pos::refund($d, $in));
+            case 'stock':
+                json_out(['ok' => true, 'products' => Pos::stockState($d)]);
+            case 'stock_loss':
+                Pos::stockLoss($d, $in);
+                json_out(['ok' => true, 'products' => Pos::stockState($d)]);
+            case 'stock_request':
+                Pos::stockRequest($d, $in);
+                json_out(['ok' => true, 'products' => Pos::stockState($d)]);
             case 'tabs':
                 json_out(['ok' => true, 'tabs' => Pos::tabs($d)]);
             case 'tab_save':

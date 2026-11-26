@@ -84,7 +84,7 @@ final class Pos
             'event' => ['id' => (int)$ev['id'], 'name' => $ev['name'], 'starts_at' => $ev['starts_at'], 'cashless' => (bool)$ev['cashless_enabled']],
             'org' => ['name' => $org['name'], 'logo' => $org['logo'] ? abs_url('/' . ltrim($org['logo'], '/')) : null, 'accent' => $org['accent'] ?: null],
             'bars' => array_map(fn($b) => ['id' => (int)$b['id'], 'name' => $b['name']], $bars), 'methods' => $st['methods'],
-            'settings' => ['tabs' => (bool)$st['tabs'], 'blind_close' => (bool)$st['blind_close'], 'free_amount' => (bool)$st['free_amount'], 'count_denoms' => (bool)$st['count_denoms'], 'denoms' => Till::DENOMS,
+            'settings' => ['tips' => (bool)$st['tips'], 'tip_pcts' => array_values(array_filter(array_map('intval', explode(',', (string)$st['tip_pcts'])))), 'tabs' => (bool)$st['tabs'], 'blind_close' => (bool)$st['blind_close'], 'free_amount' => (bool)$st['free_amount'], 'count_denoms' => (bool)$st['count_denoms'], 'denoms' => Till::DENOMS,
                 'has_staff' => Till::hasStaff((int)$ev['organizer_id']), 'require_staff' => (bool)$st['require_staff'], 'sessions' => (bool)$st['sessions'], 'receipt' => $st['receipt'], 'photos' => (bool)$st['photos'], 'big' => (bool)$st['big_buttons'], 'reasons' => Till::reasons($st)],
             'session' => $se ? ['id' => (int)$se['id'], 'bar_id' => (int)$se['bar_id'], 'opened_at' => $se['opened_at'], 'float' => (int)$se['float_amount']] : null,
             'open_bars' => array_map('intval', array_column(all('SELECT DISTINCT bar_id FROM pos_sessions WHERE event_id = ? AND closed_at IS NULL', [$ev['id']]), 'bar_id')),
@@ -217,6 +217,8 @@ final class Pos
                 $row['payments_json'] = json_encode($out);
             }
             $row['amount'] = $total;
+            // 3.1 : pourboire (carte ou espèces), hors chiffre d'affaires
+            if ($set['tips'] && in_array($method, ['card', 'cash'], true) && $total > 0) $row['tip'] = max(0, min($total, (int)($in['tip'] ?? 0)));
             $row['ticket_no'] = Till::nextTicket((int)$d['event_id']);
             // 2.8 : commande à préparer (cuisine, comptoir) → numéro à appeler
             if (array_filter($pr['lines'], fn($l) => !empty($l['prep']))) { $row['order_no'] = Till::nextOrder($barId); $row['prep_status'] = 'new'; }
@@ -371,9 +373,112 @@ final class Pos
 
     private static function out(array $s): array
     {
-        return ['ok' => true, 'sale' => ['id' => (int)$s['id'], 'ticket' => (int)$s['ticket_no'], 'order' => $s['order_no'] ? (int)$s['order_no'] : null, 'method' => $s['method'], 'amount' => (int)$s['amount'], 'offered' => (int)$s['offered_value'], 'discount' => (int)$s['discount'],
+        return ['ok' => true, 'sale' => ['id' => (int)$s['id'], 'ticket' => (int)$s['ticket_no'], 'order' => $s['order_no'] ? (int)$s['order_no'] : null, 'method' => $s['method'], 'amount' => (int)$s['amount'], 'tip' => (int)($s['tip'] ?? 0), 'offered' => (int)$s['offered_value'], 'discount' => (int)$s['discount'],
             'at' => $s['created_at'], 'client_id' => $s['client_id'], 'undone' => (bool)$s['undone'], 'receipt' => $s['receipt_token'] ? Till::receiptUrl($s) : null,
             'lines' => array_map(fn($l) => ['name' => $l['name'], 'qty' => (int)$l['qty'], 'total' => (int)$l['total'], 'offered' => !empty($l['offered']), 'promo' => $l['promo'] ?? null], json_decode((string)$s['items'], true) ?: [])]];
+    }
+
+    // ---------- 3.1 : remboursement partiel d'un ticket ----------
+    /** Lignes d'un ticket avec les quantités déjà remboursées. */
+    public static function saleGet(array $d, array $in): array
+    {
+        $s = !empty($in['sale_id']) ? one('SELECT s.*, b.name bar FROM pos_sales s JOIN bars b ON b.id = s.bar_id WHERE s.id = ? AND s.event_id = ?', [(int)$in['sale_id'], $d['event_id']])
+            : one('SELECT s.*, b.name bar FROM pos_sales s JOIN bars b ON b.id = s.bar_id WHERE s.ticket_no = ? AND s.event_id = ?', [(int)($in['ticket'] ?? 0), $d['event_id']]);
+        if (!$s) throw new RuntimeException('Ticket introuvable pour cet événement.');
+        if (($s['kind'] ?? 'sale') !== 'sale') throw new RuntimeException('Ce ticket n\'est pas une vente.');
+        if ((int)$s['undone']) throw new RuntimeException('Cette vente a été annulée.');
+        $done = self::refundedQty((int)$s['id']);
+        $lines = [];
+        foreach (json_decode((string)$s['items'], true) ?: [] as $i => $l) {
+            if (($l['kind'] ?? '') !== 'product' || (int)$l['qty'] <= 0) continue;
+            $lines[] = ['i' => $i, 'name' => $l['name'], 'qty' => (int)$l['qty'], 'left' => max(0, (int)$l['qty'] - ($done[$i] ?? 0)), 'unit' => (int)round((int)$l['total'] / max(1, (int)$l['qty'])), 'total' => (int)$l['total']];
+        }
+        $paid = !in_array($s['method'], ['allowance', 'offered'], true);
+        return ['id' => (int)$s['id'], 'ticket' => (int)$s['ticket_no'], 'bar' => $s['bar'], 'at' => $s['created_at'], 'method' => $s['method'], 'amount' => (int)$s['amount'], 'lines' => $lines, 'refundable' => $paid,
+            'refund_method' => $s['method'] === 'split' ? 'cash' : $s['method'], 'refunded' => -(int)val("SELECT COALESCE(SUM(amount), 0) FROM pos_sales WHERE refund_of = ? AND undone = 0", [$s['id']])];
+    }
+
+    private static function refundedQty(int $saleId): array
+    {
+        $done = [];
+        foreach (all('SELECT items FROM pos_sales WHERE refund_of = ? AND undone = 0', [$saleId]) as $r) foreach (json_decode((string)$r['items'], true) ?: [] as $l) if (isset($l['ref'])) $done[(int)$l['ref']] = ($done[(int)$l['ref']] ?? 0) + (int)$l['qty'];
+        return $done;
+    }
+
+    /** Rembourse une partie d'un ticket : même moyen de paiement (le cashless est recrédité), stock remis. */
+    public static function refund(array $d, array $in): array
+    {
+        $ev = one('SELECT * FROM events WHERE id = ?', [$d['event_id']]);
+        $staff = Till::staffFrom($d, $in);
+        $by = Till::authorize((int)$ev['organizer_id'], $staff, 'refund', $in['approver_pin'] ?? null, true);
+        $info = self::saleGet($d, ['sale_id' => (int)($in['sale_id'] ?? 0)]);
+        if (!$info['refundable']) throw new RuntimeException('Une vente offerte ou payée avec un crédit ne se rembourse pas.');
+        $s = one('SELECT * FROM pos_sales WHERE id = ?', [$info['id']]);
+        $items = json_decode((string)$s['items'], true) ?: [];
+        $want = []; foreach ((array)($in['lines'] ?? []) as $x) if ((int)($x['qty'] ?? 0) > 0) $want[(int)$x['i']] = (int)$x['qty'];
+        if (!$want) throw new RuntimeException('Choisis les articles à rembourser.');
+        $left = []; foreach ($info['lines'] as $l) $left[$l['i']] = $l['left'];
+        $lines = []; $sum = 0; $vat = []; $restock = [];
+        foreach ($want as $i => $q) {
+            if (!isset($left[$i]) || $q > $left[$i]) throw new RuntimeException('Quantité à rembourser supérieure à ce qui reste sur le ticket.');
+            $l = $items[$i]; $amt = (int)round((int)$l['total'] * $q / max(1, (int)$l['qty']));
+            $lines[] = ['kind' => 'product', 'id' => (int)$l['id'], 'name' => 'Remboursement ' . $l['name'], 'qty' => $q, 'unit' => -(int)round($amt / $q), 'full' => -$amt, 'total' => -$amt, 'ref' => $i,
+                'vat' => $l['vat'] ?? null, 'category_id' => $l['category_id'] ?? null, 'cost' => isset($l['cost']) && $l['cost'] !== null ? -(int)round((int)$l['cost'] * $q / max(1, (int)$l['qty'])) : null];
+            $sum += $amt;
+            if (isset($l['vat'])) { $k = number_format((float)$l['vat'], 1, '.', ''); $vat[$k] = ($vat[$k] ?? 0) - $amt; }
+            foreach ($l['stock_items'] ?? [] as [$spid, $sq]) $restock[] = [(int)$spid, (int)round((int)$sq * $q / max(1, (int)$l['qty']))];
+        }
+        $method = $info['refund_method'];
+        $se = Till::session($d);
+        $row = ['event_id' => $d['event_id'], 'bar_id' => (int)$s['bar_id'], 'device_id' => $d['id'], 'method' => $method, 'kind' => 'refund', 'amount' => -$sum, 'subtotal' => -$sum,
+            'staff' => $staff['name'] ?? null, 'staff_id' => $staff['id'] ?? null, 'approved_by' => $by && (!$staff || (int)$by['id'] !== (int)$staff['id']) ? $by['id'] : null, 'session_id' => $se['id'] ?? null,
+            'refund_of' => $s['id'], 'offer_reason' => mb_substr(trim((string)($in['reason'] ?? '')), 0, 120) ?: null, 'items' => json_encode($lines, JSON_UNESCAPED_UNICODE), 'vat_json' => $vat ? json_encode($vat) : null,
+            'created_at' => now(), 'received_at' => now(), 'receipt_token' => bin2hex(random_bytes(12)), 'wallet_id' => $s['wallet_id']];
+        $balance = null;
+        db()->beginTransaction();
+        try {
+            if ($method === 'cashless' && $s['wallet_id']) {
+                $tx = insert('wallet_tx', ['wallet_id' => $s['wallet_id'], 'event_id' => $d['event_id'], 'kind' => 'rembours', 'amount' => $sum, 'bar_id' => $s['bar_id'], 'device' => 'caisse:' . $d['id'], 'items' => json_encode(['ticket' => (int)$s['ticket_no']]), 'created_at' => now()]);
+                q('UPDATE wallets SET balance = balance + ? WHERE id = ?', [$sum, $s['wallet_id']]);
+                $row['wallet_tx_id'] = $tx; $balance = (int)val('SELECT balance FROM wallets WHERE id = ?', [$s['wallet_id']]);
+            }
+            $row['ticket_no'] = Till::nextTicket((int)$d['event_id']);
+            $id = insert('pos_sales', $row);
+            foreach ($restock as [$pid, $q]) if ($q > 0) Till::stockMove((int)$d['event_id'], $pid, (int)$s['bar_id'], $q, 'refund', $id);
+            db()->commit();
+        } catch (Throwable $e) { if (db()->inTransaction()) db()->rollBack(); throw $e; }
+        return self::out(one('SELECT * FROM pos_sales WHERE id = ?', [$id])) + ['refunded' => $sum, 'method' => $method, 'balance' => $balance];
+    }
+
+    // ---------- 3.1 : stock du bar depuis l'appli ----------
+    public static function stockState(array $d): array
+    {
+        if (!$d['bar_id']) throw new RuntimeException('Choisis ton point de vente.');
+        $rows = all('SELECT p.id, p.name, p.stock_alert, COALESCE(s.qty, 0) qty FROM bar_products p LEFT JOIN pos_stock s ON s.product_id = p.id AND s.bar_id = ? WHERE p.event_id = ? AND p.track_stock = 1 AND p.active = 1 ORDER BY p.sort, p.name', [$d['bar_id'], $d['event_id']]);
+        $req = []; foreach (all("SELECT product_id, SUM(qty) q FROM pos_stock_requests WHERE bar_id = ? AND status = 'open' GROUP BY product_id", [$d['bar_id']]) as $r) $req[(int)$r['product_id']] = (int)$r['q'];
+        return array_map(fn($r) => ['id' => (int)$r['id'], 'name' => $r['name'], 'qty' => (int)$r['qty'], 'alert' => $r['stock_alert'] !== null ? (int)$r['stock_alert'] : 10, 'requested' => $req[(int)$r['id']] ?? 0], $rows);
+    }
+
+    public static function stockLoss(array $d, array $in): void
+    {
+        $ev = one('SELECT * FROM events WHERE id = ?', [$d['event_id']]);
+        $staff = Till::staffFrom($d, $in);
+        Till::authorize((int)$ev['organizer_id'], $staff, 'stock', $in['approver_pin'] ?? null, (bool)Till::settings($ev)['require_staff']);
+        $p = one('SELECT * FROM bar_products WHERE id = ? AND event_id = ?', [(int)($in['product_id'] ?? 0), $d['event_id']]);
+        $q = (int)($in['qty'] ?? 0);
+        if (!$p || $q <= 0 || $q > 1000 || !$d['bar_id']) throw new RuntimeException('Produit ou quantité invalide.');
+        $reason = in_array($in['reason'] ?? '', ['casse', 'perime', 'offert', 'vol', 'autre'], true) ? (string)$in['reason'] : 'casse';
+        Till::stockMove((int)$d['event_id'], (int)$p['id'], (int)$d['bar_id'], -$q, 'loss', null, null, $reason . ($staff ? ' · ' . $staff['name'] : '') . (!empty($in['note']) ? ' · ' . mb_substr((string)$in['note'], 0, 100) : ''));
+    }
+
+    public static function stockRequest(array $d, array $in): void
+    {
+        $p = one('SELECT id FROM bar_products WHERE id = ? AND event_id = ?', [(int)($in['product_id'] ?? 0), $d['event_id']]);
+        $q = (int)($in['qty'] ?? 0);
+        if (!$p || $q <= 0 || $q > 5000 || !$d['bar_id']) throw new RuntimeException('Produit ou quantité invalide.');
+        $staff = Till::staffFrom($d, $in);
+        insert('pos_stock_requests', ['event_id' => $d['event_id'], 'bar_id' => $d['bar_id'], 'product_id' => $p['id'], 'qty' => $q, 'note' => mb_substr(trim((string)($in['note'] ?? '')), 0, 255) ?: null,
+            'staff' => $staff['name'] ?? (mb_substr((string)($in['staff'] ?? ''), 0, 60) ?: null), 'device_id' => $d['id'], 'status' => 'open', 'created_at' => now()]);
     }
 
     /** Annulation d'une vente dans les 10 minutes (droit « annuler » ou code d'un responsable). */

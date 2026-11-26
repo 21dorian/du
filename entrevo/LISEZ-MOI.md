@@ -79,6 +79,23 @@ Couleurs : **vert** = entre, **orange** = déjà entré / pas entré (sortie), *
 
 ---
 
+## Nouveautés 3.1 — caisse et pilotage plus complets
+
+**Application caisse**
+- **Pourboires** (réglage) : avant un paiement carte ou espèces, le client choisit sans pourboire, un pourcentage (réglable, ex. 5 et 10 %), un arrondi ou un montant libre. Le pourboire est encaissé avec le paiement, compté à part (hors chiffre d'affaires) et par serveur ; en espèces il entre dans le tiroir attendu.
+- **Rembourser un ticket**, en partie ou en totalité, à tout moment : depuis « Dernières ventes » ou avec le numéro du ticket. On choisit les articles et les quantités ; le cashless est recrédité automatiquement, la carte se rembourse sur le terminal, les espèces se rendent. Le stock revient, la TVA et le chiffre d'affaires sont corrigés. Droit « rembourser un ticket » ou code d'un responsable.
+- **Stock du bar** depuis le menu : stock de chaque produit suivi, **demande de réassort** envoyée à la régie, **déclaration de perte** (casse, périmé, offert hors caisse, vol) avec le droit « déclarer casse et pertes » ou le code d'un responsable.
+
+**Entrevo Pay**
+- **Réassorts & pertes** : les demandes des bars arrivent en direct ; un clic les livre depuis la réserve ou depuis un autre bar (le stock suit). Pertes déclarées par motif, valorisées au prix d'achat ; valeur du stock restant.
+- **Bilan de l'événement** (et PDF) : ventes, TVA, marge, pourboires, remboursements ; cashless complet (recharges, crédits offerts, dépenses, soldes remboursés, corrections, soldes restants) avec **contrôle de rapprochement** ; clôtures validées et écart de caisse cumulé ; consignes conservées, pertes ; exploitants.
+- **Journal des actions** : chaque opération sensible (solde modifié, blocage, transfert, reversement, réassort, accès d'équipe, terminal) avec son auteur, sa date et son adresse IP.
+- Le **responsable de bar** ne voit plus que ses points de vente (caisses, ventes, stocks, réassorts, terminaux, direct).
+
+**Marges**
+- **Prix d'achat HT** sur chaque produit (catalogue). Les formules additionnent le prix d'achat de leurs composants.
+- Rapport : **marge brute** et taux, tableau par produit (CA TTC, HT, coût, marge) ; pourboires et tickets remboursés.
+
 ## Nouveautés 3.0 — Entrevo Pay, l'espace cashless séparé
 
 **Une application à part, sur son sous-domaine**

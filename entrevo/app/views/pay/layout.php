@@ -7,6 +7,7 @@ $ic = [
     'stocks' => 'M3 7l9-4 9 4v10l-9 4-9-4zM3 7l9 4 9-4M12 11v10', 'materiel' => 'M7 2h10v20H7zM11 18h2', 'equipe' => 'M16 11a4 4 0 1 0-4-4M8 11a3 3 0 1 0-3-3M2 21v-1a5 5 0 0 1 5-5h2M10 21v-1a6 6 0 0 1 12 0v1',
     'exploitants' => 'M3 21V9l9-6 9 6v12M9 21v-6h6v6', 'rapport' => 'M4 20V10M10 20V4M16 20v-7M22 20H2', 'ventes' => 'M6 3h12v18l-3-2-3 2-3-2-3 2zM9 8h6M9 12h6', 'exports' => 'M12 3v12m0 0l-5-5m5 5l5-5M4 17v3h16v-3',
     'reglages' => 'M12 15.5A3.5 3.5 0 1 1 15.5 12 3.5 3.5 0 0 1 12 15.5zM12 2v3M12 19v3M2 12h3M19 12h3M5 5l2 2M17 17l2 2M5 19l2-2M17 7l2-2', 'bracelets' => 'M5 8a7 4 0 0 1 14 0v8a7 4 0 0 1-14 0zM5 8a7 4 0 0 0 14 0',
+    'reassorts' => 'M3 7l9-4 9 4v10l-9 4-9-4zM12 11v6M9 14l3 3 3-3', 'bilan' => 'M6 3h9l4 4v14H6zM9 12h7M9 16h5M9 8h3', 'journal' => 'M12 8v4l3 2M12 3a9 9 0 1 0 9 9M21 3v5h-5',
     'team' => 'M12 12a5 5 0 1 0-5-5 5 5 0 0 0 5 5zm0 2c-3.3 0-10 1.7-10 5v3h20v-3c0-3.3-6.7-5-10-5z', 'home' => 'M3 11l9-8 9 8v10H3z', 'portal' => 'M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18zM3 12h18M12 3c3 3 3 15 0 18M12 3c-3 3-3 15 0 18',
 ];
 $svg = fn($k) => '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="' . ($ic[$k] ?? $ic['live']) . '"/></svg>';

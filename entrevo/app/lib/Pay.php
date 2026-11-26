@@ -13,16 +13,16 @@ final class Pay
     /** Rôles de l'équipe cashless => [libellé, rubriques autorisées ('*' = toutes)]. */
     public const ROLES = [
         'admin' => ['Administrateur cashless', ['*']],
-        'regie' => ['Régisseur', ['live', 'wallets', 'bracelets', 'refunds', 'packs', 'ecocups', 'catalogue', 'consignes', 'remises', 'appareils', 'caisses', 'stocks', 'equipe', 'credits', 'rapport', 'ventes', 'materiel', 'exploitants', 'exports', 'reglages']],
+        'regie' => ['Régisseur', ['live', 'wallets', 'bracelets', 'refunds', 'packs', 'ecocups', 'catalogue', 'consignes', 'remises', 'appareils', 'caisses', 'stocks', 'equipe', 'credits', 'rapport', 'ventes', 'materiel', 'exploitants', 'exports', 'reglages', 'journal']],
         'bar' => ['Responsable de bar', ['live', 'caisses', 'stocks', 'appareils', 'materiel', 'ventes']],
-        'compta' => ['Comptable', ['live', 'rapport', 'ventes', 'caisses', 'exploitants', 'exports', 'refunds']],
+        'compta' => ['Comptable', ['live', 'rapport', 'ventes', 'caisses', 'exploitants', 'exports', 'refunds', 'journal']],
         'support' => ['Support festivaliers', ['live', 'wallets', 'bracelets', 'refunds']],
         'operator' => ['Exploitant', []],
     ];
     public const PROFILES = ['public' => 'Public', 'staff' => 'Staff & bénévoles', 'vip' => 'VIP', 'artist' => 'Artiste', 'press' => 'Presse', 'crew' => 'Technique'];
     public const SETTINGS = ['transfer' => 1, 'virtual' => 1, 'self_block' => 1, 'refund_fee' => 0, 'topups' => '1000,2000,3000,5000', 'max_balance' => 50000, 'message' => '', 'brand_color' => '#5e5ce6'];
     public const TX = ['topup' => 'Recharge en ligne', 'cash' => 'Recharge espèces', 'card' => 'Recharge carte', 'sale' => 'Achat', 'refund' => 'Remboursement', 'undo' => 'Annulation',
-        'deposit' => 'Retour de consigne', 'adjust' => 'Correction', 'gift' => 'Crédit offert', 'xfer_out' => 'Transfert envoyé', 'xfer_in' => 'Transfert reçu', 'move' => 'Report de bracelet'];
+        'deposit' => 'Retour de consigne', 'rembours' => 'Remboursement d\'achat', 'adjust' => 'Correction', 'gift' => 'Crédit offert', 'xfer_out' => 'Transfert envoyé', 'xfer_in' => 'Transfert reçu', 'move' => 'Report de bracelet'];
 
     // ---------- sous-domaine ----------
     public static function host(): string { return strtolower(trim((string)setting('pay_host', ''))); }

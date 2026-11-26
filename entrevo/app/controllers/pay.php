@@ -19,14 +19,17 @@ const PAY_SECTIONS = [
     'appareils' => ['Points de vente & appareils', 'appareils', 'Terrain'],
     'caisses' => ['Caisses & clôtures', 'caisses', 'Terrain'],
     'stocks' => ['Stocks', 'stocks', 'Terrain'],
+    'reassorts' => ['Réassorts & pertes', 'stocks', 'Terrain'],
     'materiel' => ['Parc de terminaux', 'materiel', 'Terrain'],
     'equipe' => ['Serveurs & droits', 'equipe', 'Terrain'],
+    'bilan' => ['Bilan de l\'événement', 'rapport', 'Argent'],
     'exploitants' => ['Exploitants & reversements', 'exploitants', 'Argent'],
     'rapport' => ['Rapport de ventes', 'rapport', 'Argent'],
     'ventes' => ['Journal des ventes', 'ventes', 'Argent'],
     'exports' => ['Exports comptables', 'exports', 'Argent'],
     'portail' => ['Portail & cashless', 'reglages', 'Réglages'],
     'reglages' => ['Caisse', 'reglages', 'Réglages'],
+    'journal' => ['Journal des actions', 'journal', 'Réglages'],
 ];
 const PAY_REUSED = ['catalogue', 'consignes', 'remises', 'appareils', 'caisses', 'stocks', 'equipe', 'credits', 'rapport', 'ventes', 'reglages'];
 
@@ -119,6 +122,7 @@ function pay_section(string $id, string $section): string
     [$label, $perm, $group] = PAY_SECTIONS[$section];
     $m = pay_require($perm); $ev = pay_event($m, $id);
     $base = Pay::path('/pro/e/') . $ev['id'];
+    $GLOBALS['pay_bars'] = $m['role'] === 'bar' ? $m['bars'] : [];
     if (in_array($section, PAY_REUSED, true)) {
         $fn = 'bars_' . $section;
         $vars = $fn($ev, $m['org'], $base . '/' . $section);
@@ -284,6 +288,7 @@ function pay_s_materiel(array $m, array $ev, string $base, string $label): strin
     $devices = all('SELECT d.*, b.name bar_name, (SELECT COUNT(*) FROM pos_sales s WHERE s.device_id = d.id AND s.undone = 0) sales, (SELECT COALESCE(SUM(amount), 0) FROM pos_sales s WHERE s.device_id = d.id AND s.undone = 0 AND s.kind = \'sale\') ttc,
         (SELECT MAX(created_at) FROM pos_sales s WHERE s.device_id = d.id) last_sale, (SELECT COUNT(*) FROM pos_sales s WHERE s.device_id = d.id AND s.offline = 1) offline_sales
         FROM pos_devices d LEFT JOIN bars b ON b.id = d.bar_id WHERE d.event_id = ? AND d.revoked = 0 ORDER BY d.last_seen IS NULL, d.last_seen DESC', [$ev['id']]);
+    if ($m['role'] === 'bar' && $m['bars']) $devices = array_values(array_filter($devices, fn($d) => in_array((int)$d['bar_id'], $m['bars'], true)));
     $latest = trim((string)@file_get_contents(ROOT . '/VERSION'));
     return pay_page($m, $ev, 'materiel', $label, view('pay/fleet', compact('devices', 'latest', 'base', 'ev')));
 }
@@ -541,3 +546,97 @@ function pay_op_home(): string
     uasort($prods, fn($a, $b) => $b['t'] <=> $a['t']);
     return view('pay/operator_home', compact('m', 'op', 'events', 'ev', 'S', 'sales', 'stock', 'prods'));
 }
+
+// ---------- 3.1 : réassorts et pertes ----------
+function pay_s_reassorts(array $m, array $ev, string $base, string $label): string
+{
+    $mine = $m['role'] === 'bar' && $m['bars'] ? ' AND r.bar_id IN (' . implode(',', array_map('intval', $m['bars'])) . ')' : '';
+    if (is_post()) {
+        $r = one("SELECT r.*, p.name pname, b.name bname FROM pos_stock_requests r JOIN bar_products p ON p.id = r.product_id JOIN bars b ON b.id = r.bar_id WHERE r.id = ? AND r.event_id = ? AND r.status = 'open'$mine", [(int)input('id'), $ev['id']]);
+        if (!$r) back(['error' => 'Demande introuvable ou déjà traitée.']);
+        $uid = (int)user()['id'];
+        if (input('action') === 'refuse') { update('pos_stock_requests', ['status' => 'refused', 'done_by' => $uid, 'done_at' => now()], 'id = ?', [$r['id']]); back(['success' => 'Demande refusée.']); }
+        $q = max(1, (int)input('qty')); $src = (string)input('source');
+        if (!(int)val('SELECT track_stock FROM bar_products WHERE id = ?', [$r['product_id']])) update('bar_products', ['track_stock' => 1], 'id = ?', [$r['product_id']]);
+        if ($src !== '' && $src !== 'reserve') {
+            $from = (int)$src;
+            if (!val('SELECT id FROM bars WHERE id = ? AND event_id = ?', [$from, $ev['id']]) || $from === (int)$r['bar_id']) back(['error' => 'Choisis la provenance.']);
+            Till::stockMove((int)$ev['id'], (int)$r['product_id'], $from, -$q, 'transfer', null, $uid, 'Réassort vers ' . $r['bname']);
+            Till::stockMove((int)$ev['id'], (int)$r['product_id'], (int)$r['bar_id'], $q, 'transfer', null, $uid, 'Réassort depuis le bar ' . $from);
+        } else Till::stockMove((int)$ev['id'], (int)$r['product_id'], (int)$r['bar_id'], $q, 'in', null, $uid, 'Réassort (réserve)' . ($r['staff'] ? ' demandé par ' . $r['staff'] : ''));
+        update('pos_stock_requests', ['status' => 'done', 'done_qty' => $q, 'done_by' => $uid, 'done_at' => now()], 'id = ?', [$r['id']]);
+        Audit::log('pay.restock', $q . ' × ' . $r['pname'] . ' livrés à ' . $r['bname'], (int)$ev['id']);
+        back(['success' => $q . ' × ' . $r['pname'] . ' livrés à ' . $r['bname'] . '.']);
+    }
+    $open = all("SELECT r.*, p.name pname, b.name bname, COALESCE(s.qty, 0) cur FROM pos_stock_requests r JOIN bar_products p ON p.id = r.product_id JOIN bars b ON b.id = r.bar_id LEFT JOIN pos_stock s ON s.product_id = r.product_id AND s.bar_id = r.bar_id WHERE r.event_id = ? AND r.status = 'open'$mine ORDER BY r.id", [$ev['id']]);
+    $done = all("SELECT r.*, p.name pname, b.name bname, u.name who FROM pos_stock_requests r JOIN bar_products p ON p.id = r.product_id JOIN bars b ON b.id = r.bar_id LEFT JOIN users u ON u.id = r.done_by WHERE r.event_id = ? AND r.status <> 'open'$mine ORDER BY r.id DESC LIMIT 30", [$ev['id']]);
+    $bars = all('SELECT id, name FROM bars WHERE event_id = ? ORDER BY id', [$ev['id']]);
+    $stockBy = []; foreach (all('SELECT s.product_id, s.bar_id, s.qty FROM pos_stock s JOIN bar_products p ON p.id = s.product_id WHERE p.event_id = ?', [$ev['id']]) as $x) $stockBy[(int)$x['product_id']][(int)$x['bar_id']] = (int)$x['qty'];
+    $lossW = $m['role'] === 'bar' && $m['bars'] ? ' AND m.bar_id IN (' . implode(',', array_map('intval', $m['bars'])) . ')' : '';
+    $losses = all("SELECT m.*, p.name pname, p.cost, b.name bname FROM pos_stock_moves m JOIN bar_products p ON p.id = m.product_id JOIN bars b ON b.id = m.bar_id WHERE m.event_id = ? AND (m.kind = 'loss' OR (m.kind = 'in' AND m.delta < 0))$lossW ORDER BY m.id DESC LIMIT 200", [$ev['id']]);
+    $byReason = []; $lossValue = 0;
+    foreach ($losses as $l) { $r = $l['kind'] === 'loss' ? explode(' · ', (string)$l['note'])[0] : 'casse'; $v = -(int)$l['delta'] * (int)($l['cost'] ?? 0); $byReason[$r]['q'] = ($byReason[$r]['q'] ?? 0) - (int)$l['delta']; $byReason[$r]['v'] = ($byReason[$r]['v'] ?? 0) + $v; $lossValue += $v; }
+    $value = (int)val('SELECT COALESCE(SUM(s.qty * COALESCE(p.cost, 0)), 0) FROM pos_stock s JOIN bar_products p ON p.id = s.product_id WHERE p.event_id = ? AND s.qty > 0', [$ev['id']]);
+    return pay_page($m, $ev, 'reassorts', $label, view('pay/restock', compact('open', 'done', 'bars', 'stockBy', 'losses', 'byReason', 'lossValue', 'value', 'base', 'ev')));
+}
+
+// ---------- 3.1 : bilan de fin d'événement ----------
+function pay_bilan_data(array $m, array $ev): array
+{
+    $R = bars_report_data($ev, null, null);
+    $k = Cashless::stats((int)$ev['id']);
+    $tx = []; foreach (all('SELECT kind, COUNT(*) n, SUM(amount) a FROM wallet_tx WHERE event_id = ? AND undone = 0 GROUP BY kind', [$ev['id']]) as $r) $tx[$r['kind']] = ['n' => (int)$r['n'], 'a' => (int)$r['a']];
+    $txSum = (int)val('SELECT COALESCE(SUM(t.amount), 0) FROM wallet_tx t JOIN wallets w ON w.id = t.wallet_id WHERE t.event_id = ?', [$ev['id']]);
+    $balances = (int)val('SELECT COALESCE(SUM(balance), 0) FROM wallets WHERE event_id = ?', [$ev['id']]);
+    $w = one("SELECT COUNT(*) n, COUNT(CASE WHEN balance > 0 THEN 1 END) pos, COUNT(CASE WHEN status = 'refund_req' THEN 1 END) req, COUNT(CASE WHEN nfc_uid IS NOT NULL THEN 1 END) nfc, COUNT(CASE WHEN virtual = 1 THEN 1 END) virt FROM wallets WHERE event_id = ?", [$ev['id']]);
+    $ops = []; foreach (all('SELECT * FROM pay_operators WHERE organizer_id = ?', [$m['org']['id']]) as $o) { $st = Pay::statement($ev, $o); if ($st['bars']) $ops[] = ['name' => $o['name']] + $st; }
+    $z = one('SELECT COUNT(*) n, COUNT(CASE WHEN closed_at IS NOT NULL THEN 1 END) closed, COUNT(CASE WHEN validated_at IS NOT NULL THEN 1 END) valid, COALESCE(SUM(CASE WHEN counted_cash IS NOT NULL THEN counted_cash - expected_cash END), 0) gap FROM pos_sessions WHERE event_id = ?', [$ev['id']]);
+    $cups = Pay::ecocups($ev);
+    $loss = (int)val("SELECT COALESCE(SUM(-m.delta * COALESCE(p.cost, 0)), 0) FROM pos_stock_moves m JOIN bar_products p ON p.id = m.product_id WHERE m.event_id = ? AND (m.kind = 'loss' OR (m.kind = 'in' AND m.delta < 0))", [$ev['id']]);
+    $costed = array_sum(array_map(fn($x) => (int)($x['cht'] ?? 0), $R['prods']));
+    return ['R' => $R, 'k' => $k, 'tx' => $tx, 'tx_sum' => $txSum, 'balances' => $balances, 'w' => $w, 'ops' => $ops, 'z' => $z, 'cups' => $cups, 'loss' => $loss, 'costed' => $costed];
+}
+
+function pay_s_bilan(array $m, array $ev, string $base, string $label): string
+{
+    $B = pay_bilan_data($m, $ev);
+    if (input('pdf')) pay_bilan_pdf($m['org'], $ev, $B);
+    return pay_page($m, $ev, 'bilan', $label, view('pay/bilan', compact('B', 'base', 'ev')));
+}
+
+function pay_bilan_pdf(array $org, array $ev, array $B): never
+{
+    $t = fn($s) => PdfDoc::t((string)$s); $T = $B['R']['tot']; $k = $B['k'];
+    $pdf = new PdfDoc('P', 'mm', 'A4'); $pdf->SetMargins(18, 18, 18); $pdf->AddPage();
+    $pdf->SetFont('Helvetica', 'B', 20); $pdf->Cell(0, 10, $t('Bilan cashless & bars'), 0, 1);
+    $pdf->SetFont('Helvetica', '', 10); $pdf->SetTextColor(110, 110, 115);
+    $pdf->MultiCell(0, 5, $t(($org['legal_name'] ?: $org['name']) . "\n" . $ev['name'] . ' · ' . fr_date($ev['starts_at'], false) . "\nÉdité le " . date('d/m/Y H:i') . ' · Entrevo Pay'));
+    $pdf->SetTextColor(29, 29, 31);
+    $h = function (string $x) use ($pdf, $t) { $pdf->Ln(4); $pdf->SetFont('Helvetica', 'B', 13); $pdf->Cell(0, 8, $t($x), 0, 1); };
+    $row = function (string $l, string $v, bool $b = false) use ($pdf, $t) { $pdf->SetFont('Helvetica', $b ? 'B' : '', 10.5); $pdf->Cell(120, 7, $t($l), 'B'); $pdf->Cell(54, 7, $t($v), 'B', 1, 'R'); };
+    $h('Ventes'); $row('Chiffre d\'affaires TTC', money($T['ttc']), true); $row('Hors taxes', money($T['ht'])); $row('TVA collectée', money($T['tva']));
+    if ($T['cost']) $row('Marge brute (produits chiffrés)', money($B['costed'] - $T['cost']));
+    $row('Tickets', (string)$T['n']); $row('Cashless · carte · espèces', money($T['cashless']) . ' · ' . money($T['card']) . ' · ' . money($T['cash']));
+    $row('Offert · remises', money($T['offered']) . ' · ' . money($T['discount'])); $row('Remboursements de tickets', money($T['refund'])); $row('Pourboires', money($T['tip']));
+    $h('Cashless'); $row('Rechargé (en ligne · sur place)', money((int)$k['loaded']) . ' (' . money((int)$k['online']) . ' · ' . money((int)$k['onsite']) . ')'); $row('Crédits offerts', money($B['tx']['gift']['a'] ?? 0));
+    $row('Dépensé aux bars', money((int)$k['spent'])); $row('Soldes remboursés', money((int)$k['refunded'])); $row('Soldes restants', money($B['balances']), true);
+    $row('Contrôle : mouvements = soldes', $B['tx_sum'] === $B['balances'] ? 'OK' : 'écart ' . money($B['tx_sum'] - $B['balances']));
+    $h('Caisses'); $row('Clôtures (validées / total)', $B['z']['valid'] . ' / ' . $B['z']['closed']); $row('Écart de caisse cumulé', money((int)$B['z']['gap']));
+    $h('Consignes & stocks'); $cin = array_sum(array_column($B['cups']['types'], 'value_in')); $cout = array_sum(array_column($B['cups']['types'], 'value_out'));
+    $row('Consignes encaissées · rendues', money($cin) . ' · ' . money($cout)); $row('Consignes conservées', money($cin - $cout)); $row('Pertes valorisées (prix d\'achat)', money($B['loss']));
+    if ($B['ops']) { $h('Exploitants'); foreach ($B['ops'] as $o) $row($o['name'] . ' · CA ' . money($o['ttc']) . ' · commission ' . money($o['commission']), ($o['left'] >= 0 ? 'à verser ' : 'doit ') . money(abs($o['left']))); }
+    header('Content-Type: application/pdf'); header('Content-Disposition: inline; filename="bilan-' . $ev['slug'] . '.pdf"');
+    echo $pdf->Output('S'); exit;
+}
+
+// ---------- 3.1 : journal des actions sensibles ----------
+function pay_s_journal(array $m, array $ev, string $base, string $label): string
+{
+    $f = (string)input('f');
+    $w = 'a.organizer_id = ? AND (a.event_id = ? OR (a.event_id IS NULL AND a.action LIKE \'pay.%\')) AND (a.action LIKE \'pay.%\' OR a.action LIKE \'pos.%\')'; $p = [$m['org']['id'], $ev['id']];
+    if ($f !== '') { $w .= ' AND a.action = ?'; $p[] = $f; }
+    $rows = all("SELECT a.*, u.name who, u.email FROM audit_log a LEFT JOIN users u ON u.id = a.user_id WHERE $w ORDER BY a.id DESC LIMIT 300", $p);
+    $kinds = array_column(all("SELECT DISTINCT action FROM audit_log WHERE organizer_id = ? AND (action LIKE 'pay.%' OR action LIKE 'pos.%') ORDER BY action", [$m['org']['id']]), 'action');
+    return pay_page($m, $ev, 'journal', $label, view('pay/journal', compact('rows', 'kinds', 'f', 'base', 'ev')));
+}
+

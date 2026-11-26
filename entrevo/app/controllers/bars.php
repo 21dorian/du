@@ -119,7 +119,7 @@ function bars_catalogue(array $ev, array $org, string $base): array
             foreach ((array)($_POST['bar_price'] ?? []) as $bid => $v) if (trim((string)$v) !== '') $barPrices[(int)$bid] = parse_money((string)$v);
             $cat = (int)input('category_id') ? one('SELECT * FROM pos_categories WHERE id = ? AND event_id = ?', [(int)input('category_id'), $ev['id']]) : null;
             $d = ['name' => $name, 'description' => mb_substr(trim((string)input('description')), 0, 255) ?: null, 'category_id' => $cat['id'] ?? null, 'category' => $cat['name'] ?? 'Divers',
-                'price' => parse_money((string)input('price')), 'deposit' => 0, 'deposit_type_id' => (int)input('deposit_type_id') ?: null, 'vat_rate' => input('vat_rate') === '' ? null : (float)str_replace(',', '.', (string)input('vat_rate')),
+                'price' => parse_money((string)input('price')), 'cost' => input('cost') === '' ? null : parse_money((string)input('cost')), 'deposit' => 0, 'deposit_type_id' => (int)input('deposit_type_id') ?: null, 'vat_rate' => input('vat_rate') === '' ? null : (float)str_replace(',', '.', (string)input('vat_rate')),
                 'variants_json' => $variants ? json_encode($variants, JSON_UNESCAPED_UNICODE) : null, 'bar_prices_json' => $barPrices ? json_encode($barPrices) : null,
                 'bar_ids' => bars_ids('bar_ids') ?: null, 'track_stock' => checked('track_stock'), 'stock_alert' => input('stock_alert') === '' ? null : max(0, (int)input('stock_alert')),
                 'color' => preg_match('~^#[0-9a-f]{6}$~i', (string)input('color')) && input('use_color') ? (string)input('color') : null];
@@ -380,6 +380,7 @@ function bars_caisses(array $ev, array $org, string $base): array
     $tabs = []; foreach (all("SELECT bar_id, COUNT(*) n, SUM(total) t FROM pos_tabs WHERE event_id = ? AND status = 'open' GROUP BY bar_id", [$ev['id']]) as $r) $tabs[(int)$r['bar_id']] = $r;
     foreach ($sessions as &$se) { $se['validator'] = $validators[(int)$se['validated_by']] ?? null; $se['tabs'] = !$se['closed_at'] ? ($tabs[(int)$se['bar_id']] ?? null) : null; $se['t'] = $se['closed_at'] && $se['totals_json'] ? json_decode((string)$se['totals_json'], true) : Till::sessionTotals($se); $se['moves'] = all('SELECT m.*, st.name staff FROM pos_cash_moves m LEFT JOIN pos_staff st ON st.id = m.staff_id WHERE m.session_id = ? ORDER BY m.id', [$se['id']]); }
     unset($se);
+    if (!empty($GLOBALS['pay_bars'])) $sessions = array_values(array_filter($sessions, fn($s) => in_array((int)$s['bar_id'], $GLOBALS['pay_bars'], true)));
     $toValidate = count(array_filter($sessions, fn($s) => $s['closed_at'] && !$s['validated_at']));
     return compact('sessions', 'toValidate');
 }
@@ -407,6 +408,8 @@ function bars_z_pdf(array $ev, array $org, int $sid): never
     $row('Total des ventes', money((int)$tt['total']), true);
     if (!empty($tt['topups']['n'])) $row('Recharges cashless (espèces · carte)', money((int)$tt['topups']['cash']) . ' · ' . money((int)$tt['topups']['card']));
     if (!empty($tt['cashout'])) $row('Soldes remboursés en espèces', '- ' . money((int)$tt['cashout']));
+    if (!empty($tt['refunds'])) $row('Tickets remboursés', '- ' . money((int)$tt['refunds']));
+    if (!empty($tt['tips'])) $row('Pourboires (dont espèces dans le tiroir)', money((int)$tt['tips']));
     $pdf->Ln(4);
     $row('Fond de caisse', money((int)$tt['float']));
     $row('Apports', money((int)$tt['moves']['add']));
@@ -433,6 +436,7 @@ function bars_z_pdf(array $ev, array $org, int $sid): never
 function bars_stocks(array $ev, array $org, string $base): array
 {
     $bars = all('SELECT id, name FROM bars WHERE event_id = ? ORDER BY id', [$ev['id']]);
+    if (!empty($GLOBALS['pay_bars'])) $bars = array_values(array_filter($bars, fn($b) => in_array((int)$b['id'], $GLOBALS['pay_bars'], true)));
     if (is_post()) {
         $a = (string)input('action');
         $p = one('SELECT * FROM bar_products WHERE id = ? AND event_id = ?', [(int)input('product_id'), $ev['id']]);
@@ -480,6 +484,7 @@ function bars_ventes(array $ev, array $org, string $base): array
     if (preg_match('~^\d{4}-\d{2}-\d{2}$~', $f['day'])) { $w[] = 'DATE(s.created_at) = ?'; $p[] = $f['day']; }
     if ($f['q'] !== '') { $w[] = '(s.ticket_no = ? OR s.items LIKE ?)'; $p[] = (int)$f['q']; $p[] = '%' . $f['q'] . '%'; }
     if (!$f['undone']) $w[] = 's.undone = 0';
+    if (!empty($GLOBALS['pay_bars'])) $w[] = 's.bar_id IN (' . implode(',', array_map('intval', $GLOBALS['pay_bars'])) . ')';
     $where = implode(' AND ', $w);
     $sales = all("SELECT s.*, b.name bar, st.name staff_name, ap.name approver FROM pos_sales s JOIN bars b ON b.id = s.bar_id LEFT JOIN pos_staff st ON st.id = s.staff_id LEFT JOIN pos_staff ap ON ap.id = s.approved_by WHERE $where ORDER BY s.id DESC LIMIT 300", $p);
     $tot = one("SELECT COUNT(*) n, COALESCE(SUM(CASE WHEN s.kind = 'sale' THEN s.amount END), 0) t, COALESCE(SUM(s.offered_value), 0) o, COALESCE(SUM(s.discount), 0) d,
@@ -543,7 +548,8 @@ function bars_reglages(array $ev, array $org, string $base): array
         }
         $s = Till::settings($ev);
         $s['methods'] = array_values(array_intersect((array)($_POST['methods'] ?? []), ['cashless', 'card', 'cash', 'allowance']));
-        foreach (['require_staff', 'sessions', 'photos', 'big_buttons', 'tabs', 'blind_close', 'free_amount', 'count_denoms'] as $k) $s[$k] = checked($k);
+        foreach (['require_staff', 'sessions', 'photos', 'big_buttons', 'tabs', 'blind_close', 'free_amount', 'count_denoms', 'tips'] as $k) $s[$k] = checked($k);
+        $s['tip_pcts'] = implode(',', array_slice(array_filter(array_map(fn($v) => max(0, min(50, (int)$v)), explode(',', (string)input('tip_pcts')))), 0, 4)) ?: '5,10,15';
         $s['receipt'] = in_array(input('receipt'), ['off', 'qr', 'ask'], true) ? (string)input('receipt') : 'ask';
         $s['receipt_footer'] = mb_substr(trim((string)input('receipt_footer')), 0, 500);
         $s['default_vat'] = max(0, min(30, (float)str_replace(',', '.', (string)input('default_vat'))));
@@ -564,7 +570,7 @@ function bars_report_data(array $ev, ?string $day, ?int $bar): array
     if ($day) { $w .= ' AND DATE(s.created_at) = ?'; $p[] = $day; }
     if ($bar) { $w .= ' AND s.bar_id = ?'; $p[] = $bar; }
     $rows = all("SELECT s.*, b.name bar FROM pos_sales s JOIN bars b ON b.id = s.bar_id WHERE $w ORDER BY s.created_at", $p);
-    $blank = fn() => ['ttc' => 0, 'ht' => 0, 'tva' => 0, 'n' => 0, 'offered' => 0, 'discount' => 0, 'cashless' => 0, 'card' => 0, 'cash' => 0, 'dep_in' => 0, 'dep_out' => 0, 'topup' => 0, 'cashout' => 0];
+    $blank = fn() => ['ttc' => 0, 'ht' => 0, 'tva' => 0, 'n' => 0, 'offered' => 0, 'discount' => 0, 'cashless' => 0, 'card' => 0, 'cash' => 0, 'dep_in' => 0, 'dep_out' => 0, 'topup' => 0, 'cashout' => 0, 'cost' => 0, 'tip' => 0, 'refund' => 0];
     $tot = $blank(); $days = []; $bars = []; $vat = []; $cats = []; $prods = []; $staff = [];
     $catName = array_column(all('SELECT id, name FROM pos_categories WHERE event_id = ?', [$ev['id']]), 'name', 'id');
     $acc = function (array &$t, array $s, array $calc) {
@@ -576,7 +582,8 @@ function bars_report_data(array $ev, ?string $day, ?int $bar): array
         if ($kind === 'topup') $c['topup'] = (int)$s['amount'];
         elseif ($kind === 'cashout') $c['cashout'] = -(int)$s['amount'];
         else {
-            $c['n'] = 1; $c['offered'] = (int)$s['offered_value']; $c['discount'] = (int)$s['discount'];
+            $c['n'] = $kind === 'refund' ? 0 : 1; $c['offered'] = (int)$s['offered_value']; $c['discount'] = (int)$s['discount']; $c['tip'] = (int)($s['tip'] ?? 0);
+            if ($kind === 'refund') $c['refund'] = -(int)$s['amount'];
             $paid = !in_array($s['method'], ['allowance', 'offered'], true);
             $parts = $s['method'] === 'split' ? (json_decode((string)$s['payments_json'], true) ?: []) : [['method' => $s['method'], 'amount' => (int)$s['amount']]];
             foreach ($parts as $pt) if (isset($c[$pt['method']])) $c[$pt['method']] += (int)$pt['amount'];
@@ -585,7 +592,11 @@ function bars_report_data(array $ev, ?string $day, ?int $bar): array
                 if ($k === 'deposit') $c['dep_in'] += (int)$l['total'];
                 elseif ($k === 'return') $c['dep_out'] += -(int)$l['total'];
                 elseif ($k === 'product') {
-                    $pn = (string)$l['name']; $prods[$pn]['q'] = ($prods[$pn]['q'] ?? 0) + (int)$l['qty']; $prods[$pn]['t'] = ($prods[$pn]['t'] ?? 0) + ($paid ? (int)$l['total'] : 0);
+                    $pn = preg_replace('~^Remboursement ~', '', (string)$l['name']); $sign = $kind === 'refund' ? -1 : 1;
+                    $prods[$pn]['q'] = ($prods[$pn]['q'] ?? 0) + $sign * (int)$l['qty']; $prods[$pn]['t'] = ($prods[$pn]['t'] ?? 0) + ($paid ? (int)$l['total'] : 0);
+                    $lht = $paid ? (int)round((int)$l['total'] / (1 + (float)($l['vat'] ?? 20) / 100)) : 0;
+                    $prods[$pn]['ht'] = ($prods[$pn]['ht'] ?? 0) + $lht;
+                    if (isset($l['cost']) && $l['cost'] !== null) { $prods[$pn]['c'] = ($prods[$pn]['c'] ?? 0) + (int)$l['cost']; $prods[$pn]['cht'] = ($prods[$pn]['cht'] ?? 0) + $lht; $c['cost'] += (int)$l['cost']; }
                     $cn = $catName[$l['category_id'] ?? 0] ?? 'Sans catégorie'; $cats[$cn]['q'] = ($cats[$cn]['q'] ?? 0) + (int)$l['qty']; $cats[$cn]['t'] = ($cats[$cn]['t'] ?? 0) + ($paid ? (int)$l['total'] : 0);
                 }
             }
