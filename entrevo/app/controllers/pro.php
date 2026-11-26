@@ -306,11 +306,14 @@ function rates(string $id): string
             'after_rate_id' => ((int)input('after_rate_id') && (int)input('after_rate_id') !== $rid && val('SELECT id FROM rates WHERE id = ? AND event_id = ?', [(int)input('after_rate_id'), $ev['id']])) ? (int)input('after_rate_id') : null,
         ];
         if ($data['name'] === '') back(['error' => 'Donne un nom à ce tarif.']);
+        try { $data['dyn_json'] = DynPrice::fromInput(); } catch (RuntimeException $e) { back(['error' => $e->getMessage()]); } // 3.2 : prix dynamiques
+        if ($data['dyn_json']) $data['price'] = (int)(json_decode($data['dyn_json'], true)['steps'][0]['price'] ?? $data['price']);
         if ($data['after_rate_id'] && $rid && (int)val('SELECT after_rate_id FROM rates WHERE id = ?', [$data['after_rate_id']]) === $rid) back(['error' => 'Ces deux tarifs s\'attendent l\'un l\'autre : choisis un seul sens.']);
         if (!$rid && !(int)input('sort')) $data['sort'] = (int)val('SELECT COALESCE(MAX(sort), 0) + 10 FROM rates WHERE event_id = ?', [$ev['id']]);
         if ($rid) update('rates', $data, 'id = ? AND event_id = ?', [$rid, $ev['id']]);
         else $rid = insert('rates', $data + ['event_id' => $ev['id']]);
         Audit::log('rate.saved', (string)input('name'), (int)$ev['id']);
+        DynPrice::sync((int)$ev['id']);
         redirect('/pro/evenements/' . $ev['id'] . '/tarifs', ['success' => 'Tarif « ' . $data['name'] . ' » enregistré.']);
     }
     $org = current_org();

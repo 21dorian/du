@@ -141,7 +141,8 @@ $fromPrice = $onSalePrices ? min($onSalePrices) : null;
             <?php elseif ($r['hidden']): ?><span class="rate-tag" style="color:var(--primary)">Tarif secret débloqué</span><?php endif; ?>
             <?php if ($free && $max > 0): ?><label class="free-price">Ton prix (min. <?= e(money((int)$r['price'])) ?>) <span class="input-suffix"><input name="price[<?= (int)$r['id'] ?>]" value="<?= e(money_input(max((int)$r['price'], (int)($cart['prices'][$r['id']] ?? $r['price'])))) ?>" inputmode="decimal" data-free="<?= (int)$r['id'] ?>"><span>€</span></span></label><?php endif; ?>
           </div>
-          <div class="rate-price"><?= $free ? 'Prix libre' : ((int)$r['price'] === 0 ? 'Gratuit' : e(money((int)$r['price']))) ?><?php if ($fee && !$free): ?><small>+ <?= e(money($fee)) ?> de frais</small><?php endif; ?></div>
+          <div class="rate-price"><?= $free ? 'Prix libre' : ((int)$r['price'] === 0 ? 'Gratuit' : e(money((int)$r['price']))) ?><?php if ($fee && !$free): ?><small>+ <?= e(money($fee)) ?> de frais</small><?php endif; ?>
+            <?php if (!$free && $r['sale']['ok'] && ($dst = DynPrice::state($r)) && $dst['next'] !== null): ?><small class="dyn-next"><?= e(DynPrice::label($dst)) ?></small><?php endif; ?></div>
           <?php if ($max > 0): ?>
           <div class="qty" data-base="<?= (int)$r['price'] ?>" data-unit="1" data-price="<?= (int)$r['price'] + $fee ?>" data-rate="<?= (int)$r['id'] ?>" data-pack="<?= $pack ?>" data-cat="<?= e((string)$r['seat_category']) ?>" data-name="<?= e($r['name']) ?>" <?= $free ? 'data-freeprice="1"' : '' ?>>
             <button type="button" data-d="-1" aria-label="Moins">−</button>

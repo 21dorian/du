@@ -1,7 +1,7 @@
 <?php
 // 2.2 : onglets regroupés par rubrique (ligne 1 = rubriques, ligne 2 = pages de la rubrique)
 $groups = [
-    'apercu' => ['Vue d\'ensemble', ['overview' => ['Vue d\'ensemble', '']]],
+    'apercu' => ['Vue d\'ensemble', ['overview' => ['Vue d\'ensemble', ''], '360' => ['Vue 360', '/360']]],
     'vendre' => ['Vendre', ['rates' => ['Tarifs', '/tarifs'], 'sessions' => ['Dates', '/dates'], 'products' => ['Options', '/options'], 'promos' => ['Codes promo', '/promos'],
         'seating' => ['Plan de salle', '/plan'], 'waitlist' => ['Attente & revente', '/attente'], 'box' => ['Guichet', '/guichet']]],
     'communiquer' => ['Communiquer', ['page' => ['Page publique', '/page'], 'form' => ['Formulaire', '/formulaire'], 'links' => ['Liens & ambassadeurs', '/liens'], 'visuals' => ['Visuels', '/visuels'], 'messages' => ['Messages', '/messages']]],

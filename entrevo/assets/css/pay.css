@@ -96,3 +96,14 @@ body.pay{background:#f4f4f8;display:block}
 /* espace exploitant */
 .pay-op{max-width:1100px;margin:0 auto;padding:28px 18px 60px}
 .pay-op-top{display:flex;align-items:center;gap:14px;margin-bottom:22px}
+/* 3.2 : carte de chaleur */
+.heat{border-collapse:separate;border-spacing:3px;width:100%;font-size:12px}
+.heat th{font-weight:600;color:#7b7b93;padding:4px 6px;text-align:center;white-space:nowrap}.heat tbody th{text-align:left;color:var(--pay-ink)}
+.heat td{background:rgba(94,92,230,calc(.06 + var(--a) * .9));color:#fff;text-align:center;border-radius:6px;padding:8px 4px;min-width:34px;font-weight:600}
+.heat td.empty{background:#f3f3f8}.heat td.lt{color:var(--pay-ink)}
+.heat td.num{background:none;color:var(--pay-ink);text-align:right}
+
+.heatg-wrap{overflow-x:auto}.heatg{display:grid;gap:4px;align-items:center;min-width:max-content;font-size:12.5px}
+.heatg .hh{text-align:center;color:#7b7b93;font-weight:600}.heatg .hb{font-weight:600;color:var(--pay-ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.heatg i{font-style:normal;text-align:center;border-radius:7px;padding:9px 2px;font-weight:700;color:#fff;background:rgba(94,92,230,calc(.08 + var(--a) * .9))}
+.heatg i.lt{color:var(--pay-ink)}.heatg i.empty{background:#f3f3f8}.heatg .ht{text-align:right}

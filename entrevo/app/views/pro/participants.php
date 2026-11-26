@@ -35,7 +35,7 @@ $segs = ['' => 'Tout le monde', 'fideles' => 'Fidèles (2+ événements)', 'gros
     <?php foreach ($list as $c): $pres = (int)$c['tickets'] ? min(100, round((int)$c['came'] / (int)$c['tickets'] * 100)) : 0; ?>
       <tr data-href="<?= url('/pro/commandes', ['q' => $c['email']]) ?>">
         <td><span class="avatar-row"><span class="avatar-sm" style="--h:<?= crc32($c['email']) % 360 ?>"><?= e(mb_strtoupper(mb_substr((string)$c['first_name'], 0, 1) . mb_substr((string)$c['last_name'], 0, 1))) ?></span>
-          <span><a href="<?= url('/pro/commandes', ['q' => $c['email']]) ?>"><b><?= e(trim($c['first_name'] . ' ' . $c['last_name'])) ?></b></a><?= (int)$c['events'] >= 2 ? ' <span class="tag">Fidèle</span>' : '' ?><br><small class="muted"><?= e($c['email']) ?></small></span></span></td>
+          <span><a href="<?= url('/pro/festivaliers', ['e' => $c['email']]) ?>"><b><?= e(trim($c['first_name'] . ' ' . $c['last_name'])) ?></b></a><?= (int)$c['events'] >= 2 ? ' <span class="tag">Fidèle</span>' : '' ?><br><small class="muted"><?= e($c['email']) ?></small></span></span></td>
         <td><small><?= e((string)$c['phone']) ?: '<span class="muted">—</span>' ?></small></td>
         <td class="num"><?= (int)$c['events'] ?></td>
         <td class="num"><?= (int)$c['orders'] ?></td>

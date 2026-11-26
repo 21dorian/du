@@ -105,6 +105,7 @@ if ($area === 'admin') {
             ['events', '/pro/evenements', 'Événements', $I['events']],
             ['orders', '/pro/commandes', 'Commandes', $I['orders']],
             ['participants', '/pro/participants', 'Participants', $I['people']],
+            ['fidelite', '/pro/fidelite', 'Fidélité & festivaliers', $I['star']],
         ]],
         ['Vendre plus', [
             ['boutique', '/pro/boutique', 'Boutique & merch', $I['bag']],

@@ -26,6 +26,7 @@ final class Jobs
             'published' => fn() => q("UPDATE events e JOIN organizers o ON o.id = e.organizer_id SET e.status = 'published' WHERE e.status = 'draft' AND e.publish_at IS NOT NULL AND e.publish_at <= NOW() AND o.status = 'active'")->rowCount(),
             'payments' => fn() => (time() - (int)setting('jobs_pay', 0) >= 180 || $force) ? (set_setting('jobs_pay', (string)time()) ?? Payments::recheckPending()) : 0,
             'waitlist' => fn() => class_exists('Waitlist') ? Waitlist::process() : 0,
+            'prix' => fn() => class_exists('DynPrice') ? DynPrice::syncAll() : 0,
             'campaigns' => fn() => class_exists('Campaigns') ? Campaigns::process() : 0,
             'sms' => fn() => class_exists('Sms') ? Sms::process() : 0,
             'formules' => fn() => class_exists('Billing') ? Billing::monthly() : 0,

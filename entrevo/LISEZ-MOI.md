@@ -79,6 +79,32 @@ Couleurs : **vert** = entre, **orange** = déjà entré / pas entré (sortie), *
 
 ---
 
+## Nouveautés 3.2 — billetterie et cashless plus intelligents
+
+**Billetterie : prix dynamiques**
+- Sur chaque tarif, des **paliers de prix** qui s'enchaînent tout seuls (jusqu'à 5) : **selon les places vendues** (« 15 € jusqu'à 100 places, 19 € jusqu'à 300, puis 24 € ») ou **selon la date** (« 15 € jusqu'au 1er mars, puis 19 € »).
+- La page de l'événement affiche **« Plus que X places à ce prix, ensuite Y € »** ou la date du prochain prix ; les commandes en cours gardent leur prix.
+- Historique des changements de prix dans le tarif ; étiquette « Prix dynamique · palier 2/3 » dans la liste des tarifs.
+
+**Billetterie : vue 360 de l'événement** (Vue d'ensemble › Vue 360)
+- Une seule page : **recette totale** (billetterie + bars), billets vendus et remplissage, **présents** et taux de présence, **dépense aux bars par personne présente**.
+- Billetterie détaillée (encaissé, remboursé, frais, reversé, options, boutique, dons, ventes par tarif), bars et cashless (CA, pourboires, recharges, soldes, points de vente), **prévision de remplissage**, **budget** (résultat avec les recettes réelles), **entrées et ventes des bars heure par heure** le jour J, ventes de billets sur 30 jours. Export CSV.
+
+**Billetterie : fidélité et CRM festivaliers** (menu Fidélité & festivaliers)
+- **Points** calculés à partir des achats de billets, des **dépenses cashless aux bars** et de la **présence** (billet scanné), avec des **niveaux** (Argent, Or, Platine par défaut, jusqu'à 4, seuils et offres réglables).
+- **Segments** : niveau, fidèles, gros consommateurs aux bars, ont acheté sans venir, nouveaux, dormants ; export CSV.
+- **Offre ciblée** : crée en un clic un code promo réservé au segment (réduction, date limite, une utilisation par personne) et télécharge la liste avec le code et le lien, prête pour une campagne e-mail.
+- **Fiche festivalier** : niveau et progression, valeur totale, parcours événement par événement (billets, présence, dépenses billetterie et bars), ce qu'il ou elle consomme, porte-monnaie cashless. Accessible aussi depuis Participants.
+
+**Entrevo Pay : prévisions de rupture**
+- Pour chaque produit suivi et chaque bar : **vitesse de vente** (30 min, 1 h ou 2 h), **heure de rupture estimée**, **réassort suggéré** pour tenir 1 à 4 h, demandes des bars ; « Livré » ajoute le stock et clôt la demande.
+- Les ruptures de moins d'une heure apparaissent dans les **alertes du direct**.
+
+**Entrevo Pay : analyse des ventes**
+- **Carte de chaleur** chiffre d'affaires par heure et par point de vente, **par journée** (ventes, CA, panier, heure de pointe), **panier moyen** par profil de festivalier et par moyen de paiement, articles par ticket.
+- **Produits souvent achetés ensemble** (pistes de formules).
+- **Comparaison avec une autre édition** : CA, ventes, panier, présents, dépense par présent et produits.
+
 ## Nouveautés 3.1 — caisse et pilotage plus complets
 
 **Application caisse**

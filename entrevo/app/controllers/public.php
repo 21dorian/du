@@ -8,6 +8,9 @@ function pub(string $view, array $vars, string $title, array $extra = []): strin
 
 function public_event(string $slug, bool $gates = true): array
 {
+    static $dynDone = [];
+    $dynEv = one('SELECT id FROM events WHERE slug = ?', [$slug]);
+    if ($dynEv && !isset($dynDone[$dynEv['id']]) && class_exists('DynPrice')) { $dynDone[$dynEv['id']] = 1; try { DynPrice::sync((int)$dynEv['id']); } catch (Throwable $e) { log_line('erreurs', 'Prix dynamiques : ' . $e->getMessage()); } } // 3.2
     $ev = one('SELECT * FROM events WHERE slug = ?', [$slug]);
     if (!$ev) abort(404, 'Cet événement n\'existe pas. Ou plus. Ou pas encore.');
     $org = one('SELECT * FROM organizers WHERE id = ?', [$ev['organizer_id']]);

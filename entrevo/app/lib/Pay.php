@@ -233,6 +233,7 @@ final class Pay
         foreach ($bars as $b) if ($drop && $b['cash'] >= $drop) $alerts[] = ['warn', $b['name'] . ' : ' . money($b['cash']) . ' d\'espèces dans la caisse, prévois une remise en banque.'];
         foreach (all("SELECT p.name, b.name bar, s.qty FROM pos_stock s JOIN bar_products p ON p.id = s.product_id JOIN bars b ON b.id = s.bar_id WHERE p.event_id = ? AND p.track_stock = 1 AND s.qty <= COALESCE(p.stock_alert, 10)" . ($barIds ? ' AND s.bar_id IN (' . implode(',', array_map('intval', $barIds)) . ')' : '') . ' ORDER BY s.qty LIMIT 8', [$ev['id']]) as $r)
             $alerts[] = [(int)$r['qty'] <= 0 ? 'bad' : 'warn', $r['name'] . ' · ' . $r['bar'] . ' : ' . ((int)$r['qty'] <= 0 ? 'rupture' : (int)$r['qty'] . ' restant(s)')];
+        foreach (self::forecast($ev, $barIds) as $f) if ($f['mins'] !== null && $f['mins'] <= 60 && $f['qty'] > 0) $alerts[] = [$f['mins'] <= 20 ? 'bad' : 'warn', $f['name'] . ' · ' . $f['bar'] . ' : rupture estimée vers ' . $f['eta'] . ' (' . $f['qty'] . ' restants, ' . $f['per_hour'] . '/h)' . ($f['requested'] ? ' · réassort demandé' : '')];
         $off = []; $lowBat = [];
         foreach (all("SELECT name, last_seen, battery FROM pos_devices WHERE event_id = ? AND revoked = 0 AND token_hash IS NOT NULL AND station_at >= NOW() - INTERVAL 12 HOUR AND (last_seen < NOW() - INTERVAL 5 MINUTE OR battery < 15)", [$ev['id']]) as $d) {
             if ($d['last_seen'] && strtotime((string)$d['last_seen']) < time() - 300) $off[$d['name']] = true;
@@ -272,6 +273,73 @@ final class Pay
         return ['bars' => $bars, 'per_bar' => $perBar, 'n' => $bm['count'], 'cashless' => $get('cashless'), 'card' => $get('card'), 'cash' => $get('cash'), 'offered' => (int)$bm['offered'], 'ttc' => $ttc, 'ht' => $ht,
             'collected_by_org' => $collectedByOrg, 'kept_by_operator' => $ttc - $collectedByOrg, 'commission' => $commission, 'due' => $due, 'paid' => $paid, 'left' => $due - $paid,
             'payouts' => all('SELECT * FROM pay_payouts WHERE operator_id = ? AND event_id = ? ORDER BY id', [$op['id'], $ev['id']])];
+    }
+
+    // ---------- 3.2 : prévisions de rupture ----------
+    /** Vitesse de vente (dernière heure) de chaque produit suivi, par point de vente : heure de rupture estimée et réassort suggéré. */
+    public static function forecast(array $ev, array $barIds = [], int $window = 60, int $cover = 120): array
+    {
+        $bw = $barIds ? ' AND s.bar_id IN (' . implode(',', array_map('intval', $barIds)) . ')' : '';
+        $rate = [];
+        foreach (all("SELECT product_id, bar_id, -SUM(delta) q FROM pos_stock_moves WHERE event_id = ? AND kind IN ('sale','undo','refund') AND created_at >= NOW() - INTERVAL $window MINUTE GROUP BY product_id, bar_id", [$ev['id']]) as $r) $rate[(int)$r['product_id']][(int)$r['bar_id']] = max(0, (int)$r['q']);
+        $req = []; foreach (all("SELECT product_id, bar_id, SUM(qty) q FROM pos_stock_requests WHERE event_id = ? AND status = 'open' GROUP BY product_id, bar_id", [$ev['id']]) as $r) $req[(int)$r['product_id']][(int)$r['bar_id']] = (int)$r['q'];
+        $out = [];
+        foreach (all("SELECT s.product_id, s.bar_id, s.qty, p.name, p.stock_alert, p.cost, b.name bar FROM pos_stock s JOIN bar_products p ON p.id = s.product_id JOIN bars b ON b.id = s.bar_id WHERE p.event_id = ? AND p.track_stock = 1 AND p.active = 1 AND b.active = 1$bw", [$ev['id']]) as $r) {
+            $q = (int)$r['qty']; $sold = $rate[(int)$r['product_id']][(int)$r['bar_id']] ?? 0; $perMin = $sold / $window;
+            $mins = $perMin > 0 ? (int)floor(max(0, $q) / $perMin) : null;
+            $need = $perMin > 0 ? max(0, (int)ceil(($perMin * $cover - $q) / 6) * 6) : 0;
+            $level = $q <= 0 ? 'bad' : ($mins !== null && $mins <= 30 ? 'bad' : ($mins !== null && $mins <= 90 ? 'warn' : ($q <= (int)($r['stock_alert'] ?? 10) ? 'warn' : 'ok')));
+            $out[] = ['product_id' => (int)$r['product_id'], 'bar_id' => (int)$r['bar_id'], 'name' => $r['name'], 'bar' => $r['bar'], 'qty' => $q, 'per_hour' => (int)round($perMin * 60), 'mins' => $mins,
+                'eta' => $mins !== null ? date('H:i', time() + $mins * 60) : null, 'suggest' => $need, 'requested' => $req[(int)$r['product_id']][(int)$r['bar_id']] ?? 0, 'level' => $level];
+        }
+        usort($out, fn($a, $b) => [($a['mins'] ?? PHP_INT_MAX), $a['qty']] <=> [($b['mins'] ?? PHP_INT_MAX), $b['qty']]);
+        return $out;
+    }
+
+    // ---------- 3.2 : analyse des ventes ----------
+    public static function analyse(array $ev, ?string $day = null, array $barIds = []): array
+    {
+        $w = "s.event_id = ? AND s.undone = 0 AND s.kind = 'sale'"; $p = [$ev['id']];
+        if ($day) { $w .= ' AND DATE(s.created_at) = ?'; $p[] = $day; }
+        if ($barIds) $w .= ' AND s.bar_id IN (' . implode(',', array_map('intval', $barIds)) . ')';
+        // carte de chaleur heure × point de vente
+        $heat = []; $hours = [];
+        foreach (all("SELECT b.name bar, HOUR(s.created_at) h, SUM(s.amount) t, COUNT(*) n FROM pos_sales s JOIN bars b ON b.id = s.bar_id WHERE $w GROUP BY s.bar_id, h", $p) as $r) { $heat[$r['bar']][(int)$r['h']] = ['t' => (int)$r['t'], 'n' => (int)$r['n']]; $hours[(int)$r['h']] = true; }
+        $hours = array_keys($hours); sort($hours);
+        // journées
+        $days = all("SELECT DATE(s.created_at) d, COUNT(*) n, SUM(s.amount) t, MAX(HOUR(s.created_at)) last_h FROM pos_sales s WHERE s.event_id = ? AND s.undone = 0 AND s.kind = 'sale' GROUP BY d ORDER BY d", [$ev['id']]);
+        foreach ($days as &$d) { $pk = one("SELECT HOUR(created_at) h, SUM(amount) t FROM pos_sales WHERE event_id = ? AND undone = 0 AND kind = 'sale' AND DATE(created_at) = ? GROUP BY h ORDER BY t DESC LIMIT 1", [$ev['id'], $d['d']]); $d['peak'] = $pk ? (int)$pk['h'] : null; $d['peak_t'] = $pk ? (int)$pk['t'] : 0; }
+        unset($d);
+        // panier moyen par profil et par moyen de paiement
+        $prof = all("SELECT COALESCE(w.profile, 'sans') profile, COUNT(*) n, SUM(s.amount) t FROM pos_sales s LEFT JOIN wallets w ON w.id = s.wallet_id WHERE $w AND s.wallet_id IS NOT NULL GROUP BY profile ORDER BY t DESC", $p);
+        $meth = all("SELECT s.method, COUNT(*) n, SUM(s.amount) t FROM pos_sales s WHERE $w GROUP BY s.method ORDER BY t DESC", $p);
+        // produits achetés ensemble
+        $pairs = []; $single = []; $nTickets = 0;
+        foreach (all("SELECT s.items FROM pos_sales s WHERE $w ORDER BY s.id DESC LIMIT 5000", $p) as $r) {
+            $names = []; foreach (json_decode((string)$r['items'], true) ?: [] as $l) if (($l['kind'] ?? '') === 'product') $names[preg_replace('~ · .*$| \(.*$~', '', (string)$l['name'])] = true;
+            $names = array_keys($names); sort($names); $nTickets++;
+            foreach ($names as $a) $single[$a] = ($single[$a] ?? 0) + 1;
+            for ($i = 0; $i < count($names); $i++) for ($j = $i + 1; $j < count($names); $j++) { $k = $names[$i] . '|' . $names[$j]; $pairs[$k] = ($pairs[$k] ?? 0) + 1; }
+        }
+        arsort($pairs);
+        $assoc = [];
+        foreach (array_slice($pairs, 0, 12, true) as $k => $n) { if ($n < 2) continue; [$a, $b] = explode('|', $k); $assoc[] = ['a' => $a, 'b' => $b, 'n' => $n, 'pct' => (int)round($n / max(1, min($single[$a], $single[$b])) * 100)]; }
+        // panier : nombre d'articles
+        $sizes = []; foreach (all("SELECT s.items FROM pos_sales s WHERE $w LIMIT 5000", $p) as $r) { $q = 0; foreach (json_decode((string)$r['items'], true) ?: [] as $l) if (($l['kind'] ?? '') === 'product') $q += (int)$l['qty']; $k = min(5, max(1, $q)); $sizes[$k] = ($sizes[$k] ?? 0) + 1; }
+        ksort($sizes);
+        return compact('heat', 'hours', 'days', 'prof', 'meth', 'assoc', 'sizes') + ['tickets' => $nTickets];
+    }
+
+    /** Comparaison avec un autre événement (édition précédente) : totaux et produits. */
+    public static function compare(array $ev, array $other): array
+    {
+        $tot = fn($id) => one("SELECT COUNT(*) n, COALESCE(SUM(amount), 0) t, COUNT(DISTINCT wallet_id) w, COALESCE(SUM(offered_value), 0) o FROM pos_sales WHERE event_id = ? AND undone = 0 AND kind = 'sale'", [$id]);
+        $prods = function ($id) { $o = []; foreach (all("SELECT items FROM pos_sales WHERE event_id = ? AND undone = 0 AND kind = 'sale'", [$id]) as $r) foreach (json_decode((string)$r['items'], true) ?: [] as $l) if (($l['kind'] ?? '') === 'product') { $n = preg_replace('~ · .*$| \(.*$~', '', (string)$l['name']); $o[$n]['q'] = ($o[$n]['q'] ?? 0) + (int)$l['qty']; $o[$n]['t'] = ($o[$n]['t'] ?? 0) + (int)$l['total']; } return $o; };
+        $att = fn($id) => (int)val("SELECT COUNT(*) FROM tickets WHERE event_id = ? AND status = 'valid' AND entries > 0", [$id]);
+        $a = $tot((int)$ev['id']); $b = $tot((int)$other['id']); $pa = $prods((int)$ev['id']); $pb = $prods((int)$other['id']);
+        $rows = []; foreach (array_unique(array_merge(array_keys($pa), array_keys($pb))) as $n) $rows[$n] = ['a' => $pa[$n]['t'] ?? 0, 'b' => $pb[$n]['t'] ?? 0, 'qa' => $pa[$n]['q'] ?? 0, 'qb' => $pb[$n]['q'] ?? 0];
+        uasort($rows, fn($x, $y) => ($y['a'] + $y['b']) <=> ($x['a'] + $x['b']));
+        return ['a' => $a + ['att' => $att((int)$ev['id'])], 'b' => $b + ['att' => $att((int)$other['id'])], 'products' => array_slice($rows, 0, 15, true)];
     }
 
     // ---------- éco-cups ----------

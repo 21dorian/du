@@ -1,7 +1,7 @@
 <?php
 $form = function (?array $r) use ($org, $sessions, $seatCats, $rates) {
     $p = $r ?? ['id' => 0, 'name' => '', 'description' => '', 'price' => 0, 'quota' => 0, 'max_per_order' => 0, 'sale_start' => null, 'sale_end' => null, 'hidden' => 0, 'active' => 1, 'sort' => 0,
-        'price_mode' => 'fixed', 'pack_size' => 1, 'max_entries' => 1, 'per_day' => 0, 'session_ids' => '', 'seat_category' => '', 'scan_note' => '', 'scan_color' => '', 'vat_rate' => null, 'after_rate_id' => null, 'min_age' => null];
+        'price_mode' => 'fixed', 'pack_size' => 1, 'max_entries' => 1, 'per_day' => 0, 'session_ids' => '', 'seat_category' => '', 'scan_note' => '', 'scan_color' => '', 'vat_rate' => null, 'after_rate_id' => null, 'min_age' => null, 'dyn_json' => null];
     $selS = array_map('intval', array_filter(explode(',', (string)$p['session_ids'])));
     ob_start(); ?>
     <form method="post"><?= csrf_field() ?><input type="hidden" name="rate_id" value="<?= (int)$p['id'] ?>">
@@ -37,6 +37,19 @@ $form = function (?array $r) use ($org, $sessions, $seatCats, $rates) {
         <select name="after_rate_id"><option value="">Ouvert selon ses dates de vente</option><?php foreach ($others as $x): ?><option value="<?= (int)$x['id'] ?>" <?= (int)($p['after_rate_id'] ?? 0) === (int)$x['id'] ? 'selected' : '' ?>>S'ouvre quand « <?= e($x['name']) ?> » (<?= e(money((int)$x['price'])) ?>) est épuisé ou terminé</option><?php endforeach; ?></select>
         <small>Ex. : « Early bird » 100 places à 15 €, puis « Normal » à 20 € qui s'ouvre tout seul. Le palier suivant s'affiche grisé en attendant, et un compte à rebours apparaît la dernière semaine si le tarif a une date de fin.</small></div>
       <?php endif; ?>
+      <?php $dc = DynPrice::config($p); $ds = $dc ? $dc['steps'] : [['limit' => 100, 'price' => (int)$p['price']], ['limit' => 300, 'price' => (int)round((int)$p['price'] * 1.2)], ['limit' => null, 'price' => (int)round((int)$p['price'] * 1.4)]];
+        $hist = !empty($p['id']) ? all('SELECT * FROM rate_prices WHERE rate_id = ? ORDER BY id DESC LIMIT 8', [$p['id']]) : []; ?>
+      <details class="dyn-box"<?= $dc ? ' open' : '' ?>><summary><b>Prix dynamique</b> <small class="muted">le prix monte tout seul par paliers<?= $dc ? ' · activé' : '' ?></small></summary>
+        <label class="check mt"><input type="checkbox" name="dyn_on" value="1" <?= $dc ? 'checked' : '' ?>> <span>Activer les paliers pour ce tarif (le prix saisi plus haut est remplacé par celui du palier en cours)</span></label>
+        <div class="field mt"><label>Le palier change selon</label><div class="seg"><label class="seg-r"><input type="radio" name="dyn_mode" value="sold" <?= ($dc['mode'] ?? 'sold') === 'sold' ? 'checked' : '' ?>><span>les places vendues</span></label><label class="seg-r"><input type="radio" name="dyn_mode" value="date" <?= ($dc['mode'] ?? '') === 'date' ? 'checked' : '' ?>><span>la date</span></label></div></div>
+        <table class="table table-sm dyn-steps"><thead><tr><th>Palier</th><th>Jusqu'à (places vendues ou date)</th><th>Prix</th></tr></thead><tbody>
+          <?php for ($k = 0; $k < 5; $k++): $st = $ds[$k] ?? null; $isDate = ($dc['mode'] ?? 'sold') === 'date'; ?><tr><td><?= $k + 1 ?></td>
+            <td><input name="dyn_limit[<?= $k ?>]" value="<?= $st && $st['limit'] !== null ? e($isDate ? dt_input((string)$st['limit']) : (string)$st['limit']) : '' ?>" placeholder="<?= $k ? 'ex. 300 ou 2027-03-01 00:00' : 'ex. 100' ?>"></td>
+            <td><div class="input-suffix"><input name="dyn_price[<?= $k ?>]" inputmode="decimal" value="<?= $st ? e(money_input((int)$st['price'])) : '' ?>"><span>€</span></div></td></tr><?php endfor; ?>
+        </tbody></table>
+        <small class="muted">Le dernier palier rempli n'a pas de limite (« ensuite »). Selon les ventes : nombre total de places vendues pour ce tarif (paniers en cours compris). Selon la date : AAAA-MM-JJ HH:MM. La page de l'événement affiche « Plus que X places à ce prix » ou la date du prochain prix, et les commandes en cours gardent leur prix.</small>
+        <?php if ($hist): ?><div class="mt"><b>Historique</b><?php foreach ($hist as $hx): ?><div class="list-item"><span class="grow"><?= e(fr_date($hx['created_at'])) ?> · <?= e((string)$hx['reason']) ?></span><b><?= e(money((int)$hx['old_price'])) ?> → <?= e(money((int)$hx['price'])) ?></b></div><?php endforeach; ?></div><?php endif; ?>
+      </details>
       <div class="row" style="gap:22px;margin-bottom:14px">
         <label class="check"><input type="checkbox" name="active" value="1" <?= $p['active'] ? 'checked' : '' ?>> Actif (en vente)</label>
         <label class="check"><input type="checkbox" name="hidden" value="1" <?= $p['hidden'] ? 'checked' : '' ?>> Tarif secret (visible seulement avec un code d'accès)</label>
@@ -98,6 +111,7 @@ $base = '/pro/evenements/' . $ev['id'] . '/tarifs';
             <?php if ((int)$r['pack_size'] > 1): ?><span>Pack de <?= (int)$r['pack_size'] ?></span><?php endif; ?>
             <?php if ((int)$r['max_entries'] > 1): ?><span><?= (int)$r['max_entries'] ?> entrées</span><?php endif; ?>
             <?php if ($r['hidden']): ?><span>Secret</span><?php endif; ?>
+            <?php if ($dst = DynPrice::state($r)): ?><span>Prix dynamique · palier <?= $dst['index'] + 1 ?>/<?= $dst['count'] ?><?= $dst['next'] !== null ? ' · ' . ($dst['mode'] === 'sold' ? $dst['left'] . ' pl. avant ' . money($dst['next']) : money($dst['next']) . ' le ' . short_date((string)$dst['until'])) : '' ?></span><?php endif; ?>
             <?php if ($r['min_age']): ?><span><?= (int)$r['min_age'] ?> ans et +</span><?php endif; ?>
             <?php if ($r['session_ids']): ?><span><?= count(Tickets::rateSessions($r)) ?> date(s)</span><?php endif; ?>
             <?php if ($r['after_rate_id']): $pv = array_values(array_filter($rates, fn($x) => (int)$x['id'] === (int)$r['after_rate_id'])); ?><span>après « <?= e($pv[0]['name'] ?? '?') ?> »</span><?php endif; ?>

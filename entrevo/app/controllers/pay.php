@@ -8,6 +8,8 @@ require_once APP . '/controllers/bars.php';
 /** Rubriques d'un événement : slug => [libellé, droit, groupe]. Les slugs des pages reprises de « Bars & caisses » sont identiques. */
 const PAY_SECTIONS = [
     '' => ['En direct', 'live', 'Pilotage'],
+    'analyse' => ['Analyse des ventes', 'rapport', 'Pilotage'],
+    'previsions' => ['Prévisions de rupture', 'stocks', 'Pilotage'],
     'porte-monnaie' => ['Porte-monnaie', 'wallets', 'Festivaliers'],
     'remboursements' => ['Recharges & remboursements', 'refunds', 'Festivaliers'],
     'packs' => ['Crédits & préchargements', 'packs', 'Festivaliers'],
@@ -638,5 +640,34 @@ function pay_s_journal(array $m, array $ev, string $base, string $label): string
     $rows = all("SELECT a.*, u.name who, u.email FROM audit_log a LEFT JOIN users u ON u.id = a.user_id WHERE $w ORDER BY a.id DESC LIMIT 300", $p);
     $kinds = array_column(all("SELECT DISTINCT action FROM audit_log WHERE organizer_id = ? AND (action LIKE 'pay.%' OR action LIKE 'pos.%') ORDER BY action", [$m['org']['id']]), 'action');
     return pay_page($m, $ev, 'journal', $label, view('pay/journal', compact('rows', 'kinds', 'f', 'base', 'ev')));
+}
+
+// ---------- 3.2 : prévisions de rupture ----------
+function pay_s_previsions(array $m, array $ev, string $base, string $label): string
+{
+    $mine = $m['role'] === 'bar' ? $m['bars'] : [];
+    $win = in_array((int)input('w'), [30, 60, 120], true) ? (int)input('w') : 60;
+    $cover = in_array((int)input('c'), [60, 120, 180, 240], true) ? (int)input('c') : 120;
+    if (is_post() && input('action') === 'deliver') {
+        $pid = (int)input('product_id'); $bid = (int)input('bar_id'); $q = max(1, (int)input('qty'));
+        if (!val('SELECT id FROM bar_products WHERE id = ? AND event_id = ?', [$pid, $ev['id']]) || !val('SELECT id FROM bars WHERE id = ? AND event_id = ?', [$bid, $ev['id']]) || ($mine && !in_array($bid, $mine, true))) back(['error' => 'Produit ou point de vente invalide.']);
+        Till::stockMove((int)$ev['id'], $pid, $bid, $q, 'in', null, (int)user()['id'], 'Réassort suggéré (prévision)');
+        q("UPDATE pos_stock_requests SET status = 'done', done_qty = ?, done_by = ?, done_at = NOW() WHERE event_id = ? AND product_id = ? AND bar_id = ? AND status = 'open'", [$q, user()['id'], $ev['id'], $pid, $bid]);
+        Audit::log('pay.restock', $q . ' livrés (prévision) au point de vente ' . $bid, (int)$ev['id']);
+        back(['success' => $q . ' livré(s).']);
+    }
+    $F = Pay::forecast($ev, $mine, $win, $cover);
+    return pay_page($m, $ev, 'previsions', $label, view('pay/forecast', compact('F', 'win', 'cover', 'base', 'ev')));
+}
+
+// ---------- 3.2 : analyse des ventes ----------
+function pay_s_analyse(array $m, array $ev, string $base, string $label): string
+{
+    $day = preg_match('~^\d{4}-\d{2}-\d{2}$~', (string)input('jour')) ? (string)input('jour') : null;
+    $A = Pay::analyse($ev, $day, $m['role'] === 'bar' ? $m['bars'] : []);
+    $others = all('SELECT id, name, starts_at FROM events WHERE organizer_id = ? AND id <> ? ORDER BY starts_at DESC LIMIT 20', [$m['org']['id'], $ev['id']]);
+    $other = (int)input('vs') ? one('SELECT * FROM events WHERE id = ? AND organizer_id = ?', [(int)input('vs'), $m['org']['id']]) : null;
+    $CMP = $other ? Pay::compare($ev, $other) : null;
+    return pay_page($m, $ev, 'analyse', $label, view('pay/analyse', compact('A', 'day', 'others', 'other', 'CMP', 'base', 'ev')));
 }
 
