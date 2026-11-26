@@ -17,7 +17,7 @@
   var money = function (c) { return (c / 100).toLocaleString('fr-FR', { style: 'currency', currency: 'EUR' }); };
   var uid = function () { return 'c' + Date.now().toString(36) + Math.random().toString(36).slice(2, 10); };
   var buzz = function (p) { try { navigator.vibrate && navigator.vibrate(p); } catch (e) { /* rien */ } };
-  var APP_V = '3.2.0';
+  var APP_V = '4.0.0';
   var METHOD = { cashless: 'Cashless', card: 'Carte', cash: 'Espèces', allowance: 'Crédit', offered: 'Offert' };
 
   var S = {
@@ -101,7 +101,8 @@
     { id: 'bar', t: 'Vendre', s: 'Encaisser les consommations', till: true, ic: '<rect x="3" y="5" width="18" height="14" rx="2.5"/><path d="M3 10h18M7 15h4"/>' },
     { id: 'topup', t: 'Recharger', s: 'Créditer billets et bracelets', till: true, ic: '<rect x="3" y="6" width="18" height="13" rx="3"/><path d="M12 9.5v6M9 12.5h6"/>' },
     { id: 'prep', t: 'Préparer', s: 'Écran cuisine ou comptoir', ic: '<path d="M5 11h14v3a6 6 0 0 1-6 6h-2a6 6 0 0 1-6-6z"/><path d="M9 4v4M12 3v5M15 4v4"/>' },
-    { id: 'display', t: 'Écran d\'appel', s: 'Numéros prêts, sur une TV', ic: '<rect x="3" y="4" width="18" height="12" rx="2"/><path d="M8 20h8M12 16v4"/>' }
+    { id: 'display', t: 'Écran d\'appel', s: 'Numéros prêts, sur une TV', ic: '<rect x="3" y="4" width="18" height="12" rx="2"/><path d="M8 20h8M12 16v4"/>' },
+    { id: 'access', t: 'Contrôle d\'accès', s: 'Zones VIP, backstage…', zone: true, ic: '<path d="M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6z"/><path d="M9 12l2 2 4-4"/>' }
   ];
   function keypad(el, keys, onKey) {
     el.innerHTML = keys.map(function (k) { return '<button type="button" data-k="' + k + '">' + k + '</button>'; }).join('');
@@ -155,7 +156,7 @@
     var c = C(), open = c.open_bars || [];
     stopPoll(); stopOpenPoll();
     ST.bar = (S.shift && S.shift.bar_id) || c.device.bar_id || (c.bars.length === 1 ? c.bars[0].id : null);
-    ST.mode = (S.shift && S.shift.mode) || null;
+    ST.mode = (S.shift && S.shift.mode) || null; ST.zone = (S.shift && S.shift.zone_id) || null;
     $('#st-who').textContent = (staff() ? staff().name : (S.shift && S.shift.name) || 'Ton poste') + ' · ' + c.event.name;
     var renderSt = function () {
       var all = ST.bar === 0;
@@ -164,14 +165,17 @@
         return '<button class="place' + (ST.bar === b.id ? ' on' : '') + '" data-stbar="' + b.id + '"><b>' + esc(b.name) + '</b>' + (c.settings.sessions ? '<span class="' + (o ? 'ok' : '') + '"><i></i>' + (o ? 'Caisse ouverte' : 'Caisse fermée') + '</span>' : '') + '</button>';
       }).join('') + (c.bars.length > 1 ? '<button class="place place-all' + (all ? ' on' : '') + '" data-stbar="0"><b>Tous</b><span>Préparation et écran d\'appel</span></button>' : '')
         || '<p class="muted">Aucun point de vente : l\'organisateur doit en créer un.</p>';
-      var roles = ROLES.filter(function (r) { return r.id !== 'topup' || c.event.cashless; });
+      var roles = ROLES.filter(function (r) { return (r.id !== 'topup' || c.event.cashless) && (r.id !== 'access' || (c.zones && c.zones.length)); });
       if (ST.mode && !roles.some(function (r) { return r.id === ST.mode; })) ST.mode = null;
       $('#st-roles').innerHTML = roles.map(function (r) {
         var off = all && r.till;
         return '<button class="role' + (ST.mode === r.id ? ' on' : '') + '" data-strole="' + r.id + '"' + (off ? ' disabled' : '') + '><svg viewBox="0 0 24 24">' + r.ic + '</svg><b>' + r.t + '</b><span>' + r.s + '</span></button>';
       }).join('');
       if (all && ST.mode && ROLES.filter(function (r) { return r.id === ST.mode; })[0].till) ST.mode = null;
-      $('#st-go').disabled = ST.bar === null || !ST.mode;
+      var zones = c.zones || [];
+      $('#st-zone-f').hidden = ST.mode !== 'access';
+      if (ST.mode === 'access') $('#st-zones').innerHTML = zones.map(function (z) { return '<button class="place' + (ST.zone === z.id ? ' on' : '') + '" data-stzone="' + z.id + '"><b><i class="zdot" style="background:' + esc(z.color || '#5e5ce6') + '"></i>' + esc(z.name) + '</b><span>' + (z.capacity ? 'jauge ' + z.capacity : 'sans jauge') + '</span></button>'; }).join('');
+      $('#st-go').disabled = ST.mode === 'access' ? !ST.zone : (ST.bar === null || !ST.mode);
       $('#st-err').textContent = '';
     };
     S.renderStation = renderSt;
@@ -179,8 +183,8 @@
   }
   /** Enregistre le poste sur le serveur (l'organisateur le voit dans « Appareils »), puis ouvre l'écran. */
   function saveStation(barId, mode, quiet) {
-    var go = function () { S.shift.bar_id = barId || null; S.shift.mode = mode; save(); enterStation(); };
-    api('station', { bar_id: barId || 0, mode: mode }).then(function (j) { S.config = j.config; go(); }, function (e) {
+    var go = function () { S.shift.bar_id = barId || null; S.shift.mode = mode; S.shift.zone_id = mode === 'access' ? ST.zone : null; save(); enterStation(); };
+    api('station', { bar_id: barId || 0, mode: mode, zone_id: mode === 'access' ? (ST.zone || (S.shift && S.shift.zone_id)) : undefined }).then(function (j) { S.config = j.config; go(); }, function (e) {
       if (e.network) return go(); // hors ligne : le poste sera envoyé avec les ventes
       if (quiet) return openStation();
       $('#st-err').textContent = e.message;
@@ -199,6 +203,7 @@
     if (mode === 'topup') return openTopup();
     if (mode === 'prep') return openPrep();
     if (mode === 'display') return openDisplay();
+    if (mode === 'access') return openAccess();
     openPos();
   }
 
@@ -1111,6 +1116,40 @@
       }); }; });
   }
 
+  // ---------- 4.0 : contrôle d'accès par zone ----------
+  var ACC = { dir: 'in', busy: false, stop: function () {} };
+  function zone() { var id = S.shift && S.shift.zone_id; return (C().zones || []).filter(function (z) { return z.id === id; })[0] || null; }
+  function openAccess() {
+    var z = zone(); if (!z) return openStation();
+    $('#ac-zone').textContent = z.name; $('#ac-ev').textContent = C().event.name;
+    $('#ac-allowed').textContent = z.profiles && z.profiles.length ? 'Autorisés : ' + z.profiles.map(function (p) { return PROFILES[p] || p; }).join(', ') : 'Ouvert à tous (comptage)';
+    accDir(ACC.dir); show('s-access'); keepAwake(); accScan(); accState();
+    stopPoll(); poll = setInterval(accState, 15000);
+  }
+  var PROFILES = { public: 'Public', staff: 'Staff', vip: 'VIP', artist: 'Artistes', press: 'Presse', crew: 'Technique' };
+  function accDir(d) { ACC.dir = d; $$('[data-acdir]').forEach(function (b) { b.classList.toggle('on', b.dataset.acdir === d); }); }
+  function accCount(inside, cap) { $('#ac-count').textContent = inside + (cap ? ' / ' + cap : ''); $('#ac-meter').style.width = cap ? Math.min(100, Math.round(inside / cap * 100)) + '%' : '0'; $('#ac-meter').parentNode.hidden = !cap; }
+  function accState() { var z = zone(); if (!z || $('#s-access').hidden) return; api('zone_state', { zone_id: z.id }, 8000).then(function (j) { accCount(j.inside, j.capacity); }, function () {}); }
+  function accScan() {
+    ACC.stop(); NFC.stop();
+    var go = function (who) { if (ACC.busy) return; ACC.busy = true; ACC.stop(); NFC.stop(); accCheck(who); };
+    ACC.stop = startCam($('#ac-video'), function (c) { buzz(20); go({ code: c }); });
+    if (NFC.available()) NFC.start(function (u) { go({ nfc: u }); }).catch(function () { /* rien */ });
+  }
+  function accCheck(who, force) {
+    var z = zone();
+    api('zone_scan', Object.assign({ zone_id: z.id, direction: ACC.dir, force: force ? 1 : undefined }, who), 8000).then(function (j) {
+      accCount(j.inside, j.capacity);
+      var ok = j.allowed, r = $('#ac-result');
+      r.className = 'ac-result ' + (ok ? 'ok' : (j.already ? 'warn' : 'ko'));
+      r.innerHTML = '<b>' + (ok ? (j.direction === 'out' ? 'Sortie' : 'Entrée autorisée') : (j.already ? 'Déjà entré' : 'Refusé')) + '</b><span>' + esc(j.name || '') + (j.profile ? ' · ' + esc(j.profile) : '') + '</span>' + (ok ? '' : '<small>' + esc(j.why || '') + '</small>')
+        + (j.already ? '<button class="btn btn-sm" id="ac-force">Laisser entrer quand même</button>' : '');
+      buzz(ok ? [40] : [120, 60, 120]);
+      if ($('#ac-force')) $('#ac-force').onclick = function () { accCheck(who, true); };
+      setTimeout(function () { ACC.busy = false; if (!$('#s-access').hidden) { if (!j.already) r.className = 'ac-result'; accScan(); } }, j.already ? 4000 : 1600);
+    }, function (e) { toast(e.message, 'ko'); ACC.busy = false; accScan(); });
+  }
+
   // ---------- menu ----------
   function closeDrawer() { $('#drawer').hidden = true; if ($('#sheet').hidden) $('#sheet-bg').hidden = true; }
   function openDrawer() {
@@ -1118,6 +1157,7 @@
     $('#dr-staff').textContent = ((bar() || {}).name || '') + (staff() ? ' · ' + staff().name : (S.shift && S.shift.name ? ' · ' + S.shift.name : ''));
     $('#dr-foot').textContent = (NATIVE ? 'Application' : 'Web app') + ' · ' + S.server.replace(/^https?:\/\//, '') + (S.queue.length ? ' · ' + S.queue.length + ' vente(s) en attente' : '');
     var mode = (S.shift && S.shift.mode) || 'bar', till = mode === 'bar' || mode === 'topup';
+    if (mode !== 'access') { ACC.stop(); }
     $('[data-menu="session"]').hidden = !C().settings.sessions || !till || !bar();
     $('[data-menu="history"]').hidden = !till;
     $('[data-menu="refund"]').hidden = mode !== 'bar' || !bar();
@@ -1272,7 +1312,8 @@
     if (t.dataset.amt && t.closest('#tp-amounts')) { TOP.amount = +t.dataset.amt; topAmount(); return; }
     if (t.dataset.prep) return prepTap(+t.dataset.prep, t.dataset.st);
     if (t.dataset.stbar !== undefined) { ST.bar = parseInt(t.dataset.stbar, 10); buzz(6); return S.renderStation(); }
-    if (t.dataset.strole) { ST.mode = t.dataset.strole; buzz(6); return S.renderStation(); }
+    if (t.dataset.strole) { ST.mode = t.dataset.strole; if (ST.mode === 'access' && ST.bar === null) ST.bar = 0; buzz(6); return S.renderStation(); }
+    if (t.dataset.stzone) { ST.zone = +t.dataset.stzone; buzz(6); return S.renderStation(); }
     if (t.dataset.menu) { closeDrawer(); return MENU[t.dataset.menu](); }
   });
   $('#menu-btn').onclick = openDrawer;
@@ -1288,6 +1329,8 @@
   $('#t-discount').onclick = function () { if (!S.cart.items.length && !S.cart.discount) return toast('Ajoute d\'abord des produits.'); discountFlow(); };
   $('#pay-more').onclick = payMore;
   $('#t-hold').onclick = holdCart;
+  $$('[data-acdir]').forEach(function (b) { b.onclick = function () { accDir(b.dataset.acdir); buzz(6); }; });
+  $('#ac-ok').onclick = function () { var v = $('#ac-code').value.trim(); if (v && !ACC.busy) { ACC.busy = true; ACC.stop(); NFC.stop(); $('#ac-code').value = ''; accCheck({ code: v }); } };
   $('#tabs-btn').onclick = openTabs;
   $('#cart-clear').onclick = function () {
     if (S.cart.tab) { if (confirm('Fermer l\'addition « ' + S.cart.tab.label + ' » sans l\'encaisser ? Elle reste ouverte (les ajouts non mis en attente sont perdus).')) { emptyCart(); renderGrid(); renderCart(); } return; }
@@ -1306,7 +1349,7 @@
     });
   };
   $('#shift-go').onclick = function () { signedIn(null, $('#shift-staff').value.trim().slice(0, 40)); };
-  $('#st-go').onclick = function () { if (ST.bar === null || !ST.mode) return; saveStation(ST.bar, ST.mode); };
+  $('#st-go').onclick = function () { if (ST.mode === 'access') { if (ST.zone) saveStation(0, 'access'); return; } if (ST.bar === null || !ST.mode) return; saveStation(ST.bar, ST.mode); };
   window.addEventListener('online', function () { setOnline(true); sync(); });
   window.addEventListener('offline', function () { setOnline(false); });
   document.addEventListener('visibilitychange', function () { if (!document.hidden) { keepAwake(); sync(); } });
@@ -1330,6 +1373,7 @@
     var sh = S.shift, mode = sh && sh.mode;
     if (!$('#sheet').hidden) return; // ne pas couper une action en cours
     if (mode === 'prep' || mode === 'display') return openMain(); // un écran reste sur son poste
+    if (mode === 'access' && !C().settings.require_staff) return openMain();
     if (!sh || (!sh.staff && !sh.name && !C().settings.require_staff && !mode)) return startShift();
     if (C().settings.require_staff && !staff()) return startShift(!!mode);
     if (!mode) return openStation();

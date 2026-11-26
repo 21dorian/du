@@ -6,6 +6,7 @@ if ($wl) { $platformName = $pname; $pname = (string)$wl['name']; if (empty($site
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title><?= e(($title ?? '') && !str_ends_with((string)$title, $pname) ? $title . ' · ' . $pname : (($title ?? '') ?: $pname)) ?></title>
+<?php if (!empty($noindex)): ?><meta name="robots" content="noindex"><?php endif; ?>
 <?php if (!empty($description)): ?><meta name="description" content="<?= e($description) ?>"><?php endif; ?>
 <?php if (!empty($og_image)): ?><meta property="og:image" content="<?= e($og_image) ?>"><?php endif; ?>
 <script>document.documentElement.classList.add('js')</script>
@@ -78,13 +79,14 @@ if ($wl) { $platformName = $pname; $pname = (string)$wl['name']; if (empty($site
       <a href="<?= url('/mes-billets') ?>">Billets perdus ?</a>
       <?php if (setting('cgv')): ?><a href="<?= url('/cgv') ?>">CGV</a><?php endif; ?>
       <?php if (setting('legal')): ?><a href="<?= url('/mentions-legales') ?>">Mentions légales</a><?php endif; ?>
+      <a href="<?= url('/aide') ?>">Centre d'aide</a>
       <a href="<?= url('/contact') ?>">Contact</a>
+      <a href="<?= url('/favoris') ?>">Mes favoris</a>
       <a href="<?= url('/donnees-personnelles') ?>">Mes données</a>
       <?php try { foreach (all('SELECT slug, title FROM pages WHERE published = 1 AND in_footer = 1 ORDER BY sort, title LIMIT 8') as $fp): ?><a href="<?= url('/page/' . $fp['slug']) ?>"><?= e($fp['title']) ?></a><?php endforeach; } catch (Throwable $ex) { /* avant migration */ } ?>
       <a href="<?= url('/organisateurs') ?>">Vendre mes billets</a>
     </div>
     <div class="footer-links footer-soon">
-      <a href="<?= url('/bientot/aide') ?>">Centre d'aide <em>bientôt</em></a>
       <a href="<?= url('/bientot/appli') ?>">Appli mobile <em>bientôt</em></a>
       <a href="<?= url('/bientot/langues-public') ?>">English <em>bientôt</em></a>
     </div>
@@ -92,5 +94,10 @@ if ($wl) { $platformName = $pname; $pname = (string)$wl['name']; if (empty($site
 </footer>
 <?php endif; ?>
 <script src="<?= asset('js/app.js') ?>"></script>
+<script>/* 4.0 : favoris gardés sur l'appareil */(function(){var K='entrevo_favs',g=function(){try{return JSON.parse(localStorage.getItem(K)||'[]')}catch(e){return[]}};document.querySelectorAll('[data-fav]').forEach(function(b){var id=+b.dataset.fav,on=function(){var x=g().indexOf(id)>=0;b.classList.toggle('on',x);b.setAttribute('aria-pressed',x);b.textContent=x?'Dans mes favoris':'Favori'};on();b.onclick=function(){var a=g(),i=a.indexOf(id);if(i>=0)a.splice(i,1);else a.unshift(id);try{localStorage.setItem(K,JSON.stringify(a.slice(0,60)))}catch(e){}on()}})})();</script>
+<?php if (!empty($_SESSION['kiosk'])): $kk = $_SESSION['kiosk']; ?>
+<div class="kiosk-bar"><span>Borne libre-service · touche l'écran pour réserver</span><a href="<?= url('/borne/sortie') ?>">Quitter</a></div>
+<script>/* 4.0 : borne : retour à l'événement après inactivité */(function(){var t,home=<?= json_encode(url('/e/' . $kk['slug'])) ?>,ms=<?= (int)$kk['idle'] ?>*1000,r=function(){clearTimeout(t);t=setTimeout(function(){location.href=home+'?borne=reset'},ms)};['touchstart','click','keydown','scroll'].forEach(function(e){addEventListener(e,r,{passive:true})});r();document.querySelectorAll('a[target=_blank]').forEach(function(a){a.removeAttribute('target')})})();</script>
+<?php endif; ?>
 </body>
 </html>

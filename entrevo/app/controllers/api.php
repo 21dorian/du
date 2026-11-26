@@ -62,6 +62,10 @@ function index(string $resource): never
 function show(string $resource, string $id): never
 {
     $org = api_org();
+    if ($resource === 'samples') { // 4.0 : exemple de données pour le mappage dans Zapier / Make
+        $o = one("SELECT * FROM orders WHERE organizer_id = ? AND status = 'paid' ORDER BY id DESC LIMIT 1", [$org['id']]);
+        json_out([$o ? Hooks::orderPayload($o) : ['ref' => 'EXEMPLE1', 'status' => 'paid', 'email' => 'exemple@exemple.fr', 'total' => 2500, 'tickets' => []]]);
+    }
     if ($resource === 'events') {
         $ev = api_event($org, (int)$id);
         json_out(['data' => [
@@ -83,8 +87,17 @@ function show(string $resource, string $id): never
 function create(string $resource): never
 {
     $org = api_org();
-    if ($resource !== 'invitations') json_out(['error' => 'Ressource inconnue.'], 404);
     $b = json_decode((string)file_get_contents('php://input'), true) ?: $_POST;
+    // 4.0 : abonnements REST (Zapier, Make, n8n) : un webhook créé et supprimé par l'outil lui-même
+    if ($resource === 'hooks') {
+        $url = trim((string)($b['url'] ?? $b['target_url'] ?? $b['hookUrl'] ?? ''));
+        $events = array_values(array_intersect((array)($b['events'] ?? [$b['event'] ?? 'order.paid']), array_keys(Hooks::EVENTS)));
+        if (!preg_match('~^https://~i', $url) || !$events) json_out(['error' => 'Il faut une adresse https et un événement parmi : ' . implode(', ', array_keys(Hooks::EVENTS))], 422);
+        $src = preg_match('~zapier~i', $url) ? 'Zapier' : (preg_match('~make\.com|integromat~i', $url) ? 'Make' : (preg_match('~n8n~i', $url) ? 'n8n' : 'REST'));
+        $id = insert('webhook_endpoints', ['organizer_id' => $org['id'], 'url' => mb_substr($url, 0, 500), 'secret' => bin2hex(random_bytes(16)), 'events' => implode(',', $events), 'label' => $src . ' (automatique)', 'active' => 1, 'created_at' => now()]);
+        json_out(['id' => (int)$id, 'events' => $events], 201);
+    }
+    if ($resource !== 'invitations') json_out(['error' => 'Ressource inconnue.'], 404);
     $ev = api_event($org, (int)($b['event_id'] ?? 0));
     $rate = one('SELECT * FROM rates WHERE id = ? AND event_id = ?', [(int)($b['rate_id'] ?? 0), $ev['id']]);
     if (!$rate) json_out(['error' => 'Tarif introuvable.'], 422);
@@ -96,4 +109,11 @@ function create(string $resource): never
     if (!empty($r['errors'])) json_out(['error' => implode(' ', $r['errors'])], 422);
     $o = Tickets::confirm((int)$r['order']['id'], [], $email !== '' && !empty($b['send']));
     json_out(['data' => Hooks::orderPayload($o)], 201);
+}
+
+function hook_delete(string $id): never
+{
+    $org = api_org();
+    $n = q("DELETE FROM webhook_endpoints WHERE id = ? AND organizer_id = ? AND label LIKE '%(automatique)'", [(int)$id, $org['id']])->rowCount();
+    json_out($n ? ['ok' => true] : ['error' => 'Abonnement introuvable.'], $n ? 200 : 404);
 }

@@ -93,6 +93,8 @@ function require_org(array $roles = ['owner', 'manager']): array
     if ($org['status'] === 'suspended' && !is_super()) {
         abort(403, 'Ce compte organisateur est suspendu. Contactez la plateforme.');
     }
+    // 4.0 : rôles personnalisés (pages et événements autorisés)
+    if (class_exists('Extras') && ($why = Extras::roleCheck(user(), route_path(), preg_match('~^/pro/evenements/(\d+)~', route_path(), $mm) ? (int)$mm[1] : null))) abort(403, $why);
     return $org;
 }
 

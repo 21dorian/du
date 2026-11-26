@@ -18,5 +18,5 @@
     <li>Changer de date, donner un billet, inviter des potes</li>
     <li>Donner ton avis après l'événement</li>
   </ul>
-  <div class="soon-row"><?= pub_soon('favoris', 'Favoris') ?><?= pub_soon('suivre-orga', 'Suivre') ?></div>
+  <div class="soon-row"><a class="soon-chip" href="<?= url('/favoris') ?>">Mes favoris</a></div>
 </div>

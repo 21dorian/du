@@ -60,6 +60,7 @@
         <label class="check"><input type="checkbox" name="queue_enabled" value="1" <?= !empty($ev['queue_enabled']) ? 'checked' : '' ?>> File d'attente virtuelle (grosse ouverture des ventes)</label>
         <div class="field mt" data-show-if="queue_enabled=1"><label>Personnes admises par minute</label><input type="number" name="queue_rate" min="5" value="<?= (int)($ev['queue_rate'] ?? 50) ?>"></div>
         <div class="field mt"><label>Âge minimum</label><select name="min_age"><?php foreach (['' => 'Tout public', '12' => '12 ans et +', '16' => '16 ans et +', '18' => '18 ans et +', '21' => '21 ans et +'] as $k => $l): ?><option value="<?= $k ?>" <?= (string)($ev['min_age'] ?? '') === (string)$k ? 'selected' : '' ?>><?= $l ?></option><?php endforeach; ?></select><small>Date de naissance demandée à l'achat, mention sur la page et le billet, rappel « vérifier l'âge » au scan. Réglable aussi par tarif.</small></div>
+        <label class="check mt"><input type="checkbox" name="id_check" value="1" <?= !empty($ev['id_check']) ? 'checked' : '' ?>> Contrôle d'identité à l'entrée <small class="muted">· billets nominatifs : le contrôleur voit le nom et un rappel « vérifier la pièce d'identité »</small></label>
       </div>
       <div class="card">
         <h2>Prévente privée</h2>

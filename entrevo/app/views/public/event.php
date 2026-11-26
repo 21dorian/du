@@ -43,7 +43,7 @@ $fromPrice = $onSalePrices ? min($onSalePrices) : null;
     </dl>
     <?php if (!empty($ev['volunteer_recruit'])): ?><a class="vol-cta" href="<?= url('/e/' . $ev['slug'] . '/benevoles') ?>">On cherche des bénévoles : rejoins l'équipe →</a><?php endif; ?>
     <a class="btn btn-lg" href="#billets" <?= $useDrawer ? 'data-dw-open' : '' ?>><?= $sessions && !$session ? 'Choisir ma date' : 'Je réserve' ?></a>
-    <div class="ev-actions"><?= pub_soon('favoris', 'Favori') ?><details class="cal-menu"><summary class="soon-chip">Agenda</summary><div class="cal-pop"><a href="<?= e(Buyers::googleUrl($ev, $session ?? null)) ?>" target="_blank" rel="noopener">Google Agenda</a><a href="<?= e(Buyers::icsUrl($ev, $session ?? null)) ?>">Apple / Outlook (.ics)</a></div></details><?= pub_soon('covoiturage', 'Covoiturage') ?></div>
+    <div class="ev-actions"><button type="button" class="soon-chip fav-btn" data-fav="<?= (int)$ev['id'] ?>" aria-pressed="false">Favori</button><details class="cal-menu"><summary class="soon-chip">Agenda</summary><div class="cal-pop"><a href="<?= e(Buyers::googleUrl($ev, $session ?? null)) ?>" target="_blank" rel="noopener">Google Agenda</a><a href="<?= e(Buyers::icsUrl($ev, $session ?? null)) ?>">Apple / Outlook (.ics)</a></div></details><a class="soon-chip" href="<?= url('/e/' . $ev['slug'] . '/covoiturage') ?>">Covoiturage</a></div>
   </div>
 </div>
 
@@ -215,6 +215,7 @@ $fromPrice = $onSalePrices ? min($onSalePrices) : null;
     <?php endif; ?>
   </aside>
 </div>
+<?php if (!empty($reco)): ?><section class="reco"><h2>Tu aimeras aussi</h2><?php foreach ($reco as $rv) echo view('public/_ev_mini', ['ev' => $rv]); ?></section><?php endif; ?>
 <?php if ($seatmap): ?>
 <div class="seat-modal" id="seat-modal" hidden>
   <div class="seat-modal-in">

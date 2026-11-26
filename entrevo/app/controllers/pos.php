@@ -41,6 +41,12 @@ function pos_api(): never
             case 'stock_request':
                 Pos::stockRequest($d, $in);
                 json_out(['ok' => true, 'products' => Pos::stockState($d)]);
+            case 'zone_scan':
+                if (!throttle_pos('zone-' . $d['id'] . '-' . date('YmdHi') . substr(date('s'), 0, 1))) $fail('Trop de scans d\'un coup.', 429);
+                json_out(Pay::zoneScan($d, $in));
+            case 'zone_state':
+                $zz = one('SELECT * FROM pay_zones WHERE id = ? AND event_id = ?', [(int)($in['zone_id'] ?? 0), $ev['id']]);
+                json_out(['ok' => true, 'inside' => $zz ? Pay::zoneInside((int)$zz['id']) : 0, 'capacity' => (int)($zz['capacity'] ?? 0)]);
             case 'tabs':
                 json_out(['ok' => true, 'tabs' => Pos::tabs($d)]);
             case 'tab_save':
@@ -54,9 +60,11 @@ function pos_api(): never
                 $bar = (int)($in['bar_id'] ?? 0);
                 if ($bar && !val('SELECT id FROM bars WHERE id = ? AND event_id = ? AND active = 1', [$bar, $ev['id']])) $fail('Point de vente inconnu.');
                 if (!$bar && in_array($mode, ['bar', 'topup'], true)) $fail('Choisis ton point de vente.');
+                $zone = $mode === 'access' ? (int)($in['zone_id'] ?? 0) : 0;
+                if ($mode === 'access' && !val('SELECT id FROM pay_zones WHERE id = ? AND event_id = ? AND active = 1', [$zone, $ev['id']])) $fail('Choisis la zone à contrôler.');
                 $staff = Till::staffFrom($d, $in);
                 if (Till::settings($ev)['require_staff'] && !$staff && in_array($mode, ['bar', 'topup'], true)) $fail('Connecte-toi avec ton code serveur.', 403);
-                update('pos_devices', ['bar_id' => $bar ?: null, 'mode' => $mode, 'staff_name' => $staff['name'] ?? (mb_substr(trim((string)($in['staff'] ?? '')), 0, 60) ?: null), 'station_at' => now()], 'id = ?', [$d['id']]);
+                update('pos_devices', ['bar_id' => $bar ?: null, 'zone_id' => $zone ?: null, 'mode' => $mode, 'staff_name' => $staff['name'] ?? (mb_substr(trim((string)($in['staff'] ?? '')), 0, 60) ?: null), 'station_at' => now()], 'id = ?', [$d['id']]);
                 json_out(['ok' => true, 'config' => Pos::config(one('SELECT * FROM pos_devices WHERE id = ?', [$d['id']]))]);
             case 'config':
             case 'ping':

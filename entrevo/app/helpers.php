@@ -325,6 +325,7 @@ function ago_until(int $ts): string
 /** Bouton vers une fonction en développement (ouvre sa page de présentation). */
 function soon_btn(string $key, string $label, string $area = 'pro', string $cls = 'btn btn-sm btn-light'): string
 {
+    if ($area === 'pro' && ($f = Features::get($key)) && $f['status'] !== 'soon' && !empty($f['url'])) return '<a class="' . e($cls) . '" href="' . e(url($f['url'])) . '">' . e($label) . '</a>'; // 4.0 : sorti du développement
     return '<a class="' . e($cls) . ' soon-btn" href="' . e(url('/' . $area . '/bientot/' . $key)) . '" title="En développement : bientôt disponible">' . e($label) . ' <span class="soon-pill dev">dév</span></a>';
 }
 
@@ -338,6 +339,7 @@ function soon_opt(string $key, string $label, string $desc = '', string $area = 
 /** Carte regroupant plusieurs options en développement. */
 function soon_card(string $title, array $opts, string $area = 'pro'): string
 {
+    if ($area === 'pro') { $opts = array_filter($opts, fn($k) => ($f = Features::get((string)$k)) === null || $f['status'] === 'soon', ARRAY_FILTER_USE_KEY); if (!$opts) return ''; } // 4.0
     $h = '<div class="card soon-card"><div class="card-head"><h2>' . e($title) . '</h2><span class="soon-pill">En développement</span></div><div class="soon-opts">';
     foreach ($opts as $key => [$label, $desc]) $h .= soon_opt($key, $label, $desc, $area);
     return $h . '</div></div>';
@@ -507,3 +509,17 @@ function iban_valid(?string $iban): bool
     foreach (str_split($num, 7) as $part) $mod = (int)(($mod . $part) % 97);
     return $mod === 1;
 }
+
+
+/** 4.0 : limite simple par clé (formulaires publics). true = autorisé. */
+function rate_limit(string $key, int $max, int $seconds): bool
+{
+    $f = STORAGE . '/logs/.rl-' . md5($key);
+    [$n, $t] = is_file($f) ? array_map('intval', explode(':', (string)@file_get_contents($f)) + [0, 0]) : [0, time()];
+    if (time() - $t > $seconds) { $n = 0; $t = time(); }
+    if ($n >= $max) return false;
+    @file_put_contents($f, ($n + 1) . ':' . $t);
+    return true;
+}
+
+function client_ip(): string { return (string)($_SERVER['REMOTE_ADDR'] ?? '0.0.0.0'); }

@@ -23,6 +23,7 @@ const PAY_SECTIONS = [
     'stocks' => ['Stocks', 'stocks', 'Terrain'],
     'reassorts' => ['Réassorts & pertes', 'stocks', 'Terrain'],
     'materiel' => ['Parc de terminaux', 'materiel', 'Terrain'],
+    'acces' => ['Contrôle d\'accès', 'acces', 'Terrain'],
     'equipe' => ['Serveurs & droits', 'equipe', 'Terrain'],
     'bilan' => ['Bilan de l\'événement', 'rapport', 'Argent'],
     'exploitants' => ['Exploitants & reversements', 'exploitants', 'Argent'],
@@ -669,5 +670,33 @@ function pay_s_analyse(array $m, array $ev, string $base, string $label): string
     $other = (int)input('vs') ? one('SELECT * FROM events WHERE id = ? AND organizer_id = ?', [(int)input('vs'), $m['org']['id']]) : null;
     $CMP = $other ? Pay::compare($ev, $other) : null;
     return pay_page($m, $ev, 'analyse', $label, view('pay/analyse', compact('A', 'day', 'others', 'other', 'CMP', 'base', 'ev')));
+}
+
+// ---------- 4.0 : contrôle d'accès par profil ----------
+function pay_s_acces(array $m, array $ev, string $base, string $label): string
+{
+    if (is_post()) {
+        $a = (string)input('action');
+        if ($a === 'zone') {
+            $name = mb_substr(trim((string)input('name')), 0, 80);
+            if ($name === '') back(['error' => 'Donne un nom à la zone.']);
+            $prof = implode(',', array_values(array_intersect((array)($_POST['profiles'] ?? []), array_keys(Pay::PROFILES))));
+            $d = ['name' => $name, 'profiles' => $prof, 'capacity' => max(0, (int)input('capacity')), 'color' => preg_match('~^#[0-9a-f]{6}$~i', (string)input('color')) ? (string)input('color') : null];
+            if ((int)input('id')) update('pay_zones', $d, 'id = ? AND event_id = ?', [(int)input('id'), $ev['id']]);
+            else insert('pay_zones', $d + ['event_id' => $ev['id'], 'active' => 1, 'created_at' => now()]);
+            Audit::log('pay.zone', 'Zone « ' . $name . ' » enregistrée', (int)$ev['id']);
+            redirect(Pay::path('/pro/e/' . $ev['id'] . '/acces'), ['success' => 'Zone enregistrée. Sur l\'appli, choisis le rôle « Contrôle d\'accès » puis la zone.']);
+        }
+        if ($a === 'archive') { update('pay_zones', ['active' => 0], 'id = ? AND event_id = ?', [(int)input('id'), $ev['id']]); back(['success' => 'Zone archivée.']); }
+        if ($a === 'reset') { q("INSERT INTO pay_zone_scans (zone_id, event_id, wallet_id, direction, result, reason, created_at) SELECT x.zone_id, x.event_id, x.wallet_id, 'out', 'ok', 'Remise à zéro', NOW() FROM (SELECT s.* FROM pay_zone_scans s JOIN (SELECT wallet_id, MAX(id) mid FROM pay_zone_scans WHERE zone_id = ? AND result = 'ok' GROUP BY wallet_id) l ON l.mid = s.id WHERE s.direction = 'in') x", [(int)input('id')]); back(['success' => 'Compteur remis à zéro (tout le monde est considéré sorti).']); }
+        back();
+    }
+    $zones = Pay::zones((int)$ev['id']);
+    $stats = []; foreach (all("SELECT zone_id, SUM(result = 'ok' AND direction = 'in') ins, SUM(result = 'ok' AND direction = 'out') outs, SUM(result = 'denied') denied FROM pay_zone_scans WHERE event_id = ? GROUP BY zone_id", [$ev['id']]) as $r) $stats[(int)$r['zone_id']] = $r;
+    $recent = all("SELECT s.*, z.name zone, w.code, w.profile, w.holder_name FROM pay_zone_scans s JOIN pay_zones z ON z.id = s.zone_id LEFT JOIN wallets w ON w.id = s.wallet_id WHERE s.event_id = ? ORDER BY s.id DESC LIMIT 40", [$ev['id']]);
+    $edit = (int)input('edit') ? one('SELECT * FROM pay_zones WHERE id = ? AND event_id = ?', [(int)input('edit'), $ev['id']]) : null;
+    $profiles = []; foreach (all('SELECT profile, COUNT(*) n FROM wallets WHERE event_id = ? GROUP BY profile', [$ev['id']]) as $r) $profiles[$r['profile']] = (int)$r['n'];
+    $devices = all("SELECT d.name, d.last_seen, d.staff_name, z.name zone FROM pos_devices d JOIN pay_zones z ON z.id = d.zone_id WHERE d.event_id = ? AND d.mode = 'access' AND d.revoked = 0", [$ev['id']]);
+    return pay_page($m, $ev, 'acces', $label, view('pay/access', compact('zones', 'stats', 'recent', 'edit', 'profiles', 'devices', 'base', 'ev')), ['live' => false]);
 }
 

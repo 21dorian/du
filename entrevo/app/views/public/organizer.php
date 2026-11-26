@@ -15,7 +15,7 @@
     <div class="org-links">
       <?php foreach ($socials as $k => $u): ?><a class="btn btn-sm btn-light" href="<?= e($u) ?>" target="_blank" rel="noopener"><?= $socIcons[$k] ?? e($k) ?></a><?php endforeach; ?>
       <?php if ($org['website']): ?><a class="btn btn-sm btn-light" href="<?= e($org['website']) ?>" target="_blank" rel="noopener">Site web</a><?php endif; ?>
-      <?= pub_soon('suivre-orga', 'Suivre', 'btn btn-sm') ?>
+      <details class="follow-pop"><summary class="btn btn-sm">Suivre</summary><form method="post" action="<?= url('/o/' . $org['slug'] . '/suivre') ?>" class="card stack"><?= csrf_field() ?><small class="muted">Un e-mail dès qu'une nouvelle date est mise en vente.</small><input type="email" name="email" placeholder="Ton e-mail" required><button class="btn btn-sm">Me prévenir</button></form></details>
     </div>
   </div>
   <?php if ($org['description']): ?><p class="org-about"><?= nl2br(e($org['description'])) ?></p><?php endif; ?>

@@ -16,7 +16,7 @@
     <div class="row no-print" style="justify-content:center;margin-top:10px">
       <details class="cal-menu"><summary class="btn btn-sm btn-light">Ajouter à mon agenda</summary><div class="cal-pop"><a href="<?= e(Buyers::googleUrl($ev, $session)) ?>" target="_blank" rel="noopener">Google Agenda</a><a href="<?= e(Buyers::icsUrl($ev, $session)) ?>">Apple / Outlook (.ics)</a></div></details>
     </div>
-    <div class="soon-row center-row no-print"><?= pub_soon('wallet', 'Ajouter au Wallet') ?><?= pub_soon('covoiturage', 'Covoiturage') ?></div>
+    <div class="soon-row center-row no-print"><?= pub_soon('wallet', 'Ajouter au Wallet') ?><a class="soon-chip" href="<?= url('/e/' . $ev['slug'] . '/covoiturage') ?>">Covoiturage</a></div>
   </div>
 <?php elseif ($o['status'] === 'pending'): ?>
   <div class="card center auth-box">

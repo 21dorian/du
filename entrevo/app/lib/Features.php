@@ -26,6 +26,14 @@ final class Features
         foreach (['jauge-zone' => '/pro/pc', 'tva' => '/pro/finances', 'export-compta' => '/pro/finances'] as $k => $url) if (isset($a[$k])) $a[$k] = ['status' => 'beta', 'url' => $url] + $a[$k];
         // 1.8 : sortis du développement
         foreach (['avis' => '/pro/avis', 'relance-panier' => '/pro/campagnes', 'calendrier' => '/pro/campagnes', 'transfert-billet' => '/pro/evenements', 'early-bird' => '/pro/evenements', 'echange-date' => '/pro/evenements', 'tarif-groupe' => '/pro/evenements', 'vente-privee' => '/pro/evenements', 'restriction-age' => '/pro/evenements', 'affiliation' => '/pro/liens', 'cartes-cadeaux' => '/pro/cartes-cadeaux', 'abonnements' => '/pro/abonnements', 'boutique' => '/pro/boutique', 'sms' => '/pro/sms'] as $k => $url) if (isset($a[$k])) $a[$k] = ['status' => 'on', 'url' => $url] + $a[$k];
+        // 4.0 : tout ce qui était en rodage ou déjà construit passe disponible, plus les nouveaux modules
+        foreach (['cashless' => '/pro/cashless', 'mini-site' => '/pro/mini-site', 'reseaux' => '/pro/visuels', 'bracelets' => '/pro/cashless', 'objets-trouves' => '/pro/objets-trouves', 'artistes' => '/pro/artistes',
+            'factures' => '/pro/factures', 'devis' => '/pro/devis', 'subventions' => '/pro/bilans', 'decouverte' => '/', 'campagnes' => '/pro/campagnes', 'controle-pro' => '/pro/pc', 'budget' => '/pro/budget',
+            'documents' => '/pro/documents', 'benevoles' => '/pro/benevoles', 'taches' => '/pro/taches', 'jauge-zone' => '/pro/pc', 'tva' => '/pro/finances', 'export-compta' => '/pro/factures',
+            'prix-dynamique' => '/pro/evenements', 'double-auth' => '/mon-compte', 'zapier' => '/pro/connecteurs', 'google-sheets' => '/pro/connecteurs', 'emailing-externe' => '/pro/connecteurs', 'pixels-avances' => '/pro/connecteurs',
+            'codes-auto' => '/pro/automatisations', 'parrainage' => '/pro/automatisations', 'rapport-fin' => '/pro/automatisations', 'partage-stats' => '/pro/evenements', 'saison' => '/pro/evenements',
+            'places-pmr' => '/pro/evenements', 'billet-nominatif-id' => '/pro/evenements', 'vestiaire' => '/pro/evenements', 'badges-live' => '/pro/evenements', 'kiosque' => '/pro/evenements',
+            'roles-perso' => '/pro/equipe', 'import-contacts' => '/pro/contacts', 'doublons' => '/pro/contacts', 'app-orga' => '/pro/mobile'] as $k => $url) if (isset($a[$k])) $a[$k] = ['status' => 'on', 'url' => $url] + $a[$k];
         return $a;
     }
 
@@ -187,7 +195,8 @@ final class Features
 
     /** Fonctions à venir côté public (acheteurs et visiteurs du site). */
     /** Fonctions acheteurs déjà en ligne (1.8) : retirées des listes « bientôt ». */
-    public const PUBLIC_LIVE = ['agenda', 'transfert', 'filtres-date', 'avis-public', 'echange', 'inviter-amis', 'compte-acheteur', 'cartes-cadeaux-public'];
+    public const PUBLIC_LIVE = ['agenda', 'transfert', 'filtres-date', 'avis-public', 'echange', 'inviter-amis', 'compte-acheteur', 'cartes-cadeaux-public',
+        'cashless-public', 'favoris', 'suivre-orga', 'recommandations', 'covoiturage', 'aide', 'ressources', 'demo-visio', 'migration']; // 4.0
 
     public static function public(): array
     {

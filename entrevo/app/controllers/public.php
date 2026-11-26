@@ -143,6 +143,7 @@ function event_page(string $slug): string
 {
     [$ev, $org] = public_event($slug);
     capture_utm();
+    if (!empty($_SESSION['kiosk']) && input('borne') === 'reset') { unset($_SESSION['cart']); redirect('/e/' . $ev['slug']); } // 4.0 : borne
     $cart = cart_get((int)$ev['id']);
     $sessions = Tickets::sessions((int)$ev['id']);
     $sessions = array_values(array_filter($sessions, fn($x) => strtotime((string)($x['ends_at'] ?: $x['starts_at'])) >= time()));
@@ -169,7 +170,9 @@ function event_page(string $slug): string
     $seatmap = Seating::map($ev) ? true : false;
     $img = $ev['image'] ? abs_url($ev['image']) : null;
     Traffic::hit($ev, 'views');
-    return pub('event', compact('ev', 'org', 'rates', 'cart', 'promo', 'sessions', 'session', 'products', 'soldOut', 'resales', 'seatmap'), $ev['name'], [
+    require_once APP . '/controllers/public4.php';
+    $reco = empty($_SESSION['kiosk']) ? recommendations($ev) : [];
+    return pub('event', compact('ev', 'org', 'rates', 'cart', 'promo', 'sessions', 'session', 'products', 'soldOut', 'resales', 'seatmap', 'reco'), $ev['name'], [
         'description' => mb_substr(strip_tags((string)$ev['description']), 0, 160), 'og_image' => $img, 'widget_ok' => true, 'org_tracking' => $org,
     ]);
 }

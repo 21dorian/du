@@ -13,10 +13,10 @@ final class Pay
     /** Rôles de l'équipe cashless => [libellé, rubriques autorisées ('*' = toutes)]. */
     public const ROLES = [
         'admin' => ['Administrateur cashless', ['*']],
-        'regie' => ['Régisseur', ['live', 'wallets', 'bracelets', 'refunds', 'packs', 'ecocups', 'catalogue', 'consignes', 'remises', 'appareils', 'caisses', 'stocks', 'equipe', 'credits', 'rapport', 'ventes', 'materiel', 'exploitants', 'exports', 'reglages', 'journal']],
+        'regie' => ['Régisseur', ['live', 'wallets', 'bracelets', 'refunds', 'packs', 'ecocups', 'catalogue', 'consignes', 'remises', 'appareils', 'caisses', 'stocks', 'equipe', 'credits', 'rapport', 'ventes', 'materiel', 'exploitants', 'exports', 'reglages', 'journal', 'acces']],
         'bar' => ['Responsable de bar', ['live', 'caisses', 'stocks', 'appareils', 'materiel', 'ventes']],
         'compta' => ['Comptable', ['live', 'rapport', 'ventes', 'caisses', 'exploitants', 'exports', 'refunds', 'journal']],
-        'support' => ['Support festivaliers', ['live', 'wallets', 'bracelets', 'refunds']],
+        'support' => ['Support festivaliers', ['live', 'wallets', 'bracelets', 'refunds', 'acces']],
         'operator' => ['Exploitant', []],
     ];
     public const PROFILES = ['public' => 'Public', 'staff' => 'Staff & bénévoles', 'vip' => 'VIP', 'artist' => 'Artiste', 'press' => 'Presse', 'crew' => 'Technique'];
@@ -234,6 +234,7 @@ final class Pay
         foreach (all("SELECT p.name, b.name bar, s.qty FROM pos_stock s JOIN bar_products p ON p.id = s.product_id JOIN bars b ON b.id = s.bar_id WHERE p.event_id = ? AND p.track_stock = 1 AND s.qty <= COALESCE(p.stock_alert, 10)" . ($barIds ? ' AND s.bar_id IN (' . implode(',', array_map('intval', $barIds)) . ')' : '') . ' ORDER BY s.qty LIMIT 8', [$ev['id']]) as $r)
             $alerts[] = [(int)$r['qty'] <= 0 ? 'bad' : 'warn', $r['name'] . ' · ' . $r['bar'] . ' : ' . ((int)$r['qty'] <= 0 ? 'rupture' : (int)$r['qty'] . ' restant(s)')];
         foreach (self::forecast($ev, $barIds) as $f) if ($f['mins'] !== null && $f['mins'] <= 60 && $f['qty'] > 0) $alerts[] = [$f['mins'] <= 20 ? 'bad' : 'warn', $f['name'] . ' · ' . $f['bar'] . ' : rupture estimée vers ' . $f['eta'] . ' (' . $f['qty'] . ' restants, ' . $f['per_hour'] . '/h)' . ($f['requested'] ? ' · réassort demandé' : '')];
+        foreach (self::zones((int)$ev['id']) as $z) if ((int)$z['capacity'] > 0 && $z['inside'] >= (int)$z['capacity'] * 0.9) $alerts[] = [$z['inside'] >= (int)$z['capacity'] ? 'bad' : 'warn', 'Zone ' . $z['name'] . ' : ' . $z['inside'] . ' / ' . (int)$z['capacity'] . ' personnes'];
         $off = []; $lowBat = [];
         foreach (all("SELECT name, last_seen, battery FROM pos_devices WHERE event_id = ? AND revoked = 0 AND token_hash IS NOT NULL AND station_at >= NOW() - INTERVAL 12 HOUR AND (last_seen < NOW() - INTERVAL 5 MINUTE OR battery < 15)", [$ev['id']]) as $d) {
             if ($d['last_seen'] && strtotime((string)$d['last_seen']) < time() - 300) $off[$d['name']] = true;
@@ -273,6 +274,47 @@ final class Pay
         return ['bars' => $bars, 'per_bar' => $perBar, 'n' => $bm['count'], 'cashless' => $get('cashless'), 'card' => $get('card'), 'cash' => $get('cash'), 'offered' => (int)$bm['offered'], 'ttc' => $ttc, 'ht' => $ht,
             'collected_by_org' => $collectedByOrg, 'kept_by_operator' => $ttc - $collectedByOrg, 'commission' => $commission, 'due' => $due, 'paid' => $paid, 'left' => $due - $paid,
             'payouts' => all('SELECT * FROM pay_payouts WHERE operator_id = ? AND event_id = ? ORDER BY id', [$op['id'], $ev['id']])];
+    }
+
+    // ---------- 4.0 : contrôle d'accès par profil ----------
+    public static function zones(int $eventId, bool $withCounts = true): array
+    {
+        $out = [];
+        foreach (all('SELECT * FROM pay_zones WHERE event_id = ? AND active = 1 ORDER BY id', [$eventId]) as $z) {
+            $z['profile_list'] = array_values(array_filter(explode(',', (string)$z['profiles'])));
+            if ($withCounts) $z['inside'] = self::zoneInside((int)$z['id']);
+            $out[] = $z;
+        }
+        return $out;
+    }
+
+    /** Personnes dans la zone : dernier passage de chaque porte-monnaie = entrée. */
+    public static function zoneInside(int $zoneId): int
+    {
+        return (int)val("SELECT COUNT(*) FROM (SELECT wallet_id, MAX(id) mid FROM pay_zone_scans WHERE zone_id = ? AND result = 'ok' AND wallet_id IS NOT NULL GROUP BY wallet_id) x JOIN pay_zone_scans s ON s.id = x.mid WHERE s.direction = 'in'", [$zoneId]);
+    }
+
+    /** Contrôle d'un bracelet ou d'un billet à l'entrée (ou à la sortie) d'une zone. */
+    public static function zoneScan(array $d, array $in): array
+    {
+        $z = one('SELECT * FROM pay_zones WHERE id = ? AND event_id = ? AND active = 1', [(int)($in['zone_id'] ?? 0), $d['event_id']]);
+        if (!$z) throw new RuntimeException('Zone inconnue : choisis ta zone.');
+        $dir = ($in['direction'] ?? 'in') === 'out' ? 'out' : 'in';
+        $w = Pos::wallet((int)$d['event_id'], $in);
+        $staff = Till::staffFrom($d, $in);
+        $log = fn(string $res, ?string $why) => insert('pay_zone_scans', ['zone_id' => $z['id'], 'event_id' => $d['event_id'], 'wallet_id' => $w['id'] ?? null, 'direction' => $dir, 'result' => $res, 'reason' => $why, 'device_id' => $d['id'], 'staff' => $staff['name'] ?? null, 'created_at' => now()]);
+        $who = $w ? (self::holder($w) ?: Pos::holder($w)) : '';
+        $prof = $w ? (self::PROFILES[$w['profile']] ?? $w['profile']) : '';
+        $deny = function (string $why) use ($log, $z, $who, $prof) { $log('denied', $why); return ['ok' => true, 'allowed' => false, 'why' => $why, 'name' => $who, 'profile' => $prof, 'inside' => self::zoneInside((int)$z['id']), 'capacity' => (int)$z['capacity']]; };
+        if (!$w) return $deny(!empty($in['nfc']) ? 'Bracelet inconnu' : 'Billet ou bracelet inconnu');
+        if ($w['status'] === 'blocked') return $deny('Bracelet bloqué' . ($w['blocked_reason'] ? ' : ' . $w['blocked_reason'] : ''));
+        $allowed = array_values(array_filter(explode(',', (string)$z['profiles'])));
+        if ($dir === 'in' && $allowed && !in_array($w['profile'], $allowed, true)) return $deny('Profil « ' . $prof . ' » non autorisé');
+        $last = one("SELECT direction FROM pay_zone_scans WHERE zone_id = ? AND wallet_id = ? AND result = 'ok' ORDER BY id DESC LIMIT 1", [$z['id'], $w['id']]);
+        if ($dir === 'in' && $last && $last['direction'] === 'in' && empty($in['force'])) return ['ok' => true, 'allowed' => false, 'already' => true, 'why' => 'Déjà dans la zone (pas de sortie enregistrée)', 'name' => $who, 'profile' => $prof, 'inside' => self::zoneInside((int)$z['id']), 'capacity' => (int)$z['capacity']];
+        if ($dir === 'in' && (int)$z['capacity'] > 0 && self::zoneInside((int)$z['id']) >= (int)$z['capacity']) return $deny('Zone pleine (' . (int)$z['capacity'] . ' personnes)');
+        $log('ok', null);
+        return ['ok' => true, 'allowed' => true, 'direction' => $dir, 'name' => $who, 'profile' => $prof, 'inside' => self::zoneInside((int)$z['id']), 'capacity' => (int)$z['capacity']];
     }
 
     // ---------- 3.2 : prévisions de rupture ----------

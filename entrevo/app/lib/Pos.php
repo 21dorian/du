@@ -12,8 +12,8 @@ declare(strict_types=1);
 final class Pos
 {
     public const METHODS = Till::METHODS;
-    public const MODES = ['bar', 'topup', 'prep', 'display'];
-    public const MODE_LABELS = ['bar' => 'Vente', 'topup' => 'Recharge cashless', 'prep' => 'Préparation', 'display' => 'Écran d\'appel'];
+    public const MODES = ['bar', 'topup', 'prep', 'display', 'access'];
+    public const MODE_LABELS = ['bar' => 'Vente', 'topup' => 'Recharge cashless', 'prep' => 'Préparation', 'display' => 'Écran d\'appel', 'access' => 'Contrôle d\'accès'];
 
     public static function nfc(string $uid): string { return substr(strtoupper(preg_replace('~[^0-9A-Fa-f]~', '', $uid)), 0, 40); }
 
@@ -87,6 +87,7 @@ final class Pos
             'settings' => ['tips' => (bool)$st['tips'], 'tip_pcts' => array_values(array_filter(array_map('intval', explode(',', (string)$st['tip_pcts'])))), 'tabs' => (bool)$st['tabs'], 'blind_close' => (bool)$st['blind_close'], 'free_amount' => (bool)$st['free_amount'], 'count_denoms' => (bool)$st['count_denoms'], 'denoms' => Till::DENOMS,
                 'has_staff' => Till::hasStaff((int)$ev['organizer_id']), 'require_staff' => (bool)$st['require_staff'], 'sessions' => (bool)$st['sessions'], 'receipt' => $st['receipt'], 'photos' => (bool)$st['photos'], 'big' => (bool)$st['big_buttons'], 'reasons' => Till::reasons($st)],
             'session' => $se ? ['id' => (int)$se['id'], 'bar_id' => (int)$se['bar_id'], 'opened_at' => $se['opened_at'], 'float' => (int)$se['float_amount']] : null,
+            'zones' => array_map(fn($z) => ['id' => (int)$z['id'], 'name' => $z['name'], 'profiles' => $z['profile_list'], 'capacity' => (int)$z['capacity'], 'color' => $z['color']], Pay::zones((int)$ev['id'], false)),
             'open_bars' => array_map('intval', array_column(all('SELECT DISTINCT bar_id FROM pos_sessions WHERE event_id = ? AND closed_at IS NULL', [$ev['id']]), 'bar_id')),
             'platform' => (string)setting('platform_name', 'Entrevo'), 'server_time' => date('c')] + Till::catalog($ev);
     }

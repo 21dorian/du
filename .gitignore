@@ -46,6 +46,7 @@ wordpress-theme/dukanette.zip
 entrevo/config.php
 entrevo/storage/logs/*.log
 entrevo/storage/logs/.throttle-*
+entrevo/storage/logs/.rl-*
 entrevo/storage/sessions/sess_*
 entrevo/storage/maj/*.zip
 entrevo/storage/maj/secours.json

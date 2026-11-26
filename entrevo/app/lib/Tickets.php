@@ -432,7 +432,7 @@ final class Tickets
             $answers = json_decode((string)$o['answers'], true) ?: [];
             $holders = $answers['holders'] ?? [];
             $type = in_array($o['method'], ['invitation', 'partner'], true) && (int)$o['total'] === 0 ? 'invitation' : ($o['method'] === 'import' ? 'external' : 'ticket');
-            foreach (all("SELECT i.*, r.pack_size, r.max_entries, r.per_day FROM order_items i LEFT JOIN rates r ON r.id = i.rate_id
+            foreach (all("SELECT i.*, r.pack_size, r.max_entries, r.per_day, r.companion FROM order_items i LEFT JOIN rates r ON r.id = i.rate_id
                           WHERE i.order_id = ? AND i.kind = 'rate' ORDER BY i.id", [$orderId]) as $it) {
                 $pack = max(1, (int)$it['pack_size']);
                 $seats = $it['seats'] ? explode(',', $it['seats']) : [];
@@ -458,6 +458,10 @@ final class Tickets
                         'updated_at' => now(),
                         'created_at' => now(),
                     ]);
+                    // 4.0 : tarif PMR : un billet accompagnateur gratuit par billet
+                    if (!empty($it['companion'])) insert('tickets', ['order_id' => $orderId, 'event_id' => $o['event_id'], 'session_id' => $o['session_id'], 'rate_id' => $it['rate_id'], 'rate_name' => 'Accompagnateur · ' . preg_replace('~ \(pack \d+\)$~', '', $it['name']),
+                        'code' => self::newCode(), 'type' => $type, 'max_entries' => max(1, (int)($it['max_entries'] ?? 1)), 'per_day' => (int)($it['per_day'] ?? 0), 'first_name' => 'Accompagnateur', 'last_name' => mb_substr(trim((string)($h['last_name'] ?? '')) ?: (string)$o['last_name'], 0, 120),
+                        'price' => 0, 'status' => 'valid', 'updated_at' => now(), 'created_at' => now()]);
                 }
             }
             db()->commit();

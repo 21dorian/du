@@ -27,6 +27,7 @@ final class Jobs
             'payments' => fn() => (time() - (int)setting('jobs_pay', 0) >= 180 || $force) ? (set_setting('jobs_pay', (string)time()) ?? Payments::recheckPending()) : 0,
             'waitlist' => fn() => class_exists('Waitlist') ? Waitlist::process() : 0,
             'prix' => fn() => class_exists('DynPrice') ? DynPrice::syncAll() : 0,
+            'extras' => fn() => class_exists('Extras') ? Extras::run() : 0,
             'campaigns' => fn() => class_exists('Campaigns') ? Campaigns::process() : 0,
             'sms' => fn() => class_exists('Sms') ? Sms::process() : 0,
             'formules' => fn() => class_exists('Billing') ? Billing::monthly() : 0,

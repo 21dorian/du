@@ -107,3 +107,4 @@ body.pay{background:#f4f4f8;display:block}
 .heatg .hh{text-align:center;color:#7b7b93;font-weight:600}.heatg .hb{font-weight:600;color:var(--pay-ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .heatg i{font-style:normal;text-align:center;border-radius:7px;padding:9px 2px;font-weight:700;color:#fff;background:rgba(94,92,230,calc(.08 + var(--a) * .9))}
 .heatg i.lt{color:var(--pay-ink)}.heatg i.empty{background:#f3f3f8}.heatg .ht{text-align:right}
+.zdot{display:inline-block;width:9px;height:9px;border-radius:50%;margin-right:7px;vertical-align:middle}

@@ -1,7 +1,7 @@
 <?php
 $form = function (?array $r) use ($org, $sessions, $seatCats, $rates) {
     $p = $r ?? ['id' => 0, 'name' => '', 'description' => '', 'price' => 0, 'quota' => 0, 'max_per_order' => 0, 'sale_start' => null, 'sale_end' => null, 'hidden' => 0, 'active' => 1, 'sort' => 0,
-        'price_mode' => 'fixed', 'pack_size' => 1, 'max_entries' => 1, 'per_day' => 0, 'session_ids' => '', 'seat_category' => '', 'scan_note' => '', 'scan_color' => '', 'vat_rate' => null, 'after_rate_id' => null, 'min_age' => null, 'dyn_json' => null];
+        'price_mode' => 'fixed', 'pack_size' => 1, 'max_entries' => 1, 'per_day' => 0, 'session_ids' => '', 'seat_category' => '', 'scan_note' => '', 'scan_color' => '', 'vat_rate' => null, 'after_rate_id' => null, 'min_age' => null, 'dyn_json' => null, 'companion' => 0];
     $selS = array_map('intval', array_filter(explode(',', (string)$p['session_ids'])));
     ob_start(); ?>
     <form method="post"><?= csrf_field() ?><input type="hidden" name="rate_id" value="<?= (int)$p['id'] ?>">
@@ -53,6 +53,7 @@ $form = function (?array $r) use ($org, $sessions, $seatCats, $rates) {
       <div class="row" style="gap:22px;margin-bottom:14px">
         <label class="check"><input type="checkbox" name="active" value="1" <?= $p['active'] ? 'checked' : '' ?>> Actif (en vente)</label>
         <label class="check"><input type="checkbox" name="hidden" value="1" <?= $p['hidden'] ? 'checked' : '' ?>> Tarif secret (visible seulement avec un code d'accès)</label>
+        <label class="check"><input type="checkbox" name="companion" value="1" <?= !empty($p['companion']) ? 'checked' : '' ?>> Tarif PMR : un billet accompagnateur gratuit est ajouté à chaque billet</label>
         <label style="display:flex;gap:8px;align-items:center;font-weight:500">Ordre <input type="number" name="sort" value="<?= (int)$p['sort'] ?>" style="width:80px"></label>
       </div>
       <div class="form-actions">
@@ -111,6 +112,7 @@ $base = '/pro/evenements/' . $ev['id'] . '/tarifs';
             <?php if ((int)$r['pack_size'] > 1): ?><span>Pack de <?= (int)$r['pack_size'] ?></span><?php endif; ?>
             <?php if ((int)$r['max_entries'] > 1): ?><span><?= (int)$r['max_entries'] ?> entrées</span><?php endif; ?>
             <?php if ($r['hidden']): ?><span>Secret</span><?php endif; ?>
+            <?php if (!empty($r['companion'])): ?><span>PMR + accompagnateur</span><?php endif; ?>
             <?php if ($dst = DynPrice::state($r)): ?><span>Prix dynamique · palier <?= $dst['index'] + 1 ?>/<?= $dst['count'] ?><?= $dst['next'] !== null ? ' · ' . ($dst['mode'] === 'sold' ? $dst['left'] . ' pl. avant ' . money($dst['next']) : money($dst['next']) . ' le ' . short_date((string)$dst['until'])) : '' ?></span><?php endif; ?>
             <?php if ($r['min_age']): ?><span><?= (int)$r['min_age'] ?> ans et +</span><?php endif; ?>
             <?php if ($r['session_ids']): ?><span><?= count(Tickets::rateSessions($r)) ?> date(s)</span><?php endif; ?>

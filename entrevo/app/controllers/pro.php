@@ -120,6 +120,7 @@ function event_form(?string $id = null): string
             'reminder_message' => trim((string)input('reminder_message')) ?: null,
             'transfer_hours' => max(0, min(720, (int)input('transfer_hours'))),
             'exchange_hours' => max(0, min(720, (int)input('exchange_hours', 24))),
+            'id_check' => checked('id_check'),
             'min_age' => in_array((int)input('min_age'), [12, 16, 18, 21], true) ? (int)input('min_age') : null,
             'presale_until' => dt_from_input(input('presale_until')),
             'presale_past' => checked('presale_past'),
@@ -207,17 +208,28 @@ function event_duplicate(string $id): string
     }
     $start = dt_from_input(input('starts_at'));
     if (!$start) back(['error' => 'Choisis la date du nouvel événement.']);
+    $newId = event_copy($ev, $start, trim((string)input('name')), (array)($_POST['copy'] ?? []));
+    $delta = strtotime($start) - strtotime($ev['starts_at']);
+    $days = (int)round($delta / 86400);
+    Audit::log('event.created', 'Reprise de « ' . $ev['name'] . ' » (' . ($days >= 0 ? '+' : '') . $days . ' jours)', (int)$newId);
+    redirect('/pro/evenements/' . $newId, ['success' => 'Nouvel événement créé en brouillon, toutes les dates décalées de ' . abs($days) . ' jour' . (abs($days) > 1 ? 's' : '') . '. Vérifie et publie.']);
+}
+
+/** 4.0 : copie un événement à une autre date (tarifs, et éléments cochés) ; renvoie l'id du brouillon créé. */
+function event_copy(array $ev, string $start, string $name, array $copyKeys): int
+{
     $delta = strtotime($start) - strtotime($ev['starts_at']);
     $shift = fn(?string $d) => $d ? date('Y-m-d H:i:s', strtotime($d) + $delta) : null;
     $shiftDay = fn(?string $d) => $d ? date('Y-m-d', strtotime($d) + $delta) : null;
-    $want = fn(string $k) => in_array($k, (array)($_POST['copy'] ?? []), true);
+    $want = fn(string $k) => in_array($k, $copyKeys, true);
     event_limit_check((int)$ev['organizer_id']);
     $copy = $ev;
     unset($copy['id']);
-    $copy['name'] = mb_substr(trim((string)input('name')) ?: $ev['name'] . ' (copie)', 0, 190);
+    $copy['name'] = mb_substr($name ?: $ev['name'] . ' (copie)', 0, 190);
     $copy['slug'] = unique_slug('events', $copy['name'] . ' ' . date('Y', strtotime($start)));
     $copy['status'] = 'draft';
     $copy['created_at'] = now();
+    foreach (['report_sent_at', 'followers_notified_at'] as $f) if (array_key_exists($f, $copy)) $copy[$f] = null; // 4.0
     foreach (['starts_at', 'ends_at', 'publish_at', 'refund_deadline', 'presale_until'] as $f) if (array_key_exists($f, $copy)) $copy[$f] = $shift($copy[$f]);
     if ($copy['publish_at'] && strtotime($copy['publish_at']) < time()) $copy['publish_at'] = null;
     $newId = insert('events', $copy);
@@ -237,9 +249,7 @@ function event_duplicate(string $id): string
     if ($want('shifts')) foreach (all('SELECT * FROM staff_shifts WHERE event_id = ?', [$ev['id']]) as $x) { unset($x['id']); $x['event_id'] = $newId; $x['starts_at'] = $shift($x['starts_at']); $x['ends_at'] = $shift($x['ends_at']); $x['created_at'] = now(); insert('staff_shifts', $x); }
     if ($want('budget')) foreach (all('SELECT * FROM budget_lines WHERE event_id = ?', [$ev['id']]) as $x) { unset($x['id']); $x['event_id'] = $newId; foreach (['actual', 'paid'] as $k) if (array_key_exists($k, $x)) $x[$k] = is_numeric($x[$k]) ? 0 : null; $x['created_at'] = now(); insert('budget_lines', $x); }
     if ($want('tasks')) foreach (all('SELECT * FROM tasks WHERE event_id = ?', [$ev['id']]) as $x) { unset($x['id']); $x['event_id'] = $newId; $x['due_date'] = $shiftDay($x['due_date']); $x['done_at'] = null; if (array_key_exists('status', $x)) $x['status'] = 'todo'; $x['created_at'] = now(); insert('tasks', $x); }
-    $days = (int)round($delta / 86400);
-    Audit::log('event.created', 'Reprise de « ' . $ev['name'] . ' » (' . ($days >= 0 ? '+' : '') . $days . ' jours)', (int)$newId);
-    redirect('/pro/evenements/' . $newId, ['success' => 'Nouvel événement créé en brouillon, toutes les dates décalées de ' . abs($days) . ' jour' . (abs($days) > 1 ? 's' : '') . '. Vérifie et publie.']);
+    return (int)$newId;
 }
 
 function event_delete(string $id): never
@@ -302,6 +312,7 @@ function rates(string $id): string
             'per_day' => checked('per_day'),
             'session_ids' => implode(',', array_map('intval', (array)($_POST['session_ids'] ?? []))) ?: null,
             'seat_category' => trim((string)input('seat_category')) ?: null,
+            'companion' => checked('companion'),
             'min_age' => in_array((int)input('min_age'), [12, 16, 18, 21], true) ? (int)input('min_age') : null,
             'after_rate_id' => ((int)input('after_rate_id') && (int)input('after_rate_id') !== $rid && val('SELECT id FROM rates WHERE id = ? AND event_id = ?', [(int)input('after_rate_id'), $ev['id']])) ? (int)input('after_rate_id') : null,
         ];
@@ -581,6 +592,10 @@ function team(): string
         $a = (string)input('action');
         $uid = (int)input('user_id');
         $target = $uid ? one('SELECT * FROM users WHERE id = ? AND organizer_id = ?', [$uid, $org['id']]) : null;
+        if (str_starts_with($a, 'crole_')) { require_once APP . '/controllers/extras4.php'; custom_roles_post($org, $a); }
+        // 4.0 : rôle personnalisé = gestionnaire limité à certaines rubriques / certains événements
+        $crole = 0;
+        if (preg_match('~^c(\d+)$~', (string)input('role'), $cm) && val('SELECT id FROM org_roles WHERE id = ? AND organizer_id = ?', [(int)$cm[1], $org['id']])) { $crole = (int)$cm[1]; $_POST['role'] = 'manager'; }
         if ($a === 'add') {
             $email = strtolower(trim((string)input('email')));
             $role = in_array(input('role'), ['manager', 'scanner', 'owner'], true) ? (string)input('role') : 'scanner';
@@ -589,13 +604,13 @@ function team(): string
             $pass = (string)input('password') ?: strtolower(random_code(10));
             if (mb_strlen($pass) < 8) back(['error' => 'Mot de passe : 8 caractères minimum.']);
             insert('users', ['organizer_id' => $org['id'], 'email' => $email, 'name' => trim((string)input('name')), 'password_hash' => password_hash($pass, PASSWORD_DEFAULT),
-                'role' => $role, 'active' => 1, 'created_at' => now()]);
+                'role' => $role, 'custom_role_id' => $crole ?: null, 'active' => 1, 'created_at' => now()]);
             $_SESSION['team_created'] = ['email' => $email, 'password' => $pass, 'role' => $role];
             redirect('/pro/equipe');
         }
         if ($target && $target['id'] != user()['id']) {
             if ($a === 'toggle') update('users', ['active' => $target['active'] ? 0 : 1], 'id = ?', [$target['id']]);
-            if ($a === 'role' && in_array(input('role'), ['manager', 'scanner', 'owner'], true)) update('users', ['role' => (string)input('role')], 'id = ?', [$target['id']]);
+            if ($a === 'role' && in_array(input('role'), ['manager', 'scanner', 'owner'], true)) update('users', ['role' => (string)input('role'), 'custom_role_id' => $crole ?: null], 'id = ?', [$target['id']]);
             if ($a === 'password') {
                 $pass = strtolower(random_code(10));
                 update('users', ['password_hash' => password_hash($pass, PASSWORD_DEFAULT)], 'id = ?', [$target['id']]);
@@ -610,7 +625,10 @@ function team(): string
     $created = $_SESSION['team_created'] ?? null;
     unset($_SESSION['team_created']);
     $members = all('SELECT * FROM users WHERE organizer_id = ? ORDER BY role, name', [$org['id']]);
-    return pro_page('Équipe', 'team', compact('members', 'created', 'org'), 'team');
+    $croles = all('SELECT r.*, (SELECT COUNT(*) FROM users u WHERE u.custom_role_id = r.id) n FROM org_roles r WHERE r.organizer_id = ? ORDER BY r.name', [$org['id']]);
+    $editRole = (int)input('crole') ? one('SELECT * FROM org_roles WHERE id = ? AND organizer_id = ?', [(int)input('crole'), $org['id']]) : null;
+    $evList = all('SELECT id, name, starts_at FROM events WHERE organizer_id = ? ORDER BY starts_at DESC LIMIT 60', [$org['id']]);
+    return pro_page('Équipe', 'team', compact('members', 'created', 'org', 'croles', 'editRole', 'evList'), 'team');
 }
 
 // ---------- Organisation ----------

@@ -589,15 +589,15 @@ function bars_report_data(array $ev, ?string $day, ?int $bar): array
             foreach ($parts as $pt) if (isset($c[$pt['method']])) $c[$pt['method']] += (int)$pt['amount'];
             foreach (json_decode((string)$s['items'], true) ?: [] as $l) {
                 $k = $l['kind'] ?? 'product';
-                if ($k === 'deposit') $c['dep_in'] += (int)$l['total'];
-                elseif ($k === 'return') $c['dep_out'] += -(int)$l['total'];
+                if ($k === 'deposit') $c['dep_in'] += (int)($l['total'] ?? 0);
+                elseif ($k === 'return') $c['dep_out'] += -(int)($l['total'] ?? 0);
                 elseif ($k === 'product') {
                     $pn = preg_replace('~^Remboursement ~', '', (string)$l['name']); $sign = $kind === 'refund' ? -1 : 1;
-                    $prods[$pn]['q'] = ($prods[$pn]['q'] ?? 0) + $sign * (int)$l['qty']; $prods[$pn]['t'] = ($prods[$pn]['t'] ?? 0) + ($paid ? (int)$l['total'] : 0);
-                    $lht = $paid ? (int)round((int)$l['total'] / (1 + (float)($l['vat'] ?? 20) / 100)) : 0;
+                    $prods[$pn]['q'] = ($prods[$pn]['q'] ?? 0) + $sign * (int)($l['qty'] ?? 0); $prods[$pn]['t'] = ($prods[$pn]['t'] ?? 0) + ($paid ? (int)($l['total'] ?? 0) : 0);
+                    $lht = $paid ? (int)round((int)($l['total'] ?? 0) / (1 + (float)($l['vat'] ?? 20) / 100)) : 0;
                     $prods[$pn]['ht'] = ($prods[$pn]['ht'] ?? 0) + $lht;
                     if (isset($l['cost']) && $l['cost'] !== null) { $prods[$pn]['c'] = ($prods[$pn]['c'] ?? 0) + (int)$l['cost']; $prods[$pn]['cht'] = ($prods[$pn]['cht'] ?? 0) + $lht; $c['cost'] += (int)$l['cost']; }
-                    $cn = $catName[$l['category_id'] ?? 0] ?? 'Sans catégorie'; $cats[$cn]['q'] = ($cats[$cn]['q'] ?? 0) + (int)$l['qty']; $cats[$cn]['t'] = ($cats[$cn]['t'] ?? 0) + ($paid ? (int)$l['total'] : 0);
+                    $cn = $catName[$l['category_id'] ?? 0] ?? 'Sans catégorie'; $cats[$cn]['q'] = ($cats[$cn]['q'] ?? 0) + (int)($l['qty'] ?? 0); $cats[$cn]['t'] = ($cats[$cn]['t'] ?? 0) + ($paid ? (int)($l['total'] ?? 0) : 0);
                 }
             }
             if ($paid) foreach (json_decode((string)$s['vat_json'], true) ?: [] as $rate => $ttc) {

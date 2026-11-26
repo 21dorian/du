@@ -90,6 +90,7 @@ function api_data(string $id): never
         $rates[(int)$r['id']] = $r['name'];
         $age = max((int)($ev['min_age'] ?? 0), (int)($r['min_age'] ?? 0));
         $note = trim(($age ? '' . $age . ' ans et + : vérifier l\'âge. ' : '') . (string)$r['scan_note']);
+        if (!empty($ev['id_check'])) $note = trim('Contrôle d\'identité : la pièce d\'identité doit correspondre au nom du billet. ' . $note); // 4.0
         if ($note !== '' || $r['scan_color']) $rules[(int)$r['id']] = ['note' => $note, 'color' => (string)$r['scan_color']];
     }
     json_out([

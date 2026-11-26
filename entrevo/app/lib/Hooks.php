@@ -19,6 +19,7 @@ final class Hooks
     /** Met en file l'événement pour toutes les adresses abonnées de l'organisateur. */
     public static function fire(int $orgId, string $event, array $data): void
     {
+        if ($event === 'order.paid' && class_exists('Extras')) { try { Extras::queueConversion($orgId, $data); } catch (Throwable $e) { log_line('webhooks', 'Conversions : ' . $e->getMessage()); } } // 4.0
         try {
             $eps = all("SELECT * FROM webhook_endpoints WHERE organizer_id = ? AND active = 1", [$orgId]);
             if (!$eps) { self::legacy($orgId, $event, $data); return; }

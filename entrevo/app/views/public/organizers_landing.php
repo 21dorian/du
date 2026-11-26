@@ -4,7 +4,7 @@
     <span class="eyebrow">Pour les organisateurs</span>
     <h1>Ta billetterie en ligne en 5 minutes. Sans abonnement.</h1>
     <p class="lead">Vends tes billets, remplis ta salle et contrôle les entrées avec ton téléphone, même sans réseau. Tu ne paies que quand tu vends.</p>
-    <div class="vit-cta"><a class="btn btn-lg" href="<?= url('/inscription') ?>">Créer ma billetterie gratuitement</a><?= pub_soon('demo-visio', 'Démo en visio', 'btn btn-lg btn-ghost soon-btn') ?></div>
+    <div class="vit-cta"><a class="btn btn-lg" href="<?= url('/inscription') ?>">Créer ma billetterie gratuitement</a><a class="btn btn-lg btn-ghost" href="<?= url('/demo') ?>">Démo en visio</a></div>
     <div class="vit-proof"><span>Billets gratuits : 0 €</span><span>Paiement sécurisé</span><span>Scan hors ligne</span></div>
   </div>
   <div class="vit-hero-visual" aria-hidden="true">
@@ -57,7 +57,7 @@
 <section class="vit-end">
   <h2>Prêt à remplir ta salle ?</h2>
   <a class="btn btn-lg" href="<?= url('/inscription') ?>">Créer ma billetterie</a>
-  <div class="soon-row" style="justify-content:center"><?= pub_soon('ressources', 'Guides & ressources') ?><?= pub_soon('migration', 'Migrer depuis une autre billetterie') ?></div>
+  <div class="soon-row" style="justify-content:center"><a class="soon-chip" href="<?= url('/ressources') ?>">Guides &amp; ressources</a><a class="soon-chip" href="<?= url('/migration') ?>">Migrer depuis une autre billetterie</a></div>
 </section>
 <script>
 (function () { var s = document.querySelector('[data-sim]'); if (!s) return; var pct = parseFloat(s.dataset.pct) || 0, fx = parseInt(s.dataset.fixed, 10) || 0;

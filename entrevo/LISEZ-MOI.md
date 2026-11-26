@@ -79,6 +79,36 @@ Couleurs : **vert** = entre, **orange** = déjà entré / pas entré (sortie), *
 
 ---
 
+## Nouveautés 4.0 — tout ce qui était « en développement » est disponible
+
+**Entrevo Pay : contrôle d'accès par profil**
+- Section **Accès** : des **zones** (VIP, backstage, camping, loges…) avec les **profils autorisés** (public, staff, VIP, artistes, presse, technique), une **jauge** et une couleur ; compteur en direct, alerte à 90 %, remise à zéro, journal des passages.
+- Appli caisse : nouveau rôle **« Contrôle d'accès »** → choix de la zone → scan du bracelet (NFC) ou du QR code, en **entrée ou en sortie**. Refus automatique si le profil n'est pas autorisé, si le bracelet est bloqué ou si la zone est pleine ; « déjà entré » avec possibilité de forcer.
+
+**Billetterie : organiser**
+- **Saison** (onglet Vue d'ensemble › Saison) : duplique un événement sur jusqu'à 52 dates (liste ou répétition chaque semaine…), avec tarifs, formulaire, options, codes promo, bénévoles, budget, tâches ; brouillons ou mise en vente directe.
+- **Partager les chiffres** : lien en lecture seule pour une salle, un coproducteur ou un financeur (chiffres choisis, durée, désactivable, sans données personnelles).
+- **Bilan PDF** de l'événement, envoyé automatiquement aux responsables le lendemain.
+- **Rôles personnalisés** (Équipe) : « billetterie seulement », « compta »… rubriques autorisées et, au besoin, événements autorisés.
+- **Contacts** : import (CSV ou copier-coller, avec consentement) et **fusion des doublons** (même nom, adresses Gmail équivalentes).
+- **Appli mobile organisateur** (/pro/mobile, à installer sur l'écran d'accueil) : ventes du jour, événements, dernières commandes.
+
+**Billetterie : vendre et faire venir du monde**
+- **Connecteurs** : flux **Google Sheets / Excel** (commandes, participants, ventes), **Zapier / Make / n8n** (abonnements REST, exemple de données), **Brevo / Mailchimp** (synchro des contacts consentants), **API Conversions Meta** et **Google Analytics 4** côté serveur.
+- **Automatisations** : codes promo **anniversaire**, **« tu nous manques »**, **merci après l'événement**, **parrainage** (récompense après X amis).
+- **Tarif PMR** : un billet accompagnateur gratuit ajouté automatiquement.
+- **Contrôle d'identité** : rappel au scan pour les billets nominatifs.
+
+**Jour J**
+- **Vestiaire** : numéros, lien au billet, prix, restitution par numéro ou par billet, export.
+- **Badges nominatifs** : A4 (8 par page) ou étiquette 90 × 60 mm, avec QR code, un par un à l'arrivée ou en série.
+- **Borne libre-service** : une tablette en mode borne (session fermée, panier vidé après inactivité, sortie par code).
+
+**Côté public**
+- **Favoris** (sans compte), **suivre un organisateur** (e-mail à chaque nouvelle date), **covoiturage** par événement (messages sans afficher les adresses), **recommandations** sur la page d'événement, **centre d'aide**, **guides & ressources**, formulaires **démo en visio** et **migration** (suivis dans l'admin : Démos & migrations).
+
+**Restent en préparation** (demandent un partenaire ou un contrat externe) : paiement en 3 fois, assurance annulation, paiement direct Stripe Connect, billets Apple/Google Wallet, Apple Pay / Google Pay, pages multilingues, domaine personnalisé, réseau multi-structures, payer à plusieurs, carte des événements, appli publique native.
+
 ## Nouveautés 3.2 — billetterie et cashless plus intelligents
 
 **Billetterie : prix dynamiques**

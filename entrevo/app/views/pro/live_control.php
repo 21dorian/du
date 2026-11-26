@@ -58,11 +58,12 @@
       <?php endforeach; ?>
       <?php if (!$devices): ?><p class="muted">Aucun téléphone connecté. Les contrôleurs ouvrent <b><?= e(abs_url('/scan')) ?></b>.</p><?php endif; ?>
     </div>
-    <?= soon_card('Bientôt au PC', [
-      'badges-live' => ['Badges imprimés à l\'arrivée', 'Pour les salons et congrès'],
-      'vestiaire' => ['Vestiaire', 'Tickets numérotés liés au billet'],
-      'kiosque' => ['Borne libre-service', 'Achat et retrait sans faire la queue'],
-    ]) ?>
+    <div class="card stack"><h2>Accueil</h2>
+      <div class="row wrap"><a class="btn btn-sm btn-light" href="<?= url('/pro/evenements/' . $ev['id'] . '/vestiaire') ?>">Vestiaire</a><a class="btn btn-sm btn-light" href="<?= url('/pro/evenements/' . $ev['id'] . '/badges-nominatifs') ?>">Badges</a></div>
+      <form method="post" action="<?= url('/borne/' . $ev['slug']) ?>" class="stack" data-confirm="Cette tablette passe en borne : ta session sera fermée. Continuer ?"><?= csrf_field() ?>
+        <b>Borne libre-service</b><small class="muted">Transforme cette tablette en borne d'achat : la page de l'événement en plein écran, panier vidé après inactivité, session fermée. Paiement par carte en ligne.</small>
+        <div class="grid2"><input name="pin" inputmode="numeric" maxlength="4" pattern="\d{4}" placeholder="Code de sortie (4 chiffres)" required><select name="idle"><option value="60">Retour après 1 min</option><option value="90" selected>1 min 30</option><option value="180">3 min</option></select></div>
+        <button class="btn btn-sm">Lancer la borne</button></form></div>
     <div class="card">
       <h2>Par point d'accès</h2>
       <?php foreach ($aps as $a): ?><div class="list-item"><b class="grow"><?= e($a['name']) ?></b><span><?= (int)$a['entries'] ?> entrées<?= $a['exits'] ? ' · ' . (int)$a['exits'] . ' sorties' : '' ?><?= $a['refused'] ? ' · <span style="color:var(--red)">' . (int)$a['refused'] . ' refus</span>' : '' ?></span></div><?php endforeach; ?>

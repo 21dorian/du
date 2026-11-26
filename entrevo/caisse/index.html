@@ -55,6 +55,7 @@
       <h1>Ton poste</h1>
       <div class="field"><label>Point de vente</label><div class="places" id="st-bars"></div></div>
       <div class="field"><label>Ce que tu fais</label><div class="roles" id="st-roles"></div></div>
+      <div class="field" id="st-zone-f" hidden><label>Zone contrôlée</label><div class="places" id="st-zones"></div></div>
       <button class="btn btn-primary btn-xl" id="st-go" disabled>Commencer</button>
       <p class="err" id="st-err" role="alert"></p>
     </div>
@@ -135,6 +136,19 @@
         <div class="pay-row"><button class="pay pay-cash" id="tp-cash" disabled>Espèces</button><button class="pay pay-card" id="tp-card" disabled>Carte</button></div>
         <div class="row"><button class="btn btn-red" id="tp-cashout">Rembourser le solde</button><button class="btn" id="tp-reset">Client suivant</button></div>
       </div>
+    </div>
+  </section>
+
+  <!-- 4.0 : contrôle d'accès par zone -->
+  <section class="screen access" id="s-access" hidden>
+    <header class="pos-top"><button class="icon-btn" data-open-menu aria-label="Menu"><svg viewBox="0 0 24 24"><path d="M4 7h16M4 12h16M4 17h16"/></svg></button>
+      <div class="pos-title"><b id="ac-zone"></b><span id="ac-ev"></span></div><div class="ac-count"><b id="ac-count">0</b><span class="ac-m"><i id="ac-meter"></i></span></div></header>
+    <div class="ac-body">
+      <div class="ac-dir"><button data-acdir="in" class="on">Entrée</button><button data-acdir="out">Sortie</button></div>
+      <p class="muted" id="ac-allowed" style="margin:0;text-align:center"></p>
+      <div class="cam"><video id="ac-video" muted></video></div>
+      <div class="ac-row"><input class="input-big" id="ac-code" placeholder="Code du billet ou du bracelet" autocomplete="off" autocapitalize="characters"><button class="btn btn-primary" id="ac-ok" style="flex:0 0 auto">OK</button></div>
+      <div class="ac-result" id="ac-result"><b>Prêt</b><span>Scanne un bracelet ou un QR code</span></div>
     </div>
   </section>
 

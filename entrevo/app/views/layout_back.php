@@ -65,6 +65,7 @@ if ($area === 'admin') {
             ['kyc', '/admin/kyc', 'Vérification KYC', $I['kyc']],
             ['contrats', '/admin/contrats', 'Contrats & tarifs', $I['handshake']],
             ['prospection', '/admin/prospection', 'Prospection', $I['crm']],
+            ['demandes', '/admin/demandes', 'Démos & migrations', $I['crm']],
             ['formules', '/admin/formules', 'Formules', $I['card']],
         ]],
         ['Argent', [
@@ -119,6 +120,8 @@ if ($area === 'admin') {
             ['avis', '/pro/avis', 'Avis des participants', $I['star']],
             ['liens', '/pro/liens', 'Liens & ambassadeurs', $I['share']],
             ['sms', '/pro/sms', 'Campagnes SMS', $I['sms']],
+            ['automations', '/pro/automatisations', 'Automatisations', $I['mail']],
+            ['contacts', '/pro/contacts', 'Contacts & doublons', $I['people']],
             ['mini-site', '/pro/mini-site', 'Mini-site', $I['globe']],
             ['visuels', '/pro/visuels', 'Visuels réseaux sociaux', $I['share']],
         ]],
@@ -144,6 +147,7 @@ if ($area === 'admin') {
             ['org', '/pro/organisation', 'Réglages', $I['org']],
             ['kyc', '/pro/verification', 'Vérification du compte', $I['kyc']],
             ['integrations', '/pro/integrations', 'Intégrations', $I['plug']],
+            ['connectors', '/pro/connecteurs', 'Connecteurs', $I['plug']],
             ['aide', '/pro/aide', 'Aide & support', $I['help']],
         ]],
     ];
@@ -154,7 +158,7 @@ if ($area === 'admin') {
         foreach ($navGroups as &$g) foreach ($g[1] as &$n) if (isset($modMap[$n[0]]) && empty($n[4]) && !Billing::allows($curOrg, $modMap[$n[0]])) $n[5] = true;
         unset($g, $n);
     }
-    if ($u['role'] === 'manager') foreach ($navGroups as &$g) $g[1] = array_values(array_filter($g[1], fn($n) => !in_array($n[0], ['team', 'org', 'finances', 'audit', 'factures', 'zapier', 'integrations', 'kyc'], true)));
+    if ($u['role'] === 'manager') foreach ($navGroups as &$g) $g[1] = array_values(array_filter($g[1], fn($n) => !in_array($n[0], ['team', 'org', 'finances', 'audit', 'factures', 'zapier', 'integrations', 'kyc', 'connectors'], true)));
     unset($g);
 }
 $nav = [];

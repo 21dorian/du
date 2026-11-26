@@ -2555,3 +2555,23 @@ input[type=color]{width:64px!important;height:40px!important;padding:4px!importa
 .lp-head{display:flex;gap:18px;align-items:center;flex-wrap:wrap}.lp-av{width:56px;height:56px;font-size:20px}
 .lp-pts{min-width:220px}.lp-pts b{font-size:34px;letter-spacing:-.02em;display:block}.lp-pts span{color:#6e6e73;font-size:13px}
 .kpi-grid.loy-kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px}
+
+/* 4.0 : interrupteurs, étiquettes de statut, appli mobile orga */
+.switch{position:relative;display:inline-block;width:46px;height:28px;flex:0 0 auto}
+.switch input{opacity:0;width:0;height:0;position:absolute}
+.switch span{position:absolute;inset:0;border-radius:999px;background:#d1d1d6;transition:background .2s;cursor:pointer}
+.switch span::after{content:"";position:absolute;left:3px;top:3px;width:22px;height:22px;border-radius:50%;background:#fff;box-shadow:0 1px 3px rgba(0,0,0,.2);transition:transform .2s}
+.switch input:checked+span{background:#34c759}.switch input:checked+span::after{transform:translateX(18px)}
+.switch input:focus-visible+span{outline:2px solid #0071e3;outline-offset:2px}
+.tag.green{background:#e3f9e9;color:#1a7f37}.tag.red{background:#ffe9e7;color:#b3261e}
+.dup-row{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.dup-row label{display:flex;gap:6px;align-items:center;padding:6px 10px;border-radius:10px;background:var(--panel2,#f5f5f7);font-size:14px}
+.fav-item{display:flex;align-items:center;gap:8px}.fav-item .agenda-row{flex:1}
+.fav-btn.on{background:var(--ink,#1d1d1f);color:#fff}
+.cp-item{border-top:1px solid var(--line,#e5e5ea);padding:10px 0}.cp-item summary{display:flex;justify-content:space-between;gap:8px;cursor:pointer;list-style:none}.cp-item summary::-webkit-details-marker{display:none}.cp-item form{margin-top:8px}
+.help-quick{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px}.help-quick a{display:flex;flex-direction:column;gap:4px;text-decoration:none;color:inherit}
+.faq-item{margin-top:8px;padding:14px 18px}.faq-item summary{cursor:pointer}.faq-item p{margin:8px 0 0}
+.res-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:14px;align-items:start}.res-card summary{display:flex;flex-direction:column;gap:4px;cursor:pointer;list-style:none}.res-card summary::-webkit-details-marker{display:none}.res-n{font-weight:800;color:var(--muted,#6e6e73);font-size:13px}.res-card ul{margin:10px 0 0;padding-left:18px}
+.reco{margin-top:28px}.reco h2{margin-bottom:6px}
+.kiosk-bar{position:fixed;left:0;right:0;bottom:0;z-index:90;background:rgba(29,29,31,.92);color:#fff;padding:10px 16px;display:flex;justify-content:space-between;align-items:center;font-size:14px;backdrop-filter:blur(12px)}
+.kiosk-bar a{color:#fff;opacity:.6;text-decoration:none}

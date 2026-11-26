@@ -1,6 +1,6 @@
 {
   "name": "entrevo-caisse",
-  "version": "3.2.0",
+  "version": "4.0.0",
   "private": true,
   "description": "Entrevo Caisse : application native (Android, iOS) de la caisse de bar Entrevo, construite avec Capacitor à partir du dossier entrevo/caisse.",
   "scripts": {
