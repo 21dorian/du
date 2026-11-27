@@ -2,7 +2,17 @@
   <div class="vol-hero"><span class="eyebrow">Espace bénévole · <?= e($org['name']) ?></span><h1>Salut <?= e($m['first_name']) ?> !</h1>
     <p class="muted"><?= count(array_filter($mine, fn($s) => $s['status'] === 'confirmed')) ?> créneau(x) confirmé(s) · <?= e(Staff::hm($minutes)) ?> prévues. Garde ce lien précieusement, il est personnel.</p>
     <a class="btn" href="<?= url('/benevole/' . $m['token'] . '/badge') ?>">Mon badge (à montrer en arrivant)</a></div>
-  <div class="card"><h2>Mes créneaux</h2>
+  <?php foreach ($docs ?? [] as $d): if ($d['signed_at']) continue; ?>
+  <form method="post" class="card vol-doc"><?= csrf_field() ?><input type="hidden" name="action" value="sign"><input type="hidden" name="doc_id" value="<?= (int)$d['id'] ?>">
+    <h2 style="margin:0">À signer : <?= e($d['title']) ?></h2><?php if ($d['ev_name']): ?><small class="muted"><?= e($d['ev_name']) ?></small><?php endif; ?>
+    <div class="doc-body"><?= e($d['body']) ?></div>
+    <label class="check"><input type="checkbox" name="agree" value="1" required> <span>J'ai lu et j'approuve ce document</span></label>
+    <div class="row mt" style="gap:8px"><input name="sign_name" required placeholder="Tape ton prénom et ton nom" autocomplete="name" style="max-width:280px"><button class="btn">Signer</button></div>
+  </form>
+  <?php endforeach; ?>
+  <?php if (!empty($prov)): ?><div class="card"><h2>Ma dotation</h2><?php foreach ($prov as $p): ?><p style="margin:6px 0"><b><?= e($p['ev_name']) ?></b> · <?= (int)$p['meals'] ?> repas<?= (int)$p['meals_used'] ? ' (' . (int)$p['meals_used'] . ' pris)' : '' ?><?= $p['lodging'] ? ' · hébergement : ' . e($p['lodging']) : '' ?><?= $p['items'] ? ' · ' . e($p['items']) : '' ?></p><?php endforeach; ?></div><?php endif; ?>
+  <?php $signed = array_filter($docs ?? [], fn($d) => $d['signed_at']); if ($signed): ?><p class="muted" style="font-size:13px">Documents signés : <?= e(implode(', ', array_map(fn($d) => $d['title'] . ' (' . date('d/m', strtotime($d['signed_at'])) . ')', $signed))) ?></p><?php endif; ?>
+  <div class="card"><h2>Mes créneaux <a class="btn btn-sm btn-light" style="float:right" target="_blank" href="<?= url('/benevole/' . $m['token'] . '/planning.pdf') ?>">Planning PDF</a></h2>
     <?php foreach ($mine as $s): ?>
       <div class="vol-mine <?= e($s['status']) ?>">
         <div class="grow"><b><?= e($s['title']) ?></b> <?= Staff::badge($s['status']) ?><br><small><?= e($s['ev_name']) ?> · <?= e(fr_date($s['starts_at'])) ?> → <?= e(date('H:i', strtotime($s['ends_at']))) ?><?= $s['location'] ? ' · ' . e($s['location']) : '' ?></small>

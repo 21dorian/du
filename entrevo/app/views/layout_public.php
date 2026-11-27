@@ -15,6 +15,7 @@ if ($wl) { $platformName = $pname; $pname = (string)$wl['name']; if (empty($site
 <?php $siteOn = !empty($site) && class_exists('Site') && Site::on($site); $siteS = $siteOn ? Site::settings($site) : []; ?>
 <style>:root{--primary:<?= e($siteOn && !empty($site['accent']) && preg_match('~^#[0-9a-fA-F]{6}$~', (string)$site['accent']) ? $site['accent'] : setting('primary_color', '#0071e3')) ?>}</style>
 <?php if (!empty($org_tracking)) echo view('partials/tracking', ['o' => $org_tracking]); ?>
+<?= I18n::js() ?>
 </head>
 <body class="pub">
 <?php if ($wl): $wlMenu = $siteOn ? Site::menu($wl) : [['Billetterie', '/o/' . $wl['slug']]]; $here = route_path(); ?>
@@ -88,13 +89,14 @@ if ($wl) { $platformName = $pname; $pname = (string)$wl['name']; if (empty($site
     </div>
     <div class="footer-links footer-soon">
       <a href="<?= url('/bientot/appli') ?>">Appli mobile <em>bientôt</em></a>
-      <a href="<?= url('/bientot/langues-public') ?>">English <em>bientôt</em></a>
+      <?php $__u = strtok((string)($_SERVER['REQUEST_URI'] ?? '/'), '?'); $__q = $_GET; ?>
+      <?php if (I18n::en()): $__q['lang'] = 'fr'; ?><a href="<?= e($__u . '?' . http_build_query($__q)) ?>" lang="fr">Français</a><?php else: $__q['lang'] = 'en'; ?><a href="<?= e($__u . '?' . http_build_query($__q)) ?>" lang="en">English</a><?php endif; ?>
     </div>
   </div>
 </footer>
 <?php endif; ?>
 <script src="<?= asset('js/app.js') ?>"></script>
-<script>/* 4.0 : favoris gardés sur l'appareil */(function(){var K='entrevo_favs',g=function(){try{return JSON.parse(localStorage.getItem(K)||'[]')}catch(e){return[]}};document.querySelectorAll('[data-fav]').forEach(function(b){var id=+b.dataset.fav,on=function(){var x=g().indexOf(id)>=0;b.classList.toggle('on',x);b.setAttribute('aria-pressed',x);b.textContent=x?'Dans mes favoris':'Favori'};on();b.onclick=function(){var a=g(),i=a.indexOf(id);if(i>=0)a.splice(i,1);else a.unshift(id);try{localStorage.setItem(K,JSON.stringify(a.slice(0,60)))}catch(e){}on()}})})();</script>
+<script>/* 4.0 : favoris gardés sur l'appareil */(function(){var K='entrevo_favs',g=function(){try{return JSON.parse(localStorage.getItem(K)||'[]')}catch(e){return[]}};document.querySelectorAll('[data-fav]').forEach(function(b){var id=+b.dataset.fav,on=function(){var x=g().indexOf(id)>=0;b.classList.toggle('on',x);b.setAttribute('aria-pressed',x);b.textContent=document.documentElement.lang==='en'?(x?'In my favourites':'Favourite'):(x?'Dans mes favoris':'Favori')};on();b.onclick=function(){var a=g(),i=a.indexOf(id);if(i>=0)a.splice(i,1);else a.unshift(id);try{localStorage.setItem(K,JSON.stringify(a.slice(0,60)))}catch(e){}on()}})})();</script>
 <script>/* 4.1 : fenêtre de paiement ouverte par le widget : elle se referme toute seule une fois payé */if(window.name==='entrevo_pay'&&/\/commande\//.test(location.pathname)){var _wp=document.createElement('div');_wp.className='flash success';_wp.style.cssText='position:fixed;left:16px;right:16px;top:16px;z-index:99';_wp.textContent='Paiement reçu : tu peux revenir sur la page de l\'organisateur.';document.body.appendChild(_wp);setTimeout(function(){window.close()},2500)}</script>
 <?php if (!empty($_SESSION['kiosk'])): $kk = $_SESSION['kiosk']; ?>
 <div class="kiosk-bar"><span>Borne libre-service · touche l'écran pour réserver</span><a href="<?= url('/borne/sortie') ?>">Quitter</a></div>

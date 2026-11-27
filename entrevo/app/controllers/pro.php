@@ -92,6 +92,7 @@ function event_form(?string $id = null): string
         $data = [
             'name' => trim((string)input('name')),
             'description' => trim((string)input('description')),
+            'name_en' => mb_substr(trim((string)input('name_en')), 0, 190) ?: null, 'description_en' => trim((string)input('description_en')) ?: null, // 4.2 : version anglaise
             'venue' => trim((string)input('venue')),
             'address' => trim((string)input('address')),
             'city' => trim((string)input('city')),
@@ -123,6 +124,8 @@ function event_form(?string $id = null): string
             'exchange_hours' => max(0, min(720, (int)input('exchange_hours', 24))),
             'id_check' => checked('id_check'),
             'installments' => checked('installments'), 'show_going' => checked('show_going'), 'group_buy' => checked('group_buy'), // 4.1
+            'overline' => mb_substr(trim((string)input('overline')), 0, 120) ?: null, 'subtitle' => mb_substr(trim((string)input('subtitle')), 0, 190) ?: null, 'show_ht' => checked('show_ht'), // 4.2
+            'reservations' => checked('reservations'), 'reservation_days' => max(1, min(60, (int)input('reservation_days', 7))), 'reservation_text' => mb_substr(trim((string)input('reservation_text')), 0, 500) ?: null,
             'min_age' => in_array((int)input('min_age'), [12, 16, 18, 21], true) ? (int)input('min_age') : null,
             'presale_until' => dt_from_input(input('presale_until')),
             'presale_past' => checked('presale_past'),
@@ -306,6 +309,14 @@ function rates(string $id): string
             Audit::log('event.launch', $at ? 'Ouverture le ' . $at : 'Ouverture immédiate', (int)$ev['id']);
             redirect('/pro/evenements/' . $ev['id'] . '/tarifs#lancement', ['success' => $at ? 'Ouverture programmée le ' . fr_date($at) . ' : la page affiche un compte à rebours et la liste « préviens-moi » est ouverte.' : 'Plus d\'ouverture programmée : les tarifs suivent leurs propres dates.']);
         }
+        if ($action === 'filter_link') { // 4.2 : module filtré
+            require_once APP . '/controllers/public.php';
+            $ids = array_values(array_filter(array_map('intval', (array)($_POST['filter_ids'] ?? [])), fn($x) => val('SELECT id FROM rates WHERE id = ? AND event_id = ?', [$x, $ev['id']])));
+            if (!$ids) back(['error' => 'Coche au moins un tarif.']);
+            sort($ids); $q = '?tarifs=' . implode(',', $ids) . '&k=' . filter_sig((int)$ev['id'], $ids);
+            $_SESSION['filter_link'] = ['page' => abs_url('/e/' . $ev['slug']) . $q, 'widget' => abs_url('/widget/achat/' . $ev['slug']) . $q];
+            redirect('/pro/evenements/' . $ev['id'] . '/tarifs#filtre');
+        }
         if ($action === 'group_save') {
             $gid = (int)input('group_id'); $name = mb_substr(trim((string)input('group_name')), 0, 80);
             if ($name === '') back(['error' => 'Donne un nom au contingent.']);
@@ -343,6 +354,7 @@ function rates(string $id): string
         $data = [
             'name' => trim((string)input('name')),
             'description' => trim((string)input('description')) ?: null,
+            'name_en' => mb_substr(trim((string)input('name_en')), 0, 190) ?: null, 'description_en' => mb_substr(trim((string)input('description_en')), 0, 255) ?: null, // 4.2
             'price' => parse_money(input('price')),
             'quota' => max(0, (int)input('quota')),
             'max_per_order' => max(0, (int)input('max_per_order')),
@@ -370,11 +382,14 @@ function rates(string $id): string
             'badge' => array_key_exists((string)input('badge'), RatesPlus::BADGES) && input('badge') !== '' ? (string)input('badge') : (mb_substr(trim((string)input('badge_custom')), 0, 40) ?: null),
             'min_per_order' => max(0, min(50, (int)input('min_per_order'))),
             'proof' => mb_substr(trim((string)input('proof')), 0, 160) ?: null,
+            'extra_fee' => parse_money((string)input('extra_fee')), 'extra_fee_label' => mb_substr(trim((string)input('extra_fee_label')), 0, 60) ?: null, // 4.2
             'quota_group_id' => (int)input('quota_group_id') && val('SELECT id FROM quota_groups WHERE id = ? AND event_id = ?', [(int)input('quota_group_id'), $ev['id']]) ? (int)input('quota_group_id') : null,
             'session_prices' => ($sp = array_filter(array_map(fn($v) => trim((string)$v) === '' ? null : parse_money((string)$v), (array)($_POST['session_price'] ?? [])), fn($v) => $v !== null)) ? json_encode(array_map('intval', $sp)) : null,
             'after_rate_id' => ((int)input('after_rate_id') && (int)input('after_rate_id') !== $rid && val('SELECT id FROM rates WHERE id = ? AND event_id = ?', [(int)input('after_rate_id'), $ev['id']])) ? (int)input('after_rate_id') : null,
         ];
         if ($data['name'] === '') back(['error' => 'Donne un nom à ce tarif.']);
+        try { if ($img = upload_image('ticket_image')) $data['ticket_image'] = $img; } catch (RuntimeException $e) { back(['error' => $e->getMessage()]); } // 4.2 : visuel du billet par tarif
+        if (!empty($_POST['ticket_image_clear'])) $data['ticket_image'] = null;
         try { $data['dyn_json'] = DynPrice::fromInput(); } catch (RuntimeException $e) { back(['error' => $e->getMessage()]); } // 3.2 : prix dynamiques
         if ($data['dyn_json']) $data['price'] = (int)(json_decode($data['dyn_json'], true)['steps'][0]['price'] ?? $data['price']);
         if ($data['after_rate_id'] && $rid && (int)val('SELECT after_rate_id FROM rates WHERE id = ?', [$data['after_rate_id']]) === $rid) back(['error' => 'Ces deux tarifs s\'attendent l\'un l\'autre : choisis un seul sens.']);
@@ -413,7 +428,10 @@ function form_fields(string $id): string
         $type = (string)input('type');
         $data = [
             'label' => trim((string)input('label')),
-            'type' => in_array($type, ['text', 'textarea', 'select', 'checkbox', 'date', 'email', 'phone', 'number'], true) ? $type : 'text',
+            'type' => in_array($type, ['text', 'textarea', 'select', 'checkbox', 'date', 'email', 'phone', 'number', 'file', 'country', 'title'], true) ? $type : 'text',
+            'help' => mb_substr(trim((string)input('help')), 0, 300) ?: null, 'default_on' => checked('default_on'), // 4.2
+            'cond_field' => (int)input('cond_field') && (int)input('cond_field') !== $fid && val('SELECT id FROM form_fields WHERE id = ? AND event_id = ?', [(int)input('cond_field'), $ev['id']]) ? (int)input('cond_field') : null,
+            'cond_value' => mb_substr(trim((string)input('cond_value')), 0, 190) ?: null,
             'options' => trim((string)input('options')) ?: null,
             'required' => checked('required'),
             'per_ticket' => (int)input('per_ticket') ? 1 : 0,
@@ -451,7 +469,9 @@ function promos(string $id): string
         if ($a === 'toggle') { q('UPDATE promos SET active = 1 - active WHERE id = ? AND event_id = ?', [$pid, $ev['id']]); back(); }
         if ($a === 'batch_off') { q('UPDATE promos SET active = 0 WHERE batch = ? AND event_id = ?', [(string)input('batch'), $ev['id']]); back(['success' => 'Lot désactivé.']); }
         $kind = (string)input('kind');
-        if (!in_array($kind, ['percent', 'amount', 'unlock'], true)) $kind = 'percent';
+        if (!in_array($kind, ['percent', 'amount', 'unlock', 'grid'], true)) $kind = 'percent';
+        $grid = []; if ($kind === 'grid') foreach ((array)($_POST['grid'] ?? []) as $rid => $v) if (trim((string)$v) !== '' && in_array((int)$rid, array_map('intval', array_column($rates, 'id')), true)) $grid[(string)(int)$rid] = parse_money((string)$v); // 4.2
+        if ($kind === 'grid' && !$grid) back(['error' => 'Indique au moins un prix spécial dans la grille.']);
         $rateIds = array_map('intval', (array)($_POST['rate_ids'] ?? []));
         $valid = array_map('intval', array_column($rates, 'id'));
         $rateIds = array_values(array_filter($rateIds, fn($r) => in_array($r, $valid, true)));
@@ -459,7 +479,8 @@ function promos(string $id): string
         if ($kind === 'unlock' && !$rateIds) back(['error' => 'Choisis le ou les tarifs secrets que ce code débloque.']);
         $base = ['event_id' => $ev['id'], 'kind' => $kind, 'value' => $value, 'rate_ids' => $rateIds ? implode(',', $rateIds) : null,
             'max_uses' => max(0, (int)input('max_uses')), 'valid_from' => dt_from_input(input('valid_from')), 'valid_until' => dt_from_input(input('valid_until')),
-            'min_qty' => max(0, min(100, (int)input('min_qty'))), 'once_per_email' => checked('once_per_email'), 'label' => mb_substr(trim((string)input('label')), 0, 190) ?: null, 'active' => 1];
+            'min_qty' => max(0, min(100, (int)input('min_qty'))), 'once_per_email' => checked('once_per_email'), 'label' => mb_substr(trim((string)input('label')), 0, 190) ?: null, 'active' => 1, 'grid_json' => $grid ? json_encode($grid) : null];
+        if ($kind === 'grid') $base['rate_ids'] = implode(',', array_keys($grid));
         if ($base['valid_from'] && $base['valid_until'] && $base['valid_until'] <= $base['valid_from']) back(['error' => 'La fin de validité doit être après le début.']);
         $count = max(1, min(1000, (int)input('count', 1)));
         if ($count > 1) {
@@ -704,6 +725,8 @@ function organization(): string
         $data['bic'] = strtoupper(trim((string)input('bic'))) ?: null;
         $data['fee_mode'] = input('fee_mode') === 'organizer' ? 'organizer' : 'buyer';
         foreach (['ga4_id', 'gtm_id', 'fb_pixel'] as $k) $data[$k] = preg_replace('~[^A-Za-z0-9-]~', '', (string)input($k)) ?: null;
+        $data['order_copy_email'] = is_email(trim((string)input('order_copy_email'))) ? strtolower(trim((string)input('order_copy_email'))) : null; // 4.2
+        $data['slack_webhook'] = preg_match('~^https://hooks\.slack\.com/~', trim((string)input('slack_webhook'))) ? trim((string)input('slack_webhook')) : null;
         $hook = trim((string)input('webhook_url'));
         $data['webhook_url'] = $hook !== '' && preg_match('~^https://~', $hook) ? mb_substr($hook, 0, 255) : null;
         if ($data['webhook_url'] && !$org['webhook_secret']) $data['webhook_secret'] = token(24);

@@ -1,6 +1,7 @@
 /* Entrevo — tiroir d'achat : Billets → Toi → Récap → Paiement, sans quitter la page de l'événement. */
 (function () {
   'use strict';
+  var I18N = window.ENTREVO_I18N || {}; function T(x) { return I18N[x] || x; }
   var dw = document.getElementById('drawer'), buy = document.getElementById('buy');
   if (!dw || !buy) return;
   var body = document.body, csrf = dw.dataset.csrf, step = 1, summary = null, timer = null, lastFocus = null;
@@ -19,7 +20,7 @@
   buy.querySelectorAll('input[name^="product["]').forEach(function (i) { optionRows.push(i.closest('.rate')); });
   var don = buy.querySelector('#donation'); if (don) optionRows.push(don.closest('.rate'));
   if (optionRows.length) {
-    var h = document.createElement('h3'); h.className = 'dw-h'; h.textContent = 'Envie d’un petit plus ?'; opts.appendChild(h);
+    var h = document.createElement('h3'); h.className = 'dw-h'; h.textContent = T('Envie d’un petit plus ?'); opts.appendChild(h);
     optionRows.forEach(function (r) { if (!r) return; r.querySelectorAll('input, select').forEach(function (i) { i.setAttribute('form', 'buy'); }); if (r.classList.contains('extras-head')) r.remove(); else opts.appendChild(r); });
   }
   // prérenseignement : lien de connexion, sinon cet appareil
@@ -57,7 +58,7 @@
     $('[data-dw-back]').hidden = n === 1 || n === 4;
     var next = $('[data-dw-next]');
     next.hidden = n === 4;
-    next.textContent = n === 3 ? (summary && summary.total_cents ? 'Payer ' + summary.total + ' →' : 'Valider ma réservation →') : 'Continuer →';
+    next.textContent = n === 3 ? (summary && summary.total_cents ? T('Payer') + ' ' + summary.total + ' →' : T('Valider ma réservation →')) : T('Continuer →');
     errors([]);
     $('.dw-body').scrollTop = 0;
     footer();
@@ -71,7 +72,7 @@
   function count() { var n = 0; buy.querySelectorAll('input[name^="qty["]').forEach(function (i) { var q = i.closest('.qty'); n += (parseInt(i.value, 10) || 0) * (q ? parseInt(q.dataset.pack || '1', 10) : 1); }); return n; }
   function footer() {
     var n = summary && step > 1 ? summary.places : count();
-    $('[data-count]').textContent = n + ' billet' + (n > 1 ? 's' : '');
+    $('[data-count]').textContent = n + ' ' + T(n > 1 ? 'billets' : 'billet');
     var t = document.getElementById('buy-total');
     $('[data-total]').textContent = summary && step > 1 ? summary.total : (t ? t.textContent : '');
   }
@@ -94,28 +95,28 @@
     if (!summary) return;
     var t = document.createElement('div'); t.className = 'dw-ticket';
     var add = function (cls, a, b) { var r = document.createElement('div'); r.className = 'dw-line ' + (cls || ''); var x = document.createElement('span'); x.textContent = a; var y = document.createElement('span'); y.textContent = b; r.appendChild(x); r.appendChild(y); t.appendChild(r); };
-    var hd = document.createElement('div'); hd.className = 'dw-ticket-head'; hd.textContent = 'Ton récap'; t.appendChild(hd);
+    var hd = document.createElement('div'); hd.className = 'dw-ticket-head'; hd.textContent = T('Ton récap'); t.appendChild(hd);
     summary.lines.forEach(function (l) { add('', l.qty + ' × ' + l.name, l.total); });
-    if (summary.group) add('good', 'Tarif groupe (−' + summary.group.pct + ' %)', '−' + summary.group.amount);
-    if (summary.discount) add('good', 'Réduction' + (summary.promo ? ' (' + summary.promo + ')' : ''), '−' + summary.discount);
-    if (summary.fees) add('muted', 'Frais de service', summary.fees);
+    if (summary.group) add('good', T('Tarif groupe') + ' (−' + summary.group.pct + ' %)', '−' + summary.group.amount);
+    if (summary.discount) add('good', T('Réduction') + (summary.promo ? ' (' + summary.promo + ')' : ''), '−' + summary.discount);
+    if (summary.fees) add('muted', T('Frais de service'), summary.fees);
     if (summary.donation) add('', 'Don', summary.donation);
     if (summary.promo_note) add('muted', summary.promo_note, '');
-    if (summary.gift) add('good', 'Carte cadeau ' + summary.gift.code, '−' + summary.gift.amount);
-    add('total', 'Total', summary.total);
+    if (summary.gift) add('good', T('Carte cadeau') + ' ' + summary.gift.code, '−' + summary.gift.amount);
+    add('total', T('Total'), summary.total);
     box.appendChild(t);
   }
 
   $('[data-dw-next]').addEventListener('click', function () {
     if (step === 1) {
-      if (!count()) { errors(['Choisis au moins un billet']); return; }
+      if (!count()) { errors([T('Choisis au moins un billet')]); return; }
       busy(true);
       refresh('start').then(function (j) {
         busy(false);
-        if (!j.ok) { errors(j.errors || ['Oups, réessaie.']); return; }
+        if (!j.ok) { errors(j.errors || [T('Oups, réessaie.')]); return; }
         var slot = $('[data-slot=fields]'); slot.innerHTML = j.fields_html; // HTML construit côté serveur (valeurs échappées)
         go(2);
-      }).catch(function () { busy(false); errors(['Connexion perdue : vérifie ton réseau et réessaie.']); });
+      }).catch(function () { busy(false); errors([T('Connexion perdue : vérifie ton réseau et réessaie.')]); });
     } else if (step === 2) {
       var bad = Array.prototype.filter.call(buyer.querySelectorAll('input,select,textarea'), function (i) { return i.form === buyer && !i.checkValidity(); })[0];
       if (bad) { bad.reportValidity ? bad.reportValidity() : bad.focus(); return; }
@@ -127,12 +128,12 @@
       busy(true);
       post(dw.dataset.order, fd).then(function (j) {
         busy(false);
-        if (!j.ok) { errors(j.errors || ['Oups, réessaie.']); return; }
+        if (!j.ok) { errors(j.errors || [T('Oups, réessaie.')]); return; }
         if ($('[data-remember]').checked) { var b = {}; ['first_name', 'last_name', 'email', 'phone'].forEach(function (k) { b[k] = buyer.querySelector('[name=' + k + ']').value; }); store.set('buyer', b); }
         if (j.free) { location.href = j.url; return; }
         $('[data-slot=pay]').innerHTML = j.pay_html; // fragment serveur (échappé)
         go(4); countdown();
-      }).catch(function () { busy(false); errors(['Connexion perdue : vérifie ton réseau et réessaie.']); });
+      }).catch(function () { busy(false); errors([T('Connexion perdue : vérifie ton réseau et réessaie.')]); });
     }
   });
   $('[data-dw-back]').addEventListener('click', function () { if (step > 1 && step < 4) go(step - 1); });
@@ -163,14 +164,14 @@
       var s = Math.max(0, Math.round((end - Date.now()) / 1000));
       left.textContent = Math.floor(s / 60) + ':' + String(s % 60).padStart(2, '0');
       el.classList.toggle('hurry', s < 120);
-      if (!s) { clearInterval(timer); el.textContent = 'Temps écoulé : tes places sont reparties. Recharge la page pour retenter ta chance.'; var f = $('.dw-pay-form'); if (f) f.hidden = true; }
+      if (!s) { clearInterval(timer); el.textContent = T('Temps écoulé : tes places sont reparties. Recharge la page pour retenter ta chance.'); var f = $('.dw-pay-form'); if (f) f.hidden = true; }
     };
     tick(); timer = setInterval(tick, 1000);
   }
 
   // e-mail : on montre où partent les billets
   var em = buyer.querySelector('[name=email]');
-  em.addEventListener('input', function () { var hEl = $('[data-email-hint]'); hEl.textContent = em.value ? 'Tes billets arriveront à ' + em.value + '' : 'Tes billets arriveront ici.'; });
+  em.addEventListener('input', function () { var hEl = $('[data-email-hint]'); hEl.textContent = em.value ? T('Tes billets arriveront à ') + em.value + '' : 'Tes billets arriveront ici.'; });
 
   // connexion rapide par lien
   $('[data-quick-open]').addEventListener('click', function () { $('.dw-quick-form').hidden = false; $('[data-quick-mail]').focus(); });

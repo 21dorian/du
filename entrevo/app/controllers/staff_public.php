@@ -48,6 +48,16 @@ function volunteer_portal(string $token): string
         $as = one('SELECT a.*, s.title, s.needed, s.starts_at, s.ends_at, s.id sid, s.open_signup FROM staff_assignments a JOIN staff_shifts s ON s.id = a.shift_id WHERE a.id = ? AND a.member_id = ?', [(int)input('assignment_id'), $m['id']]);
         if ($a === 'confirm' && $as) { update('staff_assignments', ['status' => 'confirmed'], 'id = ?', [$as['id']]); back(['success' => 'C\'est noté, merci !']); }
         if ($a === 'decline' && $as && !$as['checked_in_at']) { update('staff_assignments', ['status' => 'declined'], 'id = ?', [$as['id']]); back(['success' => 'OK, on prévient l\'équipe. Merci de nous avoir dit']); }
+        if ($a === 'sign') { // 4.2 : signature électronique simple
+            $d = one('SELECT * FROM staff_docs WHERE id = ? AND organizer_id = ?', [(int)input('doc_id'), $m['organizer_id']]);
+            $name = mb_substr(trim((string)input('sign_name')), 0, 160);
+            if (!$d || empty($_POST['agree'])) back(['error' => 'Coche « lu et approuvé » pour signer.']);
+            $norm = fn($s) => mb_strtolower(preg_replace('~\s+~', ' ', trim($s)));
+            if ($norm($name) !== $norm($m['first_name'] . ' ' . $m['last_name'])) back(['error' => 'Tape ton prénom et ton nom exactement : ' . $m['first_name'] . ' ' . $m['last_name'] . '.']);
+            if (!val('SELECT id FROM staff_signatures WHERE doc_id = ? AND member_id = ?', [$d['id'], $m['id']]))
+                insert('staff_signatures', ['doc_id' => $d['id'], 'member_id' => $m['id'], 'name' => $name, 'ip' => client_ip(), 'hash' => hash('sha256', $d['title'] . "\n" . $d['body']), 'signed_at' => now()]);
+            back(['success' => 'Document signé. Merci !']);
+        }
         if ($a === 'signup') {
             $s = one('SELECT s.* FROM staff_shifts s JOIN events e ON e.id = s.event_id WHERE s.id = ? AND e.organizer_id = ? AND s.open_signup = 1 AND s.ends_at > NOW()', [(int)input('shift_id'), $m['organizer_id']]);
             if (!$s) back(['error' => 'Ce créneau n\'est plus disponible.']);
@@ -65,7 +75,9 @@ function volunteer_portal(string $token): string
         FROM staff_shifts s JOIN events e ON e.id = s.event_id WHERE e.organizer_id = ? AND s.open_signup = 1 AND s.ends_at > NOW() ORDER BY s.starts_at LIMIT 60", [$m['organizer_id']]);
     $open = array_values(array_filter($open, fn($s) => !in_array($s['id'], $mineIds) && (int)$s['taken'] < (int)$s['needed']));
     $minutes = 0; foreach ($mine as $s) if ($s['status'] === 'confirmed') $minutes += Staff::minutes($s)[0];
-    return view('layout_public', ['title' => 'Mon espace bénévole', 'content' => view('public/volunteer_portal', compact('m', 'org', 'mine', 'open', 'minutes'))]);
+    $docs = Crew::docsFor($m); // 4.2
+    $prov = all('SELECT p.*, e.name ev_name FROM staff_provisions p JOIN events e ON e.id = p.event_id WHERE p.member_id = ? AND COALESCE(e.ends_at, e.starts_at) >= NOW() - INTERVAL 2 DAY ORDER BY e.starts_at', [$m['id']]);
+    return view('layout_public', ['title' => 'Mon espace bénévole', 'content' => view('public/volunteer_portal', compact('m', 'org', 'mine', 'open', 'minutes', 'docs', 'prov'))]);
 }
 
 function volunteer_badge(string $token): string
@@ -73,4 +85,12 @@ function volunteer_badge(string $token): string
     $m = volunteer_member($token);
     $org = one('SELECT * FROM organizers WHERE id = ?', [$m['organizer_id']]);
     return view('public/volunteer_badge', compact('m', 'org'));
+}
+
+/** 4.2 : planning individuel en PDF. */
+function volunteer_planning_pdf(string $token): never
+{
+    $m = volunteer_member($token);
+    header('Content-Type: application/pdf'); header('Content-Disposition: inline; filename="mon-planning.pdf"');
+    echo Crew::planningPdf($m); exit;
 }

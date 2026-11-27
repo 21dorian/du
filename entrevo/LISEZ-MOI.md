@@ -79,6 +79,32 @@ Couleurs : **vert** = entre, **orange** = déjà entré / pas entré (sortie), *
 
 ---
 
+## Nouveautés 4.2 — parité Weezevent
+
+**Vente et tarifs**
+- **Frais par tarif** (frais de gestion ajoutés au prix, séparés du billet), **codes promo « grille »** (un prix réduit fixé tarif par tarif), **lien réservé à certains tarifs** (module filtré, page et widget, lien signé), **sur-titre et sous-titre** d'événement, affichage des **prix HT**.
+- **Réservation en ligne** : l'acheteur choisit « réserver, payer plus tard » ; ses places sont gardées X jours (avant le début), il reçoit les instructions et un lien de paiement, une relance part 24 h avant l'échéance. L'organisateur encaisse la réservation (chèque, virement, espèces, CB), la prolonge ou renvoie les instructions depuis la commande.
+- **Formulaires avancés** : questions conditionnelles (affichées selon une réponse), textes d'aide, titres de section, pays, **pièces jointes** (téléchargeables depuis la commande), cases cochées par défaut.
+- **Copie des confirmations** à une adresse de l'organisation et **notification Slack** à chaque commande.
+
+**Billetterie en anglais**
+- Le parcours d'achat (page événement, tiroir, widget, commande, paiement, espace acheteur), les **e-mails de billets** et les **billets PDF** passent en anglais (lien « English » en pied de page, ou navigateur anglophone).
+- L'organisateur saisit le **nom et la description en anglais** de l'événement et de chaque tarif.
+
+**Impressions**
+- **Billets à imprimer** : stocks de billets au porteur numérotés (guichet hors ligne, office de tourisme, dépositaire), en planche A4, format thermique **Boca 152 × 54 mm** avec talon ou 80 mm ; à la fin, déclare les invendus : ils sont annulés et la recette est comptée.
+- **Billets thermiques Boca** pour n'importe quelle commande (guichet).
+- **Cartes membres** des abonnés au format carte bancaire (imprimante PVC) ou en planche A4.
+- **Visuel du billet par tarif** (remplace l'affiche sur le PDF).
+
+**Rapports**
+- **Bordereau de recettes** pour les déclarations SACEM, SACD et CNV : recette par tarif TTC / HT / TVA, billets exonérés, frais séparés, taxe CNV indicative (PDF et CSV).
+
+**Équipes, Pay et contrôle**
+- **Logistique des équipes** : dotation de chaque bénévole (repas calculés depuis le planning, repas servis, hébergement, matériel remis), **documents à signer** en ligne (signature électronique simple avec date, IP et empreinte du texte), **messages par poste** (équipe ou créneau), **planning individuel PDF** (aussi dans l'espace bénévole).
+- **Click & collect** : le festivalier commande au bar depuis sa carte cashless, paie avec son solde et reçoit un numéro ; la commande arrive sur l'écran de préparation du bar.
+- **Contrôle par opérateur** : scans, entrées, sorties, refus, hors ligne, points d'accès et rythme de chaque contrôleur ou appareil (export CSV).
+
 ## Nouveautés 4.1 — la billetterie passe au niveau des pros (Weezevent, Shotgun, salles de spectacle)
 
 **Espace événement façon Weezticket**

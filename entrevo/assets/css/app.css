@@ -2715,3 +2715,9 @@ input[type=color]{width:64px!important;height:40px!important;padding:4px!importa
 .group-buy{margin-top:12px}.group-buy summary{cursor:pointer;font-weight:600;color:var(--primary);list-style:none}.group-buy summary::-webkit-details-marker{display:none}.group-buy form{display:grid;gap:8px;margin-top:10px}
 .wallet-btns{display:flex;gap:6px;flex-wrap:wrap;margin-top:6px}.wallet-btns a{display:inline-flex;align-items:center;gap:6px;background:#000;color:#fff;border-radius:10px;padding:6px 12px;font-size:13px;font-weight:600;text-decoration:none}
 .vis-box{border:1px solid var(--line,#e5e5ea);border-radius:14px;padding:12px 14px;margin:0 0 14px}.vis-box summary{list-style:none;cursor:pointer}.vis-box summary::-webkit-details-marker{display:none}
+.event-overline{margin:0 0 4px;font:700 13px var(--font);letter-spacing:.08em;text-transform:uppercase;color:var(--primary)}
+.event-subtitle{margin:6px 0 0;font-size:19px;color:var(--ink-2)}
+.form-title h3{margin:12px 0 0;font-size:17px}.form-title small{color:var(--muted)}
+[data-cond-field][hidden]{display:none!important}
+.resa-choice{display:grid;gap:6px;padding:12px;border:1px solid var(--line);border-radius:14px;margin-bottom:10px}.resa-admin{padding:12px;border-radius:12px;background:#fff6e5}
+.bar-track{height:6px;border-radius:3px;background:var(--line,#e5e5ea);overflow:hidden;margin-bottom:4px}.bar-track i{display:block;height:100%;background:var(--accent,#0071e3);border-radius:3px}.vol-doc{border:1px solid var(--line,#e5e5ea);border-radius:14px;padding:14px;margin-bottom:10px}.vol-doc .doc-body{white-space:pre-line;max-height:220px;overflow:auto;background:#f5f5f7;border-radius:10px;padding:12px;font-size:14px;margin:8px 0}

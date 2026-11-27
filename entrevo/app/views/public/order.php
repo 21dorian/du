@@ -18,6 +18,15 @@
     </div>
     <div class="soon-row center-row no-print"><a class="soon-chip" href="<?= url('/e/' . $ev['slug'] . '/covoiturage') ?>">Covoiturage</a></div>
   </div>
+<?php elseif ($o['status'] === 'pending' && ($o['channel'] ?? '') === 'reservation'): ?>
+  <div class="card center auth-box">
+    <div class="state-mark wait"><?= ui_icon('calendar', 30) ?></div>
+    <h1>Places réservées, <?= e($o['first_name']) ?> !</h1>
+    <p class="muted">Référence <b><?= e($o['ref']) ?></b> · <?= e(money((int)$o['total'])) ?> à régler avant le <b><?= e(fr_date((string)$o['expires_at'])) ?></b>. Les instructions sont aussi parties par e-mail.</p>
+    <?php if (!empty($ev['reservation_text'])): ?><p class="flash info"><?= nl2br(e((string)$ev['reservation_text'])) ?></p><?php endif; ?>
+    <a class="btn btn-lg" href="<?= url('/paiement/' . $o['ref'], ['t' => $o['token']]) ?>">Payer en ligne maintenant</a>
+    <p class="muted" style="font-size:13px">Tes billets arrivent dès le règlement. Sans paiement à temps, les places sont remises en vente.</p>
+  </div>
 <?php elseif ($o['status'] === 'pending'): ?>
   <div class="card center auth-box">
     <div class="state-mark wait"><?= ui_icon('clock', 30) ?></div>

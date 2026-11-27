@@ -38,6 +38,11 @@
       </div>
     </div>
     <div class="card">
+      <h2>Notifications de commandes</h2>
+      <div class="grid2"><div class="field"><label>Copie de chaque confirmation à</label><input type="email" name="order_copy_email" value="<?= e((string)($org['order_copy_email'] ?? '')) ?>" placeholder="billetterie@ton-asso.fr"><small>Reçoit une copie de chaque e-mail de billets envoyé aux acheteurs.</small></div>
+        <div class="field"><label>Slack : webhook entrant</label><input name="slack_webhook" value="<?= e((string)($org['slack_webhook'] ?? '')) ?>" placeholder="https://hooks.slack.com/services/…"><small>Un message dans ton canal à chaque nouvelle commande.</small></div></div>
+    </div>
+    <div class="card">
       <h2>API & webhooks</h2>
       <p class="muted" style="font-size:14px">Pour brancher ton CRM, Zapier, Make ou ton logiciel : à chaque commande payée, on envoie les infos à ton URL (signées avec la clé secrète).</p>
       <div class="field"><label>URL de webhook (https)</label><input name="webhook_url" value="<?= e($org['webhook_url']) ?>" placeholder="https://hooks.zapier.com/…"><?php if ($org['webhook_secret']): ?><small>Clé de signature (en-tête X-Entrevo-Signature, HMAC-SHA256) : <span class="mono"><?= e($org['webhook_secret']) ?></span></small><?php endif; ?></div>

@@ -13,9 +13,20 @@ final class TicketPdf
 
     private static function t(?string $s): string { return PdfDoc::t($s); }
 
+    /** 4.2 : visuel propre au tarif (remplace l'affiche de l'événement sur le billet). */
+    public static function ratePoster(array $t): ?string
+    {
+        static $c = [];
+        $rid = (int)($t['rate_id'] ?? 0);
+        if (!$rid) return null;
+        if (!array_key_exists($rid, $c)) { $p = (string)val('SELECT ticket_image FROM rates WHERE id = ?', [$rid]); $c[$rid] = $p && preg_match('~\.(jpe?g|png)$~i', $p) && is_file(ROOT . '/' . $p) ? ROOT . '/' . $p : null; }
+        return $c[$rid];
+    }
+
     /** @param array $tickets lignes de la table tickets */
     public static function build(array $order, array $event, array $org, array $tickets): string
     {
+        if (I18n::en()) { $event = I18n::localize($event, ['name', 'ticket_info']); foreach ($tickets as &$tk0) { if (!empty($tk0['rate_id']) && ($n0 = val('SELECT name_en FROM rates WHERE id = ?', [$tk0['rate_id']]))) $tk0['rate_name'] = $n0; } unset($tk0); } // 4.2
         if (class_exists('TicketDesign') && ($L = TicketDesign::get($event))) return TicketDesign::build($L, $order, $event, $org, $tickets); // 4.1 : maquette perso
         $pdf = new PdfDoc('P', 'mm', 'A4');
         $pdf->SetAutoPageBreak(false);
@@ -36,6 +47,7 @@ final class TicketPdf
 
         foreach (array_values($tickets) as $i => $t) {
             $pdf->AddPage();
+            $poster = self::ratePoster($t) ?? $img($event['image'] ?? null); // 4.2 : visuel par tarif
             $start = !empty($t['session_id']) && !empty($sessions[$t['session_id']]) ? $sessions[$t['session_id']]['starts_at'] : $event['starts_at'];
             $ts = strtotime((string)$start);
             $kind = ['invitation' => 'INVITATION', 'accreditation' => 'ACCRÉDITATION', 'external' => 'BILLET'][$t['type'] ?? 'ticket'] ?? 'BILLET';

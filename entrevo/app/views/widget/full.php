@@ -56,7 +56,7 @@ input:focus,select:focus,textarea:focus{outline:0;border-color:var(--c)}
       <a class="btn" target="_blank" rel="noopener" href="<?= e(abs_url('/e/' . $ev['slug'], ['utm_source' => 'widget'])) ?>">Choisir mes places</a>
     <?php else: ?>
       <?php if ($sessions): ?><h3>Choisis ta date</h3><div class="dates"><?php foreach ($sessions as $x): $full = isset($x['left']) && $x['left'] !== null && (int)$x['left'] <= 0; ?>
-        <a href="<?= e($self . '?seance=' . (int)$x['id'] . (input('mode') ? '&mode=' . e((string)input('mode')) : '') . '&host=' . rawurlencode((string)input('host'))) ?>" class="<?= $session && (int)$session['id'] === (int)$x['id'] ? 'on' : '' ?> <?= $full ? 'full' : '' ?>"><b><?= e(date('d/m', strtotime($x['starts_at']))) ?> · <?= e(date('H\hi', strtotime($x['starts_at']))) ?></b><?= $x['label'] ? e($x['label']) : e(fr_date($x['starts_at'], false)) ?><?= $full ? ' · complet' : '' ?></a><?php endforeach; ?></div><?php endif; ?>
+        <a href="<?= e($self . '?seance=' . (int)$x['id'] . (input('mode') ? '&mode=' . e((string)input('mode')) : '') . '&host=' . rawurlencode((string)input('host')) . (input('tarifs') ? '&tarifs=' . rawurlencode((string)input('tarifs')) . '&k=' . rawurlencode((string)input('k')) : '')) ?>" class="<?= $session && (int)$session['id'] === (int)$x['id'] ? 'on' : '' ?> <?= $full ? 'full' : '' ?>"><b><?= e(date('d/m', strtotime($x['starts_at']))) ?> · <?= e(date('H\hi', strtotime($x['starts_at']))) ?></b><?= $x['label'] ? e($x['label']) : e(fr_date($x['starts_at'], false)) ?><?= $full ? ' · complet' : '' ?></a><?php endforeach; ?></div><?php endif; ?>
       <?php if ($rates): ?><h3>Billets</h3><?php endif; ?>
       <?php foreach ($rates as $r): $ok = $r['sale']['ok']; $max = $ok ? min(20, (int)$r['sale']['remaining'], (int)$r['max_per_order'] ?: 20, (int)$ev['max_per_order'] ?: 20) : 0; $fee = Tickets::unitFee($org, (int)$r['price']); ?>
         <div class="rate <?= $max ? '' : 'off' ?>">
@@ -79,21 +79,14 @@ input:focus,select:focus,textarea:focus{outline:0;border-color:var(--c)}
     <?php endif; ?>
   </section>
 
-  <form class="pane" id="p2" hidden autocomplete="on">
+  <form class="pane" id="p2" hidden autocomplete="on" enctype="multipart/form-data">
     <button type="button" class="back" data-back="1">← Modifier les billets</button>
     <h3>Tes coordonnées</h3>
     <div class="g2"><div class="field"><label for="fn">Prénom</label><input type="text" id="fn" name="first_name" autocomplete="given-name" required></div><div class="field"><label for="ln">Nom</label><input type="text" id="ln" name="last_name" autocomplete="family-name" required></div></div>
     <div class="field"><label for="em">E-mail (tes billets y sont envoyés)</label><input type="email" id="em" name="email" autocomplete="email" required></div>
     <div class="field"><label for="ph">Téléphone (facultatif)</label><input type="tel" id="ph" name="phone" autocomplete="tel"></div>
     <?php if (Buyers::requiredAge($ev, array_map(fn($r) => (int)$r['id'], $rates))): ?><div class="field"><label for="bd">Date de naissance</label><input type="date" id="bd" name="birth_date" required></div><?php endif; ?>
-    <?php foreach ($orderFields as $f): $nm = 'f[' . (int)$f['id'] . ']'; ?>
-      <div class="field"><?php if ($f['type'] === 'checkbox'): ?><label class="chk"><input type="checkbox" name="<?= $nm ?>" value="1" <?= $f['required'] ? 'required' : '' ?>> <?= e($f['label']) ?></label>
-      <?php else: ?><label><?= e($f['label']) ?><?= $f['required'] ? ' *' : '' ?></label>
-        <?php if ($f['type'] === 'select'): ?><select name="<?= $nm ?>" <?= $f['required'] ? 'required' : '' ?>><option value=""></option><?php foreach (field_options($f) as $op): ?><option><?= e($op) ?></option><?php endforeach; ?></select>
-        <?php elseif ($f['type'] === 'textarea'): ?><textarea name="<?= $nm ?>" rows="2" <?= $f['required'] ? 'required' : '' ?>></textarea>
-        <?php else: ?><input type="<?= in_array($f['type'], ['email', 'date', 'number'], true) ? $f['type'] : ($f['type'] === 'phone' ? 'tel' : 'text') ?>" name="<?= $nm ?>" <?= $f['required'] ? 'required' : '' ?>><?php endif; ?>
-      <?php endif; ?></div>
-    <?php endforeach; ?>
+    <?php foreach ($orderFields as $f) echo custom_field_html($f, 'f[' . (int)$f['id'] . ']', ''); // 4.2 : même rendu que le site (fichiers, pays, conditions) ?>
     <label class="chk"><input type="checkbox" name="optin" value="1"> Je veux recevoir les actus de <?= e($org['name']) ?></label>
     <?php if (setting('cgv')): ?><label class="chk"><input type="checkbox" name="cgv" value="1" required> J'accepte les <a href="<?= e(abs_url('/cgv')) ?>" target="_blank" rel="noopener">conditions de vente</a></label><?php endif; ?>
     <input class="hp" name="website" tabindex="-1" autocomplete="off" aria-hidden="true">
@@ -122,7 +115,8 @@ input:focus,select:focus,textarea:focus{outline:0;border-color:var(--c)}
   function body(){ var f = new FormData(); if (SEANCE) f.append('seance', SEANCE); f.append('host', HOST);
     Object.keys(st.qty).forEach(function(k){ if (st.qty[k] > 0) f.append('qty[' + k + ']', st.qty[k]); });
     Object.keys(st.prod).forEach(function(k){ if (st.prod[k] > 0) f.append('product[' + k + ']', st.prod[k]); });
-    Object.keys(st.price).forEach(function(k){ f.append('price[' + k + ']', st.price[k]); }); if (st.promo) f.append('promo', st.promo); return f; }
+    Object.keys(st.price).forEach(function(k){ f.append('price[' + k + ']', st.price[k]); }); if (st.promo) f.append('promo', st.promo);
+    var qs = new URLSearchParams(location.search); if (qs.get('tarifs')) { f.append('tarifs', qs.get('tarifs')); f.append('k', qs.get('k') || ''); } return f; }
   function err(id, m){ var e = $(id); e.innerHTML = m; e.hidden = !m; height(); }
   function quote(){ var n = Object.values(st.qty).reduce(function(a, b){ return a + b; }, 0); $('#go2').disabled = !n; if (!n) { $('#sum1').hidden = true; height(); return; }
     fetch(SELF + '/total', { method: 'POST', body: body() }).then(function(r){ return r.json(); }).then(function(j){
@@ -157,6 +151,19 @@ input:focus,select:focus,textarea:focus{outline:0;border-color:var(--c)}
         $('#pdf').href = j.pdf_url; $('#ord').href = j.order_url; try { if (win && !win.closed) win.close(); } catch (e) {} height(); return; }
       if (j.status === 'cancelled' || j.status === 'expired') { $('#w3').hidden = true; err('#e3', 'Le paiement n\'a pas abouti. <a href="' + SELF + '">Recommencer</a>'); return; }
       timer = setTimeout(poll, 3000); }).catch(function(){ timer = setTimeout(poll, 5000); }); }
+})();
+</script>
+<script>
+/* 4.2 : questions conditionnelles des formulaires d'inscription */
+(function(){
+  function refresh(){ document.querySelectorAll('[data-cond-field]').forEach(function(el){
+    var scope = el.closest('.holder, fieldset, .card, .pane, form') || document, src = scope.querySelector('[data-fid="' + el.dataset.condField + '"]'), v = '';
+    if (src) { var i = src.querySelector('input,select,textarea'); if (i) v = i.type === 'checkbox' ? (i.checked ? 'oui' : '') : String(i.value || ''); }
+    var want = String(el.dataset.condValue || '').trim().toLowerCase(), show = v.trim().toLowerCase() === want || (v === 'oui' && ['oui', '1', 'coché', 'coche'].indexOf(want) >= 0);
+    el.hidden = !show; el.querySelectorAll('input,select,textarea').forEach(function(x){ if (x.required) x.dataset.req = '1'; if (x.dataset.req) x.required = show; }); }); }
+  document.addEventListener('input', refresh); document.addEventListener('change', refresh);
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', refresh); else refresh();
+  if (window.MutationObserver) new MutationObserver(function(m){ for (var k = 0; k < m.length; k++) if (m[k].addedNodes.length) { refresh(); break; } }).observe(document.documentElement, { childList: true, subtree: true });
 })();
 </script>
 </body></html>

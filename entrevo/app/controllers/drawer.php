@@ -95,7 +95,7 @@ function drawer_order(string $slug): never
     $r = place_order($ev, $org, $cart, $session, $sum, array_values(array_filter($fields, fn($f) => !$f['per_ticket'])), array_values(array_filter($fields, fn($f) => $f['per_ticket'])), $waitlist, $partner);
     if ($r['errors']) json_out(['ok' => false, 'errors' => $r['errors']]);
     $o = one('SELECT * FROM orders WHERE id = ?', [$r['order']['id']]);
-    if (!empty($r['free'])) json_out(['ok' => true, 'free' => true, 'url' => url($r['url'])]);
+    if (!empty($r['free']) || ($o['channel'] ?? '') === 'reservation') json_out(['ok' => true, 'free' => true, 'url' => url($r['url'])]);
     $providers = Payments::available();
     $items = all('SELECT * FROM order_items WHERE order_id = ?', [$o['id']]);
     json_out(['ok' => true, 'free' => false, 'url' => url($r['url']), 'expires_at' => date('c', strtotime((string)$o['expires_at'])),

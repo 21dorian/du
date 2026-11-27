@@ -1,5 +1,5 @@
 <?php $rateName = array_column($rates, 'name', 'id');
-$effect = fn($p) => $p['kind'] === 'percent' ? '−' . (int)$p['value'] . ' %' : ($p['kind'] === 'amount' ? '−' . money((int)$p['value']) . ' / billet' : 'Débloque un tarif');
+$effect = fn($p) => $p['kind'] === 'percent' ? '−' . (int)$p['value'] . ' %' : ($p['kind'] === 'amount' ? '−' . money((int)$p['value']) . ' / billet' : ($p['kind'] === 'grid' ? 'Grille : ' . implode(', ', array_map(fn($k, $v) => money((int)$v), array_keys(json_decode((string)$p['grid_json'], true) ?: []), json_decode((string)$p['grid_json'], true) ?: [])) : 'Débloque un tarif'));
 $totalRev = array_sum(array_map(fn($s) => (int)$s['revenue'], $stats)); $totalUses = array_sum(array_map(fn($s) => (int)$s['n'], $stats)); $totalDisc = array_sum(array_map(fn($s) => (int)$s['disc'], $stats)); ?>
 <div class="page-head-row">
   <div class="kpi-mini"><span>Commandes avec code</span><b><?= $totalUses ?></b></div>
@@ -56,7 +56,8 @@ $totalRev = array_sum(array_map(fn($s) => (int)$s['revenue'], $stats)); $totalUs
   <form class="card" method="post"><?= csrf_field() ?>
     <h2>+ Nouveau code</h2>
     <div class="field"><label>Type</label><select name="kind">
-      <option value="percent">Réduction en %</option><option value="amount">Réduction en € par billet</option><option value="unlock">Code d'accès à un tarif secret</option></select></div>
+      <option value="percent">Réduction en %</option><option value="amount">Réduction en € par billet</option><option value="grid">Grille tarifaire (prix spécial par tarif)</option><option value="unlock">Code d'accès à un tarif secret</option></select></div>
+    <div class="field" data-show-if="kind=grid"><label>Prix spéciaux avec ce code</label><?php foreach ($rates as $r): ?><div class="row" style="gap:8px;margin-bottom:6px"><span class="grow"><?= e($r['name']) ?></span><span class="input-suffix" style="max-width:130px"><input name="grid[<?= (int)$r['id'] ?>]" inputmode="decimal" placeholder="—"><span>€</span></span></div><?php endforeach; ?><small>Ex. Plein 25 € → 18 €, Réduit 18 € → 12 € pour les membres. Vide = prix normal.</small></div>
     <div class="field"><label>Combien de codes ?</label><select name="count"><option value="1">Un code partagé</option><?php foreach ([10, 25, 50, 100, 250, 500] as $c): ?><option value="<?= $c ?>"><?= $c ?> codes uniques (1 utilisation chacun)</option><?php endforeach; ?></select></div>
     <div class="field" data-show-if="count=1"><label>Code</label><input name="code" placeholder="Vide = on en invente un" style="text-transform:uppercase"></div>
     <div class="field" data-show-if="count=10|25|50|100|250|500"><label>Préfixe des codes</label><input name="prefix" placeholder="INFLU" maxlength="8" style="text-transform:uppercase"><small>Ex. INFLU-K7P2QX, INFLU-93HD2A…</small></div>

@@ -59,6 +59,7 @@ function wcart_build(array $ev, array $in): array
     $cart = cart_get(0);
     fill_cart_from_input($ev, $cart, $in);
     $cart['promo'] = strtoupper(trim((string)($in['promo'] ?? '')));
+    if (!empty($in['tarifs']) && !empty($in['k'])) { $ids = array_values(array_unique(array_filter(array_map('intval', explode(',', (string)$in['tarifs']))))); if ($ids && hash_equals(filter_sig((int)$ev['id'], $ids), (string)$in['k'])) $cart['unlocked'] = $ids; } // 4.2 : widget filtré
     if ($cart['promo'] !== '') { $r = Tickets::findPromo((int)$ev['id'], $cart['promo']); if (!empty($r['promo']) && $r['promo']['kind'] === 'unlock') $cart['unlocked'] = $r['promo']['rate_list']; }
     return $cart;
 }

@@ -29,7 +29,7 @@ $valid = array_filter($tickets, fn($t) => $t['status'] === 'valid');
             <td><form method="post" class="row" style="gap:6px;flex-wrap:nowrap"><?= csrf_field() ?><input type="hidden" name="action" value="holder"><input type="hidden" name="ticket_id" value="<?= (int)$t['id'] ?>">
               <input name="first_name" value="<?= e($t['first_name']) ?>" style="width:78px;padding:6px 7px" aria-label="Prénom"><input name="last_name" value="<?= e($t['last_name']) ?>" style="width:86px;padding:6px 7px" aria-label="Nom">
               <button class="btn btn-sm btn-light" title="Enregistrer le nom">OK</button></form>
-              <?php foreach ($ta as $a): ?><small style="display:block"><?= e($a['label']) ?> : <b><?= e($a['value']) ?></b></small><?php endforeach; ?>
+              <?php foreach ($ta as $a): ?><small style="display:block"><?= e($a['label']) ?> : <b><?= !empty($a['file']) ? '<a href="' . url('/pro/fichier/' . $a['file']) . '" target="_blank">' . e($a['value']) . '</a>' : e($a['value']) ?></b></small><?php endforeach; ?>
               <?php if ($t['holder_email']): ?><small style="display:block" class="muted">Donné à <?= e($t['holder_email']) ?> le <?= e(short_date((string)$t['transferred_at'])) ?><?= (int)$t['transfers'] > 1 ? ' (' . (int)$t['transfers'] . ' transferts)' : '' ?></small><?php endif; ?>
             </td>
             <td style="min-width:110px"><?= e($t['rate_name']) ?><br><small><?= (int)$t['price'] ? e(money((int)$t['price'])) : 'Gratuit' ?><?= $t['seat'] ? ' · ' . e($t['seat']) : '' ?></small></td>
@@ -65,7 +65,7 @@ $valid = array_filter($tickets, fn($t) => $t['status'] === 'valid');
     <?php endif; ?>
 
     <?php if ($fieldsAns): ?>
-    <div class="card"><h2>Réponses au formulaire</h2><?php foreach ($fieldsAns as $a): ?><div class="list-item"><span class="grow muted"><?= e($a['label']) ?></span><b><?= e($a['value']) ?></b></div><?php endforeach; ?></div>
+    <div class="card"><h2>Réponses au formulaire</h2><?php foreach ($fieldsAns as $a): ?><div class="list-item"><span class="grow muted"><?= e($a['label']) ?></span><b><?= !empty($a['file']) ? '<a href="' . url('/pro/fichier/' . $a['file']) . '" target="_blank">' . e($a['value']) . '</a>' : e($a['value']) ?></b></div><?php endforeach; ?></div>
     <?php endif; ?>
 
     <div class="card">
@@ -118,6 +118,9 @@ $valid = array_filter($tickets, fn($t) => $t['status'] === 'valid');
       </form>
     </div>
 
+        <?php if ($o['status'] === 'pending' && ($o['channel'] ?? '') === 'reservation'): ?><div class="card resa-admin"><h2>Réservation à encaisser</h2><form method="post"><?= csrf_field() ?><p class="muted"> À régler avant le <?= e(fr_date((string)$o['expires_at'])) ?> · <?= e(money((int)$o['total'])) ?></p>
+          <div class="row mt" style="gap:6px"><select name="pay_method" style="width:auto"><option value="virement">Virement</option><option value="cheque">Chèque</option><option value="especes">Espèces</option><option value="cb">CB</option></select><button class="btn btn-sm" name="action" value="resa_paid">Marquer payée</button></div>
+          <div class="row mt" style="gap:6px"><button class="btn btn-sm btn-light" name="action" value="resa_resend">Renvoyer les instructions</button><button class="btn btn-sm btn-ghost" name="action" value="resa_extend">Prolonger de 3 jours</button></div></form></div><?php endif; ?>
     <?php if ($paid): ?>
     <div class="card">
       <h2>Actions</h2>
@@ -127,6 +130,7 @@ $valid = array_filter($tickets, fn($t) => $t['status'] === 'valid');
         <a class="btn btn-block btn-light" href="<?= url('/commande/' . $o['ref'] . '/pdf', ['t' => $o['token']]) ?>" target="_blank">Voir le PDF</a>
         <a class="btn btn-block btn-light" href="<?= url('/commande/' . $o['ref'] . '/recu', ['t' => $o['token']]) ?>" target="_blank">Reçu</a>
         <a class="btn btn-block btn-light" href="<?= url('/pro/commandes/' . $o['id'] . '/ticket-caisse') ?>" target="_blank">Ticket de caisse (80 mm)</a>
+        <a class="btn btn-block btn-light" href="<?= url('/pro/commandes/' . $o['id'] . '/billets-boca') ?>" target="_blank">Billets thermiques (Boca 152 × 54)</a>
         <?php if ($o['total'] > 0): ?>
           <button class="btn btn-block btn-danger" name="action" value="refund" data-confirm="Rembourser l'acheteur et annuler tous les billets ?">Rembourser et annuler</button>
         <?php endif; ?>

@@ -103,7 +103,9 @@ final class Mailer
         }
         $o = one('SELECT * FROM orders WHERE id = ?', [$orderId]);
         if (!$o || $o['status'] !== 'paid' || !is_email((string)$o['email'])) return false;
+        if (($o['lang'] ?? '') === 'en' && !I18n::en()) return (bool)I18n::with('en', fn() => self::sendOrder($orderId)); // 4.2
         $ev = one('SELECT * FROM events WHERE id = ?', [$o['event_id']]);
+        if ($ev && I18n::en()) $ev = I18n::localize($ev, ['name', 'description', 'ticket_info']);
         if (!$ev) return false;
         $org = one('SELECT * FROM organizers WHERE id = ?', [$o['organizer_id']]);
         $tickets = all("SELECT * FROM tickets WHERE order_id = ? AND status = 'valid' AND holder_email IS NULL ORDER BY id", [$orderId]);
@@ -130,9 +132,20 @@ final class Mailer
             . (class_exists('Buyers') ? '<p style="font-size:14px">Tes potes viennent aussi ? Envoie-leur ce lien : <a href="' . e(Buyers::inviteUrl($ev, $o)) . '">' . e(Buyers::inviteUrl($ev, $o)) . '</a></p>' : '')
             . '<p style="margin-top:22px"><a href="' . e($link) . '" style="background:' . e(setting('primary_color', '#0071e3')) . ';color:#fff;padding:12px 18px;border-radius:8px;text-decoration:none;display:inline-block">Voir mes billets</a></p>'
             . '<p style="color:#777;font-size:13px">Une question sur l\'événement ? Écris à l\'organisateur : ' . e($org['name']) . ($org['email'] ? ' — ' . e($org['email']) : '') . '</p>';
+        if (I18n::en()) $html = '<p>Hi ' . e($o['first_name']) . ',</p>'
+            . '<p>You\'re all set! Order <b>' . e($o['ref']) . '</b>' . ($o['total'] > 0 ? ' (<b>' . e(money((int)$o['total'])) . '</b>)' : '') . '. All that\'s left is to come along.</p>'
+            . '<p style="font-size:18px;margin:18px 0 4px"><b>' . e($ev['name']) . '</b></p>'
+            . '<p style="margin:0;color:#555">' . e(I18n::t(fr_date($session['starts_at'] ?? $ev['starts_at']))) . ($ev['venue'] ? '<br>' . e($ev['venue']) . ($ev['city'] ? ', ' . e($ev['city']) : '') : '') . '</p>'
+            . '<p><b>Your tickets are attached (PDF).</b> Show the QR code at the entrance, on your phone or printed. One QR code = one entry: keep it to yourself.</p>'
+            . '<table style="width:100%;border-collapse:collapse;font-size:14px">' . $rows . '</table>'
+            . ($products ? '<p style="margin-top:14px">With your order: ' . e(implode(', ', array_map(fn($i) => $i['qty'] . ' × ' . $i['name'], $products))) . ' (to collect on site).</p>' : '')
+            . (!empty($ev['email_message']) ? '<div style="margin:18px 0;padding:14px 16px;background:#f6f4ef;border-left:4px solid #0071e3;white-space:pre-line">' . e($ev['email_message']) . '</div>' : '')
+            . '<p style="margin-top:22px"><a href="' . e($link . '&lang=en') . '" style="background:' . e(setting('primary_color', '#0071e3')) . ';color:#fff;padding:12px 18px;border-radius:8px;text-decoration:none;display:inline-block">View my tickets</a></p>'
+            . '<p style="color:#777;font-size:13px">Questions about the event? Contact the organiser: ' . e($org['name']) . ($org['email'] ? ' — ' . e($org['email']) : '') . '</p>';
         $pdf = TicketPdf::build($o, $ev, $org, $tickets);
-        self::send((string)$o['email'], 'Tes billets pour ' . $ev['name'], $html, [['data' => $pdf, 'name' => 'billets-' . $o['ref'] . '.pdf']], $org['email'] ?? null);
+        self::send((string)$o['email'], (I18n::en() ? 'Your tickets for ' : 'Tes billets pour ') . $ev['name'], $html, [['data' => $pdf, 'name' => 'billets-' . $o['ref'] . '.pdf']], $org['email'] ?? null);
         update('orders', ['email_sent_at' => now()], 'id = ?', [$orderId]);
+        if (!empty($org['order_copy_email']) && is_email((string)$org['order_copy_email'])) { try { self::send((string)$org['order_copy_email'], '[Copie] ' . $o['ref'] . ' · ' . $ev['name'] . ' · ' . trim($o['first_name'] . ' ' . $o['last_name']), $html); } catch (Throwable $e) { log_line('emails', 'Copie : ' . $e->getMessage()); } } // 4.2
         return true;
     }
 

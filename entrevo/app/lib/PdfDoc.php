@@ -6,6 +6,7 @@ class PdfDoc extends FPDF
 {
     public static function t(?string $s): string
     {
+        if ($s !== null && class_exists('I18n', false) && I18n::en()) $s = implode("\n", array_map([I18n::class, 't'], explode("\n", $s))); // 4.2
         $s = str_replace(["\u{202F}", "\u{00A0}", '’', '«', '»', '–', '—', '…'], [' ', ' ', "'", '"', '"', '-', '-', '...'], (string)$s);
         $s = preg_replace('~[\x{1F000}-\x{1FAFF}\x{2600}-\x{27BF}\x{FE0F}]~u', '', $s);
         return (string)iconv('UTF-8', 'windows-1252//TRANSLIT//IGNORE', $s);

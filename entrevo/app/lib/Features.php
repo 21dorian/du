@@ -232,7 +232,7 @@ final class Features
             'avis-public' => $x('', 'Donner mon avis', 'Note l\'événement après coup et aide les autres à choisir.', ['Avis vérifiés (billet scanné)', 'Réponse de l\'organisateur']),
             'appli' => $x('', 'Appli mobile', 'L\'appli pour trouver des sorties, garder tes billets hors ligne et recevoir les alertes.', ['iPhone et Android', 'Billets disponibles sans réseau', 'Notifications des organisateurs suivis']),
             'aide' => $x('', 'Centre d\'aide', 'Toutes les réponses : billet perdu, remboursement, accès, accessibilité.', ['Questions fréquentes', 'Formulaire relié à ta commande', 'Suivi de ta demande']),
-            'langues-public' => $x('', 'English & more', 'Le site et tes billets en anglais, espagnol, allemand…', ['Langue choisie automatiquement', 'Billets PDF traduits']),
+            'langues-public' => $x('', 'Español, Deutsch…', 'L\'anglais est disponible (lien English en bas de page) ; l\'espagnol et l\'allemand arrivent.', ['Langue choisie automatiquement', 'Billets PDF traduits']),
             // vitrine organisateurs
             'demo-visio' => $x('', 'Démo en visio', 'Une démo de 20 minutes avec l\'équipe pour voir comment lancer ta billetterie.', ['Créneau au choix', 'Questions sur tes besoins précis']),
             'ressources' => $x('', 'Guides & ressources', 'Des guides pratiques pour réussir tes événements : communication, sécurité, budget, bénévoles.', ['Modèles à télécharger', 'Retours d\'expérience d\'organisateurs']),
@@ -264,7 +264,7 @@ final class Features
                 'points' => ['Éditeur avec variables ({prenom}, {evenement}…)', 'Aperçu et e-mail de test', 'Logo et couleurs de la plateforme']],
             'marque-blanche' => ['emoji' => '', 'name' => 'Marque blanche', 'pitch' => 'Proposer la billetterie aux gros clients sous leur propre marque et leur propre nom de domaine.',
                 'points' => ['Domaine personnalisé par organisateur', 'Logo, couleurs et e-mails à leur nom', 'Option payante']],
-            'langues' => ['emoji' => '', 'name' => 'Langues', 'pitch' => 'Billetterie en anglais, espagnol, allemand… pour les festivals qui accueillent des touristes.',
+            'langues' => ['emoji' => '', 'name' => 'Langues', 'pitch' => 'Anglais disponible depuis la 4.2 (parcours d\'achat, e-mails, billets) ; espagnol, allemand… et interface organisateur à venir.',
                 'points' => ['Choix de la langue par l\'acheteur', 'Traduction des pages et des e-mails', 'Billets PDF traduits']],
             'commission-paliers' => ['emoji' => '', 'name' => 'Commissions par palier', 'pitch' => 'Commission dégressive selon le volume, différente par catégorie d\'événement ou par type de billet.', 'points' => ['Paliers de volume mensuel', 'Taux par catégorie', 'Simulation avant application']],
             'formules' => ['emoji' => '', 'name' => 'Formules organisateurs', 'pitch' => 'Abonnements payants (Gratuit, Pro, Premium) qui débloquent des modules et baissent la commission.', 'points' => ['Paiement mensuel ou annuel', 'Modules réservés par formule', 'Période d\'essai']],

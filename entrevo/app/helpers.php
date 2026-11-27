@@ -99,7 +99,7 @@ function json_out($data, int $code = 200): never
     http_response_code($code);
     header('Content-Type: application/json; charset=utf-8');
     header('Cache-Control: no-store');
-    echo json_encode($data, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+    echo json_encode(class_exists('I18n', false) ? I18n::data($data) : $data, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
     exit;
 }
 
@@ -397,24 +397,43 @@ function pub_soon(string $key, string $label, string $cls = 'soon-chip'): string
 
 
 /** Champ du formulaire personnalisé de l'organisateur (page Infos et tiroir d'achat). */
+const COUNTRIES = ['France', 'Belgique', 'Suisse', 'Luxembourg', 'Canada', 'Allemagne', 'Espagne', 'Italie', 'Portugal', 'Pays-Bas', 'Royaume-Uni', 'Irlande', 'Autriche', 'Pologne', 'Monaco', 'Maroc', 'Algérie', 'Tunisie', 'Sénégal', "Côte d'Ivoire", 'États-Unis', 'Autre pays'];
+
 function custom_field_html(array $f, string $name, string $val): string
 {
     $req = $f['required'] ? ' required' : '';
     $id = 'x' . md5($name);
-    $h = '<div class="field"><label for="' . $id . '">' . e($f['label']) . ($f['required'] ? ' *' : '') . '</label>';
+    // 4.2 : question conditionnelle (affichée seulement si une autre réponse vaut …)
+    $cond = !empty($f['cond_field']) ? ' data-cond-field="' . (int)$f['cond_field'] . '" data-cond-value="' . e((string)$f['cond_value']) . '"' : '';
+    $help = !empty($f['help']) ? '<small>' . e((string)$f['help']) . '</small>' : '';
+    if ($f['type'] === 'title') return '<div class="field form-title"' . $cond . ' data-fid="' . (int)$f['id'] . '"><h3>' . e($f['label']) . '</h3>' . $help . '</div>';
+    $h = '<div class="field"' . $cond . ' data-fid="' . (int)$f['id'] . '"><label for="' . $id . '">' . e($f['label']) . ($f['required'] ? ' *' : '') . '</label>';
     switch ($f['type']) {
         case 'textarea': $h .= '<textarea id="' . $id . '" name="' . e($name) . '"' . $req . '>' . e($val) . '</textarea>'; break;
-        case 'select':
+        case 'select': case 'country':
             $h .= '<select id="' . $id . '" name="' . e($name) . '"' . $req . '><option value="">— Choisir —</option>';
-            foreach (field_options($f) as $o) $h .= '<option' . ($o === $val ? ' selected' : '') . '>' . e($o) . '</option>';
+            foreach ($f['type'] === 'country' ? COUNTRIES : field_options($f) as $o) $h .= '<option' . ($o === $val ? ' selected' : '') . '>' . e($o) . '</option>';
             $h .= '</select>'; break;
         case 'checkbox':
-            $h = '<div class="field"><label class="check"><input type="checkbox" name="' . e($name) . '" value="1"' . ($val ? ' checked' : '') . $req . '> ' . e($f['label']) . ($f['required'] ? ' *' : '') . '</label>'; break;
+            $h = '<div class="field"' . $cond . ' data-fid="' . (int)$f['id'] . '"><label class="check"><input type="checkbox" name="' . e($name) . '" value="1"' . ($val || ($val === '' && !empty($f['default_on'])) ? ' checked' : '') . $req . '> ' . e($f['label']) . ($f['required'] ? ' *' : '') . '</label>'; break;
+        case 'file':
+            $h .= '<input type="file" id="' . $id . '" name="' . e($name) . '" accept=".jpg,.jpeg,.png,.gif,.pdf,.doc,.docx"' . $req . '>'; if ($help === '') $help = '<small>JPG, PNG, PDF ou Word, 5 Mo maximum.</small>'; break;
         default:
             $type = ['date' => 'date', 'email' => 'email', 'phone' => 'tel', 'number' => 'number'][$f['type']] ?? 'text';
             $h .= '<input type="' . $type . '" id="' . $id . '" name="' . e($name) . '" value="' . e($val) . '"' . $req . '>';
     }
-    return $h . '</div>';
+    return $h . $help . '</div>';
+}
+
+/** 4.2 : fichier envoyé dans un formulaire d'inscription (champ imbriqué « a[b][c] »). @return array{tmp:string,name:string,size:int,error:int}|null */
+function posted_file(string $name): ?array
+{
+    $parts = preg_split('~[\[\]]+~', $name, -1, PREG_SPLIT_NO_EMPTY);
+    $root = array_shift($parts);
+    if (empty($_FILES[$root])) return null;
+    $out = [];
+    foreach (['tmp_name' => 'tmp', 'name' => 'name', 'size' => 'size', 'error' => 'error'] as $k => $o) { $v = $_FILES[$root][$k]; foreach ($parts as $p) { if (!is_array($v) || !array_key_exists($p, $v)) return null; $v = $v[$p]; } $out[$o] = $v; }
+    return (int)$out['error'] === UPLOAD_ERR_OK && is_uploaded_file((string)$out['tmp']) ? $out : null;
 }
 
 /** Icônes fines (trait 1,75, style « SF Symbols ») utilisées à la place des emojis. */

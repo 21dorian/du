@@ -41,7 +41,7 @@ function public_event(string $slug, bool $gates = true): array
         $rid = val("SELECT id FROM orders WHERE ref = ? AND event_id = ? AND status = 'paid'", [(string)$_GET['ami'], $ev['id']]);
         if ($rid) $_SESSION['ami'][$ev['id']] = (int)$rid;
     }
-    return [$ev, $org];
+    return [I18n::localize($ev, ['name', 'description', 'ticket_info']), $org];
 }
 
 function event_card_data(array $ev): array
@@ -121,8 +121,10 @@ function cart_set(int $eventId, array $cart): void { $_SESSION['cart'][$eventId]
 /** Tarifs visibles pour l'acheteur (dont les tarifs cachés débloqués par un code). */
 function visible_rates(array $ev, array $cart, ?array $session): array
 {
-    $rates = all('SELECT * FROM rates WHERE event_id = ? AND active = 1 ORDER BY sort, id', [$ev['id']]);
+    $rates = array_map(fn($r) => I18n::localize($r), all('SELECT * FROM rates WHERE event_id = ? AND active = 1 ORDER BY sort, id', [$ev['id']]));
     $unlocked = array_map('intval', $cart['unlocked'] ?? []);
+    $only = filtered_rates($ev); // 4.2 : module filtré (lien réservé à certains tarifs)
+    if ($only) { $unlocked = array_merge($unlocked, $only); $rates = array_values(array_filter($rates, fn($r) => in_array((int)$r['id'], $only, true))); }
     $out = [];
     foreach ($rates as $r) {
         if ($r['hidden'] && !in_array((int)$r['id'], $unlocked, true)) continue;
@@ -261,8 +263,13 @@ function cart_summary(array $ev, array $org, array $cart): array
         $price = RatesPlus::price($r, !empty($cart['session']) ? (int)$cart['session'] : null); // 4.1
         if ($r['price_mode'] === 'free') $price = max($price, (int)($cart['prices'][$rid] ?? $price));
         if (!empty($cart['partner'])) { $pa = one('SELECT * FROM partners WHERE id = ?', [$cart['partner']]); if ($pa && $pa['free']) $price = 0; }
-        $lines[] = ['kind' => 'rate', 'rate_id' => (int)$r['id'], 'name' => $r['name'], 'qty' => (int)$qty, 'unit_price' => $price, 'pack' => max(1, (int)$r['pack_size']),
+        $lines[] = ['kind' => 'rate', 'rate_id' => (int)$r['id'], 'name' => I18n::en() && !empty($r['name_en']) ? $r['name_en'] : $r['name'], 'qty' => (int)$qty, 'unit_price' => $price, 'pack' => max(1, (int)$r['pack_size']),
             'seats' => $cart['seats'][$rid] ?? []];
+    }
+    foreach (array_values($lines) as $l) { // 4.2 : frais par tarif
+        if ($l['unit_price'] <= 0 || !empty($cart['partner'])) continue;
+        $rf = one('SELECT extra_fee, extra_fee_label FROM rates WHERE id = ?', [$l['rate_id']]);
+        if ($rf && (int)$rf['extra_fee'] > 0) $lines[] = ['kind' => 'fee', 'rate_id' => $l['rate_id'], 'name' => ($rf['extra_fee_label'] ?: 'Frais de gestion') . ' · ' . $l['name'], 'qty' => $l['qty'] * $l['pack'], 'unit_price' => (int)$rf['extra_fee'], 'pack' => 0, 'seats' => []];
     }
     foreach ($cart['products'] as $pid => $qty) {
         $pr = one('SELECT * FROM products WHERE id = ? AND event_id = ?', [$pid, $ev['id']]);
@@ -347,7 +354,7 @@ function place_order(array $ev, array $org, array $cart, ?array $session, array 
             $h = $_POST['h'][$l['rate_id']][$i] ?? [];
             $label = $l['name'] . ' n°' . ($i + 1);
             $holders[$l['rate_id']][$i] = ['first_name' => trim((string)($h['first_name'] ?? '')), 'last_name' => trim((string)($h['last_name'] ?? '')),
-                'answers' => $fieldsForRate ? collect_answers($fieldsForRate, (array)($h['f'] ?? []), $errors, ' (' . $label . ')') : []];
+                'answers' => $fieldsForRate ? collect_answers($fieldsForRate, (array)($h['f'] ?? []), $errors, ' (' . $label . ')', 'h[' . $l['rate_id'] . '][' . $i . '][f]') : []];
         }
     }
     if (setting('cgv') && empty($_POST['cgv'])) $errors[] = 'Coche les conditions de vente, on sait que tu les as lues';
@@ -366,6 +373,7 @@ function place_order(array $ev, array $org, array $cart, ?array $session, array 
     $o = $r['order'];
     if ((int)$o['total'] > 0) { try { Risk::assess($o); } catch (Throwable $e) { log_line('fraude', $e->getMessage()); } }
     if (input('birth_date') && Buyers::requiredAge($ev, array_keys($cart['q']))) update('orders', ['birth_date' => (string)input('birth_date')], 'id = ?', [$o['id']]);
+    if (I18n::en()) update('orders', ['lang' => 'en'], 'id = ?', [$o['id']]); // 4.2 : e-mails et billets en anglais
     if (!empty($_POST['optin'])) { update('orders', ['marketing_optin' => 1], 'id = ?', [$o['id']]); q('DELETE FROM email_unsubscribes WHERE organizer_id = ? AND email = ?', [$org['id'], strtolower((string)$o['email'])]); }
     if (!empty($_SESSION['ami'][$ev['id']]) && strtolower((string)val('SELECT email FROM orders WHERE id = ?', [$_SESSION['ami'][$ev['id']]])) !== strtolower((string)$o['email'])) update('orders', ['referrer_order_id' => (int)$_SESSION['ami'][$ev['id']]], 'id = ?', [$o['id']]);
     if (!empty($_SESSION['link'][$ev['id']])) update('orders', ['link_id' => (int)$_SESSION['link'][$ev['id']]], 'id = ?', [$o['id']]);
@@ -375,6 +383,15 @@ function place_order(array $ev, array $org, array $cart, ?array $session, array 
     $_SESSION['buyer'] = $buyer;
     unset($_SESSION['cart'][$ev['id']]);
     Traffic::hit($ev, 'checkouts');
+    // 4.2 : mode réservation — places gardées, paiement plus tard (en ligne ou sur place)
+    if ((int)$o['total'] > 0 && !empty($_POST['pay_later']) && (int)($ev['reservations'] ?? 0)) {
+        $start = strtotime((string)($session['starts_at'] ?? $ev['starts_at']));
+        $until = date('Y-m-d H:i:s', max(time() + 3600, min(time() + 86400 * max(1, (int)$ev['reservation_days']), $start - 2 * 3600)));
+        update('orders', ['expires_at' => $until, 'channel' => 'reservation'], 'id = ?', [$o['id']]);
+        q('UPDATE seat_holds SET expires_at = ? WHERE order_id = ?', [$until, $o['id']]);
+        reservation_mail(array_merge($o, ['expires_at' => $until]), $ev, $org);
+        return ['errors' => [], 'order' => $o, 'url' => '/commande/' . $o['ref'] . '?t=' . $o['token'], 'free' => false];
+    }
     if ((int)$o['total'] === 0) {
         update('orders', ['provider' => 'free'], 'id = ?', [$o['id']]);
         Tickets::confirm((int)$o['id']);
@@ -383,15 +400,30 @@ function place_order(array $ev, array $org, array $cart, ?array $session, array 
     return ['errors' => [], 'order' => $o, 'url' => '/paiement/' . $o['ref'] . '?t=' . $o['token'], 'free' => false];
 }
 
-function collect_answers(array $fields, array $input, array &$errors, string $suffix): array
+function collect_answers(array $fields, array $input, array &$errors, string $suffix, string $prefix = 'f'): array
 {
     $out = [];
     foreach ($fields as $f) {
+        if ($f['type'] === 'title') continue; // 4.2 : simple titre de section
+        if (!empty($f['cond_field'])) { // 4.2 : question conditionnelle non affichée → ignorée
+            $cv = $input[(int)$f['cond_field']] ?? ''; $cv = is_array($cv) ? '' : trim((string)$cv); if ($cv === '1') $cv = 'Oui';
+            if (mb_strtolower($cv) !== mb_strtolower(trim((string)$f['cond_value'])) && !($cv === 'Oui' && in_array(mb_strtolower((string)$f['cond_value']), ['oui', '1', 'coché'], true))) continue;
+        }
+        if ($f['type'] === 'file') { // 4.2 : pièce jointe (justificatif, photo…)
+            $up = posted_file($prefix . '[' . (int)$f['id'] . ']');
+            if (!$up) { if ($f['required']) $errors[] = 'Fichier obligatoire : ' . $f['label'] . $suffix . '.'; $out[$f['id']] = ['label' => $f['label'], 'value' => '']; continue; }
+            $ext = strtolower(pathinfo((string)$up['name'], PATHINFO_EXTENSION));
+            if (!in_array($ext, ['jpg', 'jpeg', 'png', 'gif', 'pdf', 'doc', 'docx'], true) || (int)$up['size'] > 5 * 1024 * 1024) { $errors[] = 'Fichier refusé (format ou taille) : ' . $f['label'] . $suffix . '.'; continue; }
+            $dir = STORAGE . '/formulaires'; if (!is_dir($dir)) mkdir($dir, 0700, true);
+            $tok = bin2hex(random_bytes(12)) . '.' . $ext; move_uploaded_file((string)$up['tmp'], $dir . '/' . $tok);
+            $out[$f['id']] = ['label' => $f['label'], 'value' => mb_substr((string)$up['name'], 0, 120), 'file' => $tok]; continue;
+        }
         $v = $input[$f['id']] ?? '';
         $v = is_array($v) ? '' : trim((string)$v);
         if ($f['type'] === 'checkbox') $v = $v !== '' ? 'Oui' : 'Non';
         if ($f['required'] && ($v === '' || ($f['type'] === 'checkbox' && $v === 'Non'))) $errors[] = 'Champ obligatoire : ' . $f['label'] . $suffix . '.';
         if ($f['type'] === 'select' && $v !== '' && !in_array($v, field_options($f), true)) $errors[] = 'Choix invalide : ' . $f['label'] . $suffix . '.';
+        if ($f['type'] === 'country' && $v !== '' && !in_array($v, COUNTRIES, true)) $errors[] = 'Pays invalide : ' . $f['label'] . $suffix . '.';
         if ($f['type'] === 'email' && $v !== '' && !is_email($v)) $errors[] = 'E-mail invalide : ' . $f['label'] . $suffix . '.';
         $out[$f['id']] = ['label' => $f['label'], 'value' => mb_substr($v, 0, 1000)];
     }
@@ -777,4 +809,34 @@ function receipt_pdf(string $ref): never
 function payment_webhook_alma(): never
 {
     payment_webhook('alma');
+}
+
+/** 4.2 : lien filtré « ?tarifs=1,2&k=signature » : n'affiche que ces tarifs (même secrets). */
+function filtered_rates(array $ev): array
+{
+    if (!empty($_GET['tarifs']) && !empty($_GET['k'])) {
+        $ids = array_values(array_unique(array_filter(array_map('intval', explode(',', (string)$_GET['tarifs'])))));
+        if ($ids && hash_equals(filter_sig((int)$ev['id'], $ids), (string)$_GET['k'])) $_SESSION['filter'][$ev['id']] = $ids;
+    }
+    return $_SESSION['filter'][$ev['id']] ?? [];
+}
+
+function filter_sig(int $eventId, array $ids): string
+{
+    sort($ids);
+    $key = (string)setting('app_secret');
+    if (strlen($key) < 32) { $key = bin2hex(random_bytes(24)); set_setting('app_secret', $key); } // secret propre à l'installation
+    return substr(hash_hmac('sha256', $eventId . ':' . implode(',', $ids), $key), 0, 16);
+}
+
+/** 4.2 : e-mail de réservation avec les instructions de paiement. */
+function reservation_mail(array $o, array $ev, array $org): void
+{
+    if (!is_email((string)$o['email'])) return;
+    $pay = abs_url('/paiement/' . $o['ref'], ['t' => $o['token']]);
+    try { Mailer::send((string)$o['email'], 'Ta réservation pour ' . $ev['name'], '<p>Bonjour ' . e((string)$o['first_name']) . ',</p><p>Tes places pour <b>' . e($ev['name']) . '</b> (' . e(fr_date($ev['starts_at'])) . ') sont réservées jusqu\'au <b>' . e(fr_date((string)$o['expires_at'])) . '</b>.</p>'
+        . '<p style="font-size:18px">Montant à régler : <b>' . e(money((int)$o['total'])) . '</b> · référence <b>' . e($o['ref']) . '</b></p>'
+        . (!empty($ev['reservation_text']) ? '<p style="padding:12px 14px;background:#f5f5f7;border-radius:10px">' . nl2br(e((string)$ev['reservation_text'])) . '</p>' : '')
+        . '<p><a href="' . e($pay) . '" style="display:inline-block;background:#0071e3;color:#fff;padding:12px 22px;border-radius:999px;text-decoration:none;font-weight:600">Payer en ligne maintenant</a></p>'
+        . '<p style="color:#86868b">Sans paiement à cette date, la réservation est annulée et les places remises en vente. Tes billets arrivent dès le règlement. ' . e($org['name']) . '</p>', [], $org['email'] ?? null); } catch (Throwable $e) { log_line('emails', $e->getMessage()); }
 }

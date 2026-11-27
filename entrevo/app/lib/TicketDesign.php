@@ -135,7 +135,7 @@ final class TicketDesign
             $start = !empty($t['session_id']) ? val('SELECT starts_at FROM sessions WHERE id = ?', [$t['session_id']]) : null;
             if (!empty($t['seat']) && $map) $t['seat_label'] = Seating::label((string)$t['seat'], $map);
             $ox = (210 - $L['w']) / 2;
-            self::draw($pdf, $L, $ox, 18, self::vars($t, $order, $ev, $org, $i, $n, $start ?: null), $poster, $logo);
+            self::draw($pdf, $L, $ox, 18, self::vars($t, $order, $ev, $org, $i, $n, $start ?: null), TicketPdf::ratePoster($t) ?? $poster, $logo);
             $y = 18 + $L['h'] + 10;
             $pdf->SetTextColor(60, 60, 70); $pdf->SetFont('Helvetica', 'B', 10); $pdf->SetXY($ox, $y); $pdf->Cell($L['w'], 6, PdfDoc::t('Bon à savoir'));
             $pdf->SetFont('Helvetica', '', 9); $pdf->SetXY($ox, $y + 7);

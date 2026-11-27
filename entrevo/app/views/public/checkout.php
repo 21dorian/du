@@ -2,7 +2,7 @@
 $input = 'custom_field_html';?>
 <div class="steps"><span class="done">Billets</span><span class="on">Informations</span><span>Paiement</span><span>Confirmation</span></div>
 <div class="checkout">
-  <form method="post" id="checkout"><?= csrf_field() ?>
+  <form method="post" id="checkout" enctype="multipart/form-data"><?= csrf_field() ?>
     <div style="position:absolute;left:-9999px" aria-hidden="true"><input name="website" tabindex="-1" autocomplete="off"></div>
     <?php if ($waitlist): ?><div class="flash info">Place réservée pour toi jusqu'au <?= e(fr_date($waitlist['expires_at'])) ?>.</div><?php endif; ?>
     <?php if ($partner): ?><div class="flash info">Lot partenaire : <?= e($partner['name']) ?></div><?php endif; ?>
@@ -38,6 +38,7 @@ $input = 'custom_field_html';?>
     </div>
 
     <div class="card">
+      <?php if ((int)($ev['reservations'] ?? 0) && (int)$sum['total'] > 0): ?><div class="resa-choice"><label class="check"><input type="radio" name="pay_later" value="" checked> <span><b>Payer maintenant</b> · billets tout de suite</span></label><label class="check"><input type="radio" name="pay_later" value="1"> <span><b>Réserver, payer plus tard</b> · places gardées <?= (int)$ev['reservation_days'] ?> jour(s)<?= $ev['reservation_text'] ? ' · ' . e((string)$ev['reservation_text']) : '' ?></span></label></div><?php endif; ?>
       <?php if ((int)($ev['show_going'] ?? 0)): ?><label class="check"><input type="checkbox" name="show_public" value="1" <?= !empty($_POST['show_public']) ? 'checked' : '' ?>> <span>Afficher mon prénom dans « Ils y vont » sur la page de l'événement</span></label><?php endif; ?>
       <label class="check"><input type="checkbox" name="optin" value="1" <?= !empty($_POST['optin']) ? 'checked' : '' ?>> <span>Je veux recevoir les prochains événements de <b><?= e($org['name']) ?></b> par e-mail (désinscription en un clic).</span></label>
       <div style="height:10px"></div>

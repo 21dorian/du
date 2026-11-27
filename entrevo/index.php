@@ -52,6 +52,7 @@ register_shutdown_function(function () {
 if (class_exists('WhiteLabel') && ($wlOrg = WhiteLabel::org()) && (in_array(route_path(), ['/organisateurs', '/inscription'], true) || (str_starts_with(route_path(), '/o/') && !str_starts_with(route_path() . '/', '/o/' . $wlOrg['slug'] . '/')))) redirect('/');
 $routes = require APP . '/routes.php';
 $path = route_path();
+I18n::boot($path); // 4.2 : billetterie FR / EN
 $method = $_SERVER['REQUEST_METHOD'] ?? 'GET';
 
 // 2.6 : application caisse native (Capacitor) — requêtes d'une autre origine, authentifiées par jeton d'appareil (sans cookie)
@@ -93,7 +94,7 @@ try {
         [$file, $fn] = explode('@', $handler);
         require_once APP . '/controllers/' . $file . '.php';
         $out = $fn(...array_values($params));
-        if (is_string($out)) echo $out;
+        if (is_string($out)) echo I18n::html($out);
         exit;
     }
     abort(404);

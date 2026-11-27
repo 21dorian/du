@@ -194,6 +194,10 @@ final class Tickets
         }
         $eligible = array_filter($items, fn($i) => ($i['kind'] ?? 'rate') === 'rate' && (!$promo['rate_list'] || in_array((int)$i['rate_id'], $promo['rate_list'], true)));
         $base = array_sum(array_map(fn($i) => $i['unit_price'] * $i['qty'], $eligible));
+        if ($promo['kind'] === 'grid') { // 4.2 : grille tarifaire (prix spécial par tarif)
+            $g = json_decode((string)($promo['grid_json'] ?? ''), true) ?: [];
+            return min($base, array_sum(array_map(fn($i) => isset($g[(string)$i['rate_id']]) ? max(0, (int)$i['unit_price'] - (int)$g[(string)$i['rate_id']]) * (int)$i['qty'] : 0, $eligible)));
+        }
         if ($promo['kind'] === 'percent') return min($base, (int)round($base * (int)$promo['value'] / 100));
         $qty = array_sum(array_map(fn($i) => $i['qty'], $eligible));
         return min($base, (int)$promo['value'] * $qty);
@@ -341,6 +345,12 @@ final class Tickets
                 if ($promo['once_per_email'] && val("SELECT id FROM orders WHERE event_id = ? AND promo_code = ? AND LOWER(email) = ? AND status = 'paid' LIMIT 1", [$ev['id'], $promo['code'], strtolower((string)($p['buyer']['email'] ?? ''))]))
                     $errors[] = 'Tu as déjà utilisé le code ' . $promo['code'] . ' : il ne marche qu\'une fois par personne.';
                 if ($errors) { db()->rollBack(); return ['errors' => $errors]; }
+            }
+            // 4.2 : frais organisateur par tarif (gestion, production…), séparés du prix du billet
+            if (!in_array($method, ['invitation', 'import', 'pass'], true) && !$resale) foreach ($items as $it) {
+                if ($it['kind'] !== 'rate' || (int)$it['unit_price'] <= 0) continue;
+                $rf = one('SELECT extra_fee, extra_fee_label FROM rates WHERE id = ?', [$it['rate_id']]);
+                if ($rf && (int)$rf['extra_fee'] > 0) $items[] = ['kind' => 'fee', 'rate_id' => $it['rate_id'], 'product_id' => null, 'name' => ($rf['extra_fee_label'] ?: 'Frais de gestion') . ' · ' . $it['name'], 'variant' => null, 'qty' => $it['qty'] * max(1, (int)$it['_pack']), 'unit_price' => (int)$rf['extra_fee'], 'seats' => null, '_pack' => 0];
             }
             $subtotal = array_sum(array_map(fn($i) => $i['unit_price'] * $i['qty'], $items));
             $discount = self::discount($promo, $items);
@@ -508,6 +518,20 @@ final class Tickets
         q("UPDATE tickets SET status = 'cancelled', updated_at = NOW() WHERE order_id = ? AND status = 'valid'", [$o['id']]);
         q('DELETE FROM seat_holds WHERE order_id = ?', [$o['id']]);
         if ($o['promo_code'] && $o['status'] === 'paid') q('UPDATE promos SET used = GREATEST(used - 1, 0) WHERE event_id = ? AND code = ?', [$o['event_id'], $o['promo_code']]);
+    }
+
+    /** 4.2 : relance des réservations non réglées, 24 h avant l'échéance. */
+    public static function remindReservations(): int
+    {
+        $n = 0;
+        foreach (all("SELECT * FROM orders WHERE status = 'pending' AND channel = 'reservation' AND resa_reminded = 0 AND expires_at BETWEEN NOW() AND NOW() + INTERVAL 24 HOUR LIMIT 50") as $o) {
+            update('orders', ['resa_reminded' => 1], 'id = ?', [$o['id']]);
+            $ev = one('SELECT * FROM events WHERE id = ?', [$o['event_id']]); $org = one('SELECT * FROM organizers WHERE id = ?', [$o['organizer_id']]);
+            if (!$ev || !$org) continue;
+            require_once APP . '/controllers/public.php';
+            reservation_mail($o, $ev, $org); $n++;
+        }
+        return $n;
     }
 
     public static function expirePending(): void

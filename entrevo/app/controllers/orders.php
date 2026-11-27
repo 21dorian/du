@@ -167,6 +167,22 @@ function order_action(array $o): never
     $a = (string)input('action');
     $evId = (int)$o['event_id']; $oid = (int)$o['id'];
     switch ($a) {
+        case 'resa_paid': // 4.2 : réservation réglée (chèque, espèces, virement…)
+            if ($o['status'] !== 'pending' || ($o['channel'] ?? '') !== 'reservation') back(['error' => 'Ce n\'est pas une réservation en attente.']);
+            $pm = in_array(input('pay_method'), ['especes', 'cb', 'cheque', 'virement'], true) ? (string)input('pay_method') : 'virement';
+            update('orders', ['method' => 'guichet', 'pay_method' => $pm, 'expires_at' => date('Y-m-d H:i:s', time() + 3600)], 'id = ?', [$oid]);
+            Tickets::confirm($oid, [], true);
+            Audit::log('order.reservation_paid', $o['ref'] . ' · ' . $pm, $evId, $oid);
+            back(['success' => 'Réservation encaissée : les billets sont envoyés.']);
+        case 'resa_resend':
+            require_once APP . '/controllers/public.php';
+            reservation_mail($o, one('SELECT * FROM events WHERE id = ?', [$evId]), one('SELECT * FROM organizers WHERE id = ?', [$o['organizer_id']]));
+            back(['success' => 'Instructions de paiement renvoyées.']);
+        case 'resa_extend':
+            if ($o['status'] !== 'pending') back();
+            $until = date('Y-m-d H:i:s', max(time(), strtotime((string)$o['expires_at'])) + 86400 * max(1, min(30, (int)input('days', 3))));
+            update('orders', ['expires_at' => $until], 'id = ?', [$oid]); q('UPDATE seat_holds SET expires_at = ? WHERE order_id = ?', [$until, $oid]);
+            back(['success' => 'Réservation prolongée jusqu\'au ' . fr_date($until) . '.']);
         case 'resend':
             if (input('email') && is_email((string)input('email')) && input('email') !== $o['email']) {
                 update('orders', ['email' => trim((string)input('email'))], 'id = ?', [$oid]);

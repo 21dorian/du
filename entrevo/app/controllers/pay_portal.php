@@ -109,6 +109,11 @@ function portal_wallet(string $token): string
                 Pay::attachBracelet($w, $ref, (int)$ev['organizer_id']);
                 redirect($here, ['success' => 'Bracelet associé : tu peux payer en l\'approchant du terminal.']);
             }
+            if ($a === 'collect') { // 4.2 : click & collect
+                if ($ended) throw new RuntimeException('Les commandes sont fermées.');
+                $sale = Crew::collectOrder($w, $ev, (int)input('bar_id'), (array)($_POST['q'] ?? []));
+                redirect($here, ['success' => 'Commande n° ' . $sale['order_no'] . ' envoyée au bar (' . money((int)$sale['amount']) . ' débités). Récupère-la au comptoir quand ton numéro s\'affiche.']);
+            }
             if ($a === 'refund' && $canRefund) {
                 $iban = strtoupper(preg_replace('~\s+~', '', (string)input('iban')));
                 if (!iban_valid($iban)) throw new RuntimeException('Cet IBAN n\'est pas valide.');
@@ -121,7 +126,10 @@ function portal_wallet(string $token): string
     }
     $tx = all('SELECT t.*, b.name bar FROM wallet_tx t LEFT JOIN bars b ON b.id = t.bar_id WHERE t.wallet_id = ? AND t.undone = 0 ORDER BY t.id DESC LIMIT 60', [$w['id']]);
     $hasBracelet = (bool)$w['nfc_uid'];
-    return portal_view('portal_wallet', compact('w', 'ev', 'org', 's', 'tx', 'ended', 'canRefund', 'hasBracelet'), 'Ma carte · ' . $ev['name'], $ev);
+    $cBars = !$ended && (int)$ev['cashless_enabled'] ? Crew::collectBars($ev) : [];
+    $cMenu = $cBars ? Crew::menu($ev, (int)$cBars[0]['id']) : [];
+    $cOrders = Crew::myOrders($w);
+    return portal_view('portal_wallet', compact('w', 'ev', 'org', 's', 'tx', 'ended', 'canRefund', 'hasBracelet', 'cBars', 'cMenu', 'cOrders'), 'Ma carte · ' . $ev['name'], $ev);
 }
 
 function portal_qr(string $token): never

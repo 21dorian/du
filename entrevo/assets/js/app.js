@@ -141,8 +141,9 @@
         if (!t) return;
         if (s <= 0) { t.textContent = c.dataset.cdEnd || 'C’est parti !'; return; }
         var d = Math.floor(s / 86400), h = Math.floor(s % 86400 / 3600), m = Math.floor(s % 3600 / 60), sec = s % 60;
-        t.textContent = d > 0 ? 'Dans ' + d + ' j ' + h + ' h ' + String(m).padStart(2, '0') + ' min'
-          : 'Dans ' + h + ' h ' + String(m).padStart(2, '0') + ' min ' + String(sec).padStart(2, '0') + ' s';
+        var EN = document.documentElement.lang === 'en';
+        t.textContent = d > 0 ? (EN ? 'In ' : 'Dans ') + d + (EN ? ' d ' : ' j ') + h + ' h ' + String(m).padStart(2, '0') + ' min'
+          : (EN ? 'In ' : 'Dans ') + h + ' h ' + String(m).padStart(2, '0') + ' min ' + String(sec).padStart(2, '0') + ' s';
       });
     };
     tick(); setInterval(tick, 1000);
@@ -183,4 +184,16 @@
       requestAnimationFrame(frame);
     }
   }
+})();
+
+/* 4.2 : questions conditionnelles des formulaires d'inscription */
+(function(){
+  function refresh(){ document.querySelectorAll('[data-cond-field]').forEach(function(el){
+    var scope = el.closest('.holder, fieldset, .card, .pane, form') || document, src = scope.querySelector('[data-fid="' + el.dataset.condField + '"]'), v = '';
+    if (src) { var i = src.querySelector('input,select,textarea'); if (i) v = i.type === 'checkbox' ? (i.checked ? 'oui' : '') : String(i.value || ''); }
+    var want = String(el.dataset.condValue || '').trim().toLowerCase(), show = v.trim().toLowerCase() === want || (v === 'oui' && ['oui', '1', 'coché', 'coche'].indexOf(want) >= 0);
+    el.hidden = !show; el.querySelectorAll('input,select,textarea').forEach(function(x){ if (x.required) x.dataset.req = '1'; if (x.dataset.req) x.required = show; }); }); }
+  document.addEventListener('input', refresh); document.addEventListener('change', refresh);
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', refresh); else refresh();
+  if (window.MutationObserver) new MutationObserver(function(m){ for (var k = 0; k < m.length; k++) if (m[k].addedNodes.length) { refresh(); break; } }).observe(document.documentElement, { childList: true, subtree: true });
 })();

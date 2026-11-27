@@ -24,7 +24,7 @@
   <details class="box"><summary><span><?= e($t['name']) ?> <?= $t['active'] ? '' : badge('draft') ?> <span class="badge"><?= $t['kind'] === 'carnet' ? (int)$t['entries'] . ' entrées' : 'Saison' ?></span></span><span class="muted" style="font-weight:500"><?= e(money((int)$t['price'])) ?> · <?= (int)$t['sold'] ?><?= $t['quota'] ? ' / ' . (int)$t['quota'] : '' ?> abonnés · <?= e(money((int)$t['revenue'])) ?></span></summary><?= $form($t) ?></details>
 <?php endforeach; ?>
 <details class="box add" <?= !$types ? 'open' : '' ?>><summary>+ Nouvel abonnement</summary><?= $form(null) ?></details>
-<div class="card table-card mt"><div class="card-head"><h2>Abonnés</h2></div>
+<div class="card table-card mt"><div class="card-head"><h2>Abonnés</h2><span class="grow"></span><a class="btn btn-sm btn-light" target="_blank" href="<?= url('/pro/abonnements/cartes.pdf') ?>">Cartes membres (imprimante PVC)</a> <a class="btn btn-sm btn-light" target="_blank" href="<?= url('/pro/abonnements/cartes.pdf', ['format' => 'a4']) ?>">Planche A4</a></div>
   <div class="table-wrap"><table class="table"><thead><tr><th>Abonné</th><th>Abonnement</th><th class="num">Places réservées</th><th>Statut</th><th></th></tr></thead><tbody>
   <?php foreach ($passes as $p): ?><tr><td><b><?= e(trim($p['first_name'] . ' ' . $p['last_name'])) ?></b><br><small class="muted"><?= e((string)$p['email']) ?> · <?= e($p['code']) ?></small></td><td><?= e($p['type_name']) ?><?= $p['uses_left'] !== null ? '<br><small class="muted">' . (int)$p['uses_left'] . ' entrée(s) restante(s)</small>' : '' ?></td>
     <td class="num"><?= (int)$p['booked'] ?></td><td><?= $p['status'] === 'active' ? '<span class="badge green">Actif</span>' : '<span class="badge grey">Annulé</span>' ?></td>

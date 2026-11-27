@@ -22,7 +22,9 @@ $fromPrice = $onSalePrices ? min($onSalePrices) : null;
   <div class="event-poster"><?php if ($ev['image']): ?><img src="<?= url($ev['image']) ?>" alt="<?= e($ev['name']) ?>"><?php endif; ?></div>
   <div>
     <span class="eyebrow"><?= e($org['name']) ?><?= $ev['category'] ? ' · ' . e($ev['category']) : '' ?></span>
+    <?php if (!empty($ev['overline'])): ?><p class="event-overline"><?= e($ev['overline']) ?></p><?php endif; ?>
     <h1 class="event-title"><?= e($ev['name']) ?></h1>
+    <?php if (!empty($ev['subtitle'])): ?><p class="event-subtitle"><?= e($ev['subtitle']) ?></p><?php endif; ?>
     <div class="event-pills">
       <?php if ($showCountdown): ?><span class="pill pill-dark" data-countdown="<?= e(date('c', $startTs)) ?>"><span data-cd-text><?= e(ago_until($startTs)) ?></span></span><?php endif; ?>
       <?php if ($scarce): ?><span class="pill pill-hot">Plus que <?= (int)$capLeft ?> place<?= $capLeft > 1 ? 's' : '' ?></span><?php elseif ($capLeft === 0 && $capTotal > 0): ?><span class="pill">Complet</span><?php endif; ?>
@@ -160,7 +162,9 @@ $fromPrice = $onSalePrices ? min($onSalePrices) : null;
             <?php elseif ($r['hidden']): ?><span class="rate-tag" style="color:var(--primary)">Tarif secret débloqué</span><?php endif; ?>
             <?php if ($free && $max > 0): ?><label class="free-price">Ton prix (min. <?= e(money((int)$r['price'])) ?>) <span class="input-suffix"><input name="price[<?= (int)$r['id'] ?>]" value="<?= e(money_input(max((int)$r['price'], (int)($cart['prices'][$r['id']] ?? $r['price'])))) ?>" inputmode="decimal" data-free="<?= (int)$r['id'] ?>"><span>€</span></span></label><?php endif; ?>
           </div>
-          <div class="rate-price"><?= $free ? 'Prix libre' : ((int)$r['price'] === 0 ? 'Gratuit' : e(money((int)$r['price']))) ?><?php if ($fee && !$free): ?><small>+ <?= e(money($fee)) ?> de frais</small><?php endif; ?>
+          <?php $vr = $r['vat_rate'] !== null && $r['vat_rate'] !== '' ? (float)$r['vat_rate'] : ($org['vat_rate'] !== null && $org['vat_rate'] !== '' ? (float)$org['vat_rate'] : 0.0); $showHt = !empty($ev['show_ht']) && (int)$r['price'] > 0 && !$free; ?>
+          <div class="rate-price"><?= $free ? 'Prix libre' : ((int)$r['price'] === 0 ? 'Gratuit' : e(money($showHt ? (int)round((int)$r['price'] / (1 + $vr / 100)) : (int)$r['price'])) . ($showHt ? ' HT' : '')) ?><?php if ($showHt): ?><small><?= e(money((int)$r['price'])) ?> TTC</small><?php endif; ?><?php if ($fee && !$free): ?><small>+ <?= e(money($fee)) ?> de frais</small><?php endif; ?>
+            <?php if ((int)($r['extra_fee'] ?? 0) > 0 && (int)$r['price'] > 0): ?><small>+ <?= e(money((int)$r['extra_fee'])) ?> <?= e(mb_strtolower((string)($r['extra_fee_label'] ?: 'Frais de gestion'))) ?></small><?php endif; ?>
             <?php if (!$free && $r['sale']['ok'] && ($dst = DynPrice::state($r)) && $dst['next'] !== null): ?><small class="dyn-next"><?= e(DynPrice::label($dst)) ?></small><?php endif; ?></div>
           <?php if ($max > 0): ?>
           <div class="qty" data-base="<?= (int)$r['price'] ?>" data-unit="1" data-price="<?= (int)$r['price'] + $fee ?>" data-rate="<?= (int)$r['id'] ?>" data-pack="<?= $pack ?>" data-cat="<?= e((string)$r['seat_category']) ?>" data-name="<?= e($r['name']) ?>" <?= $free ? 'data-freeprice="1"' : '' ?>>
@@ -285,6 +289,7 @@ $fromPrice = $onSalePrices ? min($onSalePrices) : null;
       <div data-slot="options"></div>
       <div class="dw-recap" data-slot="recap"></div>
       <?php if ($hasCodes || !empty($org['gift_enabled'])): ?><div class="dw-code"><input data-code placeholder="Code promo ou carte cadeau" aria-label="Code promo ou carte cadeau" autocapitalize="characters"><button type="button" class="btn btn-sm btn-light" data-code-apply>Appliquer</button></div><?php endif; ?>
+      <?php if ((int)($ev['reservations'] ?? 0)): ?><div class="resa-choice"><label class="check"><input type="radio" name="pay_later" value="" form="dw-buyer" checked> <span><b>Payer maintenant</b> · billets tout de suite</span></label><label class="check"><input type="radio" name="pay_later" value="1" form="dw-buyer"> <span><b>Réserver, payer plus tard</b> · places gardées <?= (int)$ev['reservation_days'] ?> jour(s)</span></label></div><?php endif; ?>
       <label class="check"><input type="checkbox" name="optin" value="1" form="dw-buyer"> <span>Recevoir les prochains événements de <b><?= e($org['name']) ?></b> (désinscription en un clic)</span></label>
       <?php if (setting('cgv')): ?><label class="check"><input type="checkbox" name="cgv" value="1" form="dw-buyer" data-cgv> <span>J'accepte les <a href="<?= url('/cgv') ?>" target="_blank">conditions générales de vente</a></span></label><?php endif; ?>
     </section>

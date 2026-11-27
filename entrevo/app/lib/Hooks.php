@@ -19,6 +19,11 @@ final class Hooks
     /** Met en file l'événement pour toutes les adresses abonnées de l'organisateur. */
     public static function fire(int $orgId, string $event, array $data): void
     {
+        if ($event === 'order.paid' && ($sw = (string)val('SELECT slack_webhook FROM organizers WHERE id = ?', [$orgId])) !== '' && !empty($data['ref'])) { // 4.2 : Slack
+            try { $o = one('SELECT o.*, e.name ev, (SELECT COUNT(*) FROM tickets t WHERE t.order_id = o.id) n FROM orders o JOIN events e ON e.id = o.event_id WHERE o.ref = ?', [$data['ref']]);
+                if ($o) { $ch = curl_init($sw); curl_setopt_array($ch, [CURLOPT_POST => true, CURLOPT_POSTFIELDS => json_encode(['text' => '*Nouvelle commande* · ' . $o['ev'] . "\n" . trim($o['first_name'] . ' ' . $o['last_name']) . ' · ' . (int)$o['n'] . ' billet(s) · ' . money((int)$o['total']) . ' · ' . $o['ref']]), CURLOPT_HTTPHEADER => ['Content-Type: application/json'], CURLOPT_RETURNTRANSFER => true, CURLOPT_TIMEOUT => 4]); curl_exec($ch); curl_close($ch); } }
+            catch (Throwable $e) { log_line('webhooks', 'Slack : ' . $e->getMessage()); }
+        }
         if ($event === 'order.paid' && class_exists('Extras')) { try { Extras::queueConversion($orgId, $data); } catch (Throwable $e) { log_line('webhooks', 'Conversions : ' . $e->getMessage()); } } // 4.0
         try {
             $eps = all("SELECT * FROM webhook_endpoints WHERE organizer_id = ? AND active = 1", [$orgId]);

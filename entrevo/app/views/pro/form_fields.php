@@ -1,7 +1,7 @@
 <?php
-$types = ['text' => 'Texte court', 'textarea' => 'Texte long', 'select' => 'Liste de choix', 'checkbox' => 'Case à cocher', 'date' => 'Date', 'email' => 'E-mail', 'phone' => 'Téléphone', 'number' => 'Nombre'];
-$form = function (?array $f) use ($types, $rates) {
-    $p = $f ?? ['id' => 0, 'label' => '', 'type' => 'text', 'options' => '', 'required' => 0, 'per_ticket' => 1, 'sort' => 0, 'rate_ids' => ''];
+$types = ['text' => 'Texte court', 'textarea' => 'Texte long', 'select' => 'Liste de choix', 'checkbox' => 'Case à cocher', 'date' => 'Date', 'email' => 'E-mail', 'phone' => 'Téléphone', 'number' => 'Nombre', 'country' => 'Pays', 'file' => 'Envoi de fichier', 'title' => 'Titre de section'];
+$form = function (?array $f) use ($types, $rates, $fields) {
+    $p = $f ?? ['id' => 0, 'label' => '', 'type' => 'text', 'options' => '', 'required' => 0, 'per_ticket' => 1, 'sort' => 0, 'rate_ids' => '', 'help' => '', 'cond_field' => null, 'cond_value' => '', 'default_on' => 0];
     $sel = array_map('intval', array_filter(explode(',', (string)$p['rate_ids'])));
     ob_start(); ?>
     <form method="post"><?= csrf_field() ?><input type="hidden" name="field_id" value="<?= (int)$p['id'] ?>">
@@ -9,6 +9,10 @@ $form = function (?array $f) use ($types, $rates) {
         <div class="field"><label>Question *</label><input name="label" value="<?= e($p['label']) ?>" required placeholder="Ex. : Taille de t-shirt"></div>
         <div class="field"><label>Type de réponse</label><select name="type"><?php foreach ($types as $k => $l): ?><option value="<?= $k ?>" <?= $p['type'] === $k ? 'selected' : '' ?>><?= e($l) ?></option><?php endforeach; ?></select></div>
       </div>
+      <div class="field"><label>Commentaire sous la question</label><input name="help" value="<?= e((string)($p['help'] ?? '')) ?>" placeholder="Ex. : sert à préparer les badges"></div>
+      <div class="grid2"><div class="field"><label>Afficher seulement si…</label><select name="cond_field"><option value="">Toujours affichée</option><?php foreach ($fields as $o): if ((int)$o['id'] === (int)$p['id'] || $o['type'] === 'title') continue; ?><option value="<?= (int)$o['id'] ?>" <?= (int)($p['cond_field'] ?? 0) === (int)$o['id'] ? 'selected' : '' ?>><?= e($o['label']) ?></option><?php endforeach; ?></select></div>
+        <div class="field"><label>… a pour réponse</label><input name="cond_value" value="<?= e((string)($p['cond_value'] ?? '')) ?>" placeholder="Ex. : Oui, Végétarien…"></div></div>
+      <label class="check mb"><input type="checkbox" name="default_on" value="1" <?= !empty($p['default_on']) ? 'checked' : '' ?>> Case cochée par défaut (pour « Case à cocher »)</label>
       <div class="field"><label>Choix possibles (un par ligne, pour « Liste de choix »)</label><textarea name="options" rows="3"><?= e($p['options']) ?></textarea></div>
       <div class="field"><label>Pour les tarifs</label><div class="row" style="gap:6px 16px"><?php foreach ($rates as $r): ?><label class="check" style="font-weight:400"><input type="checkbox" name="rate_ids[]" value="<?= (int)$r['id'] ?>" <?= in_array((int)$r['id'], $sel, true) ? 'checked' : '' ?>> <?= e($r['name']) ?></label><?php endforeach; ?></div><small>Aucun coché = tous les tarifs.</small></div>
       <div class="row" style="gap:22px;margin-bottom:14px">
