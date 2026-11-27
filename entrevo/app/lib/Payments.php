@@ -15,9 +15,47 @@ final class Payments
         if (setting('paypal_enabled') === '1' && setting('paypal_client_id') && setting('paypal_secret')) $list['paypal'] = 'PayPal';
         if (setting('mollie_enabled') === '1' && setting('mollie_api_key')) $list['mollie'] = 'Mollie (CB, virement…)';
         if (setting('sumup_enabled') === '1' && setting('sumup_api_key') && setting('sumup_merchant_code')) $list['sumup'] = 'Carte bancaire (SumUp)';
+        if (setting('alma_enabled') === '1' && setting('alma_api_key')) $list['alma'] = 'Payer en plusieurs fois sans frais (Alma)'; // 4.1
         if (setting('demo_enabled') === '1') $list['demo'] = 'Paiement de démonstration';
         return $list;
     }
+
+    /** 4.1 : moyens proposés pour cette commande (Alma seulement dans sa fourchette de montant et si l'événement l'accepte). */
+    public static function availableFor(array $o, ?array $ev = null): array
+    {
+        $list = self::available();
+        if (isset($list['alma']) && (!self::almaEligible((int)$o['total']) || ($ev && isset($ev['installments']) && !(int)$ev['installments']))) unset($list['alma']);
+        return $list;
+    }
+
+    public static function almaEligible(int $total): bool
+    {
+        return $total >= max(5000, (int)(setting('alma_min') ?: 5000)) && $total <= (int)(setting('alma_max') ?: 200000);
+    }
+
+    /** Nombres d'échéances proposés par Alma (2, 3, 4). */
+    public static function almaCounts(): array
+    {
+        $c = array_values(array_intersect([2, 3, 4], array_map('intval', explode(',', (string)(setting('alma_counts') ?: '3')))));
+        return $c ?: [3];
+    }
+
+    /** Une offre de paiement fractionné est-elle visible pour l'acheteur ? (Alma, Klarna via Stripe, Pay Later PayPal) */
+    public static function installmentsLabel(int $from = 0): ?string
+    {
+        $av = self::available();
+        if (isset($av['alma'])) { $c = self::almaCounts(); return 'Paiement en ' . implode(', ', array_slice($c, 0, -1)) . (count($c) > 1 ? ' ou ' : '') . end($c) . ' fois sans frais dès ' . money(max(5000, (int)(setting('alma_min') ?: 5000))); }
+        if (isset($av['stripe']) && setting('stripe_klarna') === '1') return 'Paiement en 3 fois possible avec Klarna';
+        if (isset($av['paypal']) && setting('paypal_paylater') === '1') return 'Paiement en 4 fois possible avec PayPal';
+        return null;
+    }
+
+    private static function almaBase(): string
+    {
+        return str_starts_with((string)setting('alma_api_key'), 'sk_test') ? 'https://api.sandbox.getalma.eu' : 'https://api.getalma.eu';
+    }
+
+    private static function almaHeaders(): array { return ['Authorization: Alma-Auth ' . setting('alma_api_key'), 'Content-Type: application/json']; }
 
     private static function http(string $method, string $url, array $headers, $body = null): array
     {
@@ -71,6 +109,7 @@ final class Payments
                         'price_data' => ['currency' => 'eur', 'unit_amount' => $amount, 'product_data' => ['name' => self::label($o, $ev)]],
                     ]],
                     'expires_at' => time() + 31 * 60,
+                ] + (setting('stripe_klarna') === '1' && $amount >= 3500 ? ['payment_method_types' => ['card', 'klarna']] : []) + [
                     'success_url' => self::returnUrl($o, 'stripe') . '&sid={CHECKOUT_SESSION_ID}',
                     'cancel_url' => abs_url('/paiement/annule/' . $o['ref'], ['t' => $o['token']]),
                 ]);
@@ -129,6 +168,18 @@ final class Payments
                 if (empty($r['hosted_checkout_url'])) throw new RuntimeException('SumUp n\'a pas renvoyé de page de paiement (vérifiez que le paiement hébergé est activé sur votre compte).');
                 return $r['hosted_checkout_url'];
 
+            case 'alma': // 4.1 : paiement en 2, 3 ou 4 fois ; l'organisateur est payé en une fois
+                $n = in_array((int)input('installments'), self::almaCounts(), true) ? (int)input('installments') : self::almaCounts()[0];
+                $r = self::http('POST', self::almaBase() . '/v1/payments', self::almaHeaders(), json_encode([
+                    'payment' => ['purchase_amount' => $amount, 'installments_count' => $n, 'return_url' => self::returnUrl($o, 'alma'),
+                        'customer_cancel_url' => abs_url('/paiement/annule/' . $o['ref'], ['t' => $o['token']]), 'ipn_callback_url' => abs_url('/paiement/webhook/alma'),
+                        'custom_data' => ['order_ref' => $o['ref']], 'locale' => 'fr'],
+                    'customer' => ['first_name' => $o['first_name'], 'last_name' => $o['last_name'], 'email' => $o['email'], 'phone' => $o['phone'] ?: null],
+                ]));
+                if (empty($r['id']) || empty($r['url'])) throw new RuntimeException('Alma n\'a pas accepté ce paiement : ' . ($r['message'] ?? 'montant non éligible'));
+                update('orders', ['provider' => 'alma', 'provider_ref' => $r['id']], 'id = ?', [$o['id']]);
+                return $r['url'];
+
             case 'demo':
                 update('orders', ['provider' => 'demo', 'provider_ref' => 'demo-' . $o['ref']], 'id = ?', [$o['id']]);
                 return url('/paiement/demo/' . $o['ref'], ['t' => $o['token']]);
@@ -166,6 +217,11 @@ final class Payments
             case 'mollie':
                 $r = self::http('GET', 'https://api.mollie.com/v2/payments/' . rawurlencode($o['provider_ref']), ['Authorization: Bearer ' . setting('mollie_api_key')]);
                 return ($r['status'] ?? '') === 'paid' && (int)round((float)$r['amount']['value'] * 100) === (int)$o['total'];
+
+            case 'alma': // « in_progress » = 1re échéance payée, le paiement est garanti
+                $r = self::http('GET', self::almaBase() . '/v1/payments/' . rawurlencode($o['provider_ref']), self::almaHeaders());
+                if (in_array($r['state'] ?? '', ['in_progress', 'paid'], true) && (int)($r['purchase_amount'] ?? 0) === (int)$o['total']) { update('orders', ['provider_payment' => (string)$r['id']], 'id = ?', [$o['id']]); return true; }
+                return false;
 
             case 'sumup':
                 $r = self::http('GET', 'https://api.sumup.com/v0.1/checkouts/' . rawurlencode($o['provider_ref']), ['Authorization: Bearer ' . setting('sumup_api_key')]);
@@ -207,6 +263,9 @@ final class Payments
                 self::http('POST', 'https://api.sumup.com/v0.1/me/refund/' . rawurlencode($o['provider_payment']),
                     ['Authorization: Bearer ' . setting('sumup_api_key'), 'Content-Type: application/json'], json_encode(['amount' => round($amount / 100, 2)]));
                 return 'Remboursement SumUp effectué.';
+            case 'alma':
+                self::http('POST', self::almaBase() . '/v1/payments/' . rawurlencode($o['provider_ref']) . '/refund', self::almaHeaders(), json_encode(['amount' => $amount]));
+                return 'Remboursement Alma effectué (les échéances restantes sont annulées).';
             case 'demo':
                 return 'Commande de démonstration : aucun remboursement réel.';
         }
@@ -238,6 +297,9 @@ final class Payments
             case 'mollie':
                 $ref = $_POST['id'] ?? null;
                 break;
+            case 'alma':
+                $ref = $_GET['pid'] ?? ($json['id'] ?? ($json['payment_id'] ?? null));
+                break;
             default:
                 return 'prestataire inconnu';
         }
@@ -253,7 +315,7 @@ final class Payments
     public static function recheckPending(int $limit = 15): int
     {
         $n = 0;
-        $rows = all("SELECT * FROM orders WHERE status IN ('pending','expired') AND provider IN ('stripe','paypal','sumup','mollie') AND provider_ref IS NOT NULL
+        $rows = all("SELECT * FROM orders WHERE status IN ('pending','expired') AND provider IN ('stripe','paypal','sumup','mollie','alma') AND provider_ref IS NOT NULL
                      AND created_at > NOW() - INTERVAL 6 HOUR AND created_at < NOW() - INTERVAL 2 MINUTE ORDER BY id DESC LIMIT " . (int)$limit);
         foreach ($rows as $o) {
             try { if (self::verify($o)) { Tickets::confirm((int)$o['id']); $n++; } }

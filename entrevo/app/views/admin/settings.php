@@ -81,6 +81,23 @@ $secret = fn($k) => setting($k) ? '•••••• (enregistré, laisser vide
     <div class="card"><h2>Mollie</h2>
       <label class="check mb"><input type="checkbox" name="mollie_enabled" value="1" <?= $c('mollie_enabled') ?>> Activer</label>
       <div class="field"><label>Clé API (live_… ou test_…)</label><input name="mollie_api_key" placeholder="<?= e($secret('mollie_api_key')) ?>" autocomplete="off"></div></div>
+    <div class="card"><h2>Paiement en plusieurs fois</h2>
+      <label class="check mb"><input type="checkbox" name="alma_enabled" value="1" <?= $c('alma_enabled') ?>> Activer Alma (2, 3 ou 4 fois sans frais pour l'acheteur)</label>
+      <div class="field"><label>Clé API Alma (sk_live_… ou sk_test_…)</label><input name="alma_api_key" placeholder="<?= e($secret('alma_api_key')) ?>" autocomplete="off"></div>
+      <div class="grid3"><div class="field"><label>Montant mini</label><input name="alma_min" value="<?= setting('alma_min') ? e(money_input((int)setting('alma_min'))) : '' ?>" placeholder="50"></div><div class="field"><label>Montant maxi</label><input name="alma_max" value="<?= setting('alma_max') ? e(money_input((int)setting('alma_max'))) : '' ?>" placeholder="2000"></div><div class="field"><label>Échéances</label><input name="alma_counts" value="<?= $s('alma_counts') ?: '3' ?>" placeholder="2,3,4"></div></div>
+      <small class="muted">L'organisateur est payé en une fois, Alma porte le risque d'impayé. Frais Alma à la charge du marchand.</small>
+      <label class="check mt"><input type="checkbox" name="stripe_klarna" value="1" <?= $c('stripe_klarna') ?>> Proposer Klarna dans le paiement Stripe (à activer d'abord dans ton tableau de bord Stripe)</label>
+      <label class="check"><input type="checkbox" name="paypal_paylater" value="1" <?= $c('paypal_paylater') ?>> Mettre en avant le « paiement en 4 fois » PayPal</label>
+      <small class="muted">Mollie : in3 et Klarna s'affichent tout seuls sur sa page de paiement s'ils sont activés sur ton compte.</small></div>
+    <div class="card"><h2>Billets dans le Wallet</h2>
+      <label class="check mb"><input type="checkbox" name="wallet_apple" value="1" <?= $c('wallet_apple') ?>> Apple Wallet</label>
+      <div class="grid2"><div class="field"><label>Pass Type ID</label><input name="apple_pass_type" value="<?= $s('apple_pass_type') ?>" placeholder="pass.fr.monsite.billet"></div><div class="field"><label>Team ID</label><input name="apple_team_id" value="<?= $s('apple_team_id') ?>"></div></div>
+      <div class="grid2"><div class="field"><label>Certificat du pass (.p12) <?= setting('apple_cert_file') ? '· chargé' : '' ?></label><input type="file" name="apple_cert" accept=".p12"></div><div class="field"><label>Mot de passe du .p12</label><input name="apple_pass_password" placeholder="<?= e($secret('apple_pass_password')) ?>" autocomplete="off"></div></div>
+      <div class="field"><label>Certificat Apple WWDR (.pem) <?= setting('apple_wwdr_file') ? '· chargé' : '' ?></label><input type="file" name="apple_wwdr" accept=".pem,.cer"></div>
+      <label class="check mb mt"><input type="checkbox" name="wallet_google" value="1" <?= $c('wallet_google') ?>> Google Wallet</label>
+      <div class="grid2"><div class="field"><label>Issuer ID</label><input name="google_issuer_id" value="<?= $s('google_issuer_id') ?>"></div><div class="field"><label>E-mail du compte de service</label><input name="google_sa_email" value="<?= $s('google_sa_email') ?>"></div></div>
+      <div class="field"><label>Clé privée du compte de service (PEM)</label><textarea name="google_sa_key" rows="3" placeholder="<?= e($secret('google_sa_key') ?: '-----BEGIN PRIVATE KEY-----') ?>"></textarea></div>
+      <small class="muted">Apple : developer.apple.com › Identifiers › Pass Type IDs. Google : pay.google.com/business/console › Google Wallet API. Les boutons « Ajouter au Wallet » apparaissent sur les billets dès que c'est rempli.</small></div>
     <div class="card"><h2>Paiement de démonstration</h2>
       <label class="check"><input type="checkbox" name="demo_enabled" value="1" <?= $c('demo_enabled') ?>> Activer (aucun argent réel)</label>
       <small class="muted">À couper dès que tu vends pour de vrai !</small></div>

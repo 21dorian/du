@@ -158,3 +158,72 @@ function admin_requests(): string
 
 function demo_request(): string { return pro_request('demo'); }
 function migration_request(): string { return pro_request('migration'); }
+
+/** 4.1 : « préviens-moi » avant l'ouverture des ventes. */
+function sale_alert(string $slug): never
+{
+    [$ev] = public_event($slug, false);
+    if (!rate_limit('alert:' . client_ip(), 10, 3600)) back(['error' => 'Trop de demandes, réessaie plus tard.']);
+    if (!RatesPlus::alertSubscribe($ev, strtolower(trim((string)input('email'))))) back(['error' => 'Indique une adresse e-mail valide.']);
+    back(['success' => 'C\'est noté ! Tu recevras un e-mail dès l\'ouverture de la billetterie.']);
+}
+
+// ---------- 4.1 : payer à plusieurs ----------
+function group_create(string $slug): never
+{
+    [$ev] = public_event($slug);
+    if (!rate_limit('grp:' . client_ip(), 8, 3600)) back(['error' => 'Trop de demandes, réessaie plus tard.']);
+    $rate = one('SELECT * FROM rates WHERE id = ? AND event_id = ? AND active = 1 AND hidden = 0', [(int)input('rate_id'), $ev['id']]);
+    $session = (int)input('session_id') ? one('SELECT * FROM sessions WHERE id = ? AND event_id = ? AND active = 1', [(int)input('session_id'), $ev['id']]) : null;
+    if (!$rate) back(['error' => 'Choisis un tarif.']);
+    if (Tickets::hasSessions((int)$ev['id']) && !$session) back(['error' => 'Choisis d\'abord une date.']);
+    try { $g = Social::create($ev, $session, $rate, (int)input('qty'), (string)input('name'), strtolower(trim((string)input('email')))); }
+    catch (RuntimeException $e) { back(['error' => $e->getMessage()]); }
+    $link = abs_url('/e/' . $ev['slug'] . '/bande/' . $g['token']);
+    try { Mailer::send($g['email'], 'Ta bande pour ' . $ev['name'], '<p>' . (int)$g['qty'] . ' places « ' . e($g['rate_name']) . ' » sont bloquées pour ta bande jusqu\'au <b>' . e(fr_date($g['expires_at'])) . '</b>.</p><p>Envoie ce lien à tes amis : chacun paie sa place (toi aussi !).</p><p><a href="' . e($link) . '">' . e($link) . '</a></p>'); } catch (Throwable $e) { log_line('emails', $e->getMessage()); }
+    redirect('/e/' . $ev['slug'] . '/bande/' . $g['token'], ['success' => 'Places bloquées ! Partage le lien à ta bande : chacun paie la sienne.']);
+}
+
+function group_page(string $slug, string $token): string
+{
+    [$ev, $org] = public_event($slug, false);
+    $g = Social::group($token);
+    if (!$g || (int)$g['event_id'] !== (int)$ev['id']) abort(404, 'Ce groupe n\'existe pas.');
+    if (is_post()) {
+        if (Social::left($g) < 1) back(['error' => 'Plus de place dans ce groupe.']);
+        $cart = cart_get((int)$ev['id']);
+        $cart['q'] = [(int)$g['rate_id'] => 1]; $cart['session'] = $g['session_id'] ? (int)$g['session_id'] : null; $cart['group'] = $g['token']; $cart['products'] = []; $cart['seats'] = [];
+        cart_set((int)$ev['id'], $cart);
+        redirect('/e/' . $ev['slug'] . '/infos');
+    }
+    $members = Social::members((int)$g['id']);
+    $left = Social::left($g);
+    $session = $g['session_id'] ? one('SELECT * FROM sessions WHERE id = ?', [$g['session_id']]) : null;
+    return pub('group', compact('ev', 'org', 'g', 'members', 'left', 'session'), 'Ta bande · ' . $ev['name'], ['noindex' => true]);
+}
+
+// ---------- 4.1 : billets dans le Wallet ----------
+function wallet_ticket(string $ref, string $code, string $kind): array
+{
+    $o = order_by_ref($ref);
+    $t = one("SELECT * FROM tickets WHERE order_id = ? AND code = ? AND status = 'valid'", [$o['id'], $code]);
+    if (!$t) abort(404);
+    return [$o, $t, one('SELECT * FROM events WHERE id = ?', [$o['event_id']]), one('SELECT * FROM organizers WHERE id = ?', [$o['organizer_id']])];
+}
+
+function wallet_apple(string $ref, string $code): never
+{
+    if (!Wallet::appleOn()) abort(404);
+    [$o, $t, $ev, $org] = wallet_ticket($ref, $code, 'apple');
+    try { $pk = Wallet::applePass($t, $o, $ev, $org); } catch (Throwable $e) { log_line('erreurs', 'Wallet Apple : ' . $e->getMessage()); abort(500, 'Le billet Wallet n\'a pas pu être créé.'); }
+    header('Content-Type: application/vnd.apple.pkpass'); header('Content-Disposition: attachment; filename="billet-' . $t['code'] . '.pkpass"');
+    echo $pk; exit;
+}
+
+function wallet_google(string $ref, string $code): never
+{
+    if (!Wallet::googleOn()) abort(404);
+    [$o, $t, $ev, $org] = wallet_ticket($ref, $code, 'google');
+    try { $u = Wallet::googleUrl($t, $o, $ev, $org); } catch (Throwable $e) { log_line('erreurs', 'Wallet Google : ' . $e->getMessage()); abort(500, 'Le billet Google Wallet n\'a pas pu être créé.'); }
+    header('Location: ' . $u, true, 302); exit;
+}

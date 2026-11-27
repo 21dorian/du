@@ -4,6 +4,37 @@ $link = abs_url('/e/' . $ev['slug']);
 $presence = $stats['sold'] ? round($stats['checked'] / $stats['sold'] * 100) : 0;
 ?>
 <?php if ($ev['status'] === 'draft'): ?><div class="flash info">Brouillon : personne ne le voit encore. Score de préparation <b><?= $ready['score'] ?> %</b>, puis clique sur <b>Publier</b>.</div><?php endif; ?>
+<?php $tr = $trend; $base = '/pro/evenements/' . $ev['id']; ?>
+<div class="wz-row">
+  <div class="card wz-card wz-pay">
+    <div class="wz-rocket" aria-hidden="true"><?= ui_icon('send', 34) ?></div>
+    <div><h2>Ton prochain virement</h2>
+      <p class="muted mb0"><?= (int)$bal['balance'] > 0 ? 'Solde à reverser sur ton compte : <b style="color:var(--ink)">' . e(money((int)$bal['balance'])) . '</b> (toutes ventes en ligne confondues).' : 'Rien à reverser pour l\'instant : les ventes en ligne s\'ajoutent ici au fil de l\'eau.' ?>
+        <?= $lastPayout ? '<br>Dernier virement : ' . e(money((int)$lastPayout['amount'])) . ' le ' . e(fr_date($lastPayout['created_at'], false)) . '.' : '' ?></p>
+      <a class="wz-link" href="<?= url('/pro/finances') ?>">Accéder aux reversements</a></div>
+  </div>
+  <div class="card wz-card">
+    <small class="wz-k">Participants</small><b class="wz-big"><?= (int)$chan['n'] ?></b>
+    <div class="wz-lines">
+      <div><span>Billetterie en ligne</span><b><?= (int)$chan['online'] ?></b></div>
+      <?php if ((int)$chan['box']): ?><div><span>Guichet</span><b><?= (int)$chan['box'] ?></b></div><?php endif; ?>
+      <?php if ((int)$chan['inv']): ?><div><span>Invitations & partenaires</span><b><?= (int)$chan['inv'] ?></b></div><?php endif; ?>
+      <?php if ((int)$chan['other']): ?><div><span>Accréditations & imports</span><b><?= (int)$chan['other'] ?></b></div><?php endif; ?>
+      <?php if ((int)$chan['held']): ?><div class="muted"><span>Paniers en cours</span><b>+ <?= (int)$chan['held'] ?></b></div><?php endif; ?>
+    </div>
+    <p class="wz-trend <?= $tr['level'] ?>"><?= $tr['level'] === 'down' ? 'Forte baisse sur les 7 derniers jours' : ($tr['level'] === 'up' ? 'Forte hausse sur les 7 derniers jours' : 'Ventes stables sur les 7 derniers jours') ?> <small>(<?= (int)$tr['cur'] ?> billets contre <?= (int)$tr['prev'] ?>)</small></p>
+    <a class="wz-link" href="<?= url($base . '/participants') ?>">Gérer les participants</a>
+  </div>
+  <div class="card wz-card">
+    <small class="wz-k">Recettes</small><b class="wz-big"><?= e(money((int)$money['online'] + (int)$money['box'])) ?></b>
+    <div class="wz-lines">
+      <div><span>Billetterie en ligne</span><b><?= e(money((int)$money['online'])) ?></b></div>
+      <div><span>Guichet</span><b><?= e(money((int)$money['box'])) ?></b></div>
+      <div><span>Ta part en ligne</span><b><?= e(money((int)$money['due'])) ?></b></div>
+    </div>
+    <a class="wz-link" href="<?= url($base . '/stats') ?>">Voir les statistiques</a>
+  </div>
+</div>
 <div class="ev-hero">
   <div class="ev-hero-ring"><?= Viz::ring($pct, $pct === null ? (string)$stats['sold'] : '', 120) ?><small><?= $cap ? $stats['sold'] . ' / ' . $cap . ' places' : $stats['sold'] . ' billets (jauge libre)' ?></small></div>
   <div class="ev-hero-main">

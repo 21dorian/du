@@ -173,7 +173,7 @@ $pname = (string)setting('platform_name');
 <link rel="icon" href="<?= asset('img/icon.svg') ?>" type="image/svg+xml">
 <style>:root{--primary:<?= e(setting('primary_color', '#0071e3')) ?>}</style>
 </head>
-<body class="back">
+<body class="back<?= !empty($evnav) ? ' has-evnav' : '' ?>">
 <input type="checkbox" id="menu" class="menu-toggle" hidden>
 <aside class="side">
   <a class="logo side-logo" href="<?= url($area === 'admin' ? '/admin' : '/pro') ?>"><?= view('partials/logo') ?><span><?= e($pname) ?></span></a>
@@ -243,6 +243,7 @@ $pname = (string)setting('platform_name');
   <?php if ($area === 'pro' && ($ann = trim((string)setting('announce_text'))) !== '' && (!setting('announce_until') || strtotime((string)setting('announce_until')) >= time())): $annId = substr(md5($ann), 0, 8); ?>
     <div class="announce <?= e((string)setting('announce_level', 'info')) ?>" data-announce="<?= $annId ?>"><span></span><div class="grow"><?= nl2br(e($ann)) ?></div><button type="button" class="announce-x" aria-label="Masquer l'annonce">✕</button></div>
   <?php endif; ?>
+  <?= $evnav ?? '' ?>
   <?php if (!empty($crumbs)): ?><div class="crumbs"><?php foreach ($crumbs as $i => [$l, $h]): ?><?= $i ? ' <span>/</span> ' : '' ?><?= $h ? '<a href="' . url($h) . '">' . e($l) . '</a>' : e($l) ?><?php endforeach; ?></div><?php endif; ?>
   <div class="page-head">
     <h1><?= e($title) ?></h1>

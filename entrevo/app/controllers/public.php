@@ -128,6 +128,9 @@ function visible_rates(array $ev, array $cart, ?array $session): array
         if ($r['hidden'] && !in_array((int)$r['id'], $unlocked, true)) continue;
         if ($session && ($only = Tickets::rateSessions($r)) && !in_array((int)$session['id'], $only, true)) continue;
         $r['sale'] = Tickets::onSale($r, $ev, $session, (int)($cart['waitlist'] ?? 0));
+        if (!RatesPlus::visibleNow($r, $r['sale'])) continue; // 4.1 : visibilité planifiée, masqué quand complet
+        $r['price'] = RatesPlus::price($r, $session ? (int)$session['id'] : null);
+        $r['left_label'] = RatesPlus::leftLabel($r, $r['sale']);
         $out[] = $r;
     }
     return $out;
@@ -255,7 +258,7 @@ function cart_summary(array $ev, array $org, array $cart): array
     foreach ($cart['q'] as $rid => $qty) {
         $r = one('SELECT * FROM rates WHERE id = ? AND event_id = ?', [$rid, $ev['id']]);
         if (!$r) continue;
-        $price = (int)$r['price'];
+        $price = RatesPlus::price($r, !empty($cart['session']) ? (int)$cart['session'] : null); // 4.1
         if ($r['price_mode'] === 'free') $price = max($price, (int)($cart['prices'][$rid] ?? $price));
         if (!empty($cart['partner'])) { $pa = one('SELECT * FROM partners WHERE id = ?', [$cart['partner']]); if ($pa && $pa['free']) $price = 0; }
         $lines[] = ['kind' => 'rate', 'rate_id' => (int)$r['id'], 'name' => $r['name'], 'qty' => (int)$qty, 'unit_price' => $price, 'pack' => max(1, (int)$r['pack_size']),
@@ -356,7 +359,8 @@ function place_order(array $ev, array $org, array $cart, ?array $session, array 
         'event' => $ev, 'org' => $org, 'session' => $session, 'quantities' => $cart['q'], 'prices' => $cart['prices'], 'products' => $cart['products'],
         'donation' => $cart['donation'], 'seats' => $cart['seats'], 'buyer' => $buyer, 'holders' => $holders, 'order_answers' => $orderAnswers, 'gift' => $cart['gift'] ?? '',
         'promo' => $cart['promo'], 'unlocked' => $cart['unlocked'] ?? [], 'variants' => $cart['variants'] ?? [], 'method' => $partner ? 'partner' : 'online', 'partner' => $partner,
-        'waitlist' => $waitlist, 'utm' => $_SESSION['utm'] ?? [], 'channel' => (($_SESSION['utm']['source'] ?? '') === 'widget') ? 'widget' : null,
+        'waitlist' => $waitlist, 'utm' => $_SESSION['utm'] ?? [], 'channel' => (($_SESSION['utm']['source'] ?? '') === 'widget') ? 'widget' : (!empty($cart['group']) ? 'groupe' : null),
+        'group' => !empty($cart['group']) ? Social::group((string)$cart['group']) : null, 'show_public' => !empty($_POST['show_public']) && (int)($ev['show_going'] ?? 0), // 4.1
     ]);
     if (!empty($r['errors'])) return ['errors' => $r['errors']];
     $o = $r['order'];
@@ -419,8 +423,8 @@ function payment_choice(string $ref): string
         return pub('message', ['title' => 'Trop tard…', 'text' => 'Le chrono est fini, tes places sont reparties dans la nature. Rien de grave : recommence, il en reste peut-être.',
             'link' => $o['event_id'] ? url('/e/' . val('SELECT slug FROM events WHERE id = ?', [$o['event_id']])) : url('/o/' . val('SELECT slug FROM organizers WHERE id = ?', [$o['organizer_id']])), 'link_label' => 'Je retente ma chance'], 'Commande expirée');
     }
-    $providers = Payments::available();
     $ev = one('SELECT * FROM events WHERE id = ?', [$o['event_id']]) ?: Store::pseudoEvent($o);
+    $providers = Payments::availableFor($o, $ev); // 4.1 : Alma selon le montant
     $error = null;
     if (is_post() || count($providers) === 1) {
         $p = is_post() ? (string)input('provider') : (string)array_key_first($providers);
@@ -767,4 +771,10 @@ function receipt_pdf(string $ref): never
     header('Content-Disposition: inline; filename="recu-' . $o['ref'] . '.pdf"');
     echo $pdf;
     exit;
+}
+
+/** 4.1 : Alma prévient par une requête GET (?pid=…). */
+function payment_webhook_alma(): never
+{
+    payment_webhook('alma');
 }

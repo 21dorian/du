@@ -15,7 +15,7 @@ final class Invoices
     {
         $from = $period . '-01 00:00:00'; $to = date('Y-m-d 00:00:00', strtotime($from . ' +1 month'));
         return all("SELECT o.organizer_id, COUNT(*) n, SUM(o.commission) com FROM orders o WHERE o.status IN ('paid','refunded') AND o.method IN ('online','partner')
-            AND o.provider IN ('stripe','paypal','sumup','mollie') AND o.paid_at >= ? AND o.paid_at < ?" . ($orgId ? ' AND o.organizer_id = ' . (int)$orgId : '') . '
+            AND o.provider IN ('stripe','paypal','sumup','mollie','alma') AND o.paid_at >= ? AND o.paid_at < ?" . ($orgId ? ' AND o.organizer_id = ' . (int)$orgId : '') . '
             GROUP BY o.organizer_id HAVING com > 0', [$from, $to]);
     }
 

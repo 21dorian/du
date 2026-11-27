@@ -10,8 +10,9 @@ function pro_page(string $title, string $view, array $vars, string $active, arra
 
 function ev_page(array $ev, string $tab, string $title, string $view, array $vars): string
 {
-    $content = view('pro/_event_head', ['ev' => $ev, 'tab' => $tab]) . view('pro/' . $view, $vars + ['ev' => $ev]);
-    return view('layout_back', ['title' => $title, 'area' => 'pro', 'active' => 'events', 'content' => $content,
+    // 4.1 : colonne de l'événement (menu groupé) à la place des onglets
+    $content = view('pro/' . $view, $vars + ['ev' => $ev]);
+    return view('layout_back', ['title' => $title, 'area' => 'pro', 'active' => 'events', 'content' => $content, 'evnav' => view('pro/_event_nav', ['ev' => $ev, 'tab' => $tab]),
         'crumbs' => [['Événements', '/pro/evenements'], [$ev['name'], '/pro/evenements/' . $ev['id']]]]);
 }
 
@@ -121,6 +122,7 @@ function event_form(?string $id = null): string
             'transfer_hours' => max(0, min(720, (int)input('transfer_hours'))),
             'exchange_hours' => max(0, min(720, (int)input('exchange_hours', 24))),
             'id_check' => checked('id_check'),
+            'installments' => checked('installments'), 'show_going' => checked('show_going'), 'group_buy' => checked('group_buy'), // 4.1
             'min_age' => in_array((int)input('min_age'), [12, 16, 18, 21], true) ? (int)input('min_age') : null,
             'presale_until' => dt_from_input(input('presale_until')),
             'presale_past' => checked('presale_past'),
@@ -175,7 +177,26 @@ function event_overview(string $id): string
     $chart = sales_chart('event_id = ?', [$ev['id']]);
     $recent = all("SELECT * FROM orders WHERE event_id = ? AND status IN ('paid','refunded','cancelled') AND (channel IS NULL OR channel <> 'systeme') ORDER BY created_at DESC LIMIT 6", [$ev['id']]);
     $rates = (int)val('SELECT COUNT(*) FROM rates WHERE event_id = ?', [$ev['id']]);
-    return ev_page($ev, 'overview', $ev['name'], 'event_overview', compact('stats', 'chart', 'recent', 'rates'));
+    $dash = ev_dash_extra($ev);
+    return ev_page($ev, 'overview', 'Tableau de bord', 'event_overview', compact('stats', 'chart', 'recent', 'rates') + $dash);
+}
+
+/** 4.1 : participants par canal, tendance sur 7 jours, recettes et prochain virement (tableau de bord d'événement). */
+function ev_dash_extra(array $ev): array
+{
+    // 4.1 : participants par canal, tendance sur 7 jours, prochain virement (façon Weezticket)
+    $chan = one("SELECT COUNT(*) n, COUNT(CASE WHEN o.method = 'online' THEN 1 END) online, COUNT(CASE WHEN o.method IN ('guichet','card') THEN 1 END) box,
+        COUNT(CASE WHEN o.method IN ('invitation','partner') THEN 1 END) inv, COUNT(CASE WHEN o.method IN ('import','accreditation') OR t.type IN ('accreditation','external') THEN 1 END) other
+        FROM tickets t JOIN orders o ON o.id = t.order_id WHERE t.event_id = ? AND t.status = 'valid'", [$ev['id']]);
+    $chan['held'] = (int)val("SELECT COALESCE(SUM(i.qty), 0) FROM order_items i JOIN orders o ON o.id = i.order_id WHERE o.event_id = ? AND o.status = 'pending' AND i.kind = 'rate' AND (o.expires_at IS NULL OR o.expires_at > NOW())", [$ev['id']]);
+    $w7 = (int)val("SELECT COUNT(*) FROM tickets t JOIN orders o ON o.id = t.order_id WHERE t.event_id = ? AND t.status = 'valid' AND o.paid_at >= NOW() - INTERVAL 7 DAY", [$ev['id']]);
+    $p7 = (int)val("SELECT COUNT(*) FROM tickets t JOIN orders o ON o.id = t.order_id WHERE t.event_id = ? AND t.status = 'valid' AND o.paid_at >= NOW() - INTERVAL 14 DAY AND o.paid_at < NOW() - INTERVAL 7 DAY", [$ev['id']]);
+    $trend = ['cur' => $w7, 'prev' => $p7, 'level' => $p7 >= 5 && $w7 < $p7 * 0.6 ? 'down' : ($w7 >= 5 && $w7 > max(1, $p7) * 1.4 ? 'up' : 'flat')];
+    $money = one("SELECT COALESCE(SUM(CASE WHEN method = 'online' THEN total - refunded_amount END), 0) online, COALESCE(SUM(CASE WHEN method IN ('guichet','card') THEN total - refunded_amount END), 0) box,
+        COALESCE(SUM(CASE WHEN method = 'online' AND provider IN ('stripe','paypal','sumup','mollie','alma') THEN organizer_amount END), 0) due FROM orders WHERE event_id = ? AND status = 'paid'", [$ev['id']]);
+    $bal = Tickets::balance((int)$ev['organizer_id']);
+    $lastPayout = one('SELECT * FROM payouts WHERE organizer_id = ? ORDER BY created_at DESC LIMIT 1', [$ev['organizer_id']]);
+    return compact('chan', 'trend', 'money', 'bal', 'lastPayout');
 }
 
 function event_status(string $id): never
@@ -278,6 +299,33 @@ function rates(string $id): string
             if (input('ajax')) json_out(['ok' => true]);
             back(['success' => 'Ordre enregistré.']);
         }
+        // 4.1 : lancement programmé, contingents partagés, grille catégories × tarifs
+        if ($action === 'launch') {
+            $at = dt_from_input(input('on_sale_at'));
+            update('events', ['on_sale_at' => $at, 'on_sale_notified_at' => null, 'queue_enabled' => checked('queue_enabled') ? 1 : (int)$ev['queue_enabled']], 'id = ?', [$ev['id']]);
+            Audit::log('event.launch', $at ? 'Ouverture le ' . $at : 'Ouverture immédiate', (int)$ev['id']);
+            redirect('/pro/evenements/' . $ev['id'] . '/tarifs#lancement', ['success' => $at ? 'Ouverture programmée le ' . fr_date($at) . ' : la page affiche un compte à rebours et la liste « préviens-moi » est ouverte.' : 'Plus d\'ouverture programmée : les tarifs suivent leurs propres dates.']);
+        }
+        if ($action === 'group_save') {
+            $gid = (int)input('group_id'); $name = mb_substr(trim((string)input('group_name')), 0, 80);
+            if ($name === '') back(['error' => 'Donne un nom au contingent.']);
+            if ($gid) update('quota_groups', ['name' => $name, 'quota' => max(0, (int)input('group_quota'))], 'id = ? AND event_id = ?', [$gid, $ev['id']]);
+            else insert('quota_groups', ['event_id' => $ev['id'], 'name' => $name, 'quota' => max(0, (int)input('group_quota')), 'created_at' => now()]);
+            redirect('/pro/evenements/' . $ev['id'] . '/tarifs#contingents', ['success' => 'Contingent « ' . $name . ' » enregistré.']);
+        }
+        if ($action === 'group_delete') {
+            q('UPDATE rates SET quota_group_id = NULL WHERE quota_group_id = ? AND event_id = ?', [(int)input('group_id'), $ev['id']]);
+            q('DELETE FROM quota_groups WHERE id = ? AND event_id = ?', [(int)input('group_id'), $ev['id']]);
+            redirect('/pro/evenements/' . $ev['id'] . '/tarifs#contingents', ['success' => 'Contingent supprimé (les tarifs restent).']);
+        }
+        if ($action === 'grid') {
+            $cats = []; foreach ((array)($_POST['gcat'] ?? []) as $i => $n) $cats[(int)$i] = [(string)$n, (int)($_POST['gquota'][$i] ?? 0)];
+            $types = []; foreach ((array)($_POST['gtype'] ?? []) as $i => $n) $types[(int)$i] = [(string)$n, (string)($_POST['gproof'][$i] ?? '')];
+            $r = RatesPlus::applyGrid($ev, $cats, $types, (array)($_POST['gprice'] ?? []));
+            Audit::log('rate.grid', $r['created'] . ' créés, ' . $r['updated'] . ' mis à jour', (int)$ev['id']);
+            DynPrice::sync((int)$ev['id']);
+            redirect('/pro/evenements/' . $ev['id'] . '/tarifs#grille', ['success' => 'Grille appliquée : ' . $r['created'] . ' tarif(s) créé(s), ' . $r['updated'] . ' mis à jour.']);
+        }
         if ($action === 'duplicate') {
             $r = one('SELECT * FROM rates WHERE id = ? AND event_id = ?', [$rid, $ev['id']]);
             if (!$r) back();
@@ -314,6 +362,16 @@ function rates(string $id): string
             'seat_category' => trim((string)input('seat_category')) ?: null,
             'companion' => checked('companion'),
             'min_age' => in_array((int)input('min_age'), [12, 16, 18, 21], true) ? (int)input('min_age') : null,
+            // 4.1 : visibilité, affichage, contingent, prix par séance
+            'visible_from' => dt_from_input(input('visible_from')),
+            'visible_until' => dt_from_input(input('visible_until')),
+            'soldout_mode' => input('soldout_mode') === 'hide' ? 'hide' : 'show',
+            'show_left' => max(0, min(1000, (int)input('show_left'))),
+            'badge' => array_key_exists((string)input('badge'), RatesPlus::BADGES) && input('badge') !== '' ? (string)input('badge') : (mb_substr(trim((string)input('badge_custom')), 0, 40) ?: null),
+            'min_per_order' => max(0, min(50, (int)input('min_per_order'))),
+            'proof' => mb_substr(trim((string)input('proof')), 0, 160) ?: null,
+            'quota_group_id' => (int)input('quota_group_id') && val('SELECT id FROM quota_groups WHERE id = ? AND event_id = ?', [(int)input('quota_group_id'), $ev['id']]) ? (int)input('quota_group_id') : null,
+            'session_prices' => ($sp = array_filter(array_map(fn($v) => trim((string)$v) === '' ? null : parse_money((string)$v), (array)($_POST['session_price'] ?? [])), fn($v) => $v !== null)) ? json_encode(array_map('intval', $sp)) : null,
             'after_rate_id' => ((int)input('after_rate_id') && (int)input('after_rate_id') !== $rid && val('SELECT id FROM rates WHERE id = ? AND event_id = ?', [(int)input('after_rate_id'), $ev['id']])) ? (int)input('after_rate_id') : null,
         ];
         if ($data['name'] === '') back(['error' => 'Donne un nom à ce tarif.']);
@@ -337,7 +395,11 @@ function rates(string $id): string
     unset($r);
     $sessions = Tickets::sessions((int)$ev['id'], false);
     $map = Seating::map($ev);
-    return ev_page($ev, 'rates', 'Tarifs', 'rates', ['rates' => $rates, 'org' => $org, 'sessions' => $sessions, 'seatCats' => $map['categories'] ?? []]);
+    $groups = RatesPlus::groups((int)$ev['id']);
+    foreach ($groups as &$g) $g['used'] = RatesPlus::groupUsed((int)$g['id']);
+    unset($g);
+    $alerts = (int)val('SELECT COUNT(*) FROM sale_alerts WHERE event_id = ?', [$ev['id']]);
+    return ev_page($ev, 'rates', 'Tarifs et mise en vente', 'rates', ['rates' => $rates, 'org' => $org, 'sessions' => $sessions, 'seatCats' => $map['categories'] ?? [], 'groups' => $groups, 'alerts' => $alerts, 'grid' => RatesPlus::currentGrid((int)$ev['id'])]);
 }
 
 // ---------- Formulaire personnalisé ----------
@@ -679,9 +741,9 @@ function finances(): string
     $balance = Tickets::balance((int)$org['id']);
     $payouts = all('SELECT * FROM payouts WHERE organizer_id = ? ORDER BY created_at DESC', [$org['id']]);
     $byEvent = all("SELECT e.id, e.name, e.starts_at,
-            COALESCE(SUM(CASE WHEN o.method='online' AND o.provider IN ('stripe','paypal','sumup','mollie') THEN o.total END),0) collected,
-            COALESCE(SUM(CASE WHEN o.method='online' AND o.provider IN ('stripe','paypal','sumup','mollie') THEN o.commission END),0) commission,
-            COALESCE(SUM(CASE WHEN o.method='online' AND o.provider IN ('stripe','paypal','sumup','mollie') THEN o.organizer_amount END),0) due,
+            COALESCE(SUM(CASE WHEN o.method='online' AND o.provider IN ('stripe','paypal','sumup','mollie','alma') THEN o.total END),0) collected,
+            COALESCE(SUM(CASE WHEN o.method='online' AND o.provider IN ('stripe','paypal','sumup','mollie','alma') THEN o.commission END),0) commission,
+            COALESCE(SUM(CASE WHEN o.method='online' AND o.provider IN ('stripe','paypal','sumup','mollie','alma') THEN o.organizer_amount END),0) due,
             COALESCE(SUM(CASE WHEN o.method='guichet' THEN o.total END),0) box
         FROM events e LEFT JOIN orders o ON o.event_id = e.id AND o.status = 'paid'
         WHERE e.organizer_id = ? GROUP BY e.id ORDER BY e.starts_at DESC", [$org['id']]);

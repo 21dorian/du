@@ -79,6 +79,41 @@ Couleurs : **vert** = entre, **orange** = déjà entré / pas entré (sortie), *
 
 ---
 
+## Nouveautés 4.1 — la billetterie passe au niveau des pros (Weezevent, Shotgun, salles de spectacle)
+
+**Espace événement façon Weezticket**
+- Dans un événement, une **colonne dédiée** : numéro, nom, statut, date, lien vers la page publique, bouton Publier / Repasser en brouillon et menu « … » (clôturer, programmer l'ouverture, dupliquer, saison, bilan PDF…). Le menu principal se réduit en icônes (il se déplie au survol).
+- Menu **groupé** : Configurer (données, tarifs et mise en vente, dates, options, plan de salle, visuel des billets, formulaires, page publique, page par blocs), Vendre (guichet, widget, codes promo, attente & revente, liens), Communiquer, Participants, Organiser, Jour J, Analyser.
+- **Tableau de bord** de l'événement : prochain virement, participants par canal (en ligne, guichet, invitations, accréditations, paniers en cours) avec **alerte de tendance** (forte baisse / forte hausse sur 7 jours), recettes par canal.
+
+**Tarifs modulables**
+- **Visibilité planifiée** (visible du… au…), **masquer quand complet**, « **plus que X places** » sous un seuil, **badge** de mise en avant (Populaire, Meilleur prix…), **justificatif** demandé (rappelé à l'achat et au contrôle), **minimum par commande** (tarif duo).
+- **Contingents partagés** : plusieurs tarifs puisent dans le même stock (Fosse, Balcon, Carré or…).
+- **Prix selon la date** (le samedi plus cher, la première…).
+- **Grille catégories × tarifs** pour les salles : une ligne par catégorie de places avec son contingent, une colonne par type de tarif (Plein, Réduit, Abonné…), les tarifs sont créés et mis à jour en un clic.
+
+**Lancements programmés**
+- Ouverture des ventes à une date et heure précises : la page est en ligne avec un **compte à rebours** et un bouton **« Préviens-moi »** ; à l'heure dite tout s'ouvre et les inscrits reçoivent un e-mail. File d'attente activable au lancement.
+
+**Widget de vente complet**
+- Tout l'achat se fait **sur le site de l'organisateur** (date, billets, options, code promo, coordonnées, questions, conditions) ; seul le paiement s'ouvre dans une fenêtre sécurisée, puis le widget affiche la confirmation et les billets. Sans cookie tiers.
+- Deux modes : **intégré** (hauteur automatique) ou **bouton** qui ouvre la billetterie par-dessus la page. Couleur, arrondi, thème clair/sombre, texte du bouton ; aperçu en direct et code à copier ; ventes repérées par site.
+
+**Vraie page guichet** (plein écran, tablette ou poste)
+- Tuiles de tarifs par date avec places restantes et jauge, options, panier, **remise** ou code promo, **recherche de client**, encaissement **espèces avec rendu de monnaie**, CB, chèque, virement, chèque-vacances ou **mixte**.
+- **Réservations** à régler plus tard (places bloquées jusqu'à une date, e-mail au client), encaissement ou annulation en un clic.
+- Impression immédiate des billets et du ticket de caisse, totaux du jour par moyen de paiement, dernières ventes, raccourcis clavier.
+
+**Éditeurs visuels**
+- **Billet en glisser-déposer** : textes avec variables (nom, tarif, date, place, code…), QR code, affiche, logo, blocs de couleur ; 3 modèles (Classique, Affiche, Minimal), aperçu PDF.
+- **Page par blocs** : texte, image, galerie, vidéo YouTube/Vimeo, line-up (manuel ou repris des artistes), points forts, citation, bouton, carte, partenaires, compte à rebours ; glisser pour ordonner, aperçu à côté.
+
+**Côté acheteur**
+- **Payer à plusieurs** : on bloque des places 24 h pour sa bande, chacun paie la sienne avec le lien du groupe (WhatsApp, SMS) ; les places non payées retournent en vente.
+- **« Ils y vont »** : les acheteurs qui l'acceptent apparaissent (prénom + initiale) sur la page.
+- **Billets Apple Wallet et Google Wallet** (à brancher dans Admin › Réglages › Paiements avec les certificats).
+- **Paiement en plusieurs fois** : **Alma** (2, 3 ou 4 fois sans frais, l'organisateur est payé en une fois), **Klarna** via Stripe, **paiement en 4 fois PayPal** ; mention « payable en plusieurs fois » sur la page, réglable par événement.
+
 ## Nouveautés 4.0 — tout ce qui était « en développement » est disponible
 
 **Entrevo Pay : contrôle d'accès par profil**

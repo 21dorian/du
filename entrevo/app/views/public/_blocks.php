@@ -1,0 +1,18 @@
+<span id="pb"></span><?php /** @var array $ev, $blocks */ foreach ($blocks as $b): $t = $b['type']; ?>
+<section class="pb pb--<?= e($t) ?>">
+  <?php if (!empty($b['title']) && !in_array($t, ['button', 'divider'], true)): ?><h2><?= e($b['title']) ?></h2><?php endif; ?>
+  <?php if ($t === 'text'): ?><div class="prose" style="text-align:<?= e($b['align']) ?>"><?= nl2br(e($b['body'])) ?></div>
+  <?php elseif ($t === 'image' && $b['src']): ?><figure class="<?= $b['wide'] ? 'wide' : '' ?>"><img src="<?= url($b['src']) ?>" alt="<?= e($b['caption']) ?>" loading="lazy"><?php if ($b['caption']): ?><figcaption><?= e($b['caption']) ?></figcaption><?php endif; ?></figure>
+  <?php elseif ($t === 'gallery' && $b['images']): ?><div class="pb-gal"><?php foreach ($b['images'] as $im): ?><a href="<?= url($im) ?>" target="_blank"><img src="<?= url($im) ?>" alt="" loading="lazy"></a><?php endforeach; ?></div>
+  <?php elseif ($t === 'video' && ($src = PageBlocks::embed($b['url']))): ?><div class="pb-video"><iframe src="<?= e($src) ?>" title="<?= e($b['title'] ?: 'Vidéo') ?>" loading="lazy" allow="autoplay; encrypted-media; picture-in-picture" allowfullscreen></iframe></div>
+  <?php elseif ($t === 'lineup'): $items = $b['auto'] ? PageBlocks::autoLineup((int)$ev['id']) : $b['items']; ?><div class="pb-lineup"><?php foreach ($items as $a): ?><div class="pb-artist"><?php if ($a['photo']): ?><img src="<?= url($a['photo']) ?>" alt="" loading="lazy"><?php else: ?><span class="pb-initial"><?= e(mb_strtoupper(mb_substr($a['name'], 0, 1))) ?></span><?php endif; ?><b><?= e($a['name']) ?></b><?php if ($a['when']): ?><small><?= e($a['when']) ?></small><?php endif; ?><?php if ($a['text']): ?><p><?= e($a['text']) ?></p><?php endif; ?></div><?php endforeach; ?></div>
+  <?php elseif ($t === 'highlights'): ?><div class="pb-hl"><?php foreach ($b['items'] as $h): ?><div><b><?= e($h['title']) ?></b><p><?= e($h['text']) ?></p></div><?php endforeach; ?></div>
+  <?php elseif ($t === 'quote'): ?><blockquote class="pb-quote"><p>« <?= e($b['text']) ?> »</p><?php if ($b['author']): ?><cite><?= e($b['author']) ?></cite><?php endif; ?></blockquote>
+  <?php elseif ($t === 'button'): ?><a class="btn btn-lg" href="<?= e(str_starts_with($b['url'], '#') ? $b['url'] : (str_starts_with($b['url'], '/') ? url($b['url']) : $b['url'])) ?>" <?= preg_match('~^https?://~', $b['url']) ? 'target="_blank" rel="noopener"' : '' ?>><?= e($b['label']) ?></a>
+  <?php elseif ($t === 'map' && ($addr = $b['address'] ?: trim(implode(', ', array_filter([(string)$ev['venue'], (string)($ev['address'] ?? ''), (string)$ev['city']]))))): ?><div class="pb-map"><iframe src="https://maps.google.com/maps?q=<?= rawurlencode($addr) ?>&amp;z=15&amp;output=embed" title="Plan d'accès" loading="lazy"></iframe></div><p class="muted"><?= e($addr) ?> · <a href="https://www.google.com/maps/dir/?api=1&amp;destination=<?= rawurlencode($addr) ?>" target="_blank" rel="noopener">Itinéraire</a></p>
+  <?php elseif ($t === 'partners' && $b['logos']): ?><div class="pb-partners"><?php foreach ($b['logos'] as $l): ?><?= $l['url'] ? '<a href="' . e($l['url']) . '" target="_blank" rel="noopener">' : '<span>' ?><img src="<?= url($l['src']) ?>" alt="" loading="lazy"><?= $l['url'] ? '</a>' : '</span>' ?><?php endforeach; ?></div>
+  <?php elseif ($t === 'countdown'): $cd = strtotime((string)$ev['starts_at']); if ($cd > time()): ?><div class="pb-cd" data-countdown="<?= e(date('c', $cd)) ?>" data-cd-end="C'est maintenant !"><span data-cd-text><?= e(ago_until($cd)) ?></span></div><?php endif; ?>
+  <?php elseif ($t === 'divider'): ?><hr>
+  <?php endif; ?>
+</section>
+<?php endforeach; ?>

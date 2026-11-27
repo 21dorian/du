@@ -5,7 +5,7 @@ declare(strict_types=1);
 
 require_once APP . '/controllers/admin.php';
 
-const REAL_ONLINE = "o.status = 'paid' AND o.method = 'online' AND o.provider IN ('stripe','paypal','sumup','mollie')";
+const REAL_ONLINE = "o.status = 'paid' AND o.method = 'online' AND o.provider IN ('stripe','paypal','sumup','mollie','alma')";
 
 function admin_home(): string
 {

@@ -38,6 +38,7 @@ $input = 'custom_field_html';?>
     </div>
 
     <div class="card">
+      <?php if ((int)($ev['show_going'] ?? 0)): ?><label class="check"><input type="checkbox" name="show_public" value="1" <?= !empty($_POST['show_public']) ? 'checked' : '' ?>> <span>Afficher mon prénom dans « Ils y vont » sur la page de l'événement</span></label><?php endif; ?>
       <label class="check"><input type="checkbox" name="optin" value="1" <?= !empty($_POST['optin']) ? 'checked' : '' ?>> <span>Je veux recevoir les prochains événements de <b><?= e($org['name']) ?></b> par e-mail (désinscription en un clic).</span></label>
       <div style="height:10px"></div>
       <?= Buyers::ageFieldsHtml(Buyers::requiredAge($ev, array_values(array_map(fn($l) => $l['rate_id'], array_filter($sum['lines'], fn($l) => $l['kind'] === 'rate'))))) ?>

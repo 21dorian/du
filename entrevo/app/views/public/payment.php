@@ -8,7 +8,9 @@
     <?php else: ?>
       <div class="pay-options">
         <?php $first = true; foreach ($providers as $k => $label): ?>
-          <label class="pay-option"><input type="radio" name="provider" value="<?= e($k) ?>" <?= $first ? 'checked' : '' ?>> <?= e($label) ?></label>
+          <label class="pay-option"><input type="radio" name="provider" value="<?= e($k) ?>" <?= $first ? 'checked' : '' ?>> <?= e($label) ?>
+            <?php if ($k === 'alma'): ?><span class="alma-plans"><?php foreach (Payments::almaCounts() as $ci => $nb): $part = (int)ceil((int)$o['total'] / $nb); ?><label><input type="radio" name="installments" value="<?= $nb ?>" <?= $ci === 0 ? 'checked' : '' ?>> <?= $nb ?> × <?= e(money($part)) ?></label><?php endforeach; ?><small>Sans frais · 1re échéance aujourd'hui, puis chaque mois · billets envoyés tout de suite</small></span><?php endif; ?>
+            <?php if ($k === 'stripe' && setting('stripe_klarna') === '1' && (int)$o['total'] >= 3500): ?><small class="muted" style="display:block">Carte, Apple Pay, Google Pay ou Klarna en 3 fois</small><?php endif; ?></label>
         <?php $first = false; endforeach; ?>
       </div>
       <button class="btn btn-lg btn-block mt">Payer <?= e(money((int)$o['total'])) ?> →</button>

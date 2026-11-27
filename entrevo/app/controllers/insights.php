@@ -124,7 +124,8 @@ function event_overview2(string $id): string
     $activity = Insights::activity((int)$ev['organizer_id'], (int)$ev['id'], 8);
     $ready = event_readiness($ev);
     $fc = Insights::forecast($ev, $cap);
-    return ev_page($ev, 'overview', $ev['name'], 'event_overview2', compact('stats', 'cur', 'prev', 'spark', 'cum', 'fun', 'cap', 'channels', 'activity', 'ready', 'fc'));
+    require_once APP . '/controllers/pro.php';
+    return ev_page($ev, 'overview', 'Tableau de bord', 'event_overview2', compact('stats', 'cur', 'prev', 'spark', 'cum', 'fun', 'cap', 'channels', 'activity', 'ready', 'fc') + ev_dash_extra($ev));
 }
 
 /** Score « prêt à publier » : ce qui manque pour une billetterie au top. */

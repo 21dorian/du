@@ -41,6 +41,10 @@ $fromPrice = $onSalePrices ? min($onSalePrices) : null;
       <?php endif; ?>
       <div class="fact"><dt>Par</dt><dd><a href="<?= url('/o/' . $org['slug']) ?>"><?= e($org['name']) ?></a></dd></div>
     </dl>
+    <?php if ((int)($ev['show_going'] ?? 0) && ($gg = Social::going($ev)) && $gg['total'] >= 3): ?>
+      <div class="going"><div class="going-av"><?php foreach (array_slice($gg['people'], 0, 6) as $nm): ?><span title="<?= e($nm) ?>"><?= e(mb_strtoupper(mb_substr($nm, 0, 1))) ?></span><?php endforeach; ?></div>
+        <div><b><?= $gg['people'] ? e(implode(', ', array_slice($gg['people'], 0, 3))) . ($gg['total'] > 3 ? ' et ' . number_format($gg['total'] - min(3, count($gg['people'])), 0, ',', ' ') . ' autres' : '') : number_format($gg['total'], 0, ',', ' ') . ' personnes' ?></b> <small>y vont</small></div></div>
+    <?php endif; ?>
     <?php if (!empty($ev['volunteer_recruit'])): ?><a class="vol-cta" href="<?= url('/e/' . $ev['slug'] . '/benevoles') ?>">On cherche des bénévoles : rejoins l'équipe →</a><?php endif; ?>
     <a class="btn btn-lg" href="#billets" <?= $useDrawer ? 'data-dw-open' : '' ?>><?= $sessions && !$session ? 'Choisir ma date' : 'Je réserve' ?></a>
     <div class="ev-actions"><button type="button" class="soon-chip fav-btn" data-fav="<?= (int)$ev['id'] ?>" aria-pressed="false">Favori</button><details class="cal-menu"><summary class="soon-chip">Agenda</summary><div class="cal-pop"><a href="<?= e(Buyers::googleUrl($ev, $session ?? null)) ?>" target="_blank" rel="noopener">Google Agenda</a><a href="<?= e(Buyers::icsUrl($ev, $session ?? null)) ?>">Apple / Outlook (.ics)</a></div></details><a class="soon-chip" href="<?= url('/e/' . $ev['slug'] . '/covoiturage') ?>">Covoiturage</a></div>
@@ -64,6 +68,7 @@ $fromPrice = $onSalePrices ? min($onSalePrices) : null;
     <?php endif; ?>
     <?php $prog = json_decode((string)($ev['program'] ?? ''), true) ?: []; $faq = json_decode((string)($ev['faq'] ?? ''), true) ?: []; $prac = json_decode((string)($ev['practical'] ?? ''), true) ?: []; ?>
     <?php if ($ev['description']): ?><h2 class="mt"><?= $prog ? 'L\'événement' : 'Le programme' ?></h2><div class="prose"><?= e($ev['description']) ?></div><?php endif; ?>
+    <?php if ($pbl = PageBlocks::get($ev)): ?><div class="pb-wrap"><?= view('public/_blocks', ['ev' => $ev, 'blocks' => $pbl]) ?></div><?php endif; // 4.1 : page par blocs ?>
     <?php if ($prog): ?>
       <section class="ev-section"><h2>Programme</h2>
         <ol class="timeline"><?php foreach ($prog as $p): ?><li><span class="tl-time"><?= e($p['when'] ?? '') ?></span><div><b><?= e($p['title'] ?? '') ?></b><?php if (!empty($p['text'])): ?><p><?= e($p['text']) ?></p><?php endif; ?></div></li><?php endforeach; ?></ol>
@@ -102,6 +107,16 @@ $fromPrice = $onSalePrices ? min($onSalePrices) : null;
         <form method="post" action="<?= url('/e/' . $ev['slug'] . '/prevente') ?>" class="presale-form"><?= csrf_field() ?><input type="email" name="email" required placeholder="ton@email.fr" aria-label="Ton e-mail" autocomplete="email"><button class="btn">Recevoir mon accès</button></form>
       </div>
     <?php endif; ?>
+    <?php if (RatesPlus::launchPending($ev)): $lt = strtotime((string)$ev['on_sale_at']); $nAl = (int)val('SELECT COUNT(*) FROM sale_alerts WHERE event_id = ?', [$ev['id']]); ?>
+      <div class="launch-box">
+        <span class="bl-eyebrow">Ouverture de la billetterie</span>
+        <h2><?= e(fr_date((string)$ev['on_sale_at'])) ?></h2>
+        <div class="launch-cd" data-launch="<?= e(date('c', $lt)) ?>"><div><b data-u="d">0</b><small>jours</small></div><div><b data-u="h">0</b><small>heures</small></div><div><b data-u="m">0</b><small>min</small></div><div><b data-u="s">0</b><small>s</small></div></div>
+        <form method="post" action="<?= url('/e/' . $ev['slug'] . '/alerte') ?>" class="presale-form"><?= csrf_field() ?><input type="email" name="email" required placeholder="ton@email.fr" aria-label="Ton e-mail" autocomplete="email"><button class="btn">Préviens-moi</button></form>
+        <small class="muted"><?= $nAl >= 10 ? number_format($nAl, 0, ',', ' ') . ' personnes attendent déjà l\'ouverture. ' : '' ?>Un e-mail à la minute où ça ouvre, rien d'autre.</small>
+      </div>
+      <script>(function(){var el=document.querySelector('[data-launch]');if(!el)return;var t=new Date(el.dataset.launch).getTime();function tick(){var d=Math.max(0,t-Date.now());if(d<=0){location.reload();return}var s=Math.floor(d/1000);el.querySelector('[data-u=d]').textContent=Math.floor(s/86400);el.querySelector('[data-u=h]').textContent=Math.floor(s%86400/3600);el.querySelector('[data-u=m]').textContent=Math.floor(s%3600/60);el.querySelector('[data-u=s]').textContent=s%60}tick();setInterval(tick,1000)})();</script>
+    <?php endif; ?>
     <?php if ($useDrawer): $onSale = array_values(array_filter($rates, fn($r) => $r['sale']['ok'])); ?>
       <div class="buy-launch" hidden>
         <div class="bl-top"><span class="bl-eyebrow">Billetterie ouverte</span><b><?= $fromPrice === 0 ? 'Gratuit' : 'Dès ' . e(money((int)$fromPrice)) ?></b><?php if ($session): ?><small><?= e(fr_date($session['starts_at'])) ?></small><?php endif; ?></div>
@@ -109,6 +124,7 @@ $fromPrice = $onSalePrices ? min($onSalePrices) : null;
           <?php if (count($onSale) > 4): ?><li class="muted">+ <?= count($onSale) - 4 ?> autre(s) tarif(s)</li><?php endif; ?></ul>
         <button type="button" class="btn btn-lg btn-block" data-dw-open>Réserver mes billets →</button>
         <p class="secure-note">Paiement sécurisé · billets par e-mail · <?= $org['fee_mode'] === 'buyer' ? 'frais affichés avant de payer' : 'prix tout compris' ?></p>
+        <?php if ((int)($ev['installments'] ?? 1) && ($bn = Payments::installmentsLabel())): ?><p class="bnpl-note"><?= ui_icon('euro', 16) ?> <?= e($bn) ?></p><?php endif; ?>
       </div>
     <?php endif; ?>
     <?php if ($sessions && !$session): ?>
@@ -125,8 +141,11 @@ $fromPrice = $onSalePrices ? min($onSalePrices) : null;
           $pack = max(1, (int)$r['pack_size']); $free = $r['price_mode'] === 'free'; ?>
         <div class="rate <?= $r['sale']['ok'] ? '' : 'off' ?>">
           <div class="rate-info">
-            <b><?= e($r['name']) ?></b>
+            <b><?= e($r['name']) ?><?php if (!empty($r['badge'])): ?><span class="rate-badge"><?= e($r['badge']) ?></span><?php endif; ?></b>
             <?php if ($r['description']): ?><small><?= e($r['description']) ?></small><?php endif; ?>
+            <?php if (!empty($r['proof']) && !str_contains((string)$r['description'], (string)$r['proof'])): ?><small class="rate-proof">Justificatif demandé à l'entrée : <?= e($r['proof']) ?></small><?php endif; ?>
+            <?php if (!empty($r['left_label'])): ?><span class="rate-left"><?= e($r['left_label']) ?></span><?php endif; ?>
+            <?php if ((int)($r['min_per_order'] ?? 0) > 1): ?><small>Par <?= (int)$r['min_per_order'] ?> minimum</small><?php endif; ?>
             <?php if ($pack > 1): ?><small>Pack de <?= $pack ?> billets</small><?php endif; ?>
             <?php if ((int)($r['min_age'] ?? 0) > (int)($ev['min_age'] ?? 0)): ?><small>Réservé aux <?= (int)$r['min_age'] ?> ans et +</small><?php endif; ?>
             <?php if ((int)$r['max_entries'] > 1 || $r['per_day']): ?><small><?= $r['per_day'] ? '1 entrée par jour' : (int)$r['max_entries'] . ' entrées' ?></small><?php endif; ?>
@@ -137,7 +156,7 @@ $fromPrice = $onSalePrices ? min($onSalePrices) : null;
             <?php elseif ($isEarly || $endSoon): ?>
               <?php if ($isEarly): ?><span class="rate-tag tier-early">Prix early bird<?= (int)$r['quota'] && $r['sale']['remaining'] <= max(10, (int)ceil((int)$r['quota'] * 0.25)) ? ' · plus que ' . (int)$r['sale']['remaining'] . ' à ce prix' : '' ?></span><?php endif; ?>
               <?php if ($endSoon): ?><span class="rate-tag tier-end" data-countdown="<?= e(date('c', strtotime($r['sale_end']))) ?>" data-cd-end="Prix terminé">Ce prix s'arrête · <span data-cd-text><?= e(ago_until(strtotime($r['sale_end']))) ?></span></span><?php endif; ?>
-            <?php elseif ($r['sale']['remaining'] <= 10): ?><span class="rate-tag">Plus que <?= (int)$r['sale']['remaining'] ?></span>
+            <?php elseif ($r['sale']['remaining'] <= 10 && empty($r['left_label'])): ?><span class="rate-tag">Plus que <?= (int)$r['sale']['remaining'] ?></span>
             <?php elseif ($r['hidden']): ?><span class="rate-tag" style="color:var(--primary)">Tarif secret débloqué</span><?php endif; ?>
             <?php if ($free && $max > 0): ?><label class="free-price">Ton prix (min. <?= e(money((int)$r['price'])) ?>) <span class="input-suffix"><input name="price[<?= (int)$r['id'] ?>]" value="<?= e(money_input(max((int)$r['price'], (int)($cart['prices'][$r['id']] ?? $r['price'])))) ?>" inputmode="decimal" data-free="<?= (int)$r['id'] ?>"><span>€</span></span></label><?php endif; ?>
           </div>
@@ -189,10 +208,18 @@ $fromPrice = $onSalePrices ? min($onSalePrices) : null;
           <div class="buy-total"><span>Total</span><span id="buy-total">0,00 €</span></div>
           <button class="btn btn-block btn-lg" name="action" value="buy">C'est parti →</button>
           <p class="secure-note">Paiement sécurisé. Tes billets arrivent direct par e-mail.</p>
-          <div class="soon-row center-row"><?= pub_soon('payer-a-plusieurs', 'Payer à plusieurs') ?><?= pub_soon('paiement-mobile', 'Apple Pay / Google Pay') ?></div>
+          <?php if ((int)($ev['installments'] ?? 1) && ($bn = Payments::installmentsLabel())): ?><p class="bnpl-note"><?= ui_icon('euro', 16) ?> <?= e($bn) ?></p><?php endif; ?>
         </div>
       <?php endif; ?>
     </form>
+    <?php if ((int)($ev['group_buy'] ?? 0) && $anyOnSale): $grpRates = array_filter($rates, fn($r) => $r['sale']['ok'] && !$r['hidden'] && $r['price_mode'] !== 'free'); if ($grpRates): ?>
+    <details class="card group-buy"><summary>Payer à plusieurs : chacun paie sa place</summary>
+      <form method="post" action="<?= url('/e/' . $ev['slug'] . '/bande') ?>"><?= csrf_field() ?><?php if ($session): ?><input type="hidden" name="session_id" value="<?= (int)$session['id'] ?>"><?php endif; ?>
+        <small class="muted">On bloque les places 24 h pour ta bande. Tu partages le lien, chacun paie la sienne (toi aussi).</small>
+        <div class="grid2"><select name="rate_id"><?php foreach ($grpRates as $r): ?><option value="<?= (int)$r['id'] ?>"><?= e($r['name']) ?> · <?= e(money((int)$r['price'])) ?></option><?php endforeach; ?></select><select name="qty"><?php for ($i = 2; $i <= 12; $i++): ?><option value="<?= $i ?>" <?= $i === 4 ? 'selected' : '' ?>><?= $i ?> personnes</option><?php endfor; ?></select></div>
+        <div class="grid2"><input name="name" placeholder="Ton prénom" required><input type="email" name="email" placeholder="Ton e-mail" required></div>
+        <button class="btn">Bloquer les places</button></form></details>
+    <?php endif; endif; ?>
     <?php if (($hasCodes || !empty($org['gift_enabled'])) && $anyOnSale): ?>
     <form method="post" action="<?= url($base) ?>"><?= csrf_field() ?>
       <details class="code-box"><summary>T'as un code ?</summary>

@@ -268,7 +268,7 @@ function settings(): string
         $fields = [
             'general' => ['platform_name', 'tagline', 'contact_email', 'base_url', 'primary_color', 'pending_minutes'],
             'fees' => ['fee_percent', 'fee_fixed', 'fee_mode_default', 'invoice_name', 'invoice_prefix', 'invoice_address', 'invoice_siret', 'invoice_vat_number', 'invoice_vat_rate', 'invoice_footer'],
-            'payments' => ['stripe_secret', 'stripe_public', 'paypal_client_id', 'paypal_secret', 'sumup_api_key', 'sumup_merchant_code', 'mollie_api_key'],
+            'payments' => ['stripe_secret', 'stripe_public', 'paypal_client_id', 'paypal_secret', 'sumup_api_key', 'sumup_merchant_code', 'mollie_api_key', 'alma_api_key', 'alma_min', 'alma_max', 'alma_counts', 'apple_pass_type', 'apple_team_id', 'apple_pass_password', 'google_issuer_id', 'google_sa_email', 'google_sa_key'],
             'emails' => ['smtp_host', 'smtp_port', 'smtp_secure', 'smtp_user', 'smtp_pass', 'mail_from', 'mail_from_name'],
             'legal' => ['cgv', 'legal', 'company_info'],
             'sms' => ['sms_api_key', 'sms_price', 'sms_stop'],
@@ -276,7 +276,7 @@ function settings(): string
             'securite' => ['lock_after', 'lock_minutes'],
             'apparence' => ['platform_name', 'tagline', 'primary_color'],
         ][$tab] ?? [];
-        $checks = ['general' => ['signup_open', 'org_approval'], 'fees' => ['refund_fees', 'kyc_required', 'invoice_auto'], 'payments' => ['demo_enabled', 'stripe_enabled', 'paypal_enabled', 'paypal_sandbox', 'sumup_enabled', 'mollie_enabled'],
+        $checks = ['general' => ['signup_open', 'org_approval'], 'fees' => ['refund_fees', 'kyc_required', 'invoice_auto'], 'payments' => ['demo_enabled', 'stripe_enabled', 'paypal_enabled', 'paypal_sandbox', 'sumup_enabled', 'mollie_enabled', 'alma_enabled', 'stripe_klarna', 'paypal_paylater', 'wallet_apple', 'wallet_google'],
             'plateforme' => ['maintenance'], 'securite' => ['admin_2fa'], 'sms' => ['sms_deduct']][$tab] ?? [];
         if ($tab === 'plateforme') set_setting('disabled_modules', implode(',', array_values(array_intersect(array_keys(Billing::MODULES), (array)($_POST['disabled_modules'] ?? [])))));
         if ($tab === 'securite' && checked('admin_2fa') && !(int)($u['totp_enabled'] ?? 0)) redirect('/admin/reglages?tab=securite', ['error' => 'Active d\'abord la double authentification sur ton propre compte (Mon compte), sinon tu te bloquerais.']);
@@ -284,10 +284,16 @@ function settings(): string
             if (input('logo_remove')) set_setting('platform_logo', '');
             try { if ($img = upload_image('platform_logo')) set_setting('platform_logo', $img); } catch (RuntimeException $e) { redirect('/admin/reglages?tab=apparence', ['error' => $e->getMessage()]); }
         }
+        if ($tab === 'payments') { // 4.1 : certificats Apple Wallet (stockés hors du web)
+            foreach (['apple_cert' => 'apple_cert_file', 'apple_wwdr' => 'apple_wwdr_file'] as $fld => $key) {
+                if (!empty($_FILES[$fld]['tmp_name']) && is_uploaded_file($_FILES[$fld]['tmp_name'])) { $dir = STORAGE . '/wallet'; if (!is_dir($dir)) mkdir($dir, 0700, true); $dest = $dir . '/' . $fld . '.' . ($fld === 'apple_cert' ? 'p12' : 'pem'); move_uploaded_file($_FILES[$fld]['tmp_name'], $dest); set_setting($key, $dest); }
+            }
+        }
         foreach ($fields as $f) {
             if (!array_key_exists($f, $_POST)) continue;
             $v = trim((string)$_POST[$f]);
-            if (in_array($f, ['stripe_secret', 'paypal_secret', 'sumup_api_key', 'mollie_api_key', 'smtp_pass', 'sms_api_key'], true) && $v === '') continue;
+            if (in_array($f, ['stripe_secret', 'paypal_secret', 'sumup_api_key', 'mollie_api_key', 'smtp_pass', 'sms_api_key', 'alma_api_key', 'apple_pass_password', 'google_sa_key'], true) && $v === '') continue;
+            if (in_array($f, ['alma_min', 'alma_max'], true)) $v = $v === '' ? '' : (string)parse_money($v);
             if ($f === 'sms_price') $v = (string)parse_money($v);
             if (in_array($f, ['max_events', 'max_upload_mb', 'lock_after', 'lock_minutes'], true)) $v = (string)max(0, (int)$v); // vide = inchangé
             if ($f === 'fee_fixed') $v = (string)parse_money($v);

@@ -16,6 +16,7 @@ final class TicketPdf
     /** @param array $tickets lignes de la table tickets */
     public static function build(array $order, array $event, array $org, array $tickets): string
     {
+        if (class_exists('TicketDesign') && ($L = TicketDesign::get($event))) return TicketDesign::build($L, $order, $event, $org, $tickets); // 4.1 : maquette perso
         $pdf = new PdfDoc('P', 'mm', 'A4');
         $pdf->SetAutoPageBreak(false);
         $pdf->SetTitle(self::t('Billets ' . $event['name']));

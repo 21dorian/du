@@ -1,7 +1,8 @@
 <?php
-$form = function (?array $r) use ($org, $sessions, $seatCats, $rates) {
+$form = function (?array $r) use ($org, $sessions, $seatCats, $rates, $groups) {
     $p = $r ?? ['id' => 0, 'name' => '', 'description' => '', 'price' => 0, 'quota' => 0, 'max_per_order' => 0, 'sale_start' => null, 'sale_end' => null, 'hidden' => 0, 'active' => 1, 'sort' => 0,
-        'price_mode' => 'fixed', 'pack_size' => 1, 'max_entries' => 1, 'per_day' => 0, 'session_ids' => '', 'seat_category' => '', 'scan_note' => '', 'scan_color' => '', 'vat_rate' => null, 'after_rate_id' => null, 'min_age' => null, 'dyn_json' => null, 'companion' => 0];
+        'price_mode' => 'fixed', 'pack_size' => 1, 'max_entries' => 1, 'per_day' => 0, 'session_ids' => '', 'seat_category' => '', 'scan_note' => '', 'scan_color' => '', 'vat_rate' => null, 'after_rate_id' => null, 'min_age' => null, 'dyn_json' => null, 'companion' => 0,
+        'visible_from' => null, 'visible_until' => null, 'soldout_mode' => 'show', 'show_left' => 0, 'badge' => null, 'min_per_order' => 0, 'proof' => null, 'quota_group_id' => null, 'session_prices' => null];
     $selS = array_map('intval', array_filter(explode(',', (string)$p['session_ids'])));
     ob_start(); ?>
     <form method="post"><?= csrf_field() ?><input type="hidden" name="rate_id" value="<?= (int)$p['id'] ?>">
@@ -32,6 +33,25 @@ $form = function (?array $r) use ($org, $sessions, $seatCats, $rates) {
         <div class="field"><label>Début des ventes</label><input type="datetime-local" name="sale_start" value="<?= e(dt_input($p['sale_start'])) ?>"></div>
         <div class="field"><label>Fin des ventes</label><input type="datetime-local" name="sale_end" value="<?= e(dt_input($p['sale_end'])) ?>"></div>
       </div>
+      <?php $sp = RatesPlus::sessionPrices($p); $isStd = $p['badge'] === null || array_key_exists((string)$p['badge'], RatesPlus::BADGES); ?>
+      <details class="vis-box" <?= $p['visible_from'] || $p['visible_until'] || $p['quota_group_id'] || $sp || $p['badge'] || $p['proof'] || (int)$p['show_left'] || $p['soldout_mode'] === 'hide' || (int)$p['min_per_order'] ? 'open' : '' ?>>
+        <summary><b>Visibilité, affichage et contingent</b> <small class="muted">quand le tarif apparaît, comment il se présente, avec qui il partage ses places</small></summary>
+        <div class="grid4 mt">
+          <div class="field"><label>Visible à partir du</label><input type="datetime-local" name="visible_from" value="<?= e(dt_input($p['visible_from'])) ?>"><small>Vide = tout de suite</small></div>
+          <div class="field"><label>Visible jusqu'au</label><input type="datetime-local" name="visible_until" value="<?= e(dt_input($p['visible_until'])) ?>"><small>Ensuite il disparaît de la page</small></div>
+          <div class="field"><label>Quand il est complet</label><select name="soldout_mode"><option value="show">Afficher « Complet »</option><option value="hide" <?= $p['soldout_mode'] === 'hide' ? 'selected' : '' ?>>Le masquer</option></select></div>
+          <div class="field"><label>Afficher « plus que X places »</label><input type="number" name="show_left" min="0" value="<?= (int)$p['show_left'] ?>"><small>Sous ce seuil (0 = jamais)</small></div>
+        </div>
+        <div class="grid4">
+          <div class="field"><label>Mise en avant</label><select name="badge"><?php foreach (RatesPlus::BADGES as $k => $l): ?><option value="<?= e($k) ?>" <?= (string)$p['badge'] === $k && $isStd ? 'selected' : '' ?>><?= e($l) ?></option><?php endforeach; ?></select><input name="badge_custom" class="mt" style="margin-top:6px" value="<?= $isStd ? '' : e((string)$p['badge']) ?>" placeholder="ou ton texte (ex. Fosse)"></div>
+          <div class="field"><label>Justificatif à présenter</label><input name="proof" value="<?= e((string)$p['proof']) ?>" placeholder="Carte étudiant, carte d'invalidité…"><small>Affiché à l'achat et rappelé au contrôle</small></div>
+          <div class="field"><label>Minimum par commande</label><input type="number" name="min_per_order" min="0" max="50" value="<?= (int)$p['min_per_order'] ?>"><small>Ex. 2 pour un tarif « duo »</small></div>
+          <div class="field"><label>Contingent partagé</label><select name="quota_group_id"><option value="">Aucun</option><?php foreach ($groups as $g): ?><option value="<?= (int)$g['id'] ?>" <?= (int)$p['quota_group_id'] === (int)$g['id'] ? 'selected' : '' ?>><?= e($g['name']) ?> (<?= (int)$g['quota'] ?: '∞' ?>)</option><?php endforeach; ?></select><small><a href="#contingents">Gérer les contingents</a></small></div>
+        </div>
+        <?php if ($sessions): ?><div class="field"><label>Prix selon la date (laisser vide = prix du tarif)</label><div class="sp-grid">
+          <?php foreach ($sessions as $x): ?><label><span><?= e(short_date($x['starts_at'])) ?><?= $x['label'] ? ' · ' . e($x['label']) : '' ?></span><span class="input-suffix"><input name="session_price[<?= (int)$x['id'] ?>]" inputmode="decimal" value="<?= isset($sp[(string)$x['id']]) ? e(money_input((int)$sp[(string)$x['id']])) : '' ?>" placeholder="<?= e(money_input((int)$p['price'])) ?>"><span>€</span></span></label><?php endforeach; ?></div>
+          <small class="muted">Ex. le samedi plus cher que la semaine, ou la première plus chère.</small></div><?php endif; ?>
+      </details>
       <?php $others = array_filter($rates, fn($x) => (int)$x['id'] !== (int)$p['id']); if ($others): ?>
       <div class="field tier-field"><label>Paliers (early bird)</label>
         <select name="after_rate_id"><option value="">Ouvert selon ses dates de vente</option><?php foreach ($others as $x): ?><option value="<?= (int)$x['id'] ?>" <?= (int)($p['after_rate_id'] ?? 0) === (int)$x['id'] ? 'selected' : '' ?>>S'ouvre quand « <?= e($x['name']) ?> » (<?= e(money((int)$x['price'])) ?>) est épuisé ou terminé</option><?php endforeach; ?></select>
@@ -113,6 +133,13 @@ $base = '/pro/evenements/' . $ev['id'] . '/tarifs';
             <?php if ((int)$r['max_entries'] > 1): ?><span><?= (int)$r['max_entries'] ?> entrées</span><?php endif; ?>
             <?php if ($r['hidden']): ?><span>Secret</span><?php endif; ?>
             <?php if (!empty($r['companion'])): ?><span>PMR + accompagnateur</span><?php endif; ?>
+            <?php if ($r['badge']): ?><span class="tag-hl"><?= e($r['badge']) ?></span><?php endif; ?>
+            <?php if ($r['quota_group_id']): $gg = array_values(array_filter($groups, fn($g) => (int)$g['id'] === (int)$r['quota_group_id'])); ?><span>Contingent « <?= e($gg[0]['name'] ?? '?') ?> »</span><?php endif; ?>
+            <?php if ($r['proof']): ?><span>Justificatif</span><?php endif; ?>
+            <?php if ((int)$r['min_per_order'] > 1): ?><span>Min. <?= (int)$r['min_per_order'] ?></span><?php endif; ?>
+            <?php if ($r['session_prices']): ?><span>Prix selon la date</span><?php endif; ?>
+            <?php if ($r['visible_from'] && strtotime($r['visible_from']) > time()): ?><span>Visible le <?= e(short_date($r['visible_from'])) ?></span><?php elseif ($r['visible_until'] && strtotime($r['visible_until']) < time()): ?><span>Masqué</span><?php endif; ?>
+            <?php if ($r['soldout_mode'] === 'hide'): ?><span>Masqué si complet</span><?php endif; ?>
             <?php if ($dst = DynPrice::state($r)): ?><span>Prix dynamique · palier <?= $dst['index'] + 1 ?>/<?= $dst['count'] ?><?= $dst['next'] !== null ? ' · ' . ($dst['mode'] === 'sold' ? $dst['left'] . ' pl. avant ' . money($dst['next']) : money($dst['next']) . ' le ' . short_date((string)$dst['until'])) : '' ?></span><?php endif; ?>
             <?php if ($r['min_age']): ?><span><?= (int)$r['min_age'] ?> ans et +</span><?php endif; ?>
             <?php if ($r['session_ids']): ?><span><?= count(Tickets::rateSessions($r)) ?> date(s)</span><?php endif; ?>
@@ -140,6 +167,38 @@ $base = '/pro/evenements/' . $ev['id'] . '/tarifs';
 </div>
 <p class="muted" style="font-size:13px">Frais de service : <b><?= e(rtrim(rtrim(number_format($pct, 2, ',', ''), '0'), ',')) ?> % + <?= e(money($fixed)) ?></b> par billet payant,
   <?= $org['fee_mode'] === 'buyer' ? 'payés par l\'acheteur' : 'déduits de ton reversement' ?> (<a href="<?= url('/pro/organisation') ?>">changer</a>). Billets gratuits : 0 €.</p>
+<?php $launch = $ev['on_sale_at'] ?? null; $pending = RatesPlus::launchPending($ev); ?>
+<div class="rates-tools">
+<form method="post" class="card stack" id="lancement"><?= csrf_field() ?><input type="hidden" name="action" value="launch">
+  <div class="card-head" style="padding:0"><h2>Lancement des ventes</h2><?= $pending ? '<span class="badge orange">Programmé</span>' : ($launch ? '<span class="badge green">Ouvert</span>' : '') ?></div>
+  <p class="muted mb0"><small>Annonce ton événement avant d'ouvrir la billetterie : la page est en ligne avec un <b>compte à rebours</b> et un bouton « Préviens-moi ». À l'heure dite, tous les tarifs s'ouvrent en même temps et les inscrits reçoivent un e-mail.</small></p>
+  <div class="grid2"><div class="field"><label>Ouverture des ventes</label><input type="datetime-local" name="on_sale_at" value="<?= e(dt_input($launch)) ?>"></div>
+    <div class="field"><label>Inscrits « préviens-moi »</label><b style="font-size:26px"><?= (int)$alerts ?></b></div></div>
+  <label class="check"><input type="checkbox" name="queue_enabled" value="1" <?= (int)$ev['queue_enabled'] ? 'checked' : '' ?>> File d'attente virtuelle à l'ouverture (recommandé au-delà de 500 personnes attendues)</label>
+  <div class="row"><button class="btn btn-sm">Enregistrer</button><?php if ($launch): ?><button class="btn btn-sm btn-ghost" name="on_sale_at" value="">Supprimer la programmation</button><?php endif; ?></div>
+</form>
+<div class="card stack" id="contingents"><h2>Contingents partagés</h2>
+  <p class="muted mb0"><small>Plusieurs tarifs puisent dans le même stock de places : « Fosse » pour Plein + Réduit + Étudiant, « Carré or », « Balcon »… Le premier qui vend prend la place.</small></p>
+  <?php foreach ($groups as $g): $gp = (int)$g['quota'] ? min(100, round($g['used'] / max(1, (int)$g['quota']) * 100)) : null; ?>
+    <form method="post" class="cg-row"><?= csrf_field() ?><input type="hidden" name="group_id" value="<?= (int)$g['id'] ?>">
+      <input name="group_name" value="<?= e($g['name']) ?>"><input type="number" name="group_quota" min="0" value="<?= (int)$g['quota'] ?>" title="Places (0 = illimité)">
+      <span class="cg-use"><b><?= (int)$g['used'] ?></b><?= (int)$g['quota'] ? ' / ' . (int)$g['quota'] : '' ?> · <?= (int)$g['n'] ?> tarif(s)<?php if ($gp !== null): ?><i class="bar-thin"><i style="width:<?= $gp ?>%" class="<?= $gp >= 90 ? 'hot' : '' ?>"></i></i><?php endif; ?></span>
+      <button class="btn btn-sm btn-light" name="action" value="group_save">OK</button><button class="btn btn-sm btn-ghost" name="action" value="group_delete" data-confirm="Supprimer ce contingent ?">×</button></form>
+  <?php endforeach; ?>
+  <form method="post" class="cg-row"><?= csrf_field() ?><input name="group_name" placeholder="Nouveau contingent (ex. Fosse)"><input type="number" name="group_quota" min="0" placeholder="Places"><span></span><button class="btn btn-sm" name="action" value="group_save">Créer</button></form>
+</div>
+</div>
+<?php $gc = $grid['cats']; $gt = $grid['types'] ?: ['Plein' => '', 'Réduit' => 'Étudiant, demandeur d\'emploi', 'Abonné' => '']; $gcN = array_keys($gc); $gtN = array_keys($gt); ?>
+<form method="post" class="card" id="grille"><?= csrf_field() ?><input type="hidden" name="action" value="grid">
+  <div class="card-head"><h2>Grille catégories × tarifs</h2><small class="muted">pour les salles de spectacle</small></div>
+  <p class="muted"><small>Comme dans une billetterie de théâtre : une ligne par catégorie de places (avec son contingent), une colonne par type de tarif. Chaque case remplie crée ou met à jour le tarif « Catégorie · Type ». Laisse une case vide pour ne pas proposer la combinaison. Les catégories qui portent le même nom que celles du plan de salle y sont reliées.</small></p>
+  <div class="table-wrap"><table class="table grid-table"><thead><tr><th>Catégorie</th><th>Places</th>
+    <?php for ($t = 0; $t < 5; $t++): ?><th><input name="gtype[<?= $t ?>]" value="<?= e($gtN[$t] ?? '') ?>" placeholder="Type <?= $t + 1 ?>"><input name="gproof[<?= $t ?>]" value="<?= e(isset($gtN[$t]) ? (string)$gt[$gtN[$t]] : '') ?>" placeholder="justificatif" class="gproof"></th><?php endfor; ?></tr></thead><tbody>
+    <?php for ($c = 0; $c < 5; $c++): $cn = $gcN[$c] ?? ''; ?><tr><td><input name="gcat[<?= $c ?>]" value="<?= e($cn) ?>" placeholder="<?= ['Ex. Orchestre', 'Ex. Balcon', 'Ex. Corbeille', 'Catégorie 4', 'Catégorie 5'][$c] ?>"></td><td><input type="number" name="gquota[<?= $c ?>]" min="0" value="<?= $cn !== '' ? (int)$gc[$cn] : '' ?>" style="width:90px"></td>
+      <?php for ($t = 0; $t < 5; $t++): $tn = $gtN[$t] ?? ''; $v = $cn !== '' && $tn !== '' && isset($grid['cells'][$cn][$tn]) ? money_input((int)$grid['cells'][$cn][$tn]) : ''; ?><td><span class="input-suffix"><input name="gprice[<?= $c ?>][<?= $t ?>]" inputmode="decimal" value="<?= e($v) ?>"><span>€</span></span></td><?php endfor; ?></tr><?php endfor; ?>
+  </tbody></table></div>
+  <div class="form-actions"><button class="btn">Appliquer la grille</button></div>
+</form>
 <script>
 (() => {
   const tb = document.querySelector('[data-reorder]'); if (!tb) return;

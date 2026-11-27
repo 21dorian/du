@@ -16,7 +16,7 @@
     <div class="row no-print" style="justify-content:center;margin-top:10px">
       <details class="cal-menu"><summary class="btn btn-sm btn-light">Ajouter à mon agenda</summary><div class="cal-pop"><a href="<?= e(Buyers::googleUrl($ev, $session)) ?>" target="_blank" rel="noopener">Google Agenda</a><a href="<?= e(Buyers::icsUrl($ev, $session)) ?>">Apple / Outlook (.ics)</a></div></details>
     </div>
-    <div class="soon-row center-row no-print"><?= pub_soon('wallet', 'Ajouter au Wallet') ?><a class="soon-chip" href="<?= url('/e/' . $ev['slug'] . '/covoiturage') ?>">Covoiturage</a></div>
+    <div class="soon-row center-row no-print"><a class="soon-chip" href="<?= url('/e/' . $ev['slug'] . '/covoiturage') ?>">Covoiturage</a></div>
   </div>
 <?php elseif ($o['status'] === 'pending'): ?>
   <div class="card center auth-box">
@@ -110,6 +110,7 @@
         <div class="ticket-actions no-print">
           <?= $t['status'] === 'valid' ? '' : '<b style="color:var(--red)">BILLET ANNULÉ</b>' ?>
           <?php if ($t['status'] === 'valid'): ?><a href="<?= url('/commande/' . $o['ref'] . '/pdf', ['t' => $o['token'], 'billet' => $t['code']]) ?>" target="_blank">PDF de ce billet</a><?php endif; ?>
+          <?php if ($t['status'] === 'valid' && (Wallet::appleOn() || Wallet::googleOn())): ?><span class="wallet-btns"><?php if (Wallet::appleOn()): ?><a href="<?= url('/commande/' . $o['ref'] . '/wallet/' . $t['code'], ['t' => $o['token']]) ?>">Apple Wallet</a><?php endif; ?><?php if (Wallet::googleOn()): ?><a href="<?= url('/commande/' . $o['ref'] . '/google/' . $t['code'], ['t' => $o['token']]) ?>" target="_blank" rel="noopener">Google Wallet</a><?php endif; ?></span><?php endif; ?>
           <?php if ($t['replaced_by']): ?><b>Revendu</b><?php endif; ?>
           <?php if (!Buyers::cannotTransfer($t, $o, $ev)): ?>
             <details class="give-inline"><summary class="linklike">Donner à un ami</summary>

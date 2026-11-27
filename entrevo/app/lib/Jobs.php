@@ -28,6 +28,7 @@ final class Jobs
             'waitlist' => fn() => class_exists('Waitlist') ? Waitlist::process() : 0,
             'prix' => fn() => class_exists('DynPrice') ? DynPrice::syncAll() : 0,
             'extras' => fn() => class_exists('Extras') ? Extras::run() : 0,
+            'ouvertures' => fn() => class_exists('RatesPlus') ? RatesPlus::notifyOpenings() : 0,
             'campaigns' => fn() => class_exists('Campaigns') ? Campaigns::process() : 0,
             'sms' => fn() => class_exists('Sms') ? Sms::process() : 0,
             'formules' => fn() => class_exists('Billing') ? Billing::monthly() : 0,

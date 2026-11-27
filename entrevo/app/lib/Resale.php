@@ -15,7 +15,7 @@ final class Resale
         if ((int)$t['entries'] > 0) return 'Ce billet a déjà servi : impossible de le revendre.';
         if ($t['resale_status'] === 'listed') return 'Ce billet est déjà en vente.';
         if ((int)$t['price'] <= 0) return 'Les billets gratuits ne se revendent pas';
-        if ($o['method'] !== 'online' || !in_array($o['provider'], ['stripe', 'paypal', 'sumup', 'mollie', 'demo'], true)) return 'Seuls les billets achetés en ligne peuvent être revendus.';
+        if ($o['method'] !== 'online' || !in_array($o['provider'], ['stripe', 'paypal', 'sumup', 'mollie', 'alma', 'demo'], true)) return 'Seuls les billets achetés en ligne peuvent être revendus.';
         $start = $t['session_id'] ? val('SELECT starts_at FROM sessions WHERE id = ?', [$t['session_id']]) : $ev['starts_at'];
         if (strtotime((string)$start) < time()) return 'L\'événement a commencé, la bourse est fermée.';
         return null;

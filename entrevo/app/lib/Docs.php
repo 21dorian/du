@@ -181,7 +181,7 @@ final class Docs
         $to = date('Y-m-d 00:00:00', strtotime($from . ' +1 month'));
         $rows = all("SELECT e.name, COUNT(o.id) n, SUM(o.total) total, SUM(o.commission) com, SUM(o.organizer_amount) due, SUM(o.refunded_amount) ref
                      FROM orders o JOIN events e ON e.id = o.event_id WHERE o.organizer_id = ? AND o.status IN ('paid','refunded') AND o.method IN ('online','partner')
-                     AND o.provider IN ('stripe','paypal','sumup','mollie') AND o.paid_at >= ? AND o.paid_at < ? GROUP BY e.id ORDER BY e.name", [$org['id'], $from, $to]);
+                     AND o.provider IN ('stripe','paypal','sumup','mollie','alma') AND o.paid_at >= ? AND o.paid_at < ? GROUP BY e.id ORDER BY e.name", [$org['id'], $from, $to]);
         $payouts = all('SELECT * FROM payouts WHERE organizer_id = ? AND created_at >= ? AND created_at < ? ORDER BY created_at', [$org['id'], $from, $to]);
         $pdf = new PdfDoc('P', 'mm', 'A4');
         $pdf->AddPage();

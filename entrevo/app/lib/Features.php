@@ -33,7 +33,8 @@ final class Features
             'prix-dynamique' => '/pro/evenements', 'double-auth' => '/mon-compte', 'zapier' => '/pro/connecteurs', 'google-sheets' => '/pro/connecteurs', 'emailing-externe' => '/pro/connecteurs', 'pixels-avances' => '/pro/connecteurs',
             'codes-auto' => '/pro/automatisations', 'parrainage' => '/pro/automatisations', 'rapport-fin' => '/pro/automatisations', 'partage-stats' => '/pro/evenements', 'saison' => '/pro/evenements',
             'places-pmr' => '/pro/evenements', 'billet-nominatif-id' => '/pro/evenements', 'vestiaire' => '/pro/evenements', 'badges-live' => '/pro/evenements', 'kiosque' => '/pro/evenements',
-            'roles-perso' => '/pro/equipe', 'import-contacts' => '/pro/contacts', 'doublons' => '/pro/contacts', 'app-orga' => '/pro/mobile'] as $k => $url) if (isset($a[$k])) $a[$k] = ['status' => 'on', 'url' => $url] + $a[$k];
+            'roles-perso' => '/pro/equipe', 'import-contacts' => '/pro/contacts', 'doublons' => '/pro/contacts', 'app-orga' => '/pro/mobile',
+            'paiement-plusieurs-fois' => '/pro/evenements', 'google-wallet' => '/pro/evenements'] as $k => $url) // 4.1 if (isset($a[$k])) $a[$k] = ['status' => 'on', 'url' => $url] + $a[$k];
         return $a;
     }
 
@@ -196,7 +197,8 @@ final class Features
     /** Fonctions à venir côté public (acheteurs et visiteurs du site). */
     /** Fonctions acheteurs déjà en ligne (1.8) : retirées des listes « bientôt ». */
     public const PUBLIC_LIVE = ['agenda', 'transfert', 'filtres-date', 'avis-public', 'echange', 'inviter-amis', 'compte-acheteur', 'cartes-cadeaux-public',
-        'cashless-public', 'favoris', 'suivre-orga', 'recommandations', 'covoiturage', 'aide', 'ressources', 'demo-visio', 'migration']; // 4.0
+        'cashless-public', 'favoris', 'suivre-orga', 'recommandations', 'covoiturage', 'aide', 'ressources', 'demo-visio', 'migration', // 4.0
+        'payer-a-plusieurs', 'wallet', 'paiement-mobile']; // 4.1
 
     public static function public(): array
     {
