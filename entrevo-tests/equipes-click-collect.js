@@ -35,7 +35,7 @@ const out = (k, v) => console.log(k.padEnd(24), String(v).replace(/\s+/g, ' ').s
     const vt = sql(`SELECT CONCAT(token,'|',first_name,' ',last_name) FROM staff_members WHERE id=${mid}`).split('|');
     const v = await np(390, 844); await v.goto(B + '/benevole/' + vt[0]); out('portail bénévole', await v.locator('.vol-doc h2').first().innerText().catch(()=>'pas de doc'));
     await v.check('.vol-doc input[name=agree]'); await v.fill('.vol-doc input[name=sign_name]', vt[1]); await v.click('.vol-doc button.btn'); await v.waitForLoadState(); out('signature', await toast(v)); await v.screenshot({ path: C + 'benevole-portail.png', fullPage: true });
-    const r2 = await v.request.get(B + '/benevole/' + vt[0] + '/planning.pdf'); out('planning bénévole', r2.status()); require('fs').writeFileSync('planning.pdf', await r2.body()); }
+    const r2 = await v.request.get(B + '/benevole/' + vt[0] + '/planning.pdf'); out('planning bénévole', r2.status()); require('fs').writeFileSync(CAPT + 'planning.pdf', await r2.body()); }
   const did = sql("SELECT id FROM staff_docs ORDER BY id DESC LIMIT 1"); await p.goto(B + '/pro/evenements/1/equipes/documents/' + did); out('signatures', await p.locator('table').innerText());
   // opérateurs
   await p.goto(B + '/pro/evenements/1/controle/operateurs'); out('opérateurs', await p.locator('table').innerText().catch(() => 'vide')); await p.screenshot({ path: C + 'operateurs.png', fullPage: true });

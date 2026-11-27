@@ -27,6 +27,6 @@ const out = (k, v) => console.log(k.padEnd(22), String(v).replace(/\s+/g, ' ').s
   const fake = b.locator('button:has-text("Pretend I paid")'); if (await fake.count()) { await fake.click(); await b.waitForLoadState(); }
   out('url', b.url()); out('commande', (await b.locator('main').innerText()).slice(0, 600)); await b.screenshot({ path: C + 'en-order.png', fullPage: true });
   out('lang commande', sql("SELECT CONCAT(ref,' ',lang,' ',status) FROM orders WHERE email='john@t.co' ORDER BY id DESC LIMIT 1"));
-  const pdf = b.url().replace(/(\/commande\/[^?]+)/, '$1/pdf'); const r = await b.request.get(pdf); require('fs').writeFileSync('en-tickets.pdf', await r.body()); out('pdf', r.status());
+  const pdf = b.url().replace(/(\/commande\/[^?]+)/, '$1/pdf'); const r = await b.request.get(pdf); require('fs').writeFileSync(CAPT + 'en-tickets.pdf', await r.body()); out('pdf', r.status());
   await b.goto(B + '/?lang=fr'); out('retour fr', await b.locator('footer').innerText());
   out('JS', JSON.stringify(errs)); await br.close(); })();
