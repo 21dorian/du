@@ -1,5 +1,5 @@
 <?php /** @var array $ev, $stocks, $rates */ $base = '/pro/evenements/' . $ev['id']; ?>
-<div class="page-head"><div><p class="muted" style="margin-top:0">Des stocks de billets au porteur, numérotés et contrôlables, pour un guichet hors ligne, un revendeur ou un dépositaire. À la fin, déclare les invendus : ils sont annulés et la recette est comptée.</p></div></div>
+<div class="page-head"><div><p class="muted u-mt0">Des stocks de billets au porteur, numérotés et contrôlables, pour un guichet hors ligne, un revendeur ou un dépositaire. À la fin, déclare les invendus : ils sont annulés et la recette est comptée.</p></div></div>
 <form method="post" class="card stack"><?= csrf_field() ?><input type="hidden" name="action" value="create">
   <h2>Nouveau stock</h2>
   <div class="grid4">
@@ -12,7 +12,7 @@
 </form>
 <div class="card table-card mt"><div class="card-head"><h2>Stocks</h2></div>
 <?php if (!$stocks): ?><p class="muted" style="padding:0 20px 20px">Aucun stock pour l'instant.</p><?php else: ?>
-<table class="table"><thead><tr><th>Destination</th><th>Tarif</th><th class="num">Billets</th><th class="num">Scannés</th><th>État</th><th>Imprimer</th><th></th></tr></thead><tbody>
+<div class="table-wrap"><table class="table"><thead><tr><th>Destination</th><th>Tarif</th><th class="num">Billets</th><th class="num">Scannés</th><th>État</th><th>Imprimer</th><th></th></tr></thead><tbody>
 <?php foreach ($stocks as $s): ?><tr>
   <td><b><?= e($s['label']) ?></b><br><small class="muted"><?= e(short_date($s['created_at'])) ?></small></td>
   <td><?= e($s['rate_name']) ?><br><small class="muted"><?= e(money((int)$s['unit_price'])) ?></small></td>
@@ -27,5 +27,5 @@
       <button class="btn btn-sm" name="action" value="close">Solder le stock</button>
       <button class="btn btn-sm btn-ghost" name="action" value="cancel" data-confirm="Annuler tout le stock ? Les billets imprimés ne passeront plus.">Annuler tout le stock</button>
     </form></div></details><?php endif; ?></td>
-</tr><?php endforeach; ?></tbody></table><?php endif; ?>
+</tr><?php endforeach; ?></tbody></table></div><?php endif; ?>
 </div>

@@ -10,7 +10,7 @@
   <?php foreach (Kyc::KINDS as $k => [$ic, $label, $help]): $d = $docs[$k] ?? null; ?>
     <div class="card kyc-card <?= $d ? e($d['status']) : '' ?>">
       <div class="card-head"><h2><?= $ic ?> <?= e($label) ?></h2><?= $d ? Kyc::badge($d['status'], true) : '<span class="badge grey">À déposer</span>' ?></div>
-      <p class="muted" style="font-size:14px"><?= e($help) ?></p>
+      <p class="muted u-fs14"><?= e($help) ?></p>
       <?php if ($d): ?><p class="mb0"><a href="<?= url('/pro/verification/fichier/' . $d['id']) ?>" target="_blank"><?= e($d['original_name'] ?: 'document') ?></a> <small class="muted">· <?= e(human_size((int)$d['size'])) ?> · <?= e(short_date($d['uploaded_at'])) ?></small></p>
         <?php if ($d['status'] === 'rejected' && $d['note']): ?><div class="flash error mb0" style="margin-top:8px"><?= e($d['note']) ?></div><?php endif; ?><?php endif; ?>
       <?php if (!$d || $d['status'] !== 'approved'): ?>
@@ -20,4 +20,4 @@
     </div>
   <?php endforeach; ?>
 </div>
-<p class="muted" style="font-size:13px">PDF, JPG ou PNG, 10 Mo maximum. Les fichiers sont stockés hors du site public et ne sont jamais partagés.</p>
+<p class="muted u-fs13">PDF, JPG ou PNG, 10 Mo maximum. Les fichiers sont stockés hors du site public et ne sont jamais partagés.</p>

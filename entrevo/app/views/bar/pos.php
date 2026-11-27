@@ -1,5 +1,5 @@
 <?php /** @var array $ev, $bars, $products, $u */ ?><!doctype html>
-<html lang="fr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1"><title>Caisse · <?= e($ev['name']) ?></title>
+<html lang="fr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Caisse · <?= e($ev['name']) ?></title>
 <link rel="stylesheet" href="<?= asset('css/app.css') ?>"><link rel="icon" href="<?= asset('img/icon.svg') ?>" type="image/svg+xml"></head>
 <body class="pos-body" data-api="<?= url('/bar/' . $ev['id'] . '/api') ?>" data-csrf="<?= e(csrf_token()) ?>">
 <?php if (!(int)$ev['cashless_enabled']): ?><div class="pos-off"><h1>Cashless désactivé</h1><p>Active-le dans l'événement, onglet Jour J › Cashless & bars.</p></div><?php else: ?>

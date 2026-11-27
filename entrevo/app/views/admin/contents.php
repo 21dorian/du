@@ -8,12 +8,12 @@
     <form class="card" method="post" id="editeur"><?= csrf_field() ?><input type="hidden" name="action" value="page"><input type="hidden" name="page_id" value="<?= (int)$p['id'] ?>">
       <div class="grid2"><div class="field"><label>Titre</label><input name="title" required value="<?= e($p['title']) ?>" placeholder="Questions fréquentes"></div>
         <div class="field"><label>Adresse</label><div class="input-prefix"><span>/page/</span><input name="slug" value="<?= e($p['slug']) ?>" placeholder="faq"></div></div></div>
-      <div class="field"><label>Contenu</label><textarea name="body" rows="18" class="mono" style="font-size:14px" data-preview-src><?= e((string)$p['body']) ?></textarea>
+      <div class="field"><label>Contenu</label><textarea name="body" rows="18" class="mono u-fs14" data-preview-src><?= e((string)$p['body']) ?></textarea>
         <small>## Titre · ### Sous-titre · - liste · **gras** · *italique* · [texte du lien](https://…)</small></div>
       <div class="row" style="gap:22px"><label class="check"><input type="checkbox" name="published" value="1" <?= $p['published'] ? 'checked' : '' ?>> <span>En ligne</span></label>
         <label class="check"><input type="checkbox" name="in_footer" value="1" <?= $p['in_footer'] ? 'checked' : '' ?>> <span>Lien en pied de page</span></label>
-        <label class="inline-field">Ordre <input type="number" name="sort" value="<?= (int)$p['sort'] ?>" style="width:80px"></label></div>
-      <div class="form-actions mt"><button class="btn">Enregistrer</button><?php if ($p['id']): ?><a class="btn btn-ghost" href="<?= url('/page/' . $p['slug']) ?>" target="_blank">Voir</a><button class="btn btn-ghost" style="color:var(--red)" name="action" value="delete" formnovalidate data-confirm="Supprimer cette page ?">Supprimer</button><?php endif; ?></div>
+        <label class="inline-field">Ordre <input type="number" name="sort" value="<?= (int)$p['sort'] ?>" class="u-w80"></label></div>
+      <div class="form-actions mt"><button class="btn">Enregistrer</button><?php if ($p['id']): ?><a class="btn btn-ghost" href="<?= url('/page/' . $p['slug']) ?>" target="_blank">Voir</a><button class="btn btn-ghost u-red" name="action" value="delete" formnovalidate data-confirm="Supprimer cette page ?">Supprimer</button><?php endif; ?></div>
     </form>
     <?php endif; ?>
   </div>

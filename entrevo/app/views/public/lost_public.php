@@ -1,5 +1,5 @@
 <?php /** @var array $org, $events, $errors, $found; bool $done */ ?>
-<section class="store-wrap" style="max-width:820px">
+<section class="store-wrap u-mw820">
   <span class="eyebrow"><?= e($org['name']) ?></span>
   <h1>Objets perdus, objets trouvés</h1>
   <?php if ($done): ?><div class="card"><h2>C'est noté</h2><p class="mb0">Si l'objet est retrouvé, <?= e($org['name']) ?> te prévient par e-mail. Garde un signe distinctif en tête pour prouver qu'il est à toi.</p></div>
@@ -18,6 +18,6 @@
     <button class="btn btn-lg">Déclarer ma perte</button>
   </form>
   <?php endif; ?>
-  <?php if ($found): ?><div class="card"><h2>Ramassés récemment</h2><p class="muted" style="font-size:13px">Les détails restent secrets : ils servent à vérifier que l'objet est bien à toi.</p>
+  <?php if ($found): ?><div class="card"><h2>Ramassés récemment</h2><p class="muted u-fs13">Les détails restent secrets : ils servent à vérifier que l'objet est bien à toi.</p>
     <?php foreach ($found as $i): ?><div class="list-item"><span class="grow"><b><?= e($i['title']) ?></b><br><small class="muted"><?= e(LOST_CATS[$i['category']] ?? '') ?><?= $i['ev_name'] ? ' · ' . e($i['ev_name']) : '' ?></small></span><small class="muted"><?= e(date('d/m', strtotime($i['found_at']))) ?></small></div><?php endforeach; ?></div><?php endif; ?>
 </section>

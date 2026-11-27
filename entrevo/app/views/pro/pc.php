@@ -81,7 +81,7 @@
     (d.incidents || []).forEach(function (x) {
       var it = el('div', 'pc-inc ' + x.level + (x.open ? '' : ' done'));
       var top = el('div', 'pc-inc-top'); top.appendChild(el('span', 'pc-time', x.at)); top.appendChild(el('b', 'pc-grow', x.title));
-      var btn = el('button', 'pc-btn sm', x.open ? '✓ Clore' : 'Rouvrir'); btn.type = 'button';
+      var btn = el('button', 'pc-btn sm', x.open ? 'Clore' : 'Rouvrir'); btn.type = 'button';
       btn.onclick = function () { var fd = new FormData(); fd.append('action', x.open ? 'resolve' : 'reopen'); fd.append('id', x.id); fd.append('_csrf', body.dataset.csrf); fetch(url, { method: 'POST', body: fd, credentials: 'same-origin' }).then(load); };
       top.appendChild(btn); it.appendChild(top);
       it.appendChild(el('small', '', x.cat + (x.zone ? ' · ' + x.zone : '') + (x.author ? ' · ' + x.author : '') + (x.closed_at ? ' · clos à ' + x.closed_at : '')));

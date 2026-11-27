@@ -8,8 +8,8 @@
 <div class="split-3">
   <form class="card" method="post"><?= csrf_field() ?>
     <div class="card-head"><h2>Dossier de preuves</h2><button class="btn btn-sm btn-ghost" name="action" value="regen" formnovalidate data-confirm="Remplacer le texte par une version régénérée ?">Régénérer</button></div>
-    <p class="muted" style="font-size:13px">Pré-rempli avec ce que la plateforme sait de la commande. Copie-le dans l'espace litiges de ton prestataire de paiement, avec les éventuels éléments de l'organisateur.</p>
-    <div class="field"><textarea name="evidence" rows="14" class="mono" style="font-size:13px"><?= e((string)$d['evidence']) ?></textarea></div>
+    <p class="muted u-fs13">Pré-rempli avec ce que la plateforme sait de la commande. Copie-le dans l'espace litiges de ton prestataire de paiement, avec les éventuels éléments de l'organisateur.</p>
+    <div class="field"><textarea name="evidence" rows="14" class="mono u-fs13"><?= e((string)$d['evidence']) ?></textarea></div>
     <button type="button" class="btn btn-sm btn-light" data-copy-from="[name=evidence]">Copier le dossier</button>
     <div class="grid3 mt">
       <div class="field"><label>Motif</label><select name="reason"><?php foreach (Disputes::REASONS as $k => $l): ?><option value="<?= $k ?>" <?= $d['reason'] === $k ? 'selected' : '' ?>><?= e($l) ?></option><?php endforeach; ?></select></div>
@@ -23,7 +23,7 @@
     <form class="card" method="post"><?= csrf_field() ?><input type="hidden" name="action" value="status">
       <h2>Issue</h2>
       <div class="status-pick"><?php foreach (Disputes::STATUS as $k => [$l]): ?><button class="btn btn-sm <?= $d['status'] === $k ? '' : 'btn-light' ?>" name="status" value="<?= $k ?>" <?= in_array($k, ['lost', 'accepted'], true) && $d['status'] !== $k ? 'data-confirm="Retenir ' . e(money((int)$d['amount'] + (int)$d['bank_fee'])) . ' sur le reversement de ' . e($org['name']) . ' ?"' : '' ?>><?= e($l) ?></button><?php endforeach; ?></div>
-      <p class="muted mt mb0" style="font-size:13px"><?= $d['charge_id'] ? 'Retenue appliquée sur le reversement.' : 'Rien n\'est retenu tant que le litige n\'est pas perdu ou accepté.' ?></p>
+      <p class="muted mt mb0 u-fs13"><?= $d['charge_id'] ? 'Retenue appliquée sur le reversement.' : 'Rien n\'est retenu tant que le litige n\'est pas perdu ou accepté.' ?></p>
     </form>
     <?php if ($o): ?><div class="card"><h2>Commande <span class="mono"><?= e($o['ref']) ?></span></h2>
       <p class="mb0"><?= e(trim($o['first_name'] . ' ' . $o['last_name'])) ?><br><small class="muted"><?= e($o['email']) ?><?= $o['phone'] ? ' · ' . e($o['phone']) : '' ?></small></p>

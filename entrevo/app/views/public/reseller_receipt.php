@@ -11,5 +11,5 @@
     <div class="list-item"><span class="grow">Ta commission</span><span><?= e(money((int)$o['reseller_commission'])) ?></span></div>
     <p class="muted mt mb0"><small>Les billets ont été envoyés par e-mail à l'acheteur<?= $o['email_sent_at'] ? '' : ' (envoi en cours)' ?>. Il peut aussi les retrouver depuis « Retrouver mes billets » avec son adresse.</small></p>
   </div>
-  <div class="row"><a class="btn" href="<?= url('/revendeur/' . $token . '/e/' . $o['event_id']) ?>">Nouvelle vente</a><button class="btn btn-light" onclick="print()">Imprimer le reçu</button></div>
+  <div class="row"><a class="btn" href="<?= url('/revendeur/' . $token . '/e/' . $o['event_id']) ?>">Nouvelle vente</a><button class="btn btn-light" data-print>Imprimer le reçu</button></div>
 </section>

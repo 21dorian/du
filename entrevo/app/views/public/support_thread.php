@@ -1,5 +1,5 @@
 <?php /** @var array $t, $msgs */ ?>
-<section class="store-wrap" style="max-width:760px">
+<section class="store-wrap u-mw760">
   <span class="eyebrow">Demande <?= e($t['ref']) ?></span>
   <h1><?= e($t['subject']) ?></h1>
   <p><?= Support::badge($t['status']) ?> <small class="muted">ouverte le <?= e(fr_date($t['created_at'])) ?></small></p>

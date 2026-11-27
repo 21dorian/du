@@ -28,7 +28,7 @@ $money = ['total', 'balance']; ?>
       <form method="post" class="mb"><?= csrf_field() ?><button class="btn btn-light btn-block" name="action" value="send_export" <?= $inv ? '' : 'disabled' ?>>Envoyer la copie à la personne</button></form>
       <form method="post" class="mb"><?= csrf_field() ?><button class="btn btn-light btn-block" name="action" value="oppose">Appliquer l'opposition (e-mails + SMS)</button></form>
       <form method="post" class="danger-zone"><?= csrf_field() ?><input type="hidden" name="action" value="anonymize">
-        <p class="mb0"><b>Effacer (anonymiser)</b></p><p class="muted" style="font-size:13px">Irréversible. Noms, e-mails, téléphones, réponses, adresses : effacés partout. Les comptes organisateurs ne sont jamais touchés.</p>
+        <p class="mb0"><b>Effacer (anonymiser)</b></p><p class="muted u-fs13">Irréversible. Noms, e-mails, téléphones, réponses, adresses : effacés partout. Les comptes organisateurs ne sont jamais touchés.</p>
         <div class="field"><input name="confirm_email" placeholder="Recopie : <?= e($r['email']) ?>"></div>
         <button class="btn btn-block danger" <?= $inv ? '' : 'disabled' ?>>Anonymiser</button></form>
     </div>

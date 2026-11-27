@@ -23,14 +23,14 @@
     </div>
     <div class="card">
       <h2>Intégrer la billetterie à ton site</h2>
-      <p class="muted" style="font-size:14px">Copie-colle ce code dans ton site (WordPress, Wix, Squarespace…) : la liste de tes événements s'affiche, l'achat s'ouvre sur <?= e(setting('platform_name')) ?>. Pour un seul événement, prends le code dans son onglet « Vue d'ensemble ».</p>
+      <p class="muted u-fs14">Copie-colle ce code dans ton site (WordPress, Wix, Squarespace…) : la liste de tes événements s'affiche, l'achat s'ouvre sur <?= e(setting('platform_name')) ?>. Pour un seul événement, prends le code dans son onglet « Vue d'ensemble ».</p>
       <?php $w = '<iframe src="' . abs_url('/widget/o/' . $org['slug']) . '" style="width:100%;min-height:520px;border:0" loading="lazy" title="Billetterie"></iframe>'; ?>
-      <textarea readonly rows="3" onclick="this.select()" class="mono" style="font-size:13px"><?= e($w) ?></textarea>
+      <textarea readonly rows="3" data-select class="mono u-fs13"><?= e($w) ?></textarea>
       <button type="button" class="btn btn-sm btn-light mt" data-copy="<?= e($w) ?>">Copier le code</button>
     </div>
     <div class="card">
       <h2>Suivi d'audience</h2>
-      <p class="muted" style="font-size:14px">Mesure tes ventes dans tes propres outils. Les codes s'ajoutent à tes pages d'événement.</p>
+      <p class="muted u-fs14">Mesure tes ventes dans tes propres outils. Les codes s'ajoutent à tes pages d'événement.</p>
       <div class="grid3">
         <div class="field"><label>Google Analytics 4</label><input name="ga4_id" value="<?= e($org['ga4_id']) ?>" placeholder="G-XXXXXXX"></div>
         <div class="field"><label>Google Tag Manager</label><input name="gtm_id" value="<?= e($org['gtm_id']) ?>" placeholder="GTM-XXXXXX"></div>
@@ -44,10 +44,10 @@
     </div>
     <div class="card">
       <h2>API & webhooks</h2>
-      <p class="muted" style="font-size:14px">Pour brancher ton CRM, Zapier, Make ou ton logiciel : à chaque commande payée, on envoie les infos à ton URL (signées avec la clé secrète).</p>
+      <p class="muted u-fs14">Pour brancher ton CRM, Zapier, Make ou ton logiciel : à chaque commande payée, on envoie les infos à ton URL (signées avec la clé secrète).</p>
       <div class="field"><label>URL de webhook (https)</label><input name="webhook_url" value="<?= e($org['webhook_url']) ?>" placeholder="https://hooks.zapier.com/…"><?php if ($org['webhook_secret']): ?><small>Clé de signature (en-tête X-Entrevo-Signature, HMAC-SHA256) : <span class="mono"><?= e($org['webhook_secret']) ?></span></small><?php endif; ?></div>
       <div class="field mb0"><label>Clé API</label>
-        <?php if ($org['api_key']): ?><input readonly class="mono" value="<?= e($org['api_key']) ?>" onclick="this.select()"><small>À envoyer dans l'en-tête <code>Authorization: Bearer …</code> · Points d'accès : <code>/api/v1/events</code>, <code>/api/v1/orders</code>, <code>/api/v1/tickets?event=ID</code>, <code>POST /api/v1/invitations</code></small><?php endif; ?>
+        <?php if ($org['api_key']): ?><input readonly class="mono" value="<?= e($org['api_key']) ?>" data-select><small>À envoyer dans l'en-tête <code>Authorization: Bearer …</code> · Points d'accès : <code>/api/v1/events</code>, <code>/api/v1/orders</code>, <code>/api/v1/tickets?event=ID</code>, <code>POST /api/v1/invitations</code></small><?php endif; ?>
         <button class="btn btn-sm btn-light mt" name="action" value="api_key" formnovalidate data-confirm="Générer une nouvelle clé API ?"><?= $org['api_key'] ? 'Régénérer la clé' : 'Générer une clé API' ?></button></div>
     </div>
     <div class="card">

@@ -8,7 +8,7 @@
     <h2>Recharger</h2>
     <div class="amount-pick"><?php foreach ([1000, 2000, 3000, 5000] as $a): if ($a < (int)$ev['cashless_min_topup']) continue; ?><label class="seg-r"><input type="radio" name="amount" value="<?= $a ?>" <?= $a === 2000 ? 'checked' : '' ?>><span><?= e(money($a)) ?></span></label><?php endforeach; ?>
       <label class="seg-r"><input type="radio" name="amount" value="libre"><span>Autre</span></label></div>
-    <div class="field mt" data-show-if="amount=libre"><div class="input-suffix" style="max-width:160px"><input name="free" inputmode="decimal"><span>€</span></div></div>
+    <div class="field mt" data-show-if="amount=libre"><div class="input-suffix u-mw160"><input name="free" inputmode="decimal"><span>€</span></div></div>
     <button class="btn btn-lg mt">Recharger</button>
   </form>
   <?php endif; ?>

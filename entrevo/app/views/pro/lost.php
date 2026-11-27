@@ -9,9 +9,9 @@
 <div class="split-3">
   <div>
     <nav class="pills mb"><?php foreach (LOST_STATUS as $kk => [$l]): ?><a class="<?= $f === $kk ? 'on' : '' ?>" href="<?= url('/pro/objets-trouves', ['f' => $kk]) ?>"><?= $l ?></a><?php endforeach; ?><a class="<?= $f === 'tous' ? 'on' : '' ?>" href="<?= url('/pro/objets-trouves', ['f' => 'tous']) ?>">Tous</a></nav>
-    <div class="card table-card"><div class="table-wrap" style="overflow:visible"><table class="table users-table"><thead><tr><th>Objet</th><th>Trouvé</th><th>Statut</th><th></th></tr></thead><tbody>
+    <div class="card table-card"><div class="table-wrap u-ovis"><table class="table users-table"><thead><tr><th>Objet</th><th>Trouvé</th><th>Statut</th><th></th></tr></thead><tbody>
     <?php foreach ($items as $i): ?>
-      <tr><td><div class="row" style="gap:10px;flex-wrap:nowrap"><?php if ($i['photo']): ?><img src="<?= url($i['photo']) ?>" alt="" class="lost-thumb"><?php endif; ?><span><b><?= e($i['title']) ?></b> <span class="mono muted" style="font-size:12px"><?= e($i['ref']) ?></span><br><small class="muted"><?= e(LOST_CATS[$i['category']] ?? '') ?><?= $i['description'] ? ' · ' . e(mb_strimwidth($i['description'], 0, 70, '…')) : '' ?></small>
+      <tr><td><div class="row" style="gap:10px;flex-wrap:nowrap"><?php if ($i['photo']): ?><img src="<?= url($i['photo']) ?>" alt="" class="lost-thumb"><?php endif; ?><span><b><?= e($i['title']) ?></b> <span class="mono muted u-fs12"><?= e($i['ref']) ?></span><br><small class="muted"><?= e(LOST_CATS[$i['category']] ?? '') ?><?= $i['description'] ? ' · ' . e(mb_strimwidth($i['description'], 0, 70, '…')) : '' ?></small>
         <?php foreach ($i['matches'] as $m): ?><br><span class="lost-match">Ressemble à la perte de <b><?= e($m['name']) ?></b> : « <?= e(mb_strimwidth($m['description'], 0, 60, '…')) ?> »</span><?php endforeach; ?></span></div></td>
         <td class="nowrap"><small><?= e(date('d/m H\hi', strtotime($i['found_at']))) ?><br><span class="muted"><?= e((string)($i['found_where'] ?: $i['ev_name'])) ?></span></small></td>
         <td><span class="badge <?= LOST_STATUS[$i['status']][1] ?>"><?= LOST_STATUS[$i['status']][0] ?></span><?= $i['claimant'] ? '<br><small class="muted">' . e($i['claimant']) . '</small>' : '' ?></td>
@@ -42,6 +42,6 @@
     <form class="card" method="post"><?= csrf_field() ?><input type="hidden" name="action" value="settings">
       <h2>Page publique</h2>
       <label class="check"><input type="checkbox" name="lost_enabled" value="1" <?= (int)$org['lost_enabled'] ? 'checked' : '' ?> onchange="this.form.requestSubmit()"> <span>Le public peut déclarer ses pertes</span></label>
-      <p class="muted mt mb0" style="font-size:13px"><a href="<?= e($pubUrl) ?>" target="_blank"><?= e(preg_replace('~^https?://~', '', $pubUrl)) ?></a> · lien aussi sur ta page et dans l'e-mail du lendemain.</p></form>
+      <p class="muted mt mb0 u-fs13"><a href="<?= e($pubUrl) ?>" target="_blank"><?= e(preg_replace('~^https?://~', '', $pubUrl)) ?></a> · lien aussi sur ta page et dans l'e-mail du lendemain.</p></form>
   </div>
 </div>

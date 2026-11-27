@@ -14,20 +14,20 @@ $form = function (?array $f) use ($types, $rates, $fields) {
         <div class="field"><label>… a pour réponse</label><input name="cond_value" value="<?= e((string)($p['cond_value'] ?? '')) ?>" placeholder="Ex. : Oui, Végétarien…"></div></div>
       <label class="check mb"><input type="checkbox" name="default_on" value="1" <?= !empty($p['default_on']) ? 'checked' : '' ?>> Case cochée par défaut (pour « Case à cocher »)</label>
       <div class="field"><label>Choix possibles (un par ligne, pour « Liste de choix »)</label><textarea name="options" rows="3"><?= e($p['options']) ?></textarea></div>
-      <div class="field"><label>Pour les tarifs</label><div class="row" style="gap:6px 16px"><?php foreach ($rates as $r): ?><label class="check" style="font-weight:400"><input type="checkbox" name="rate_ids[]" value="<?= (int)$r['id'] ?>" <?= in_array((int)$r['id'], $sel, true) ? 'checked' : '' ?>> <?= e($r['name']) ?></label><?php endforeach; ?></div><small>Aucun coché = tous les tarifs.</small></div>
+      <div class="field"><label>Pour les tarifs</label><div class="row" style="gap:6px 16px"><?php foreach ($rates as $r): ?><label class="check u-fw400"><input type="checkbox" name="rate_ids[]" value="<?= (int)$r['id'] ?>" <?= in_array((int)$r['id'], $sel, true) ? 'checked' : '' ?>> <?= e($r['name']) ?></label><?php endforeach; ?></div><small>Aucun coché = tous les tarifs.</small></div>
       <div class="row" style="gap:22px;margin-bottom:14px">
         <label class="check"><input type="radio" name="per_ticket" value="1" <?= $p['per_ticket'] ? 'checked' : '' ?>> Demandée pour chaque participant</label>
         <label class="check"><input type="radio" name="per_ticket" value="0" <?= !$p['per_ticket'] ? 'checked' : '' ?>> Une fois par commande</label>
         <label class="check"><input type="checkbox" name="required" value="1" <?= $p['required'] ? 'checked' : '' ?>> Obligatoire</label>
-        <label style="display:flex;gap:8px;align-items:center;font-weight:500">Ordre <input type="number" name="sort" value="<?= (int)$p['sort'] ?>" style="width:80px"></label>
+        <label style="display:flex;gap:8px;align-items:center;font-weight:500">Ordre <input type="number" name="sort" value="<?= (int)$p['sort'] ?>" class="u-w80"></label>
       </div>
       <div class="form-actions"><button class="btn"><?= $p['id'] ? 'Enregistrer' : 'Ajouter la question' ?></button>
-      <?php if ($p['id']): ?><button class="btn btn-ghost" style="color:var(--red)" name="action" value="delete" formnovalidate data-confirm="Supprimer cette question ? Les réponses déjà données restent dans les commandes.">Supprimer</button><?php endif; ?></div>
+      <?php if ($p['id']): ?><button class="btn btn-ghost u-red" name="action" value="delete" formnovalidate data-confirm="Supprimer cette question ? Les réponses déjà données restent dans les commandes.">Supprimer</button><?php endif; ?></div>
     </form>
 <?php return ob_get_clean(); };
 ?>
 <p class="muted">Nom, prénom et e-mail sont toujours demandés. Ajoute tes propres questions (taille de t-shirt, régime alimentaire, club…) : elles apparaissent à l'achat et dans l'export.</p>
 <?php foreach ($fields as $f): ?>
-  <details class="box"><summary><span><?= e($f['label']) ?><?= $f['required'] ? ' *' : '' ?></span><span class="muted" style="font-weight:500"><?= e($types[$f['type']]) ?> · <?= $f['per_ticket'] ? 'par participant' : 'par commande' ?></span></summary><?= $form($f) ?></details>
+  <details class="box"><summary><span><?= e($f['label']) ?><?= $f['required'] ? ' *' : '' ?></span><span class="muted u-fw500"><?= e($types[$f['type']]) ?> · <?= $f['per_ticket'] ? 'par participant' : 'par commande' ?></span></summary><?= $form($f) ?></details>
 <?php endforeach; ?>
 <details class="box" <?= !$fields ? 'open' : '' ?>><summary style="color:var(--primary)">+ Ajouter une question</summary><?= $form(null) ?></details>

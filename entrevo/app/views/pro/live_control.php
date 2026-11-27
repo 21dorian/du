@@ -30,7 +30,7 @@
         <tr style="<?= $s['undone'] ? 'opacity:.4;text-decoration:line-through' : '' ?>">
           <td class="nowrap"><?= e(date('H:i:s', strtotime($s['scanned_at']))) ?><?= $s['offline'] ? ' <span class="badge grey" title="Scanné hors ligne puis synchronisé">hors ligne</span>' : '' ?></td>
           <td><span class="badge <?= $ok ? 'green' : (in_array($s['result'], ['already', 'not_inside'], true) ? 'orange' : 'red') ?>"><?= e(Tickets::LABELS[$s['result']] ?? $s['result']) ?></span></td>
-          <td><?= $s['first_name'] !== null ? e($s['first_name'] . ' ' . $s['last_name']) . '<br><small>' . e($s['rate_name']) . '</small>' : '<span class="mono" style="font-size:12.5px">' . e($s['code']) . '</span>' ?></td>
+          <td><?= $s['first_name'] !== null ? e($s['first_name'] . ' ' . $s['last_name']) . '<br><small>' . e($s['rate_name']) . '</small>' : '<span class="mono u-fs13">' . e($s['code']) . '</span>' ?></td>
           <td><?= e($s['ap_name'] ?: 'Général') ?><?= $s['direction'] === 'out' ? '' : '' ?><br><small class="muted"><?= e($s['user_name'] ?? '') ?></small></td>
           <td class="right"><?php if ($ok && !$s['undone']): ?><form method="post" class="inline-form"><?= csrf_field() ?><input type="hidden" name="scan_id" value="<?= (int)$s['id'] ?>"><button class="btn btn-sm btn-light" name="action" value="undo" data-confirm="Annuler ce passage ? (erreur de scan)">Annuler</button></form><?php endif; ?></td>
         </tr>
@@ -44,9 +44,9 @@
       <h2>Message aux contrôleurs</h2>
       <form method="post" class="stack"><?= csrf_field() ?><input type="hidden" name="action" value="scan_message">
         <textarea name="body" rows="2" maxlength="280" placeholder="Ex. : Porte B fermée, tout le monde par la porte A" required></textarea>
-        <div class="row" style="gap:8px"><select name="level" style="width:auto"><option value="info">Info</option><option value="warn">Attention</option><option value="alert">Urgent</option></select><button class="btn btn-sm">Envoyer aux téléphones</button></div>
+        <div class="row u-gap8"><select name="level" class="u-wauto"><option value="info">Info</option><option value="warn">Attention</option><option value="alert">Urgent</option></select><button class="btn btn-sm">Envoyer aux téléphones</button></div>
       </form>
-      <?php foreach ($messages as $m): ?><div class="list-item" style="display:block"><small class="muted"><?= e(date('H:i', strtotime($m['created_at']))) ?> · <?= e((string)$m['user_name']) ?></small><br><?= e($m['body']) ?></div><?php endforeach; ?>
+      <?php foreach ($messages as $m): ?><div class="list-item u-block"><small class="muted"><?= e(date('H:i', strtotime($m['created_at']))) ?> · <?= e((string)$m['user_name']) ?></small><br><?= e($m['body']) ?></div><?php endforeach; ?>
     </div>
     <div class="card">
       <h2>Téléphones de contrôle</h2>
@@ -66,7 +66,7 @@
         <button class="btn btn-sm">Lancer la borne</button></form></div>
     <div class="card">
       <h2>Par point d'accès</h2>
-      <?php foreach ($aps as $a): ?><div class="list-item"><b class="grow"><?= e($a['name']) ?></b><span><?= (int)$a['entries'] ?> entrées<?= $a['exits'] ? ' · ' . (int)$a['exits'] . ' sorties' : '' ?><?= $a['refused'] ? ' · <span style="color:var(--red)">' . (int)$a['refused'] . ' refus</span>' : '' ?></span></div><?php endforeach; ?>
+      <?php foreach ($aps as $a): ?><div class="list-item"><b class="grow"><?= e($a['name']) ?></b><span><?= (int)$a['entries'] ?> entrées<?= $a['exits'] ? ' · ' . (int)$a['exits'] . ' sorties' : '' ?><?= $a['refused'] ? ' · <span class="u-red">' . (int)$a['refused'] . ' refus</span>' : '' ?></span></div><?php endforeach; ?>
     </div>
     <div class="card">
       <h2>Par tarif</h2>

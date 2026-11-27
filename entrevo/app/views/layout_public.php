@@ -17,7 +17,7 @@ if ($wl) { $platformName = $pname; $pname = (string)$wl['name']; if (empty($site
 <?php if (!empty($org_tracking)) echo view('partials/tracking', ['o' => $org_tracking]); ?>
 <?= I18n::js() ?>
 </head>
-<body class="pub">
+<body class="pub"><a class="skip-link" href="#contenu">Aller au contenu</a>
 <?php if ($wl): $wlMenu = $siteOn ? Site::menu($wl) : [['Billetterie', '/o/' . $wl['slug']]]; $here = route_path(); ?>
 <header class="topbar wl-bar">
   <div class="wrap topbar-in">
@@ -49,7 +49,7 @@ if ($wl) { $platformName = $pname; $pname = (string)$wl['name']; if (empty($site
 </div></div>
 <?php endif; ?>
 <?= $hero ?? '' ?>
-<main class="wrap main"><?= render_flash() ?><?= $content ?></main>
+<main class="wrap main" id="contenu"><?= render_flash() ?><?= $content ?></main>
 <?php if ($siteOn): $soc = json_decode((string)($site['socials'] ?? ''), true) ?: []; ?>
 <section class="site-foot"><div class="wrap site-foot-in">
   <div class="site-foot-id"><b><?= e($site['name']) ?></b><?php if ($siteS['footer']): ?><p><?= nl2br(e($siteS['footer'])) ?></p><?php endif; ?>

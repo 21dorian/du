@@ -173,7 +173,7 @@ $pname = (string)setting('platform_name');
 <link rel="icon" href="<?= asset('img/icon.svg') ?>" type="image/svg+xml">
 <style>:root{--primary:<?= e(setting('primary_color', '#0071e3')) ?>}</style>
 </head>
-<body class="back<?= !empty($evnav) ? ' has-evnav' : '' ?>">
+<body class="back<?= !empty($evnav) ? ' has-evnav' : '' ?>"><a class="skip-link" href="#contenu">Aller au contenu</a>
 <input type="checkbox" id="menu" class="menu-toggle" hidden>
 <aside class="side">
   <a class="logo side-logo" href="<?= url($area === 'admin' ? '/admin' : '/pro') ?>"><?= view('partials/logo') ?><span><?= e($pname) ?></span></a>
@@ -218,7 +218,7 @@ $pname = (string)setting('platform_name');
 </aside>
 <label for="menu" class="menu-btn" aria-label="Menu"><span></span><span></span><span></span></label>
 <label for="menu" class="menu-overlay"></label>
-<main class="back-main">
+<main class="back-main" id="contenu">
   <div class="probar">
     <button type="button" class="probar-search" id="cmdk-open"><svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><circle cx="11" cy="11" r="7" fill="none" stroke="currentColor" stroke-width="2"/><path d="M20 20l-4-4" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg><span>Rechercher un événement, une commande, un participant…</span><kbd>Ctrl K</kbd></button>
     <div class="probar-actions">
@@ -241,7 +241,7 @@ $pname = (string)setting('platform_name');
   </div>
   <?php if ($area === 'pro' && $org && $org['status'] === 'pending'): ?><div class="flash warning">Ton compte est en cours de validation par l'équipe <?= e($pname) ?>. Tu peux tout préparer ; la publication sera possible dès la validation (on te prévient par e-mail).</div><?php endif; ?>
   <?php if ($area === 'pro' && ($ann = trim((string)setting('announce_text'))) !== '' && (!setting('announce_until') || strtotime((string)setting('announce_until')) >= time())): $annId = substr(md5($ann), 0, 8); ?>
-    <div class="announce <?= e((string)setting('announce_level', 'info')) ?>" data-announce="<?= $annId ?>"><span></span><div class="grow"><?= nl2br(e($ann)) ?></div><button type="button" class="announce-x" aria-label="Masquer l'annonce">✕</button></div>
+    <div class="announce <?= e((string)setting('announce_level', 'info')) ?>" data-announce="<?= $annId ?>"><span></span><div class="grow"><?= nl2br(e($ann)) ?></div><button type="button" class="announce-x" aria-label="Masquer l'annonce"><?= ui_icon('x', 14) ?></button></div>
   <?php endif; ?>
   <?= $evnav ?? '' ?>
   <?php if (!empty($crumbs)): ?><div class="crumbs"><?php foreach ($crumbs as $i => [$l, $h]): ?><?= $i ? ' <span>/</span> ' : '' ?><?= $h ? '<a href="' . url($h) . '">' . e($l) . '</a>' : e($l) ?><?php endforeach; ?></div><?php endif; ?>

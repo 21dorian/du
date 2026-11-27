@@ -1,5 +1,5 @@
 <?php /** @var array $ev, $org, $v, $errors; ?array $done */ $min = (int)setting('quote_min_' . $org['id'], '10'); ?>
-<section class="store-wrap" style="max-width:760px">
+<section class="store-wrap u-mw760">
   <span class="eyebrow"><?= e($ev['name']) ?> · <?= e(fr_date($ev['starts_at'])) ?></span>
   <h1>Venir en groupe</h1>
   <?php if ($done): ?>

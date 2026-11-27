@@ -25,7 +25,7 @@ $desc = function (array $r) use ($pn, $cn, $bn): string {
     <div class="field"><label>Ou produits précis</label><div class="chips-row"><?php foreach ($products as $p): ?><label class="chip-check"><input type="checkbox" name="product_ids[]" value="<?= (int)$p['id'] ?>" <?= $has('product_ids', $p['id']) ? 'checked' : '' ?>><span><?= e($p['name']) ?></span></label><?php endforeach; ?></div><small class="muted">Rien de coché = toute la carte.</small></div>
     <div class="field"><label>Bars</label><div class="chips-row"><?php foreach ($bars as $b): ?><label class="chip-check"><input type="checkbox" name="bar_ids[]" value="<?= (int)$b['id'] ?>" <?= $has('bar_ids', $b['id']) ? 'checked' : '' ?>><span><?= e($b['name']) ?></span></label><?php endforeach; ?></div><small class="muted">Aucun = tous les bars.</small></div>
     <div class="grid2"><div class="field"><label>Du</label><input type="date" name="starts_on" value="<?= e((string)$r['starts_on']) ?>"></div><div class="field"><label>Au</label><input type="date" name="ends_on" value="<?= e((string)$r['ends_on']) ?>"></div></div>
-    <div class="row"><button class="btn">Enregistrer</button><?php if ($r['id']): ?><button class="btn btn-light danger" name="action" value="delete" formnovalidate onclick="return confirm('Supprimer cette règle ?')">Supprimer</button><?php endif; ?></div>
+    <div class="row"><button class="btn">Enregistrer</button><?php if ($r['id']): ?><button class="btn btn-light danger" name="action" value="delete" formnovalidate data-confirm="Supprimer cette règle ?">Supprimer</button><?php endif; ?></div>
   </form>
   <?php endif; ?>
 </div>

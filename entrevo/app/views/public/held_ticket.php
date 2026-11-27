@@ -20,7 +20,7 @@
           <div><small>Date</small><b><?= e(date('d.m.Y', strtotime($start))) ?></b></div>
           <div><small>Heure</small><b><?= e(date('H:i', strtotime($start))) ?></b></div>
           <div><small>Tarif</small><b><?= e($t['rate_name']) ?></b></div>
-          <div style="grid-column:span 2"><small>Lieu</small><b><?= e(trim($ev['venue'] . ($ev['city'] ? ', ' . $ev['city'] : ''), ', ')) ?: '—' ?></b></div>
+          <div class="u-span2"><small>Lieu</small><b><?= e(trim($ev['venue'] . ($ev['city'] ? ', ' . $ev['city'] : ''), ', ')) ?: '—' ?></b></div>
           <div><small>Origine</small><b>Offert</b></div>
           <div style="grid-column:1/-1"><small>Participant</small><b><?= e(trim($t['first_name'] . ' ' . $t['last_name'])) ?></b></div>
         </div>
@@ -42,5 +42,5 @@
     </form>
   </details>
   <?php endif; ?>
-  <p class="muted center" style="font-size:13px">Un QR code = une entrée. Garde ce lien pour toi : il ouvre ton billet.</p>
+  <p class="muted center u-fs13">Un QR code = une entrée. Garde ce lien pour toi : il ouvre ton billet.</p>
 </div>

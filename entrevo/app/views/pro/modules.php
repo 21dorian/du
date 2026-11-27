@@ -19,7 +19,7 @@
         <a class="mod-card<?= $soon ? ' is-soon' : '' ?>" href="<?= url($href) ?>">
           <span class="mod-ico"><?= feature_icon($f) ?></span>
           <span class="mod-body"><b><?= e($f['name']) ?></b><span><?= e($f['pitch']) ?></span></span>
-          <span class="mod-foot"><?php if ($soon): ?><span class="soon-pill">En développement<?= !empty($f['eta']) ? ' · ' . e($f['eta']) : '' ?></span><?= isset($votes[$k]) ? '<span class="voted">✓ Tu as voté</span>' : '<span class="muted">Voter →</span>' ?>
+          <span class="mod-foot"><?php if ($soon): ?><span class="soon-pill">En développement<?= !empty($f['eta']) ? ' · ' . e($f['eta']) : '' ?></span><?= isset($votes[$k]) ? '<span class="voted">' . ui_icon('check', 13) . ' Tu as voté</span>' : '<span class="muted">Voter →</span>' ?>
             <?php else: ?><span class="on-pill"><?= $f['status'] === 'beta' ? '● Bêta' : '● Actif' ?></span><span class="muted">Ouvrir →</span><?php endif; ?></span>
         </a>
       <?php endforeach; ?>

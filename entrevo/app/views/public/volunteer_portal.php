@@ -4,21 +4,21 @@
     <a class="btn" href="<?= url('/benevole/' . $m['token'] . '/badge') ?>">Mon badge (à montrer en arrivant)</a></div>
   <?php foreach ($docs ?? [] as $d): if ($d['signed_at']) continue; ?>
   <form method="post" class="card vol-doc"><?= csrf_field() ?><input type="hidden" name="action" value="sign"><input type="hidden" name="doc_id" value="<?= (int)$d['id'] ?>">
-    <h2 style="margin:0">À signer : <?= e($d['title']) ?></h2><?php if ($d['ev_name']): ?><small class="muted"><?= e($d['ev_name']) ?></small><?php endif; ?>
+    <h2 class="u-m0">À signer : <?= e($d['title']) ?></h2><?php if ($d['ev_name']): ?><small class="muted"><?= e($d['ev_name']) ?></small><?php endif; ?>
     <div class="doc-body"><?= e($d['body']) ?></div>
     <label class="check"><input type="checkbox" name="agree" value="1" required> <span>J'ai lu et j'approuve ce document</span></label>
-    <div class="row mt" style="gap:8px"><input name="sign_name" required placeholder="Tape ton prénom et ton nom" autocomplete="name" style="max-width:280px"><button class="btn">Signer</button></div>
+    <div class="row mt u-gap8"><input name="sign_name" required placeholder="Tape ton prénom et ton nom" autocomplete="name" style="max-width:280px"><button class="btn">Signer</button></div>
   </form>
   <?php endforeach; ?>
   <?php if (!empty($prov)): ?><div class="card"><h2>Ma dotation</h2><?php foreach ($prov as $p): ?><p style="margin:6px 0"><b><?= e($p['ev_name']) ?></b> · <?= (int)$p['meals'] ?> repas<?= (int)$p['meals_used'] ? ' (' . (int)$p['meals_used'] . ' pris)' : '' ?><?= $p['lodging'] ? ' · hébergement : ' . e($p['lodging']) : '' ?><?= $p['items'] ? ' · ' . e($p['items']) : '' ?></p><?php endforeach; ?></div><?php endif; ?>
-  <?php $signed = array_filter($docs ?? [], fn($d) => $d['signed_at']); if ($signed): ?><p class="muted" style="font-size:13px">Documents signés : <?= e(implode(', ', array_map(fn($d) => $d['title'] . ' (' . date('d/m', strtotime($d['signed_at'])) . ')', $signed))) ?></p><?php endif; ?>
+  <?php $signed = array_filter($docs ?? [], fn($d) => $d['signed_at']); if ($signed): ?><p class="muted u-fs13">Documents signés : <?= e(implode(', ', array_map(fn($d) => $d['title'] . ' (' . date('d/m', strtotime($d['signed_at'])) . ')', $signed))) ?></p><?php endif; ?>
   <div class="card"><h2>Mes créneaux <a class="btn btn-sm btn-light" style="float:right" target="_blank" href="<?= url('/benevole/' . $m['token'] . '/planning.pdf') ?>">Planning PDF</a></h2>
     <?php foreach ($mine as $s): ?>
       <div class="vol-mine <?= e($s['status']) ?>">
         <div class="grow"><b><?= e($s['title']) ?></b> <?= Staff::badge($s['status']) ?><br><small><?= e($s['ev_name']) ?> · <?= e(fr_date($s['starts_at'])) ?> → <?= e(date('H:i', strtotime($s['ends_at']))) ?><?= $s['location'] ? ' · ' . e($s['location']) : '' ?></small>
           <?php if ($s['description']): ?><small class="muted" style="display:block;white-space:pre-line"><?= e($s['description']) ?></small><?php endif; ?></div>
         <?php if ($s['status'] === 'proposed' || $s['status'] === 'requested' || ($s['status'] === 'confirmed' && !$s['checked_in_at'])): ?>
-        <form method="post" class="row" style="gap:6px"><?= csrf_field() ?><input type="hidden" name="assignment_id" value="<?= (int)$s['id'] ?>">
+        <form method="post" class="row u-gap6"><?= csrf_field() ?><input type="hidden" name="assignment_id" value="<?= (int)$s['id'] ?>">
           <?php if ($s['status'] === 'proposed'): ?><button class="btn btn-sm btn-success" name="action" value="confirm">Je confirme</button><?php endif; ?>
           <?php if ($s['status'] !== 'declined'): ?><button class="btn btn-sm btn-light" name="action" value="decline" data-confirm="Tu ne pourras pas venir sur ce créneau ?">Je ne peux pas</button><?php endif; ?></form>
         <?php elseif ($s['checked_in_at']): ?><span class="badge green">Pointé <?= e(date('H:i', strtotime($s['checked_in_at']))) ?></span><?php endif; ?>

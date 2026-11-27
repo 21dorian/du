@@ -40,7 +40,7 @@
   function input(label, val, attrs) { return '<div class="field"><label>' + label + '</label><input ' + attrs + ' value="' + esc(val) + '"></div>'; }
   function renderCats() {
     document.getElementById('ed-cats').innerHTML = m.categories.map(function (c, i) {
-      return '<div class="row" style="gap:6px;flex-wrap:nowrap;margin-bottom:8px"><input type="color" data-c="' + i + '" data-f="color" value="' + esc(c.color) + '"><input data-c="' + i + '" data-f="name" value="' + esc(c.name) + '"><button type="button" class="btn btn-sm btn-light" data-delcat="' + i + '">✕</button></div>';
+      return '<div class="row" style="gap:6px;flex-wrap:nowrap;margin-bottom:8px"><input type="color" data-c="' + i + '" data-f="color" value="' + esc(c.color) + '"><input data-c="' + i + '" data-f="name" value="' + esc(c.name) + '"><button type="button" class="btn btn-sm btn-light" data-delcat="' + i + '" aria-label="Supprimer la catégorie"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg></button></div>';
     }).join('');
     renderBlocks();
   }

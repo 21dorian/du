@@ -1,7 +1,7 @@
 <div class="split">
   <form class="card" method="post" enctype="multipart/form-data"><?= csrf_field() ?><input type="hidden" name="action" value="invite">
     <h2>Envoyer des invitations</h2>
-    <p class="muted" style="font-size:14px">Une ligne par invité : <code>prénom ; nom ; e-mail ; nombre</code> (le nombre est facultatif). Ou importe un fichier CSV avec ces colonnes.</p>
+    <p class="muted u-fs14">Une ligne par invité : <code>prénom ; nom ; e-mail ; nombre</code> (le nombre est facultatif). Ou importe un fichier CSV avec ces colonnes.</p>
     <div class="grid2">
       <div class="field"><label>Tarif</label><select name="rate_id"><?php foreach ($rates as $r): ?><option value="<?= (int)$r['id'] ?>"><?= e($r['name']) ?></option><?php endforeach; ?></select></div>
       <?php if ($sessions): ?><div class="field"><label>Date</label><select name="session_id"><?php foreach ($sessions as $x): ?><option value="<?= (int)$x['id'] ?>"><?= e(short_date($x['starts_at'])) ?></option><?php endforeach; ?></select></div><?php endif; ?>
@@ -16,7 +16,7 @@
   <div>
     <form class="card" method="post"><?= csrf_field() ?><input type="hidden" name="action" value="partner">
       <h2>Nouveau partenaire</h2>
-      <p class="muted" style="font-size:14px">Un CE, un sponsor, une asso, un revendeur… reçoit un lien perso pour réserver ses billets lui-même, dans la limite de son lot.</p>
+      <p class="muted u-fs14">Un CE, un sponsor, une asso, un revendeur… reçoit un lien perso pour réserver ses billets lui-même, dans la limite de son lot.</p>
       <div class="grid2"><div class="field"><label>Nom *</label><input name="name" required></div><div class="field"><label>E-mail</label><input type="email" name="email"></div>
         <div class="field"><label>Tarif</label><select name="rate_id"><?php foreach ($rates as $r): ?><option value="<?= (int)$r['id'] ?>"><?= e($r['name']) ?> (<?= e(money((int)$r['price'])) ?>)</option><?php endforeach; ?></select></div>
         <div class="field"><label>Lot (places)</label><input type="number" name="quota" min="0" value="20"><small>0 = illimité</small></div></div>

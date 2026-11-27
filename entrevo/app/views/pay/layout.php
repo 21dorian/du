@@ -27,7 +27,7 @@ $evLink = fn($slug) => Pay::url('/pro/e/' . $ev['id'] . ($slug !== '' ? '/' . $s
 <link rel="stylesheet" href="<?= asset('css/pay.css') ?>">
 <link rel="icon" href="<?= asset('img/pay.svg') ?>" type="image/svg+xml">
 </head>
-<body class="back pay">
+<body class="back pay"><a class="skip-link" href="#contenu">Aller au contenu</a>
 <input type="checkbox" id="menu" class="menu-toggle" hidden>
 <aside class="pay-side">
   <a class="pay-brand" href="<?= Pay::url('/pro', ['tous' => 1]) ?>"><span class="pay-logo"><svg viewBox="0 0 32 32"><rect width="32" height="32" rx="9"/><path d="M9 22V10h7.5a4.5 4.5 0 0 1 0 9H13" /></svg></span><span><b>Entrevo Pay</b><small><?= e($org['name']) ?></small></span></a>
@@ -59,7 +59,7 @@ $evLink = fn($slug) => Pay::url('/pro/e/' . $ev['id'] . ($slug !== '' ? '/' . $s
 </aside>
 <label for="menu" class="menu-btn" aria-label="Menu"><span></span><span></span><span></span></label>
 <label for="menu" class="menu-overlay"></label>
-<main class="pay-main">
+<main class="pay-main" id="contenu">
   <header class="pay-top">
     <div class="grow"><?php if ($ev): ?><small class="pay-crumb"><?= e($ev['name']) ?></small><?php endif; ?><h1><?= e($title) ?></h1></div>
     <?php if (!empty($live)): ?><span class="pay-livebadge"><i></i>En direct · <b data-live="at">—</b></span><?php endif; ?>

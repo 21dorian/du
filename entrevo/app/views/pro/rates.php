@@ -7,7 +7,7 @@ $form = function (?array $r) use ($org, $sessions, $seatCats, $rates, $groups) {
     ob_start(); ?>
     <form method="post" enctype="multipart/form-data"><?= csrf_field() ?><input type="hidden" name="rate_id" value="<?= (int)$p['id'] ?>">
       <div class="grid3">
-        <div class="field" style="grid-column:span 2"><label>Nom du tarif *</label><input name="name" value="<?= e($p['name']) ?>" required placeholder="Plein tarif, Réduit, VIP…"></div>
+        <div class="field u-span2"><label>Nom du tarif *</label><input name="name" value="<?= e($p['name']) ?>" required placeholder="Plein tarif, Réduit, VIP…"></div>
         <div class="field"><label>Prix <?= '' ?></label><div class="input-suffix"><input name="price" value="<?= e(money_input((int)$p['price'])) ?>" inputmode="decimal"><span>€</span></div><small>Prix libre : c'est le minimum.</small></div>
       </div>
       <div class="grid4">
@@ -17,14 +17,14 @@ $form = function (?array $r) use ($org, $sessions, $seatCats, $rates, $groups) {
         <div class="field"><label>&nbsp;</label><label class="check"><input type="checkbox" name="per_day" value="1" <?= $p['per_day'] ? 'checked' : '' ?>> 1 entrée par jour (pass multi-jours)</label></div>
       </div>
       <?php if ($sessions): ?><div class="field"><label>Valable pour les dates</label><div class="row" style="gap:6px 16px">
-        <?php foreach ($sessions as $x): ?><label class="check" style="font-weight:400"><input type="checkbox" name="session_ids[]" value="<?= (int)$x['id'] ?>" <?= in_array((int)$x['id'], $selS, true) ? 'checked' : '' ?>> <?= e(short_date($x['starts_at'])) ?></label><?php endforeach; ?></div><small>Aucune cochée = toutes les dates.</small></div><?php endif; ?>
+        <?php foreach ($sessions as $x): ?><label class="check u-fw400"><input type="checkbox" name="session_ids[]" value="<?= (int)$x['id'] ?>" <?= in_array((int)$x['id'], $selS, true) ? 'checked' : '' ?>> <?= e(short_date($x['starts_at'])) ?></label><?php endforeach; ?></div><small>Aucune cochée = toutes les dates.</small></div><?php endif; ?>
       <?php if ($seatCats): ?><div class="field"><label>Catégorie de place (plan de salle)</label><select name="seat_category"><option value="">Toutes les places</option><?php foreach ($seatCats as $c): ?><option value="<?= e($c['id']) ?>" <?= $p['seat_category'] === $c['id'] ? 'selected' : '' ?>><?= e($c['name']) ?></option><?php endforeach; ?></select></div><?php endif; ?>
       <div class="field"><label>Description</label><input name="description" value="<?= e($p['description']) ?>" placeholder="Ex. : sur présentation d'un justificatif"></div>
       <div class="grid2"><div class="field"><label>Nom en anglais</label><input name="name_en" value="<?= e((string)($p['name_en'] ?? '')) ?>" placeholder="3-day pass"></div><div class="field"><label>Description en anglais</label><input name="description_en" value="<?= e((string)($p['description_en'] ?? '')) ?>"></div></div>
       <div class="field" style="max-width:320px"><label>Âge minimum pour ce tarif</label><select name="min_age"><?php foreach (['' => 'Comme l\'événement', '12' => '12 ans et +', '16' => '16 ans et +', '18' => '18 ans et +', '21' => '21 ans et +'] as $k => $l): ?><option value="<?= $k ?>" <?= (string)($p['min_age'] ?? '') === (string)$k ? 'selected' : '' ?>><?= $l ?></option><?php endforeach; ?></select></div>
       <div class="field" style="max-width:320px"><label>TVA de ce tarif</label><select name="vat_rate"><?php foreach (Vat::RATES as $k => $l): ?><option value="<?= e((string)$k) ?>" <?= ($p['vat_rate'] === null ? $k === '' : ($k !== '' && (float)$p['vat_rate'] === (float)$k)) ? 'selected' : '' ?>><?= e($l) ?><?= $k === '' ? ' (' . e(Vat::label($org['vat_rate'] !== null ? (float)$org['vat_rate'] : null)) . ')' : '' ?></option><?php endforeach; ?></select></div>
       <div class="grid3 scan-rule">
-        <div class="field" style="grid-column:span 2"><label>Consigne affichée au contrôle</label><input name="scan_note" value="<?= e((string)($p['scan_note'] ?? '')) ?>" maxlength="160" placeholder="Ex. : Vérifier la carte étudiant · Remettre le bracelet VIP"><small>S'affiche en grand sur l'appli de scan quand ce billet passe.</small></div>
+        <div class="field u-span2"><label>Consigne affichée au contrôle</label><input name="scan_note" value="<?= e((string)($p['scan_note'] ?? '')) ?>" maxlength="160" placeholder="Ex. : Vérifier la carte étudiant · Remettre le bracelet VIP"><small>S'affiche en grand sur l'appli de scan quand ce billet passe.</small></div>
         <div class="field"><label>Couleur de bracelet</label><div class="color-pick"><?php foreach (['' => 'Aucune', '#e5372b' => 'Rouge', '#f08c00' => 'Orange', '#f5c400' => 'Jaune', '#1f9d55' => 'Vert', '#0032fa' => 'Bleu', '#7c3aed' => 'Violet', '#0f0f14' => 'Noir'] as $hex => $nm): ?>
           <label title="<?= $nm ?>"><input type="radio" name="scan_color" value="<?= $hex ?>" <?= (string)($p['scan_color'] ?? '') === $hex ? 'checked' : '' ?>><span style="<?= $hex ? 'background:' . $hex : '' ?>" class="<?= $hex ? '' : 'none' ?>" aria-label="<?= $nm ?>"></span></label><?php endforeach; ?></div><small>Le scanner affiche un bandeau de cette couleur.</small></div>
       </div>
@@ -45,7 +45,7 @@ $form = function (?array $r) use ($org, $sessions, $seatCats, $rates, $groups) {
         </div>
         <div class="grid4">
           <div class="field"><label>Mise en avant</label><select name="badge"><?php foreach (RatesPlus::BADGES as $k => $l): ?><option value="<?= e($k) ?>" <?= (string)$p['badge'] === $k && $isStd ? 'selected' : '' ?>><?= e($l) ?></option><?php endforeach; ?></select><input name="badge_custom" class="mt" style="margin-top:6px" value="<?= $isStd ? '' : e((string)$p['badge']) ?>" placeholder="ou ton texte (ex. Fosse)"></div>
-          <div class="field"><label>Frais par billet (en plus du prix)</label><div class="row" style="gap:6px"><span class="input-suffix" style="max-width:110px"><input name="extra_fee" inputmode="decimal" value="<?= (int)($p['extra_fee'] ?? 0) ? e(money_input((int)$p['extra_fee'])) : '' ?>" placeholder="0"><span>€</span></span><input name="extra_fee_label" value="<?= e((string)($p['extra_fee_label'] ?? '')) ?>" placeholder="Frais de gestion"></div><small>Séparés du billet dans le bordereau de recettes (SACEM, CNV…)</small></div>
+          <div class="field"><label>Frais par billet (en plus du prix)</label><div class="row u-gap6"><span class="input-suffix" style="max-width:110px"><input name="extra_fee" inputmode="decimal" value="<?= (int)($p['extra_fee'] ?? 0) ? e(money_input((int)$p['extra_fee'])) : '' ?>" placeholder="0"><span>€</span></span><input name="extra_fee_label" value="<?= e((string)($p['extra_fee_label'] ?? '')) ?>" placeholder="Frais de gestion"></div><small>Séparés du billet dans le bordereau de recettes (SACEM, CNV…)</small></div>
           <div class="field"><label>Justificatif à présenter</label><input name="proof" value="<?= e((string)$p['proof']) ?>" placeholder="Carte étudiant, carte d'invalidité…"><small>Affiché à l'achat et rappelé au contrôle</small></div>
           <div class="field"><label>Visuel du billet pour ce tarif</label><input type="file" name="ticket_image" accept="image/jpeg,image/png"><?php if (!empty($p['ticket_image'])): ?><small><a href="<?= url((string)$p['ticket_image']) ?>" target="_blank">Visuel actuel</a> · <label class="check" style="display:inline-flex"><input type="checkbox" name="ticket_image_clear" value="1"> retirer</label></small><?php else: ?><small>Remplace l'affiche sur le billet PDF (JPG ou PNG)</small><?php endif; ?></div>
           <div class="field"><label>Minimum par commande</label><input type="number" name="min_per_order" min="0" max="50" value="<?= (int)$p['min_per_order'] ?>"><small>Ex. 2 pour un tarif « duo »</small></div>
@@ -65,11 +65,11 @@ $form = function (?array $r) use ($org, $sessions, $seatCats, $rates, $groups) {
       <details class="dyn-box"<?= $dc ? ' open' : '' ?>><summary><b>Prix dynamique</b> <small class="muted">le prix monte tout seul par paliers<?= $dc ? ' · activé' : '' ?></small></summary>
         <label class="check mt"><input type="checkbox" name="dyn_on" value="1" <?= $dc ? 'checked' : '' ?>> <span>Activer les paliers pour ce tarif (le prix saisi plus haut est remplacé par celui du palier en cours)</span></label>
         <div class="field mt"><label>Le palier change selon</label><div class="seg"><label class="seg-r"><input type="radio" name="dyn_mode" value="sold" <?= ($dc['mode'] ?? 'sold') === 'sold' ? 'checked' : '' ?>><span>les places vendues</span></label><label class="seg-r"><input type="radio" name="dyn_mode" value="date" <?= ($dc['mode'] ?? '') === 'date' ? 'checked' : '' ?>><span>la date</span></label></div></div>
-        <table class="table table-sm dyn-steps"><thead><tr><th>Palier</th><th>Jusqu'à (places vendues ou date)</th><th>Prix</th></tr></thead><tbody>
+        <div class="table-wrap"><table class="table table-sm dyn-steps"><thead><tr><th>Palier</th><th>Jusqu'à (places vendues ou date)</th><th>Prix</th></tr></thead><tbody>
           <?php for ($k = 0; $k < 5; $k++): $st = $ds[$k] ?? null; $isDate = ($dc['mode'] ?? 'sold') === 'date'; ?><tr><td><?= $k + 1 ?></td>
             <td><input name="dyn_limit[<?= $k ?>]" value="<?= $st && $st['limit'] !== null ? e($isDate ? dt_input((string)$st['limit']) : (string)$st['limit']) : '' ?>" placeholder="<?= $k ? 'ex. 300 ou 2027-03-01 00:00' : 'ex. 100' ?>"></td>
             <td><div class="input-suffix"><input name="dyn_price[<?= $k ?>]" inputmode="decimal" value="<?= $st ? e(money_input((int)$st['price'])) : '' ?>"><span>€</span></div></td></tr><?php endfor; ?>
-        </tbody></table>
+        </tbody></table></div>
         <small class="muted">Le dernier palier rempli n'a pas de limite (« ensuite »). Selon les ventes : nombre total de places vendues pour ce tarif (paniers en cours compris). Selon la date : AAAA-MM-JJ HH:MM. La page de l'événement affiche « Plus que X places à ce prix » ou la date du prochain prix, et les commandes en cours gardent leur prix.</small>
         <?php if ($hist): ?><div class="mt"><b>Historique</b><?php foreach ($hist as $hx): ?><div class="list-item"><span class="grow"><?= e(fr_date($hx['created_at'])) ?> · <?= e((string)$hx['reason']) ?></span><b><?= e(money((int)$hx['old_price'])) ?> → <?= e(money((int)$hx['price'])) ?></b></div><?php endforeach; ?></div><?php endif; ?>
       </details>
@@ -77,11 +77,11 @@ $form = function (?array $r) use ($org, $sessions, $seatCats, $rates, $groups) {
         <label class="check"><input type="checkbox" name="active" value="1" <?= $p['active'] ? 'checked' : '' ?>> Actif (en vente)</label>
         <label class="check"><input type="checkbox" name="hidden" value="1" <?= $p['hidden'] ? 'checked' : '' ?>> Tarif secret (visible seulement avec un code d'accès)</label>
         <label class="check"><input type="checkbox" name="companion" value="1" <?= !empty($p['companion']) ? 'checked' : '' ?>> Tarif PMR : un billet accompagnateur gratuit est ajouté à chaque billet</label>
-        <label style="display:flex;gap:8px;align-items:center;font-weight:500">Ordre <input type="number" name="sort" value="<?= (int)$p['sort'] ?>" style="width:80px"></label>
+        <label style="display:flex;gap:8px;align-items:center;font-weight:500">Ordre <input type="number" name="sort" value="<?= (int)$p['sort'] ?>" class="u-w80"></label>
       </div>
       <div class="form-actions">
         <button class="btn"><?= $p['id'] ? 'Enregistrer' : 'Ajouter le tarif' ?></button>
-        <?php if ($p['id']): ?><button class="btn btn-ghost" style="color:var(--red)" name="action" value="delete" formnovalidate data-confirm="Supprimer ce tarif ?">Supprimer</button><?php endif; ?>
+        <?php if ($p['id']): ?><button class="btn btn-ghost u-red" name="action" value="delete" formnovalidate data-confirm="Supprimer ce tarif ?">Supprimer</button><?php endif; ?>
       </div>
     </form>
 <?php return ob_get_clean(); };
@@ -168,7 +168,7 @@ $base = '/pro/evenements/' . $ev['id'] . '/tarifs';
     </tbody>
   </table></div>
 </div>
-<p class="muted" style="font-size:13px">Frais de service : <b><?= e(rtrim(rtrim(number_format($pct, 2, ',', ''), '0'), ',')) ?> % + <?= e(money($fixed)) ?></b> par billet payant,
+<p class="muted u-fs13">Frais de service : <b><?= e(rtrim(rtrim(number_format($pct, 2, ',', ''), '0'), ',')) ?> % + <?= e(money($fixed)) ?></b> par billet payant,
   <?= $org['fee_mode'] === 'buyer' ? 'payés par l\'acheteur' : 'déduits de ton reversement' ?> (<a href="<?= url('/pro/organisation') ?>">changer</a>). Billets gratuits : 0 €.</p>
 <?php $launch = $ev['on_sale_at'] ?? null; $pending = RatesPlus::launchPending($ev); ?>
 <div class="rates-tools">
@@ -182,9 +182,9 @@ $base = '/pro/evenements/' . $ev['id'] . '/tarifs';
 </form>
 <form method="post" class="card stack" id="filtre"><?= csrf_field() ?><input type="hidden" name="action" value="filter_link"><h2>Lien réservé à certains tarifs</h2>
   <p class="muted mb0"><small>Un lien (ou un widget) qui n'affiche que les tarifs choisis, même secrets : pour un CE, une école, un partenaire, les abonnés…</small></p>
-  <div class="row wrap" style="gap:6px 14px"><?php foreach ($rates as $r): ?><label class="check" style="font-weight:400"><input type="checkbox" name="filter_ids[]" value="<?= (int)$r['id'] ?>"> <?= e($r['name']) ?><?= $r['hidden'] ? ' <span class="badge violet">Secret</span>' : '' ?></label><?php endforeach; ?></div>
-  <?php if ($fl = ($_SESSION['filter_link'] ?? null)): unset($_SESSION['filter_link']); ?><div class="field"><label>Lien de la page</label><div class="row"><input readonly value="<?= e($fl['page']) ?>" class="grow mono" style="font-size:12px"><button type="button" class="btn btn-sm btn-light" data-copy="<?= e($fl['page']) ?>">Copier</button></div></div>
-    <div class="field"><label>Adresse du widget filtré</label><div class="row"><input readonly value="<?= e($fl['widget']) ?>" class="grow mono" style="font-size:12px"><button type="button" class="btn btn-sm btn-light" data-copy="<?= e($fl['widget']) ?>">Copier</button></div></div><?php endif; ?>
+  <div class="row wrap" style="gap:6px 14px"><?php foreach ($rates as $r): ?><label class="check u-fw400"><input type="checkbox" name="filter_ids[]" value="<?= (int)$r['id'] ?>"> <?= e($r['name']) ?><?= $r['hidden'] ? ' <span class="badge violet">Secret</span>' : '' ?></label><?php endforeach; ?></div>
+  <?php if ($fl = ($_SESSION['filter_link'] ?? null)): unset($_SESSION['filter_link']); ?><div class="field"><label>Lien de la page</label><div class="row"><input readonly value="<?= e($fl['page']) ?>" class="grow mono u-fs12"><button type="button" class="btn btn-sm btn-light" data-copy="<?= e($fl['page']) ?>">Copier</button></div></div>
+    <div class="field"><label>Adresse du widget filtré</label><div class="row"><input readonly value="<?= e($fl['widget']) ?>" class="grow mono u-fs12"><button type="button" class="btn btn-sm btn-light" data-copy="<?= e($fl['widget']) ?>">Copier</button></div></div><?php endif; ?>
   <div><button class="btn btn-sm">Créer le lien</button></div></form>
 <div class="card stack" id="contingents"><h2>Contingents partagés</h2>
   <p class="muted mb0"><small>Plusieurs tarifs puisent dans le même stock de places : « Fosse » pour Plein + Réduit + Étudiant, « Carré or », « Balcon »… Le premier qui vend prend la place.</small></p>

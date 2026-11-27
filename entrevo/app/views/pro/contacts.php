@@ -13,7 +13,7 @@
 </div>
 <div class="card mt stack"><h2>Doublons à fusionner (<?= count($dups) ?>)</h2>
   <p class="muted mb0"><small>Même personne, plusieurs adresses : choisis celle à garder, les commandes des autres adresses y sont rattachées (historique, fidélité et e-mails réunis).</small></p>
-  <?php foreach ($dups as $i => $d): ?><form method="post" class="list-item" style="display:block"><?= csrf_field() ?><input type="hidden" name="action" value="merge">
+  <?php foreach ($dups as $i => $d): ?><form method="post" class="list-item u-block"><?= csrf_field() ?><input type="hidden" name="action" value="merge">
     <div class="row between"><b><?= e($d['name'] ?: $d['emails'][0]) ?></b><small class="muted"><?= e($d['why']) ?></small></div>
     <div class="dup-row mt"><?php foreach ($d['emails'] as $j => $em): ?><label><input type="radio" name="keep" value="<?= e($em) ?>" <?= $j === 0 ? 'checked' : '' ?>><?= e($em) ?> <small class="muted">· <?= (int)$d['counts'][$j] ?> cmd</small><input type="hidden" name="drop[]" value="<?= e($em) ?>"></label><?php endforeach; ?>
       <button class="btn btn-sm" data-confirm="Rattacher toutes les commandes à l'adresse choisie ?">Fusionner</button></div></form><?php endforeach; ?>

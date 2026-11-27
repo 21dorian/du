@@ -1,7 +1,7 @@
 <?php /** @var array $ev, $counts; string $suggest */
 $items = ['sessions' => ['Dates & séances', $counts['sessions']], 'fields' => ['Formulaire', $counts['fields']], 'aps' => ['Points d\'accès', $counts['aps']], 'products' => ['Options', $counts['products']],
   'promos' => ['Codes promo (hors lots)', $counts['promos']], 'shifts' => ['Créneaux bénévoles (sans les personnes)', $counts['shifts']], 'budget' => ['Budget prévisionnel (sans le réalisé)', $counts['budget']], 'tasks' => ['Tâches du rétroplanning (remises à faire)', $counts['tasks']]]; ?>
-<form method="post" class="card" style="max-width:760px"><?= csrf_field() ?><input type="hidden" name="confirm" value="1">
+<form method="post" class="card u-mw760"><?= csrf_field() ?><input type="hidden" name="confirm" value="1">
   <h2>Reprendre « <?= e($ev['name']) ?> »</h2>
   <p class="muted">Pour la prochaine édition : tout est recopié en brouillon, et <b>toutes les dates sont décalées d'autant</b> (ouverture des ventes, paliers early bird, codes promo, créneaux bénévoles, échéances des tâches…). Aucune commande ni aucun participant n'est copié.</p>
   <div class="grid2">

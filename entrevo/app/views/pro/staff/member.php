@@ -52,7 +52,7 @@
         <div class="field mb0"><label>Notes internes</label><textarea name="notes" rows="3" placeholder="Dispo surtout le week-end, allergie…"><?= e((string)$m['notes']) ?></textarea></div>
         <button class="btn btn-sm">Enregistrer</button>
       </form>
-      <form method="post" style="margin-top:12px"><?= csrf_field() ?><button class="link-btn neg" name="action" value="delete" data-confirm="Supprimer définitivement cette fiche et ses créneaux ?">Supprimer la fiche</button></form>
+      <form method="post" class="u-mt12"><?= csrf_field() ?><button class="link-btn neg" name="action" value="delete" data-confirm="Supprimer définitivement cette fiche et ses créneaux ?">Supprimer la fiche</button></form>
     </div>
   </div>
 </div>

@@ -468,6 +468,7 @@ function ui_icon(string $name, int $size = 20): string
         'pin' => '<path d="M12 21s-7-6.3-7-12a7 7 0 0 1 14 0c0 5.7-7 12-7 12z"/><circle cx="12" cy="9" r="2.5"/>',
         'cart' => '<circle cx="9" cy="20" r="1.3"/><circle cx="18" cy="20" r="1.3"/><path d="M2 3h3l2.5 12.5h11.5L21 7H6"/>',
         'refund' => '<path d="M3 12a9 9 0 1 0 3-6.7"/><path d="M3 4v5h5"/>',
+        'x' => '<path d="M6 6l12 12M18 6L6 18"/>',
     ];
     $d = $p[$name] ?? $p['sparkles'];
     return '<svg class="ui-ico" width="' . $size . '" height="' . $size . '" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' . $d . '</svg>';
@@ -542,3 +543,20 @@ function rate_limit(string $key, int $max, int $seconds): bool
 }
 
 function client_ip(): string { return (string)($_SERVER['REMOTE_ADDR'] ?? '0.0.0.0'); }
+
+/**
+ * 4.2.1 (accessibilité) : relie chaque <label> à son champ quand la vue ne l'a pas fait
+ * (« <label>Nom</label><input …> », éventuellement à travers un conteneur de suffixe) : id généré + attribut for.
+ */
+function a11y_html(string $html): string
+{
+    if (!str_contains($html, '<label')) return $html;
+    static $n = 0;
+    return preg_replace_callback(
+        '~<label((?:(?!\bfor=)[^>])*)>((?:(?!</label>|<input|<select|<textarea).){0,400}?)</label>(\s*(?:<(?:div|span)\b[^>]*>\s*){0,2})<(input|select|textarea)\b((?:(?!\bid=)[^>])*?)(/?)>~su',
+        function ($m) use (&$n) {
+            if (preg_match('~type=["\'](?:hidden|submit|button|checkbox|radio)["\']~i', $m[5])) return $m[0];
+            $id = 'f' . (++$n) . '-' . substr(md5($m[2]), 0, 4);
+            return '<label' . $m[1] . ' for="' . $id . '">' . $m[2] . '</label>' . $m[3] . '<' . $m[4] . ' id="' . $id . '"' . $m[5] . $m[6] . '>';
+        }, $html) ?? $html;
+}

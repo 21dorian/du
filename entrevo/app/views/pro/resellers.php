@@ -3,7 +3,7 @@ $pctTxt = fn($v) => rtrim(rtrim(number_format((float)$v, 2, ',', ''), '0'), ',')
 <p class="muted lead-sm">Fais vendre tes billets au comptoir de partenaires de la plateforme (offices de tourisme, CSE, commerces). Ils encaissent l'acheteur, qui reçoit ses billets par e-mail comme d'habitude. Chaque mois, ils te reversent le montant vendu moins leur commission : le relevé est ci-dessous.</p>
 <div class="card table-card">
   <div class="card-head"><h2>Revendeurs disponibles</h2></div>
-  <div class="table-wrap" style="overflow:visible"><table class="table">
+  <div class="table-wrap u-ovis"><table class="table">
     <thead><tr><th>Revendeur</th><th class="num">Commission</th><th class="num">Vendu pour toi</th><th></th></tr></thead><tbody>
     <?php foreach ($list as $r): $on = (int)$r['on_'] === 1; ?>
       <tr><td><b><?= e($r['name']) ?></b> <?= $on ? '<span class="badge green">autorisé</span>' : '' ?><br><small class="muted"><?= e(trim(($r['city'] ?? '') . ($r['kind'] ? ' · ' . (Resellers::KINDS[$r['kind']] ?? '') : ''), ' ·')) ?></small></td>

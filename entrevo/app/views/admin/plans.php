@@ -20,7 +20,7 @@ $def = array_values(array_filter($plans, fn($p) => $p['is_default']))[0] ?? null
   </div>
   <div class="field"><label>Description <small class="muted">(montrée aux organisateurs)</small></label><input name="description" maxlength="500" value="<?= e((string)$p['description']) ?>"></div>
   <h3 class="mt">Commission sur les billets</h3>
-  <p class="muted" style="font-size:13px">Laisse vide pour reprendre le réglage global (<?= e($pctTxt($global[0])) ?> + <?= e(money($global[1])) ?>).</p>
+  <p class="muted u-fs13">Laisse vide pour reprendre le réglage global (<?= e($pctTxt($global[0])) ?> + <?= e(money($global[1])) ?>).</p>
   <div class="grid4">
     <div class="field"><label>Pourcentage</label><div class="input-suffix"><input name="fee_percent" inputmode="decimal" value="<?= $p['fee_percent'] === null ? '' : e(str_replace('.', ',', (string)(float)$p['fee_percent'])) ?>"><span>%</span></div></div>
     <div class="field"><label>Fixe par billet</label><div class="input-suffix"><input name="fee_fixed" inputmode="decimal" value="<?= $p['fee_fixed'] === null ? '' : e(money_input((int)$p['fee_fixed'])) ?>"><span>€</span></div></div>
@@ -29,14 +29,14 @@ $def = array_values(array_filter($plans, fn($p) => $p['is_default']))[0] ?? null
   </div>
   <h3 class="mt">Modules inclus</h3>
   <div class="mod-grid"><?php foreach (Billing::MODULES as $k => $l): ?><label class="check"><input type="checkbox" name="modules[]" value="<?= e($k) ?>" <?= in_array($k, $mods, true) ? 'checked' : '' ?>> <span><?= e($l) ?></span></label><?php endforeach; ?></div>
-  <p class="muted" style="font-size:13px">Billetterie, tarifs, codes promo, participants, contrôle d'accès et statistiques sont toujours inclus. Un module non coché affiche à l'organisateur une page « non inclus dans ta formule ».</p>
+  <p class="muted u-fs13">Billetterie, tarifs, codes promo, participants, contrôle d'accès et statistiques sont toujours inclus. Un module non coché affiche à l'organisateur une page « non inclus dans ta formule ».</p>
   <div class="row mt" style="gap:22px">
     <label class="check"><input type="checkbox" name="public" value="1" <?= $p['public'] ? 'checked' : '' ?>> <span>Proposée publiquement</span></label>
     <label class="check"><input type="checkbox" name="active" value="1" <?= $p['active'] ? 'checked' : '' ?>> <span>Active</span></label>
-    <label class="inline-field">Ordre <input type="number" name="sort" value="<?= (int)$p['sort'] ?>" style="width:80px"></label>
+    <label class="inline-field">Ordre <input type="number" name="sort" value="<?= (int)$p['sort'] ?>" class="u-w80"></label>
   </div>
   <div class="form-actions mt"><button class="btn"><?= $p['id'] ? 'Enregistrer' : 'Créer la formule' ?></button>
-    <?php if ($p['id']): ?><button class="btn btn-ghost" style="color:var(--red)" name="action" value="delete" formnovalidate data-confirm="Supprimer cette formule ?">Supprimer</button><?php endif; ?></div>
+    <?php if ($p['id']): ?><button class="btn btn-ghost u-red" name="action" value="delete" formnovalidate data-confirm="Supprimer cette formule ?">Supprimer</button><?php endif; ?></div>
 </form>
 <?php endif; ?>
 

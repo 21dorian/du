@@ -7,7 +7,7 @@ $secret = fn($k) => setting($k) ? '•••••• (enregistré, laisser vide
 <nav class="tabs"><?php foreach ($tabs as $k => $l): ?><a class="<?= $tab === $k ? 'on' : '' ?>" href="<?= url('/admin/reglages', ['tab' => $k]) ?>"><?= $l ?></a><?php endforeach; ?></nav>
 <form method="post" action="<?= url('/admin/reglages', ['tab' => $tab]) ?>" enctype="multipart/form-data"><?= csrf_field() ?>
 <?php if ($tab === 'general'): ?>
-  <div class="card" style="max-width:820px">
+  <div class="card u-mw820">
     <div class="grid2">
       <div class="field"><label>Nom de la plateforme</label><input name="platform_name" value="<?= $s('platform_name') ?>" required></div>
       <div class="field"><label>Slogan</label><input name="tagline" value="<?= $s('tagline') ?>"></div>
@@ -19,13 +19,13 @@ $secret = fn($k) => setting($k) ? '•••••• (enregistré, laisser vide
     <label class="check"><input type="checkbox" name="signup_open" value="1" <?= $c('signup_open') ?>> Inscription libre des organisateurs</label>
     <label class="check"><input type="checkbox" name="org_approval" value="1" <?= $c('org_approval') ?>> <span>Valider moi-même chaque nouvel organisateur<br><small class="muted">Il peut préparer ses événements, mais pas les publier tant que tu ne l'as pas validé (Organisateurs › À valider).</small></span></label>
   </div>
-  <div class="card" style="max-width:820px">
+  <div class="card u-mw820">
     <h2>Tâche planifiée (recommandé)</h2>
-    <p class="muted" style="font-size:14px">Les tâches de fond (paiements à revérifier, liste d'attente, publications programmées…) tournent toutes seules quand le site a des visites. Pour qu'elles tournent même la nuit, ajoute cette commande dans cPanel › « Tâches Cron », toutes les 5 minutes :</p>
-    <input readonly class="mono" onclick="this.select()" value="wget -q -O /dev/null &quot;<?= e(abs_url('/cron', ['cle' => Jobs::cronKey()])) ?>&quot;">
+    <p class="muted u-fs14">Les tâches de fond (paiements à revérifier, liste d'attente, publications programmées…) tournent toutes seules quand le site a des visites. Pour qu'elles tournent même la nuit, ajoute cette commande dans cPanel › « Tâches Cron », toutes les 5 minutes :</p>
+    <input readonly class="mono" data-select value="wget -q -O /dev/null &quot;<?= e(abs_url('/cron', ['cle' => Jobs::cronKey()])) ?>&quot;">
   </div>
 <?php elseif ($tab === 'fees'): ?>
-  <div class="card" style="max-width:820px">
+  <div class="card u-mw820">
     <p class="muted">Taux par défaut pour tous les organisateurs (tu peux faire un prix perso à chacun dans sa fiche). Seuls les billets payants vendus en ligne sont concernés.</p>
     <div class="grid3">
       <div class="field"><label>Pourcentage</label><div class="input-suffix"><input name="fee_percent" value="<?= $s('fee_percent') ?>" inputmode="decimal"><span>%</span></div></div>
@@ -36,11 +36,11 @@ $secret = fn($k) => setting($k) ? '•••••• (enregistré, laisser vide
     <?php $ex = ['fee_percent' => null, 'fee_fixed' => null]; ?>
     <div class="notice mt">Exemple : billet à 20 € → commission de <b><?= e(money(Tickets::computeFees($ex, 2000, 1))) ?></b>.</div>
   </div>
-  <div class="card" style="max-width:820px">
+  <div class="card u-mw820">
     <h2>Vérification des organisateurs (KYC)</h2>
     <label class="check"><input type="checkbox" name="kyc_required" value="1" <?= $c('kyc_required') ?>> <span>Bloquer les reversements tant que les justificatifs ne sont pas vérifiés<br><small class="muted">Pièce d'identité, Kbis/statuts et RIB, déposés par l'organisateur dans « Vérification du compte ».</small></span></label>
   </div>
-  <div class="card" style="max-width:820px">
+  <div class="card u-mw820">
     <h2>Factures de commission</h2>
     <p class="muted">Tes informations d'émetteur, imprimées sur chaque facture.</p>
     <div class="grid2">
@@ -57,11 +57,11 @@ $secret = fn($k) => setting($k) ? '•••••• (enregistré, laisser vide
     <label class="check"><input type="checkbox" name="invoice_auto" value="1" <?= $c('invoice_auto') ?>> Générer et envoyer automatiquement les factures le 1er de chaque mois</label>
   </div>
 <?php elseif ($tab === 'payments'): ?>
-  <div class="notice mb" style="max-width:820px">Adresses de notification (webhooks) à déclarer chez chaque prestataire, pour que les commandes soient validées même si l'acheteur ferme son navigateur :<br>
+  <div class="notice mb u-mw820">Adresses de notification (webhooks) à déclarer chez chaque prestataire, pour que les commandes soient validées même si l'acheteur ferme son navigateur :<br>
     Stripe (événement « checkout.session.completed ») : <code><?= e(abs_url('/paiement/webhook/stripe')) ?></code><br>
     PayPal (« CHECKOUT.ORDER.APPROVED » et « PAYMENT.CAPTURE.COMPLETED ») : <code><?= e(abs_url('/paiement/webhook/paypal')) ?></code><br>
     SumUp et Mollie : automatique.</div>
-  <div class="notice warn mb" style="max-width:820px">Les paiements arrivent sur <b>tes</b> comptes. Fais toujours un achat test avec les clés de test du prestataire avant d'activer les vraies clés.</div>
+  <div class="notice warn mb u-mw820">Les paiements arrivent sur <b>tes</b> comptes. Fais toujours un achat test avec les clés de test du prestataire avant d'activer les vraies clés.</div>
   <div class="split" style="max-width:1100px">
     <div class="card"><h2>Stripe (CB, Apple Pay, Google Pay)</h2>
       <label class="check mb"><input type="checkbox" name="stripe_enabled" value="1" <?= $c('stripe_enabled') ?>> Activer</label>
@@ -103,7 +103,7 @@ $secret = fn($k) => setting($k) ? '•••••• (enregistré, laisser vide
       <small class="muted">À couper dès que tu vends pour de vrai !</small></div>
   </div>
 <?php elseif ($tab === 'emails'): ?>
-  <div class="card" style="max-width:820px">
+  <div class="card u-mw820">
     <p class="muted">Sans serveur SMTP, l'hébergement envoie avec sa fonction mail() (souvent classé en spam). Chez Dyjix, crée une adresse dans cPanel › Comptes de messagerie et mets ses infos ici.</p>
     <div class="grid2">
       <div class="field"><label>Serveur SMTP</label><input name="smtp_host" value="<?= $s('smtp_host') ?>" placeholder="mail.mondomaine.fr"></div>
@@ -118,7 +118,7 @@ $secret = fn($k) => setting($k) ? '•••••• (enregistré, laisser vide
   </div>
 <?php elseif ($tab === 'sms'): ?>
   <?php $smsStats = one("SELECT COALESCE(SUM(sent), 0) sent, COALESCE(SUM(sent * segments), 0) seg, COALESCE(SUM(cost), 0) cost FROM sms_campaigns WHERE created_at >= DATE_FORMAT(NOW(), '%Y-%m-01')"); ?>
-  <div class="card" style="max-width:820px">
+  <div class="card u-mw820">
     <p class="muted">Les campagnes SMS des organisateurs passent par l'API SMS de <b>Brevo</b> (compte Brevo › SMS › crédits, puis Paramètres › Clés API). Sans clé, tout fonctionne en <b>mode test</b> : rien ne part, chaque SMS est écrit dans le journal « sms ».</p>
     <div class="grid2">
       <div class="field"><label>Clé API Brevo</label><input type="password" name="sms_api_key" placeholder="<?= e($secret('sms_api_key')) ?: 'xkeysib-…' ?>" autocomplete="new-password"><?php if (Sms::live()): ?><label class="check mt"><input type="checkbox" name="sms_key_clear" value="1"> <span>Retirer la clé (repasser en mode test)</span></label><?php endif; ?></div>
@@ -130,12 +130,12 @@ $secret = fn($k) => setting($k) ? '•••••• (enregistré, laisser vide
     <div class="row mt"><input type="tel" name="test_sms" placeholder="Envoyer un test au 06…" style="max-width:300px"><button class="btn btn-ghost">Enregistrer et tester</button></div>
   </div>
 <?php elseif ($tab === 'plateforme'): ?>
-  <div class="card" style="max-width:820px">
+  <div class="card u-mw820">
     <h2>Mode maintenance</h2>
     <label class="check"><input type="checkbox" name="maintenance" value="1" <?= $c('maintenance') ?>> <span><b>Mettre le site en maintenance</b><br><small class="muted">Le public voit une page d'attente. Restent ouverts : ton super-admin, l'appli de scan (le jour J n'est jamais bloqué), les retours de paiement.</small></span></label>
     <div class="field mt"><label>Message affiché</label><textarea name="maintenance_message" rows="3" placeholder="La billetterie fait une courte pause pour maintenance…"><?= $s('maintenance_message') ?></textarea></div>
   </div>
-  <div class="card" style="max-width:820px">
+  <div class="card u-mw820">
     <h2>Limites</h2>
     <div class="grid2">
       <div class="field"><label>Événements à venir par organisateur</label><input type="number" name="max_events" min="0" value="<?= (int)setting('max_events', '0') ?>"><small>0 = illimité. Évite les abus des comptes gratuits.</small></div>
@@ -143,29 +143,29 @@ $secret = fn($k) => setting($k) ? '•••••• (enregistré, laisser vide
       <div class="field"><label>Poids maximum des images</label><div class="input-suffix"><input type="number" name="max_upload_mb" min="1" max="50" value="<?= (int)(setting('max_upload_mb', '5') ?: 5) ?>"><span>Mo</span></div><small>Limité aussi par l'hébergement (<?= e((string)ini_get('upload_max_filesize')) ?>).</small></div>
     </div>
   </div>
-  <div class="card" style="max-width:820px">
+  <div class="card u-mw820">
     <h2>Modules coupés pour tout le monde</h2>
-    <p class="muted" style="font-size:14px">Un module coupé ici disparaît chez tous les organisateurs, quelle que soit leur formule (utile tant qu'un service n'est pas branché).</p>
+    <p class="muted u-fs14">Un module coupé ici disparaît chez tous les organisateurs, quelle que soit leur formule (utile tant qu'un service n'est pas branché).</p>
     <?php $dis = explode(',', (string)setting('disabled_modules', '')); ?>
     <div class="mod-grid"><?php foreach (Billing::MODULES as $mk => $ml): ?><label class="check"><input type="checkbox" name="disabled_modules[]" value="<?= $mk ?>" <?= in_array($mk, $dis, true) ? 'checked' : '' ?>> <span><?= e($ml) ?></span></label><?php endforeach; ?></div>
   </div>
 <?php elseif ($tab === 'securite'): ?>
   <?php $sk = one("SELECT SUM(role = 'superadmin') admins, SUM(role = 'superadmin' AND totp_enabled = 1) admins2fa, SUM(role = 'owner') owners, SUM(role = 'owner' AND totp_enabled = 1) owners2fa FROM users WHERE active = 1"); ?>
-  <div class="card" style="max-width:820px">
+  <div class="card u-mw820">
     <h2>Double authentification</h2>
-    <p class="muted" style="font-size:14px">Équipe plateforme : <b><?= (int)$sk['admins2fa'] ?> / <?= (int)$sk['admins'] ?></b> avec 2FA · Responsables d'organisateurs : <b><?= (int)$sk['owners2fa'] ?> / <?= (int)$sk['owners'] ?></b>.</p>
+    <p class="muted u-fs14">Équipe plateforme : <b><?= (int)$sk['admins2fa'] ?> / <?= (int)$sk['admins'] ?></b> avec 2FA · Responsables d'organisateurs : <b><?= (int)$sk['owners2fa'] ?> / <?= (int)$sk['owners'] ?></b>.</p>
     <label class="check"><input type="checkbox" name="admin_2fa" value="1" <?= $c('admin_2fa') ?>> <span><b>Obligatoire pour l'équipe plateforme</b><br><small class="muted">Un super-admin sans 2FA est envoyé sur « Mon compte » pour l'activer avant d'accéder au super-admin. Active-la d'abord sur ton compte.</small></span></label>
   </div>
-  <div class="card" style="max-width:820px">
+  <div class="card u-mw820">
     <h2>Verrouillage des comptes</h2>
     <div class="grid2">
       <div class="field"><label>Verrouiller après</label><div class="input-suffix"><input type="number" name="lock_after" min="3" max="50" value="<?= (int)(setting('lock_after', '8') ?: 8) ?>"><span>échecs</span></div></div>
       <div class="field"><label>Pendant</label><div class="input-suffix"><input type="number" name="lock_minutes" min="5" max="1440" value="<?= (int)(setting('lock_minutes', '15') ?: 15) ?>"><span>minutes</span></div></div>
     </div>
-    <p class="muted mb0" style="font-size:13px">En plus, une même adresse IP est freinée après 5 essais ratés. Le journal complet est dans <a href="<?= url('/admin/utilisateurs') ?>">Utilisateurs & sécurité</a>.</p>
+    <p class="muted mb0 u-fs13">En plus, une même adresse IP est freinée après 5 essais ratés. Le journal complet est dans <a href="<?= url('/admin/utilisateurs') ?>">Utilisateurs & sécurité</a>.</p>
   </div>
 <?php elseif ($tab === 'apparence'): ?>
-  <div class="card" style="max-width:820px">
+  <div class="card u-mw820">
     <div class="grid2">
       <div class="field"><label>Nom de la plateforme</label><input name="platform_name" value="<?= $s('platform_name') ?>" required></div>
       <div class="field"><label>Slogan</label><input name="tagline" value="<?= $s('tagline') ?>"><small>Pied de page et titres.</small></div>

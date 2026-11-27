@@ -2,7 +2,7 @@
 <html lang="fr">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#0c0c0c">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -46,7 +46,7 @@
     <div id="ap-list" class="pick-list"></div>
     <h2 class="mt">Dans quel sens ?</h2>
     <div class="seg"><button data-dir="in" class="on">Entrée</button><button data-dir="out">Sortie</button></div>
-    <p class="muted" id="reentry-note" style="font-size:14px"></p>
+    <p class="muted u-fs14" id="reentry-note"></p>
     <div class="dl-box" id="dl-box"><span id="dl-text">Téléchargement des billets…</span><div class="bar"><i id="dl-bar" style="width:0"></i></div></div>
     <button class="btn btn-lg btn-block mt" id="start-btn" disabled>C'est parti</button>
   </div>
@@ -95,7 +95,7 @@
 
 <!-- Recherche par nom -->
 <section class="screen overlay" id="s-search" hidden>
-  <header class="scan-head"><button class="icon-btn" data-close="search" aria-label="Fermer">✕</button><b class="head-title">Chercher un nom</b><span></span></header>
+  <header class="scan-head"><button class="icon-btn" data-close="search" aria-label="Fermer"><?= ui_icon('x', 20) ?></button><b class="head-title">Chercher un nom</b><span></span></header>
   <div class="scan-pad">
     <input id="search-input" type="search" placeholder="Nom, prénom ou code…" autocomplete="off">
     <div id="search-list" class="search-list"></div>
@@ -104,19 +104,19 @@
 
 <!-- Historique de l'appareil -->
 <section class="screen overlay" id="s-history" hidden>
-  <header class="scan-head"><button class="icon-btn" data-close="history" aria-label="Fermer">✕</button><b class="head-title">Mes derniers passages</b><span></span></header>
-  <div class="scan-pad"><p class="muted" style="margin-top:0">Les 150 derniers passages scannés sur ce téléphone. Une erreur ? Annule-la ici.</p><div id="history-list" class="search-list"></div></div>
+  <header class="scan-head"><button class="icon-btn" data-close="history" aria-label="Fermer"><?= ui_icon('x', 20) ?></button><b class="head-title">Mes derniers passages</b><span></span></header>
+  <div class="scan-pad"><p class="muted u-mt0">Les 150 derniers passages scannés sur ce téléphone. Une erreur ? Annule-la ici.</p><div id="history-list" class="search-list"></div></div>
 </section>
 
 <!-- Stats en direct -->
 <section class="screen overlay" id="s-stats" hidden>
-  <header class="scan-head"><button class="icon-btn" data-close="stats" aria-label="Fermer">✕</button><b class="head-title">En direct</b><span></span></header>
+  <header class="scan-head"><button class="icon-btn" data-close="stats" aria-label="Fermer"><?= ui_icon('x', 20) ?></button><b class="head-title">En direct</b><span></span></header>
   <div class="scan-pad" id="stats-body"><p class="muted">Chargement…</p></div>
 </section>
 
 <!-- Menu -->
 <section class="screen overlay" id="s-menu" hidden>
-  <header class="scan-head"><button class="icon-btn" data-close="menu" aria-label="Fermer">✕</button><b class="head-title">Menu</b><span></span></header>
+  <header class="scan-head"><button class="icon-btn" data-close="menu" aria-label="Fermer"><?= ui_icon('x', 20) ?></button><b class="head-title">Menu</b><span></span></header>
   <div class="scan-pad pick-list">
     <button class="pick" id="m-history"><b>Mes derniers passages</b><small>Voir et annuler une erreur</small></button>
     <button class="pick" id="m-stats"><b>Stats en direct</b><small>Par porte et par heure</small></button>

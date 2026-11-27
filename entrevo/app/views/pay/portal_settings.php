@@ -12,7 +12,7 @@
   </div>
   <div class="card stack">
     <h2>Portail festivalier</h2>
-    <p class="pnote" style="margin:0">Adresse : <a href="<?= Pay::url('/e/' . $ev['slug']) ?>" target="_blank"><?= e(Pay::absUrl('/e/' . $ev['slug'])) ?></a></p>
+    <p class="pnote u-m0">Adresse : <a href="<?= Pay::url('/e/' . $ev['slug']) ?>" target="_blank"><?= e(Pay::absUrl('/e/' . $ev['slug'])) ?></a></p>
     <label class="check"><input type="checkbox" name="virtual" value="1" <?= $s['virtual'] ? 'checked' : '' ?>> <span><b>Cartes virtuelles</b><br><small class="muted">Sans billet ni bracelet : le festivalier crée sa carte avec son e-mail et paie avec le QR code sur son téléphone.</small></span></label>
     <label class="check"><input type="checkbox" name="transfer" value="1" <?= $s['transfer'] ? 'checked' : '' ?>> <span><b>Transfert entre amis</b><br><small class="muted">Envoyer une partie de son solde sur la carte ou le bracelet d'un ami.</small></span></label>
     <label class="check"><input type="checkbox" name="self_block" value="1" <?= $s['self_block'] ? 'checked' : '' ?>> <span><b>Blocage en autonomie</b><br><small class="muted">Bracelet perdu ou volé : le festivalier le bloque lui-même, son solde est protégé et se reporte sur un nouveau bracelet au point info.</small></span></label>

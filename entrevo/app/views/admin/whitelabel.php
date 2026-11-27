@@ -28,8 +28,8 @@ $st = ['active' => ['green', 'Actif'], 'pending' => ['orange', 'DNS à vérifier
     <?php if ($sel && $sel['custom_domain']): ?>
     <div class="row mt wl-actions">
       <button class="btn btn-sm btn-light" form="wl-check">Vérifier le DNS</button>
-      <?php if ($sel['domain_status'] !== 'active'): ?><button class="btn btn-sm btn-light" form="wl-force" onclick="return confirm('Activer sans vérification ? À réserver aux domaines derrière un CDN ou un proxy.')">Activer sans vérifier</button><?php endif; ?>
-      <?php if ((int)$sel['white_label']): ?><button class="btn btn-sm btn-light danger" form="wl-off" onclick="return confirm('Couper la marque blanche ?')">Couper</button><?php endif; ?>
+      <?php if ($sel['domain_status'] !== 'active'): ?><button class="btn btn-sm btn-light" form="wl-force" data-confirm="Activer sans vérification ? À réserver aux domaines derrière un CDN ou un proxy.">Activer sans vérifier</button><?php endif; ?>
+      <?php if ((int)$sel['white_label']): ?><button class="btn btn-sm btn-light danger" form="wl-off" data-confirm="Couper la marque blanche ?">Couper</button><?php endif; ?>
     </div>
     <?php endif; ?>
   </form>

@@ -11,7 +11,7 @@
     <div class="field mb0"><label>Mois</label><input type="month" name="period" value="<?= e($prev) ?>" max="<?= e($prev) ?>"></div>
     <label class="check"><input type="checkbox" name="send" value="1" checked> Envoyer par e-mail (PDF joint)</label>
     <button class="btn">Générer</button>
-    <span class="muted" style="font-size:13px"><?= setting('invoice_auto') === '1' ? 'Génération automatique le 1er de chaque mois : activée.' : 'Astuce : active la génération automatique dans Réglages › Commissions.' ?></span>
+    <span class="muted u-fs13"><?= setting('invoice_auto') === '1' ? 'Génération automatique le 1er de chaque mois : activée.' : 'Astuce : active la génération automatique dans Réglages › Commissions.' ?></span>
   </form>
 </div>
 <form class="toolbar" method="get"><input type="month" name="mois" value="<?= e($period) ?>"><button class="btn btn-sm">Filtrer</button><?php if ($period): ?><a href="<?= url('/admin/factures') ?>">Tout voir</a><?php endif; ?></form>

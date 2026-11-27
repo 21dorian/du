@@ -220,14 +220,14 @@ $fromPrice = $onSalePrices ? min($onSalePrices) : null;
     <details class="card group-buy"><summary>Payer à plusieurs : chacun paie sa place</summary>
       <form method="post" action="<?= url('/e/' . $ev['slug'] . '/bande') ?>"><?= csrf_field() ?><?php if ($session): ?><input type="hidden" name="session_id" value="<?= (int)$session['id'] ?>"><?php endif; ?>
         <small class="muted">On bloque les places 24 h pour ta bande. Tu partages le lien, chacun paie la sienne (toi aussi).</small>
-        <div class="grid2"><select name="rate_id"><?php foreach ($grpRates as $r): ?><option value="<?= (int)$r['id'] ?>"><?= e($r['name']) ?> · <?= e(money((int)$r['price'])) ?></option><?php endforeach; ?></select><select name="qty"><?php for ($i = 2; $i <= 12; $i++): ?><option value="<?= $i ?>" <?= $i === 4 ? 'selected' : '' ?>><?= $i ?> personnes</option><?php endfor; ?></select></div>
+        <div class="grid2"><select name="rate_id" aria-label="Tarif"><?php foreach ($grpRates as $r): ?><option value="<?= (int)$r['id'] ?>"><?= e($r['name']) ?> · <?= e(money((int)$r['price'])) ?></option><?php endforeach; ?></select><select name="qty"><?php for ($i = 2; $i <= 12; $i++): ?><option value="<?= $i ?>" <?= $i === 4 ? 'selected' : '' ?>><?= $i ?> personnes</option><?php endfor; ?></select></div>
         <div class="grid2"><input name="name" placeholder="Ton prénom" required><input type="email" name="email" placeholder="Ton e-mail" required></div>
         <button class="btn">Bloquer les places</button></form></details>
     <?php endif; endif; ?>
     <?php if (($hasCodes || !empty($org['gift_enabled'])) && $anyOnSale): ?>
     <form method="post" action="<?= url($base) ?>"><?= csrf_field() ?>
       <details class="code-box"><summary>T'as un code ?</summary>
-        <div class="row" style="margin-top:12px;flex-wrap:nowrap;gap:0"><input type="text" name="code" placeholder="CODE" style="text-transform:uppercase" required aria-label="Code"><button class="btn" name="action" value="code">OK</button></div>
+        <div class="row" style="margin-top:12px;flex-wrap:nowrap;gap:0"><input type="text" name="code" placeholder="CODE" class="u-upper" required aria-label="Code"><button class="btn" name="action" value="code">OK</button></div>
       </details>
     </form>
     <?php endif; ?>
@@ -236,7 +236,7 @@ $fromPrice = $onSalePrices ? min($onSalePrices) : null;
         <h3>Complet… mais pas fini !</h3>
         <p class="muted" style="font-size:14.5px">Inscris-toi sur la liste d'attente : si une place se libère, la première personne inscrite la reçoit par e-mail et on la lui garde <?= Waitlist::hours($ev) ?> h.</p>
         <div class="grid2"><input name="first_name" placeholder="Prénom"><input name="last_name" placeholder="Nom"></div>
-        <div class="row mt" style="flex-wrap:nowrap;gap:0"><input type="email" name="email" placeholder="ton@email.fr" required><select name="qty" style="width:90px"><?php for ($i = 1; $i <= 6; $i++): ?><option value="<?= $i ?>"><?= $i ?> pl.</option><?php endfor; ?></select></div>
+        <div class="row mt" style="flex-wrap:nowrap;gap:0"><input type="email" name="email" placeholder="ton@email.fr" required><select name="qty" aria-label="Nombre de places" style="width:90px"><?php for ($i = 1; $i <= 6; $i++): ?><option value="<?= $i ?>"><?= $i ?> pl.</option><?php endfor; ?></select></div>
         <button class="btn btn-block mt">Je m'inscris</button>
       </form>
     <?php endif; ?>
@@ -266,7 +266,7 @@ $fromPrice = $onSalePrices ? min($onSalePrices) : null;
   data-csrf="<?= e(csrf_token()) ?>" data-buyer="<?= e(json_encode($buyerPre ? array_intersect_key($buyerPre, array_flip(['first_name', 'last_name', 'email', 'phone'])) : null, JSON_UNESCAPED_UNICODE)) ?>">
   <header class="dw-head">
     <div class="dw-ev"><?php if ($ev['image']): ?><img src="<?= url($ev['image']) ?>" alt=""><?php endif; ?><div><b><?= e($ev['name']) ?></b><small><?= e(fr_date($session['starts_at'] ?? $ev['starts_at'])) ?></small></div></div>
-    <button type="button" class="dw-x" data-dw-close aria-label="Fermer">✕</button>
+    <button type="button" class="dw-x" data-dw-close aria-label="Fermer"><?= ui_icon('x', 18) ?></button>
     <ol class="dw-steps"><li data-step="1">Billets</li><li data-step="2">Toi</li><li data-step="3">Récap</li><li data-step="4">Paiement</li></ol>
   </header>
   <div class="dw-body">

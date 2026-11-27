@@ -1,5 +1,5 @@
 <?php /** @var array $a, $ev, $org, $perfs */ ?>
-<section class="store-wrap" style="max-width:760px">
+<section class="store-wrap u-mw760">
   <span class="eyebrow"><?= e($org['name']) ?> · espace artiste</span>
   <h1><?= e($a['name']) ?></h1>
   <p class="lead"><?= e($ev['name']) ?> · <?= e(fr_date($ev['starts_at'])) ?></p>

@@ -18,7 +18,7 @@
     <?php foreach ($S['payouts'] as $p): ?><div class="list-item"><span class="grow">Virement du <?= e(date('d/m/Y', strtotime($p['paid_at']))) ?><?= $p['note'] ? ' · ' . e($p['note']) : '' ?></span><b>− <?= e(money((int)$p['amount'])) ?></b></div><?php endforeach; ?>
     <div class="row mt"><a class="btn btn-sm btn-light" target="_blank" href="<?= url($base . '/exploitants/' . $op['id'], ['pdf' => 1]) ?>">Relevé PDF</a></div></div>
   <form method="post" class="card stack"><?= csrf_field() ?><input type="hidden" name="action" value="payout"><h2>Enregistrer un reversement</h2>
-    <p class="pnote" style="margin:0"><?= $op['iban'] ? 'IBAN : <span class="mono">' . e($op['iban']) . '</span>' : 'Pas d\'IBAN sur la fiche.' ?></p>
+    <p class="pnote u-m0"><?= $op['iban'] ? 'IBAN : <span class="mono">' . e($op['iban']) . '</span>' : 'Pas d\'IBAN sur la fiche.' ?></p>
     <div class="input-suffix"><input name="amount" inputmode="decimal" value="<?= e(money_input(max(0, $S['left']))) ?>"><span>€</span></div>
     <input type="date" name="paid_at" value="<?= date('Y-m-d') ?>"><input name="note" placeholder="Référence du virement"><button class="btn btn-sm">Enregistrer</button></form>
 </div>

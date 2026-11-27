@@ -37,7 +37,7 @@ $hours = array_fill(0, 24, 0); foreach ($byHour as $h) $hours[(int)$h['h']] = (i
   <div class="card"><h2>Par tarif</h2><?= $bars($st['by_rate'], 'name', 'sold', fn($l) => $l, fn($r) => $r['sold'] . ' · ' . money((int)$r['revenue'])) ?></div>
   <div class="card"><h2>Par canal</h2><?= $bars($byChannel, 'c', 'n', fn($l) => $channels[$l] ?? $l, fn($r) => $r['n'] . ' · ' . money((int)$r['t'])) ?></div>
   <div class="card"><h2>Provenance (UTM)</h2><?= $bars($bySource, 's', 'n', fn($l) => $l, fn($r) => $r['n'] . ($r['c'] ? ' · ' . $r['c'] : '')) ?>
-    <p class="muted mb0" style="font-size:13px">Ajoute <code>?utm_source=instagram</code> à ton lien pour savoir d'où viennent tes acheteurs.</p></div>
+    <p class="muted mb0 u-fs13">Ajoute <code>?utm_source=instagram</code> à ton lien pour savoir d'où viennent tes acheteurs.</p></div>
   <div class="card"><h2>Codes promo</h2><?= $bars($byPromo, 'promo_code', 'n', fn($l) => $l, fn($r) => $r['n'] . ' · −' . money((int)$r['d'])) ?></div>
   <div class="card"><h2>Moyens de paiement</h2><?= $bars($byProvider, 'p', 't', fn($l) => $payLabels[$l] ?? (provider_label($l) ?: $l), fn($r) => money((int)$r['t'])) ?></div>
   <div class="card"><h2>Options vendues</h2><?= $bars($products, 'name', 'q', fn($l) => $l, fn($r) => $r['q'] . ' · ' . money((int)$r['t'])) ?></div>

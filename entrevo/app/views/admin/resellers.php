@@ -40,7 +40,7 @@ $pctTxt = fn($v) => rtrim(rtrim(number_format((float)$v, 2, ',', ''), '0'), ',')
     <?php if ($r['id']): ?>
     <div class="card">
       <div class="card-head"><h2>Portail de vente</h2><?= (int)$r['active'] ? '<span class="badge green">ouvert</span>' : '<span class="badge grey">suspendu</span>' ?></div>
-      <div class="rs-copy"><input readonly value="<?= e(abs_url('/revendeur/' . $r['token'])) ?>" onclick="this.select()"><a class="btn btn-sm btn-light" target="_blank" href="<?= url('/revendeur/' . $r['token']) ?>">Ouvrir</a></div>
+      <div class="rs-copy"><input readonly value="<?= e(abs_url('/revendeur/' . $r['token'])) ?>" data-select><a class="btn btn-sm btn-light" target="_blank" href="<?= url('/revendeur/' . $r['token']) ?>">Ouvrir</a></div>
       <div class="row mt">
         <form method="post"><?= csrf_field() ?><input type="hidden" name="reseller_id" value="<?= (int)$r['id'] ?>"><button class="btn btn-sm" name="action" value="send">Envoyer le lien par e-mail</button></form>
         <form method="post" onsubmit="return confirm('L\'ancien lien ne marchera plus. Continuer ?')"><?= csrf_field() ?><input type="hidden" name="reseller_id" value="<?= (int)$r['id'] ?>"><button class="btn btn-sm btn-light" name="action" value="token">Nouveau lien</button></form>

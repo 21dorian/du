@@ -7,5 +7,5 @@
     <h2>Recevoir par e-mail</h2>
     <div class="row"><input type="email" name="email" required placeholder="ton@email.fr" value="<?= e((string)$s['receipt_email']) ?>" class="grow"><button class="btn">Envoyer</button></div>
   </form>
-  <button class="btn btn-light no-print" onclick="print()">Imprimer</button>
+  <button class="btn btn-light no-print" data-print>Imprimer</button>
 </section>

@@ -19,7 +19,7 @@
   <div class="card">
     <h2>Pour qui ?</h2>
     <div class="field"><label>Type</label>
-      <label class="check" style="margin-bottom:6px"><input type="radio" name="method" value="guichet" <?= input('method', 'guichet') === 'guichet' ? 'checked' : '' ?>> Vente au guichet</label>
+      <label class="check u-mb6"><input type="radio" name="method" value="guichet" <?= input('method', 'guichet') === 'guichet' ? 'checked' : '' ?>> Vente au guichet</label>
       <label class="check"><input type="radio" name="method" value="invitation" <?= input('method') === 'invitation' ? 'checked' : '' ?>> Invitation (gratuit)</label></div>
     <div class="field" data-show-if="method=guichet"><label>Payé en</label><select name="pay_method"><option value="especes">Espèces</option><option value="cb">Carte (TPE)</option><option value="cheque">Chèque</option><option value="virement">Virement</option><option value="autre">Autre</option></select></div>
     <div class="grid2">

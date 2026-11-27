@@ -5,7 +5,7 @@
 <form method="post" class="pp-card pp-stack"><?= csrf_field() ?><input type="hidden" name="action" value="virtual">
   <h2>Créer ma carte cashless</h2><p>Une carte virtuelle sur ton téléphone : recharge-la en ligne, puis présente son QR code au bar. Tu pourras lui associer un bracelet sur place.</p>
   <input name="name" placeholder="Prénom (facultatif)"><input name="email" type="email" placeholder="ton@email.fr" required>
-  <button class="pp-btn">Créer ma carte</button><p class="pp-note" style="margin:0">Ton e-mail sert à retrouver ta carte et à recevoir tes reçus.</p></form>
+  <button class="pp-btn">Créer ma carte</button><p class="pp-note u-m0">Ton e-mail sert à retrouver ta carte et à recevoir tes reçus.</p></form>
 <?php endif; ?>
 <form method="post" class="pp-card pp-stack"><?= csrf_field() ?>
   <h2>J'ai déjà un billet ou un bracelet</h2><p>Saisis le code de ton billet, de ta carte, ou le numéro imprimé sur ton bracelet.</p>

@@ -36,7 +36,7 @@
     </tbody>
   </table></div>
 </div>
-<p class="muted" style="font-size:13px">Les acheteurs peuvent cocher « recevoir les prochains événements » au moment de payer : ta liste grossit toute seule. Les e-mails partent par lots de <?= Campaigns::BATCH ?> toutes les minutes environ, pour rester dans les limites de ton hébergement.</p>
+<p class="muted u-fs13">Les acheteurs peuvent cocher « recevoir les prochains événements » au moment de payer : ta liste grossit toute seule. Les e-mails partent par lots de <?= Campaigns::BATCH ?> toutes les minutes environ, pour rester dans les limites de ton hébergement.</p>
 <?php $ao = $auto['org']; $rc = $auto['recovery']; ?>
 <div class="card auto-card">
   <div class="card-head"><h2>Envois automatiques</h2><small class="muted">Ils partent tout seuls · chiffres des 90 derniers jours</small></div>

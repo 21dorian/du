@@ -16,11 +16,11 @@ $link = abs_url('/e/' . $ev['slug']);
 ?>
 <div class="card" style="padding:16px 20px;margin-bottom:18px">
   <div class="row between">
-    <div class="ev-head grow" style="margin:0">
+    <div class="ev-head grow u-m0">
       <div class="ev-thumb"><?php if ($ev['image']): ?><img src="<?= url($ev['image']) ?>" alt=""><?php endif; ?></div>
       <div style="min-width:0">
-        <div class="row" style="gap:8px"><b style="font-size:17px"><?= e($ev['name']) ?></b><?= badge($ev['status']) ?></div>
-        <div class="muted" style="font-size:14px"><?= e(fr_date($ev['starts_at'])) ?><?= $ev['venue'] ? ' · ' . e($ev['venue']) : '' ?></div>
+        <div class="row u-gap8"><b style="font-size:17px"><?= e($ev['name']) ?></b><?= badge($ev['status']) ?></div>
+        <div class="muted u-fs14"><?= e(fr_date($ev['starts_at'])) ?><?= $ev['venue'] ? ' · ' . e($ev['venue']) : '' ?></div>
       </div>
     </div>
     <div class="row">

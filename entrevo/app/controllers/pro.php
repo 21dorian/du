@@ -675,7 +675,7 @@ function team(): string
         $a = (string)input('action');
         $uid = (int)input('user_id');
         $target = $uid ? one('SELECT * FROM users WHERE id = ? AND organizer_id = ?', [$uid, $org['id']]) : null;
-        if (str_starts_with($a, 'crole_')) { require_once APP . '/controllers/extras4.php'; custom_roles_post($org, $a); }
+        if (str_starts_with($a, 'crole_')) { require_once APP . '/controllers/extras.php'; custom_roles_post($org, $a); }
         // 4.0 : rôle personnalisé = gestionnaire limité à certaines rubriques / certains événements
         $crole = 0;
         if (preg_match('~^c(\d+)$~', (string)input('role'), $cm) && val('SELECT id FROM org_roles WHERE id = ? AND organizer_id = ?', [(int)$cm[1], $org['id']])) { $crole = (int)$cm[1]; $_POST['role'] = 'manager'; }

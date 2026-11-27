@@ -1,5 +1,5 @@
 <?php /** @var array $ev, $members, $docs, $sigs, $shifts, $teams, $tot */ $base = '/pro/evenements/' . $ev['id']; ?>
-<div class="page-head"><div><p class="muted" style="margin-top:0">Repas, hébergement et matériel de chaque bénévole, documents à signer en ligne, messages par poste et plannings individuels.</p></div>
+<div class="page-head"><div><p class="muted u-mt0">Repas, hébergement et matériel de chaque bénévole, documents à signer en ligne, messages par poste et plannings individuels.</p></div>
   <a class="btn btn-light" href="<?= url($base . '/benevoles') ?>">Planning des créneaux</a></div>
 <div class="kpis"><div class="kpi"><small>Personnes confirmées</small><b><?= count($members) ?></b></div><div class="kpi"><small>Repas prévus</small><b><?= (int)$tot['meals'] ?></b></div><div class="kpi"><small>Repas servis</small><b><?= (int)$tot['used'] ?></b></div><div class="kpi"><small>Hébergés</small><b><?= (int)$tot['lodging'] ?></b></div></div>
 
@@ -40,9 +40,9 @@
   </form>
 </div>
 
-<?php if ($docs): ?><div class="card table-card mt"><div class="card-head"><h2>Documents</h2></div><table class="table"><thead><tr><th>Document</th><th>Pour</th><th class="num">Signatures</th><th>Manquantes</th><th></th></tr></thead><tbody>
+<?php if ($docs): ?><div class="card table-card mt"><div class="card-head"><h2>Documents</h2></div><div class="table-wrap"><table class="table"><thead><tr><th>Document</th><th>Pour</th><th class="num">Signatures</th><th>Manquantes</th><th></th></tr></thead><tbody>
 <?php foreach ($docs as $d): $missing = array_filter($members, fn($m) => empty($sigs[$d['id']][$m['id']]) && (!$d['team'] || $d['team'] === $m['team'])); ?><tr>
   <td><b><?= e($d['title']) ?></b><br><small class="muted"><?= e(short_date($d['created_at'])) ?></small></td><td><?= $d['event_id'] ? 'Cet événement' : 'Tous' ?><?= $d['team'] ? ' · ' . e($d['team']) : '' ?></td>
   <td class="num"><?= (int)$d['signed'] ?></td><td><small><?= $missing ? e(mb_strimwidth(implode(', ', array_map(fn($m) => $m['first_name'] . ' ' . mb_substr($m['last_name'], 0, 1) . '.', $missing)), 0, 90, '…')) : '<span class="badge ok">Complet</span>' ?></small></td>
   <td class="nowrap"><a class="btn btn-sm btn-light" href="<?= url($base . '/equipes/documents/' . $d['id']) ?>">Voir</a><?php if (!(int)$d['signed']): ?> <form method="post" style="display:inline"><?= csrf_field() ?><input type="hidden" name="doc_id" value="<?= (int)$d['id'] ?>"><button class="btn btn-sm btn-ghost" name="action" value="doc_delete" data-confirm="Supprimer ce document ?">Supprimer</button></form><?php endif; ?></td>
-</tr><?php endforeach; ?></tbody></table></div><?php endif; ?>
+</tr><?php endforeach; ?></tbody></table></div></div><?php endif; ?>

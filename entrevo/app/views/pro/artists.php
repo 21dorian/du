@@ -22,7 +22,7 @@ $base = '/pro/evenements/' . $ev['id'] . '/artistes'; ?>
         <?php if ($p['soundcheck_at']): ?><i class="lu-sc" style="left:<?= $pos($p['soundcheck_at']) ?>%;width:<?= max(0.6, round(1800 / $span * 100, 2)) ?>%" title="Balance <?= e($p['name']) ?> <?= date('H\hi', strtotime($p['soundcheck_at'])) ?>"></i><?php endif; ?>
         <a class="lu-set <?= $p['status'] ?>" href="<?= url($base, ['edit' => $p['artist_id']]) ?>#fiche" style="left:<?= $pos($p['starts_at']) ?>%;width:<?= max(2, $pos($p['ends_at']) - $pos($p['starts_at'])) ?>%"><b><?= e($p['name']) ?></b><small><?= date('H\hi', strtotime($p['starts_at'])) ?>–<?= date('H\hi', strtotime($p['ends_at'])) ?></small></a>
       <?php endforeach; ?></div></div><?php endforeach; ?>
-    <p class="muted mb0" style="font-size:12.5px"><i class="lu-legend lu-sc"></i> balance · hachuré : en option · <?= e(date('d/m', $min)) ?></p>
+    <p class="muted mb0 u-fs13"><i class="lu-legend lu-sc"></i> balance · hachuré : en option · <?= e(date('d/m', $min)) ?></p>
   </div>
   <?php else: ?><p class="muted mb0">Ajoute un artiste, puis ses horaires de passage : le planning par scène apparaît ici.</p><?php endif; ?>
 </div>
@@ -52,7 +52,7 @@ $base = '/pro/evenements/' . $ev['id'] . '/artistes'; ?>
       <div class="field"><label>Fiche technique / besoins</label><textarea name="rider" rows="3" placeholder="Backline, retours, micros, lumière…"><?= e((string)$a['rider']) ?></textarea></div>
       <div class="field"><label>Accueil</label><textarea name="hospitality" rows="2" placeholder="Repas, loge, hébergement, transport…"><?= e((string)$a['hospitality']) ?></textarea></div>
       <div class="field"><label>Notes internes</label><textarea name="notes" rows="2"><?= e((string)$a['notes']) ?></textarea></div>
-      <div class="row"><button class="btn">Enregistrer</button><?php if ($a['id']): ?><button class="btn btn-light" name="action" value="send" formnovalidate>Envoyer sa feuille de route</button><button class="btn btn-ghost" style="color:var(--red)" name="action" value="delete" formnovalidate data-confirm="Supprimer cet artiste et ses passages ?">Supprimer</button><?php endif; ?></div>
+      <div class="row"><button class="btn">Enregistrer</button><?php if ($a['id']): ?><button class="btn btn-light" name="action" value="send" formnovalidate>Envoyer sa feuille de route</button><button class="btn btn-ghost u-red" name="action" value="delete" formnovalidate data-confirm="Supprimer cet artiste et ses passages ?">Supprimer</button><?php endif; ?></div>
     </form>
     <?php if ($a['id']): ?>
     <div class="card"><h2>Passages</h2>

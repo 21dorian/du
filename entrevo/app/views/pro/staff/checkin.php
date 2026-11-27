@@ -6,7 +6,7 @@
 </div>
 <?php if (count($days) > 1): ?><nav class="pill-tabs"><?php foreach ($days as $d): ?><a class="<?= $d === $day ? 'on' : '' ?>" href="?jour=<?= e($d) ?>"><?= e(date('d/m', strtotime($d))) ?></a><?php endforeach; ?></nav><?php endif; ?>
 <div class="card">
-  <form method="post" class="row badge-scan" style="gap:8px"><?= csrf_field() ?>
+  <form method="post" class="row badge-scan u-gap8"><?= csrf_field() ?>
     <input name="badge" placeholder="Scanne ou tape le code du badge bénévole" autofocus autocomplete="off" aria-label="Code du badge">
     <button class="btn">Pointer</button></form>
   <small class="muted">La douchette fonctionne ici. 1er passage = arrivée, 2e = départ. Ou clique sur les boutons ci-dessous.</small>

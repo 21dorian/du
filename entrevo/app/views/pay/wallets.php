@@ -24,7 +24,7 @@
     <?php if (!$list): ?><tr><td colspan="6" class="pempty">Aucun porte-monnaie trouvé.</td></tr><?php endif; ?>
   </tbody></table></div></div>
   <form method="post" class="card stack"><?= csrf_field() ?><input type="hidden" name="action" value="virtual">
-    <h2>Nouvelle carte cashless</h2><p class="pnote" style="margin:0">Carte virtuelle (QR code sur le téléphone) pour un invité, un artiste, un partenaire. On peut ensuite lui associer un bracelet.</p>
+    <h2>Nouvelle carte cashless</h2><p class="pnote u-m0">Carte virtuelle (QR code sur le téléphone) pour un invité, un artiste, un partenaire. On peut ensuite lui associer un bracelet.</p>
     <input name="name" placeholder="Nom du titulaire"><input name="email" type="email" placeholder="E-mail (facultatif)">
     <select name="profile"><?php foreach (Pay::PROFILES as $pk => $pl): ?><option value="<?= $pk ?>"><?= e($pl) ?></option><?php endforeach; ?></select>
     <div class="input-suffix"><input name="amount" inputmode="decimal" placeholder="Crédit offert (facultatif)"><span>€</span></div>

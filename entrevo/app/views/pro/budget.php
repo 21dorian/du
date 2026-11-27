@@ -79,7 +79,7 @@ $edit = $edit ?: ['id' => 0, 'kind' => (string)input('type') === 'recette' ? 'in
       <div class="field mb0"><label>Fournisseur / financeur</label><input name="supplier" value="<?= e((string)$edit['supplier']) ?>"></div>
       <label class="check"><input type="checkbox" name="paid" value="1" <?= $edit['paid'] ? 'checked' : '' ?>> Déjà payé / reçu</label>
       <div class="field mb0"><label>Note</label><input name="note" value="<?= e((string)$edit['note']) ?>"></div>
-      <div class="row" style="gap:8px"><button class="btn btn-sm"><?= $edit['id'] ? 'Enregistrer' : 'Ajouter' ?></button><?php if ($edit['id']): ?><a href="<?= url($base) ?>">Annuler</a><?php endif; ?></div>
+      <div class="row u-gap8"><button class="btn btn-sm"><?= $edit['id'] ? 'Enregistrer' : 'Ajouter' ?></button><?php if ($edit['id']): ?><a href="<?= url($base) ?>">Annuler</a><?php endif; ?></div>
     </form>
   </div>
 </div>

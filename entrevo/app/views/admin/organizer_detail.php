@@ -6,7 +6,7 @@
 <?php $pctTxt = fn($v) => rtrim(rtrim(number_format((float)$v, 2, ',', ''), '0'), ','); ?>
 <div class="org-hero card">
   <div class="org-hero-id"><?php if ($org['logo']): ?><img src="<?= url($org['logo']) ?>" alt=""><?php else: ?><span><?= e(mb_strtoupper(mb_substr($org['name'], 0, 1))) ?></span><?php endif; ?>
-    <div><div class="row" style="gap:8px"><b class="org-hero-name"><?= e($org['name']) ?></b><?= badge($org['status']) ?><span class="badge grey">Formule <?= e($terms['plan']['name'] ?? 'plateforme') ?></span><a class="badge <?= ($org['kyc_status'] ?? '') === 'verified' ? 'green' : 'orange' ?>" href="<?= url('/admin/kyc/' . $org['id']) ?>">KYC : <?= e(Kyc::STATUS[$org['kyc_status'] ?? 'none'][0]) ?></a></div>
+    <div><div class="row u-gap8"><b class="org-hero-name"><?= e($org['name']) ?></b><?= badge($org['status']) ?><span class="badge grey">Formule <?= e($terms['plan']['name'] ?? 'plateforme') ?></span><a class="badge <?= ($org['kyc_status'] ?? '') === 'verified' ? 'green' : 'orange' ?>" href="<?= url('/admin/kyc/' . $org['id']) ?>">KYC : <?= e(Kyc::STATUS[$org['kyc_status'] ?? 'none'][0]) ?></a></div>
       <small class="muted"><?= e((string)$org['email']) ?><?= $org['phone'] ? ' · ' . e($org['phone']) : '' ?> · inscrit le <?= e(date('d/m/Y', strtotime($org['created_at']))) ?> · <a href="<?= url('/o/' . $org['slug']) ?>" target="_blank">page publique</a></small></div></div>
   <div class="row"><a class="btn btn-sm btn-light" href="<?= url('/admin/commandes', ['org' => $org['id']]) ?>">Ses commandes</a><a class="btn btn-sm btn-light" href="<?= url('/admin/contrats', ['org' => $org['id']]) ?>#editeur">Nouveau contrat</a></div>
 </div>
@@ -66,7 +66,7 @@
     <div class="card">
       <h2>Historique des reversements</h2>
       <?php foreach ($payouts as $p): ?><div class="list-item"><span class="grow"><b><?= e(money((int)$p['amount'])) ?></b> <small><?= e($p['reference']) ?></small><br><small><?= e(short_date($p['created_at'])) ?> · <?= e($p['by_name']) ?><?= $p['note'] ? ' · ' . e($p['note']) : '' ?></small></span>
-        <form method="post"><?= csrf_field() ?><input type="hidden" name="payout_id" value="<?= (int)$p['id'] ?>"><button class="btn btn-sm btn-light" name="action" value="delete_payout" data-confirm="Supprimer ce reversement de l'historique ?">✕</button></form></div><?php endforeach; ?>
+        <form method="post"><?= csrf_field() ?><input type="hidden" name="payout_id" value="<?= (int)$p['id'] ?>"><button class="btn btn-sm btn-light" name="action" value="delete_payout" data-confirm="Supprimer ce reversement de l'historique ?" aria-label="Supprimer"><?= ui_icon('x', 14) ?></button></form></div><?php endforeach; ?>
       <?php if (!$payouts): ?><p class="muted">Aucun reversement.</p><?php endif; ?>
     </div>
   </div>
@@ -91,11 +91,11 @@
       <div class="field"><select name="plan_id"><option value="">Formule par défaut<?= ($d = Billing::defaultPlan()) ? ' (' . e($d['name']) . ')' : '' ?></option><?php foreach ($plans as $p): ?><option value="<?= (int)$p['id'] ?>" <?= (int)$org['plan_id'] === (int)$p['id'] ? 'selected' : '' ?>><?= e($p['name']) ?> · <?= (int)$p['monthly_price'] ? e(money((int)$p['monthly_price'])) . '/mois' : 'sans abonnement' ?></option><?php endforeach; ?></select></div>
       <label class="check mb"><input type="checkbox" name="notify" value="1" checked> <span>Prévenir l'organisateur par e-mail</span></label>
       <button class="btn btn-sm">Changer de formule</button>
-      <?php if ($terms['plan'] && $terms['plan']['modules']): ?><p class="muted mt mb0" style="font-size:13px">Modules inclus : <?= e(implode(', ', array_map(fn($m) => Billing::MODULES[$m] ?? $m, explode(',', (string)$terms['plan']['modules'])))) ?></p><?php endif; ?>
+      <?php if ($terms['plan'] && $terms['plan']['modules']): ?><p class="muted mt mb0 u-fs13">Modules inclus : <?= e(implode(', ', array_map(fn($m) => Billing::MODULES[$m] ?? $m, explode(',', (string)$terms['plan']['modules'])))) ?></p><?php endif; ?>
     </form>
     <div class="card"><h2>Commission appliquée</h2>
       <p class="mb0"><b><?= e($pctTxt($terms['pct'])) ?> % + <?= e(money($terms['fixed'])) ?></b> par billet<?= $terms['cap'] !== null ? ', plafonnée à ' . e(money($terms['cap'])) : '' ?></p>
-      <p class="muted" style="font-size:13px">Source : <?= e($terms['source']) ?>. Ordre : contrat en cours, puis réglage particulier ci-dessous, puis formule, puis réglage global.</p>
+      <p class="muted u-fs13">Source : <?= e($terms['source']) ?>. Ordre : contrat en cours, puis réglage particulier ci-dessous, puis formule, puis réglage global.</p>
     </div>
     <form class="card" method="post"><?= csrf_field() ?><input type="hidden" name="action" value="fees">
       <h2>Réglage particulier</h2>

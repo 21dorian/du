@@ -17,14 +17,14 @@
 <div class="split-3">
   <div class="stack">
     <?php foreach ($products as $p): ?>
-      <details class="box"><summary><span><?= e($p['name']) ?> <?= $p['active'] ? '' : badge('draft') ?></span><span class="muted" style="font-weight:500"><?= e(money((int)$p['price'])) ?> · <?= (int)$p['sold'] ?><?= $p['stock'] ? ' / ' . (int)$p['stock'] : '' ?> vendus</span></summary><?= $form($p) ?></details>
+      <details class="box"><summary><span><?= e($p['name']) ?> <?= $p['active'] ? '' : badge('draft') ?></span><span class="muted u-fw500"><?= e(money((int)$p['price'])) ?> · <?= (int)$p['sold'] ?><?= $p['stock'] ? ' / ' . (int)$p['stock'] : '' ?> vendus</span></summary><?= $form($p) ?></details>
     <?php endforeach; ?>
     <details class="box add" <?= !$products ? 'open' : '' ?>><summary>+ Ajouter un produit</summary><?= $form(null) ?></details>
     <div class="card table-card"><div class="card-head"><h2>Commandes boutique</h2></div>
       <div class="table-wrap"><table class="table"><thead><tr><th>Commande</th><th>Articles</th><th>Livraison</th><th class="num">Total</th><th></th></tr></thead><tbody>
       <?php foreach ($orders as $o): ?><tr><td><b><?= e($o['ref']) ?></b><br><small class="muted"><?= e(trim($o['first_name'] . ' ' . $o['last_name'])) ?> · <?= e(short_date($o['created_at'])) ?></small></td><td><small><?= e((string)$o['detail']) ?></small></td>
         <td><small><?= $o['delivery'] === 'ship' ? 'Envoi : ' . nl2br(e((string)$o['ship_address'])) : 'Retrait' ?></small></td><td class="num"><?= e(money((int)$o['total'])) ?></td>
-        <td class="right"><form method="post" class="inline-form"><?= csrf_field() ?><input type="hidden" name="order_id" value="<?= (int)$o['id'] ?>"><button class="btn btn-sm <?= $o['fulfilled_at'] ? 'btn-light' : '' ?>" name="action" value="fulfil"><?= $o['fulfilled_at'] ? ($o['delivery'] === 'ship' ? 'Expédiée' : 'Retirée') . ' ✓' : ($o['delivery'] === 'ship' ? 'Marquer expédiée' : 'Marquer retirée') ?></button></form></td></tr><?php endforeach; ?>
+        <td class="right"><form method="post" class="inline-form"><?= csrf_field() ?><input type="hidden" name="order_id" value="<?= (int)$o['id'] ?>"><button class="btn btn-sm <?= $o['fulfilled_at'] ? 'btn-light' : '' ?>" name="action" value="fulfil"><?= $o['fulfilled_at'] ? ($o['delivery'] === 'ship' ? 'Expédiée' : 'Retirée') : ($o['delivery'] === 'ship' ? 'Marquer expédiée' : 'Marquer retirée') ?></button></form></td></tr><?php endforeach; ?>
       <?php if (!$orders): ?><tr><td colspan="5" class="empty">Pas encore de commande.</td></tr><?php endif; ?></tbody></table></div></div>
   </div>
   <form class="card" method="post"><?= csrf_field() ?><input type="hidden" name="action" value="settings">

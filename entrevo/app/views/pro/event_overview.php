@@ -26,18 +26,18 @@
   <div>
     <div class="card">
       <h2>Fais tourner</h2>
-      <p class="muted" style="font-size:14px">Le lien de ta billetterie, à coller partout (Insta, site, mails, frigo…) :</p>
-      <input readonly value="<?= e(abs_url('/e/' . $ev['slug'])) ?>" onclick="this.select()">
+      <p class="muted u-fs14">Le lien de ta billetterie, à coller partout (Insta, site, mails, frigo…) :</p>
+      <input readonly value="<?= e(abs_url('/e/' . $ev['slug'])) ?>" data-select>
       <div class="center mt"><?= Qr::svg(abs_url('/e/' . $ev['slug']), 150) ?><br><small>À imprimer sur tes affiches</small></div>
       <?php $w = '<iframe src="' . abs_url('/widget/e/' . $ev['slug']) . '" style="width:100%;max-width:480px;min-height:460px;border:0" loading="lazy" title="Billetterie ' . e($ev['name']) . '"></iframe>'; ?>
       <h3 class="mt">Widget pour ton site</h3>
-      <textarea readonly rows="3" onclick="this.select()" class="mono" style="font-size:12px"><?= e($w) ?></textarea>
+      <textarea readonly rows="3" data-select class="mono u-fs12"><?= e($w) ?></textarea>
       <button type="button" class="btn btn-sm btn-light mt" data-copy="<?= e($w) ?>">Copier le code</button>
     </div>
     <div class="card">
       <div class="card-head"><h2>Dernières ventes</h2></div>
       <?php foreach ($recent as $o): ?>
-        <a class="list-item" href="<?= url('/pro/commandes/' . $o['id']) ?>" style="color:inherit;text-decoration:none"><span class="grow"><b style="font-size:14px"><?= e($o['first_name'] . ' ' . $o['last_name']) ?></b><br><small><?= e(short_date($o['created_at'])) ?> · <?= e(method_label($o['method'])) ?></small></span><span class="right"><?= e(money((int)$o['total'])) ?><br><?= $o['status'] !== 'paid' ? badge($o['status']) : '' ?></span></a>
+        <a class="list-item" href="<?= url('/pro/commandes/' . $o['id']) ?>" style="color:inherit;text-decoration:none"><span class="grow"><b class="u-fs14"><?= e($o['first_name'] . ' ' . $o['last_name']) ?></b><br><small><?= e(short_date($o['created_at'])) ?> · <?= e(method_label($o['method'])) ?></small></span><span class="right"><?= e(money((int)$o['total'])) ?><br><?= $o['status'] !== 'paid' ? badge($o['status']) : '' ?></span></a>
       <?php endforeach; ?>
       <?php if (!$recent): ?><p class="muted">Pas encore de vente. Patience, et partage ce lien !</p><?php endif; ?>
     </div>

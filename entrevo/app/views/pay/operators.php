@@ -1,6 +1,6 @@
 <?php /** @var array $ops; ?array $edit; bool $new */ $o = $edit ?: []; ?>
 <?php if ($edit || $new): ?>
-<form method="post" class="card stack" style="max-width:760px"><?= csrf_field() ?><input type="hidden" name="action" value="save"><input type="hidden" name="id" value="<?= (int)($o['id'] ?? 0) ?>">
+<form method="post" class="card stack u-mw760"><?= csrf_field() ?><input type="hidden" name="action" value="save"><input type="hidden" name="id" value="<?= (int)($o['id'] ?? 0) ?>">
   <h2><?= $edit ? 'Modifier ' . e($o['name']) : 'Nouvel exploitant' ?></h2>
   <div class="grid2"><div class="field"><label>Nom commercial</label><input name="name" value="<?= e($o['name'] ?? '') ?>" required placeholder="Food truck Le Gaufrier"></div><div class="field"><label>Raison sociale</label><input name="legal_name" value="<?= e($o['legal_name'] ?? '') ?>"></div>
     <div class="field"><label>SIRET</label><input name="siret" value="<?= e($o['siret'] ?? '') ?>"></div><div class="field"><label>IBAN (reversements)</label><input name="iban" value="<?= e($o['iban'] ?? '') ?>"></div>

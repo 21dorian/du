@@ -2,7 +2,7 @@
 <div class="order-top">
   <div><div class="order-ref"><?= Campaigns::badge($c['status']) ?> <span class="muted" style="font-size:15px;font-weight:500">« <?= e($c['subject']) ?> »</span></div>
     <div class="muted"><?= $c['started_at'] ? 'Envoi lancé le ' . e(fr_date($c['started_at'])) : '' ?><?= $c['sent_at'] ? ' · terminé le ' . e(fr_date($c['sent_at'])) : '' ?></div></div>
-  <form method="post" class="row" style="gap:8px"><?= csrf_field() ?>
+  <form method="post" class="row u-gap8"><?= csrf_field() ?>
     <?php if ($c['status'] === 'sending'): ?><button class="btn btn-sm btn-light" name="action" value="cancel" data-confirm="Arrêter l'envoi ? Ceux qui l'ont déjà reçu l'ont reçu">Arrêter l'envoi</button><?php endif; ?>
     <button class="btn btn-sm" name="action" value="duplicate">Réutiliser</button>
   </form>
@@ -30,7 +30,7 @@
     <?php if ($timeline): $labels = array_map(fn($t) => substr($t['h'], 8, 2) . '/' . substr($t['h'], 5, 2) . ' ' . substr($t['h'], 11, 2) . 'h', $timeline); ?>
       <div class="mt"><?= Viz::chart('columns', ['labels' => $labels, 'xlabel' => 'Heure', 'series' => [['name' => 'Ouvertures', 'values' => array_map(fn($t) => (int)$t['n'], $timeline)]]], 'Ouvertures par heure', 'int', 200) ?></div>
     <?php endif; ?>
-    <?php if ($s['unsub']): ?><p class="muted mb0" style="font-size:13px"><?= $s['unsub'] ?> désinscription(s) suite à cet e-mail.</p><?php endif; ?>
+    <?php if ($s['unsub']): ?><p class="muted mb0 u-fs13"><?= $s['unsub'] ?> désinscription(s) suite à cet e-mail.</p><?php endif; ?>
   </div>
   <div class="card">
     <div class="card-head"><h2>Commandes générées</h2></div>

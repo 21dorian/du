@@ -94,7 +94,7 @@ try {
         [$file, $fn] = explode('@', $handler);
         require_once APP . '/controllers/' . $file . '.php';
         $out = $fn(...array_values($params));
-        if (is_string($out)) echo I18n::html($out);
+        if (is_string($out)) echo a11y_html(I18n::html($out));
         exit;
     }
     abort(404);

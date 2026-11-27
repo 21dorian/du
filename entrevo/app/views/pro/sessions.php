@@ -14,7 +14,7 @@
           <td class="num"><?= (int)$x['checked'] ?></td>
           <td class="right nowrap"><form method="post" class="inline-form"><?= csrf_field() ?><input type="hidden" name="session_id" value="<?= (int)$x['id'] ?>">
             <button class="btn btn-sm btn-light" name="action" value="toggle"><?= $x['active'] ? 'Désactiver' : 'Activer' ?></button>
-            <button class="btn btn-sm btn-light" name="action" value="delete" data-confirm="Supprimer cette date ?">✕</button></form></td>
+            <button class="btn btn-sm btn-light" name="action" value="delete" data-confirm="Supprimer cette date ?" aria-label="Supprimer la date"><?= ui_icon('x', 14) ?></button></form></td>
         </tr>
       <?php endforeach; ?>
       </tbody>
@@ -32,7 +32,7 @@
     <form class="card" method="post"><?= csrf_field() ?><input type="hidden" name="action" value="generate">
       <h2>Dates récurrentes</h2>
       <div class="grid2"><div class="field"><label>Du</label><input type="date" name="from" required></div><div class="field"><label>Au</label><input type="date" name="to" required></div></div>
-      <div class="field"><label>Jours</label><div class="row" style="gap:6px 14px"><?php foreach ($jours as $k => $j): ?><label class="check" style="font-weight:400"><input type="checkbox" name="days[]" value="<?= $k ?>"> <?= $j ?></label><?php endforeach; ?></div></div>
+      <div class="field"><label>Jours</label><div class="row" style="gap:6px 14px"><?php foreach ($jours as $k => $j): ?><label class="check u-fw400"><input type="checkbox" name="days[]" value="<?= $k ?>"> <?= $j ?></label><?php endforeach; ?></div></div>
       <div class="field"><label>Heures</label><input name="times" placeholder="14:00, 16:30, 20:30" required></div>
       <div class="grid2"><div class="field"><label>Durée (min)</label><input type="number" name="duration" min="0" value="90"></div><div class="field"><label>Jauge par date</label><input type="number" name="capacity" min="0" value="<?= (int)$ev['capacity'] ?>"></div></div>
       <div class="field"><label>Libellé</label><input name="label"></div>

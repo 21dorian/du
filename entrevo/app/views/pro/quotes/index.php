@@ -18,7 +18,7 @@
   </div>
   <div class="stack">
     <form class="card" method="post"><?= csrf_field() ?>
-      <h2>Nouveau devis</h2><p class="muted" style="font-size:13px">Pour un client qui t'a contacté directement.</p>
+      <h2>Nouveau devis</h2><p class="muted u-fs13">Pour un client qui t'a contacté directement.</p>
       <div class="field"><label>Événement</label><select name="event_id" required><?php foreach ($events as $e2): ?><option value="<?= (int)$e2['id'] ?>"><?= e($e2['name']) ?> · <?= e(short_date($e2['starts_at'])) ?></option><?php endforeach; ?></select></div>
       <div class="field"><label>Structure</label><input name="company"></div>
       <div class="field"><label>Contact</label><input name="contact_name"></div>

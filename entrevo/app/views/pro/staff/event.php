@@ -43,8 +43,8 @@ $e = $edit ?: ['id' => 0, 'title' => '', 'team' => '', 'location' => '', 'starts
                 <span class="person <?= e($a['status']) ?>" title="<?= e(Staff::STATUS[$a['status']][0]) ?>">
                   <?= e($a['first_name'] . ' ' . mb_substr($a['last_name'], 0, 1) . '.') ?><?= $a['checked_in_at'] ? '' : '' ?>
                   <form method="post" class="inline-form"><?= csrf_field() ?><input type="hidden" name="action" value="set_status"><input type="hidden" name="assignment_id" value="<?= (int)$a['id'] ?>">
-                    <?php if ($a['status'] !== 'confirmed'): ?><button name="status" value="confirmed" title="Confirmer" aria-label="Confirmer">✓</button><?php endif; ?>
-                    <button name="status" value="remove" title="Retirer" aria-label="Retirer">✕</button></form></span>
+                    <?php if ($a['status'] !== 'confirmed'): ?><button name="status" value="confirmed" title="Confirmer" aria-label="Confirmer"><?= ui_icon('check', 14) ?></button><?php endif; ?>
+                    <button name="status" value="remove" title="Retirer" aria-label="Retirer"><?= ui_icon('x', 14) ?></button></form></span>
               <?php endforeach; ?>
               <form method="post" class="add-person"><?= csrf_field() ?><input type="hidden" name="action" value="assign"><input type="hidden" name="shift_id" value="<?= $sid ?>">
                 <select name="member_id" aria-label="Ajouter quelqu'un" required><option value="">+ Placer quelqu'un…</option>
@@ -73,7 +73,7 @@ $e = $edit ?: ['id' => 0, 'title' => '', 'team' => '', 'location' => '', 'starts
           <?php if (!$e['id']): ?><div class="field mb0"><label>Répéter</label><select name="repeat"><?php foreach ([1, 2, 3, 4, 6, 8] as $n): ?><option value="<?= $n ?>"><?= $n === 1 ? 'Une seule fois' : $n . ' créneaux à la suite' ?></option><?php endforeach; ?></select></div><?php endif; ?></div>
         <div class="field mb0"><label>Consignes</label><textarea name="description" rows="2" placeholder="Tenue, matériel, contact sur place…"><?= e((string)$e['description']) ?></textarea></div>
         <label class="check"><input type="checkbox" name="open_signup" value="1" <?= $e['open_signup'] ? 'checked' : '' ?>> Les bénévoles peuvent s'y inscrire eux-mêmes</label>
-        <div class="row" style="gap:8px"><button class="btn btn-sm"><?= $e['id'] ? 'Enregistrer' : 'Créer' ?></button><?php if ($e['id']): ?><a href="<?= url($base) ?>">Annuler</a><?php endif; ?></div>
+        <div class="row u-gap8"><button class="btn btn-sm"><?= $e['id'] ? 'Enregistrer' : 'Créer' ?></button><?php if ($e['id']): ?><a href="<?= url($base) ?>">Annuler</a><?php endif; ?></div>
       </form>
     </div>
     <div class="card">

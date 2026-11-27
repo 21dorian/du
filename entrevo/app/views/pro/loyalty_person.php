@@ -2,7 +2,7 @@
 $t = $m['tier']; $prog = $next ? min(100, (int)round($m['points'] / max(1, (int)$next['min']) * 100)) : 100; ?>
 <div class="lp-head card">
   <span class="avatar-sm lp-av" style="--h:<?= crc32($m['email']) % 360 ?>"><?= e(mb_strtoupper(mb_substr((string)$m['first_name'], 0, 1) . mb_substr((string)$m['last_name'], 0, 1)) ?: '@') ?></span>
-  <div class="grow"><h2 style="margin:0"><?= e(trim($m['first_name'] . ' ' . $m['last_name']) ?: $m['email']) ?> <?= $t ? '<span class="tier-tag t' . (array_search($t['name'], array_column($s['tiers'], 'name')) + 1) . '">' . e($t['name']) . '</span>' : '' ?></h2>
+  <div class="grow"><h2 class="u-m0"><?= e(trim($m['first_name'] . ' ' . $m['last_name']) ?: $m['email']) ?> <?= $t ? '<span class="tier-tag t' . (array_search($t['name'], array_column($s['tiers'], 'name')) + 1) . '">' . e($t['name']) . '</span>' : '' ?></h2>
     <p class="muted mb0"><?= e($m['email']) ?><?= $m['phone'] ? ' · ' . e($m['phone']) : '' ?> · <?= $m['optin'] ? 'accepte les e-mails' : 'n\'a pas accepté les e-mails' ?> · client depuis <?= $m['first_at'] ? e(fr_date($m['first_at'], false)) : '—' ?></p></div>
   <div class="lp-pts"><b><?= (int)$m['points'] ?></b><span>points · <?= (int)$rank ?><sup>e</sup> sur <?= (int)$n ?></span>
     <div class="bar-thin"><i style="width:<?= $prog ?>%"></i></div><small class="muted"><?= $next ? ((int)$next['min'] - (int)$m['points']) . ' pts avant « ' . e($next['name']) . ' »' : 'Niveau maximum' ?></small></div>

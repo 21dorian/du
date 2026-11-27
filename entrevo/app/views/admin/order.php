@@ -21,7 +21,7 @@ $gesture = min((int)$o['commission'], $left); ?>
         <?php if ((int)$o['fees']): ?><tr><td>Frais de service (<?= $o['fee_mode'] === 'buyer' ? 'payés par l\'acheteur' : 'à la charge de l\'organisateur' ?>)</td><td class="num"><?= e(money((int)$o['fees'])) ?></td></tr><?php endif; ?>
         <tr><td><b>Total</b></td><td class="num"><b><?= e(money((int)$o['total'])) ?></b></td></tr>
       </tbody></table></div>
-      <p class="muted mt mb0" style="font-size:13px"><?= e(provider_label((string)$o['provider']) ?: method_label((string)$o['method'])) ?><?= $o['provider_ref'] ? ' · réf. ' . e($o['provider_ref']) : '' ?><?= $o['provider_payment'] ? ' · paiement ' . e($o['provider_payment']) : '' ?>
+      <p class="muted mt mb0 u-fs13"><?= e(provider_label((string)$o['provider']) ?: method_label((string)$o['method'])) ?><?= $o['provider_ref'] ? ' · réf. ' . e($o['provider_ref']) : '' ?><?= $o['provider_payment'] ? ' · paiement ' . e($o['provider_payment']) : '' ?>
         · créée le <?= e(fr_date($o['created_at'])) ?><?= $o['paid_at'] ? ' · payée le ' . e(fr_date($o['paid_at'])) : '' ?><?= $o['channel'] ? ' · canal ' . e($o['channel']) : '' ?><?= $o['utm_source'] ? ' · source ' . e($o['utm_source']) : '' ?></p>
     </div>
     <?php if ($tickets): ?><div class="card table-card"><div class="card-head"><h2>Billets</h2></div><div class="table-wrap"><table class="table"><thead><tr><th>Code</th><th>Tarif</th><th>Nom</th><th>État</th></tr></thead><tbody>
@@ -49,7 +49,7 @@ $gesture = min((int)$o['commission'], $left); ?>
       <form method="post" class="mb"><?= csrf_field() ?>
         <div class="row"><button class="btn btn-light grow" name="action" value="refund" data-confirm="Rembourser toute la commande et invalider les billets ?">Tout rembourser</button><button class="btn btn-ghost" name="action" value="cancel" data-confirm="Annuler sans rembourser ?">Annuler</button></div></form>
       <?php if ($gesture > 0): ?><form method="post" class="gesture"><?= csrf_field() ?><input type="hidden" name="action" value="platform_refund">
-        <p class="mb0"><b>Geste commercial plateforme</b></p><p class="muted" style="font-size:13px">Remboursé sur ta commission (max <?= e(money($gesture)) ?>), sans toucher à la part de l'organisateur.</p>
+        <p class="mb0"><b>Geste commercial plateforme</b></p><p class="muted u-fs13">Remboursé sur ta commission (max <?= e(money($gesture)) ?>), sans toucher à la part de l'organisateur.</p>
         <div class="grid2"><div class="input-suffix"><input name="amount" inputmode="decimal" placeholder="<?= e(money_input($gesture)) ?>"><span>€</span></div><input name="reason" placeholder="Motif"></div>
         <button class="btn btn-light btn-block mt" data-confirm="Rembourser ce geste sur la commission ?">Faire le geste</button></form><?php endif; ?>
       <p class="mt mb0"><a href="<?= url('/admin/litiges', ['ref' => $o['ref']]) ?>#saisie">Ouvrir un litige sur cette commande →</a></p>

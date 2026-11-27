@@ -38,7 +38,7 @@ $kindsN = ['call' => 'Appel', 'mail' => 'E-mail', 'meeting' => 'Rendez-vous', 'n
       <div class="field"><label>Source</label><input name="source" value="<?= e((string)$p['source']) ?>" placeholder="salon, bouche-à-oreille…"></div>
       <div class="field"><label>Suivi par</label><select name="owner_id"><?php foreach ($agents as $a): ?><option value="<?= (int)$a['id'] ?>" <?= (int)$p['owner_id'] === (int)$a['id'] ? 'selected' : '' ?>><?= e($a['name']) ?></option><?php endforeach; ?></select></div>
     </div>
-    <div class="row"><button class="btn">Enregistrer</button><?php if ($p['id']): ?><button class="btn btn-ghost" style="color:var(--red)" name="action" value="delete" formnovalidate data-confirm="Supprimer ce prospect ?">Supprimer</button><?php endif; ?></div>
+    <div class="row"><button class="btn">Enregistrer</button><?php if ($p['id']): ?><button class="btn btn-ghost u-red" name="action" value="delete" formnovalidate data-confirm="Supprimer ce prospect ?">Supprimer</button><?php endif; ?></div>
   </form>
   <?php if ($p['id']): ?>
   <div>
@@ -56,7 +56,7 @@ $kindsN = ['call' => 'Appel', 'mail' => 'E-mail', 'meeting' => 'Rendez-vous', 'n
     <div class="card"><h2>Conclure</h2>
       <?php if ($p['email']): ?><form method="post" class="mb"><?= csrf_field() ?><input type="hidden" name="action" value="invite"><input type="hidden" name="prospect_id" value="<?= (int)$p['id'] ?>"><button class="btn btn-sm btn-light">Envoyer le lien d'inscription</button></form><?php endif; ?>
       <form method="post" class="row"><?= csrf_field() ?><input type="hidden" name="action" value="link"><input type="hidden" name="prospect_id" value="<?= (int)$p['id'] ?>">
-        <select name="organizer_id" style="width:auto"><option value="">Relier à un organisateur inscrit…</option><?php foreach ($orgs as $o): ?><option value="<?= (int)$o['id'] ?>" <?= (int)$p['organizer_id'] === (int)$o['id'] ? 'selected' : '' ?>><?= e($o['name']) ?></option><?php endforeach; ?></select><button class="btn btn-sm">Gagné</button></form>
+        <select name="organizer_id" class="u-wauto"><option value="">Relier à un organisateur inscrit…</option><?php foreach ($orgs as $o): ?><option value="<?= (int)$o['id'] ?>" <?= (int)$p['organizer_id'] === (int)$o['id'] ? 'selected' : '' ?>><?= e($o['name']) ?></option><?php endforeach; ?></select><button class="btn btn-sm">Gagné</button></form>
       <?php if ($p['organizer_id']): ?><p class="mt mb0"><a href="<?= url('/admin/organisateurs/' . $p['organizer_id']) ?>">Voir sa fiche organisateur →</a></p><?php endif; ?>
     </div>
   </div>

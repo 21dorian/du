@@ -27,7 +27,7 @@
       <?php foreach ($bars as $b): ?><div class="list-item"><span class="grow"><b><?= e($b['name']) ?></b><?= $b['pin'] ? ' <small class="muted">· code</small>' : '' ?><br><small class="muted"><?= e(money((int)$b['sales'])) ?> de ventes</small></span>
         <form method="post"><?= csrf_field() ?><input type="hidden" name="bar_id" value="<?= (int)$b['id'] ?>"><button class="btn btn-sm btn-ghost" name="action" value="bar_toggle"><?= $b['active'] ? 'Fermer' : 'Ouvrir' ?></button></form></div><?php endforeach; ?>
       <form method="post" class="row mt"><?= csrf_field() ?><input type="hidden" name="action" value="bar"><input name="name" placeholder="Bar principal" required><input name="pin" placeholder="Code (facultatif)" inputmode="numeric" style="max-width:130px"><button class="btn btn-sm">Ajouter</button></form>
-      <p class="muted mt mb0" style="font-size:13px">Les points de vente et les appareils se gèrent dans Bars & caisses › Points de vente.</p></div>
+      <p class="muted mt mb0 u-fs13">Les points de vente et les appareils se gèrent dans Bars & caisses › Points de vente.</p></div>
     <?php if ($sold): ?><div class="card"><h2>Meilleures ventes</h2><?php foreach (array_slice($sold, 0, 8, true) as $n => $s): ?><div class="list-item"><span class="grow"><?= e($n) ?></span><small class="muted"><?= (int)$s['qty'] ?> · <?= e(money((int)$s['sum'])) ?></small></div><?php endforeach; ?></div><?php endif; ?>
   </div>
 </div>

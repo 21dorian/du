@@ -21,11 +21,11 @@
     <div class="card">
       <h2>Message</h2>
       <div class="phone-mock"><div class="phone-top"><b><?= e(Sms::sender($org)) ?></b><small>SMS</small></div><div class="bubble"><?= nl2br(e($preview)) ?></div></div>
-      <p class="muted mt mb0" style="font-size:13px"><?= (int)$c['segments'] ?> SMS par personne<?= $ev ? ' · lien vers <a href="' . url('/pro/evenements/' . $ev['id']) . '">' . e($ev['name']) . '</a>' : '' ?></p>
+      <p class="muted mt mb0 u-fs13"><?= (int)$c['segments'] ?> SMS par personne<?= $ev ? ' · lien vers <a href="' . url('/pro/evenements/' . $ev['id']) . '">' . e($ev['name']) . '</a>' : '' ?></p>
     </div>
     <?php if (in_array($c['status'], ['scheduled', 'sending'], true)): ?>
     <form class="card" method="post" action="<?= url('/pro/sms') ?>"><?= csrf_field() ?><input type="hidden" name="campaign_id" value="<?= (int)$c['id'] ?>">
-      <h2>Arrêter</h2><p class="muted" style="font-size:13px">Les SMS pas encore partis ne seront pas envoyés.</p>
+      <h2>Arrêter</h2><p class="muted u-fs13">Les SMS pas encore partis ne seront pas envoyés.</p>
       <button class="btn btn-light btn-block" name="action" value="cancel" data-confirm="Arrêter cette campagne ?">Arrêter la campagne</button>
     </form>
     <?php endif; ?>

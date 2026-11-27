@@ -31,7 +31,7 @@ $totalRev = array_sum(array_map(fn($s) => (int)$s['revenue'], $stats)); $totalUs
           <td class="num"><?= $st ? '<b>' . e(money((int)$st['revenue'])) . '</b>' : '<span class="muted">—</span>' ?></td>
           <td class="right nowrap"><form method="post" class="inline-form"><?= csrf_field() ?><input type="hidden" name="promo_id" value="<?= (int)$p['id'] ?>">
             <button class="btn btn-sm btn-ghost" name="action" value="toggle"><?= $p['active'] ? 'Désactiver' : 'Activer' ?></button>
-            <?php if (!(int)$p['used']): ?><button class="btn btn-sm btn-ghost" name="action" value="delete" data-confirm="Supprimer ce code ?">✕</button><?php endif; ?></form></td>
+            <?php if (!(int)$p['used']): ?><button class="btn btn-sm btn-ghost" name="action" value="delete" data-confirm="Supprimer ce code ?" aria-label="Supprimer le code"><?= ui_icon('x', 14) ?></button><?php endif; ?></form></td>
         </tr>
       <?php endforeach; ?>
       <?php if (!$promos): ?><tr><td colspan="6" class="empty">Aucun code. Les influenceurs vont être déçus</td></tr><?php endif; ?>
@@ -59,12 +59,12 @@ $totalRev = array_sum(array_map(fn($s) => (int)$s['revenue'], $stats)); $totalUs
       <option value="percent">Réduction en %</option><option value="amount">Réduction en € par billet</option><option value="grid">Grille tarifaire (prix spécial par tarif)</option><option value="unlock">Code d'accès à un tarif secret</option></select></div>
     <div class="field" data-show-if="kind=grid"><label>Prix spéciaux avec ce code</label><?php foreach ($rates as $r): ?><div class="row" style="gap:8px;margin-bottom:6px"><span class="grow"><?= e($r['name']) ?></span><span class="input-suffix" style="max-width:130px"><input name="grid[<?= (int)$r['id'] ?>]" inputmode="decimal" placeholder="—"><span>€</span></span></div><?php endforeach; ?><small>Ex. Plein 25 € → 18 €, Réduit 18 € → 12 € pour les membres. Vide = prix normal.</small></div>
     <div class="field"><label>Combien de codes ?</label><select name="count"><option value="1">Un code partagé</option><?php foreach ([10, 25, 50, 100, 250, 500] as $c): ?><option value="<?= $c ?>"><?= $c ?> codes uniques (1 utilisation chacun)</option><?php endforeach; ?></select></div>
-    <div class="field" data-show-if="count=1"><label>Code</label><input name="code" placeholder="Vide = on en invente un" style="text-transform:uppercase"></div>
-    <div class="field" data-show-if="count=10|25|50|100|250|500"><label>Préfixe des codes</label><input name="prefix" placeholder="INFLU" maxlength="8" style="text-transform:uppercase"><small>Ex. INFLU-K7P2QX, INFLU-93HD2A…</small></div>
+    <div class="field" data-show-if="count=1"><label>Code</label><input name="code" placeholder="Vide = on en invente un" class="u-upper"></div>
+    <div class="field" data-show-if="count=10|25|50|100|250|500"><label>Préfixe des codes</label><input name="prefix" placeholder="INFLU" maxlength="8" class="u-upper"><small>Ex. INFLU-K7P2QX, INFLU-93HD2A…</small></div>
     <div class="field"><label>Libellé interne</label><input name="label" placeholder="Ex. : Instagram @lucie, Abonnés newsletter…" maxlength="190"></div>
     <div class="field" data-show-if="kind=percent|amount"><label>Valeur (% ou €)</label><input name="value" value="10" inputmode="decimal"></div>
     <div class="field"><label>Tarifs concernés</label>
-      <?php foreach ($rates as $r): ?><label class="check" style="margin-bottom:6px"><input type="checkbox" name="rate_ids[]" value="<?= (int)$r['id'] ?>"> <?= e($r['name']) ?><?= $r['hidden'] ? ' <span class="badge violet">Secret</span>' : '' ?></label><?php endforeach; ?>
+      <?php foreach ($rates as $r): ?><label class="check u-mb6"><input type="checkbox" name="rate_ids[]" value="<?= (int)$r['id'] ?>"> <?= e($r['name']) ?><?= $r['hidden'] ? ' <span class="badge violet">Secret</span>' : '' ?></label><?php endforeach; ?>
       <small>Aucun coché = tous les tarifs (pour une réduction).</small></div>
     <div class="grid2">
       <div class="field"><label>Valable à partir du</label><input type="datetime-local" name="valid_from"></div>

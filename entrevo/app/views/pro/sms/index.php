@@ -52,7 +52,7 @@
     </form>
     <form class="card" method="post"><?= csrf_field() ?><input type="hidden" name="action" value="optout">
       <h2>Liste STOP <small class="muted">(<?= count($optouts) ?>)</small></h2>
-      <p class="muted" style="font-size:13px">Personnes qui ne veulent plus de SMS. Elles sont exclues de toutes tes campagnes.</p>
+      <p class="muted u-fs13">Personnes qui ne veulent plus de SMS. Elles sont exclues de toutes tes campagnes.</p>
       <div class="field"><textarea name="phones" rows="2" placeholder="Un numéro par ligne"></textarea></div>
       <button class="btn btn-light btn-block">Ajouter</button>
       <?php if ($optouts): ?><ul class="optout-list"><?php foreach (array_slice($optouts, 0, 12) as $o): ?><li><span class="mono"><?= e(Sms::pretty($o['phone'])) ?></span><button class="linklike" form="rm-<?= e(md5($o['phone'])) ?>">Retirer</button></li><?php endforeach; ?></ul><?php endif; ?>

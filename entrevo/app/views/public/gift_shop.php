@@ -12,7 +12,7 @@
         <?php foreach ($amounts as $i => $a): ?><label><input type="radio" name="amount" value="<?= $a ?>" <?= $i === 1 || (count($amounts) === 1) ? 'checked' : '' ?>><span><?= e(money($a)) ?></span></label><?php endforeach; ?>
         <label><input type="radio" name="amount" value="libre"><span>Autre</span></label>
       </div>
-      <div class="field mt" data-show-if="amount=libre"><label>Montant libre</label><div class="input-suffix" style="max-width:200px"><input name="free_amount" inputmode="decimal" placeholder="75"><span>€</span></div></div>
+      <div class="field mt" data-show-if="amount=libre"><label>Montant libre</label><div class="input-suffix u-mw200"><input name="free_amount" inputmode="decimal" placeholder="75"><span>€</span></div></div>
     </div>
     <div class="card">
       <h2>Pour qui ?</h2>

@@ -5,7 +5,7 @@
   var $ = function (id) { return document.getElementById(id); };
   // ---------- Toasts ----------
   document.querySelectorAll('.toasts .flash').forEach(function (f, i) {
-    var x = document.createElement('button'); x.className = 'toast-x'; x.type = 'button'; x.setAttribute('aria-label', 'Fermer'); x.textContent = '✕';
+    var x = document.createElement('button'); x.className = 'toast-x'; x.type = 'button'; x.setAttribute('aria-label', 'Fermer'); x.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg>';
     x.onclick = function () { f.remove(); }; f.appendChild(x);
     if (!f.classList.contains('error') && !f.classList.contains('warning')) setTimeout(function () { f.classList.add('out'); setTimeout(function () { f.remove(); }, 400); }, 5500 + i * 400);
   });

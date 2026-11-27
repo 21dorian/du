@@ -34,7 +34,7 @@ $base = '/o/' . $org['slug']; $on = (bool)$settings['enabled']; ?>
     <?php if ($news): ?><div class="field"><label>Date de publication</label><input type="datetime-local" name="published_at" value="<?= e($p['published_at'] ? date('Y-m-d\TH:i', strtotime($p['published_at'])) : date('Y-m-d\TH:i')) ?>"><small class="muted">Une date future programme la publication.</small></div>
     <?php else: ?><label class="check"><input type="checkbox" name="in_menu" value="1" <?= $p['in_menu'] ? 'checked' : '' ?>> <span>Afficher dans le menu</span></label><?php endif; ?>
     <label class="check"><input type="checkbox" name="published" value="1" <?= $p['published'] ? 'checked' : '' ?>> <span>Publié</span></label>
-    <div class="row mt"><button class="btn">Enregistrer</button><?php if ($p['id']): ?><button class="btn btn-light danger" name="action" value="delete" formnovalidate onclick="return confirm('Supprimer ?')">Supprimer</button><?php endif; ?></div>
+    <div class="row mt"><button class="btn">Enregistrer</button><?php if ($p['id']): ?><button class="btn btn-light danger" name="action" value="delete" formnovalidate data-confirm="Supprimer ?">Supprimer</button><?php endif; ?></div>
   </form>
   <?php endif; ?>
 </div>

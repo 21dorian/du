@@ -15,7 +15,7 @@ $late = count(array_filter($devices, fn($d) => (int)$d['queue_size'] > 0)); ?>
     <td><b><?= e($d['name']) ?></b><br><small class="muted"><?= e(ucfirst((string)($d['platform'] ?: 'web'))) ?></small></td>
     <td><?= $pairing ? '<span class="ptag warn">à appairer</span>' : ($online ? '<span class="ptag ok">en ligne</span>' : '<span class="ptag">hors ligne · ' . e($d['last_seen'] ? ago($d['last_seen']) : 'jamais') . '</span>') ?></td>
     <td><?= $d['station_at'] ? e(($d['bar_name'] ?: 'Tous') . ' · ' . (Pos::MODE_LABELS[$d['mode']] ?? 'Vente')) . '<br><small class="muted">' . e((string)$d['staff_name']) . '</small>' : '—' ?></td>
-    <td><?php if ($b !== null): ?><span class="pbat"><i style="--b:<?= max(2, (int)round($b * 0.22)) ?>px;--c:<?= $b < 20 ? '#ff453a' : ($b < 40 ? '#ff9f0a' : '#30d158') ?>"></i><?= $b ?> %<?= (int)$d['charging'] ? ' ⚡' : '' ?></span><?php else: ?>—<?php endif; ?></td>
+    <td><?php if ($b !== null): ?><span class="pbat"><i style="--b:<?= max(2, (int)round($b * 0.22)) ?>px;--c:<?= $b < 20 ? '#ff453a' : ($b < 40 ? '#ff9f0a' : '#30d158') ?>"></i><?= $b ?> %<?= (int)$d['charging'] ? ' · en charge' : '' ?></span><?php else: ?>—<?php endif; ?></td>
     <td><?= $d['app_version'] ? e($d['app_version']) . ($latest && $d['app_version'] !== $latest ? ' <span class="ptag warn">à mettre à jour</span>' : '') : '—' ?></td>
     <td><?= $d['last_sync'] ? e(ago($d['last_sync'])) : '—' ?><?= (int)$d['queue_size'] ? '<br><span class="ptag warn">' . (int)$d['queue_size'] . ' en attente</span>' : '' ?></td>
     <td class="num"><?= (int)$d['sales'] ?><br><small class="muted"><?= e(money((int)$d['ttc'])) ?></small></td><td class="num"><?= (int)$d['offline_sales'] ?></td></tr><?php endforeach; ?>

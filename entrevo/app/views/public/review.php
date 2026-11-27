@@ -17,6 +17,6 @@
       <label class="check"><input type="checkbox" name="anonymous" value="1" <?= $rev && $rev['author'] === null ? 'checked' : '' ?>> <span>Publier sans mon prénom</span></label>
       <button class="btn btn-lg btn-block">Envoyer mon avis</button>
     </form>
-    <p class="muted" style="font-size:12.5px">Ton avis peut être affiché sur la page de l'organisateur (prénom et initiale seulement).</p>
+    <p class="muted u-fs13">Ton avis peut être affiché sur la page de l'organisateur (prénom et initiale seulement).</p>
   <?php endif; ?>
 </div>

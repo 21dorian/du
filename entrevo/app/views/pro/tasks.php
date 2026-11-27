@@ -69,13 +69,13 @@ $qs = array_filter(['ev' => !$ev && $f['ev'] ? $f['ev'] : null, 'qui' => $f['who
         <?php if (!$ev): ?><div class="field mb0"><label>Événement</label><select name="event_id"><option value="">Aucun (général)</option><?php foreach ($events as $e2): ?><option value="<?= (int)$e2['id'] ?>" <?= (int)$edit['event_id'] === (int)$e2['id'] ? 'selected' : '' ?>><?= e($e2['name']) ?></option><?php endforeach; ?></select></div>
         <?php else: ?><input type="hidden" name="event_id" value="<?= (int)$ev['id'] ?>"><?php endif; ?>
         <label class="check"><input type="checkbox" name="priority" value="1" <?= $edit['priority'] ? 'checked' : '' ?>> Prioritaire</label>
-        <div class="row" style="gap:8px"><button class="btn btn-sm"><?= $edit['id'] ? 'Enregistrer' : 'Ajouter' ?></button>
+        <div class="row u-gap8"><button class="btn btn-sm"><?= $edit['id'] ? 'Enregistrer' : 'Ajouter' ?></button>
           <?php if ($edit['id']): ?><a href="<?= url($base) ?>">Annuler</a><span class="grow"></span><button class="link-btn neg" name="action" value="delete" data-confirm="Supprimer cette tâche ?">Supprimer</button><?php endif; ?></div>
       </form>
     </div>
     <div class="card">
       <h2>Rétroplanning tout prêt</h2>
-      <p class="muted" style="font-size:14px">Des tâches types calées automatiquement sur la date de l'événement (J-60, J-30, J-7…).</p>
+      <p class="muted u-fs14">Des tâches types calées automatiquement sur la date de l'événement (J-60, J-30, J-7…).</p>
       <form method="post" class="stack"><?= csrf_field() ?><input type="hidden" name="action" value="template">
         <select name="template" aria-label="Modèle"><?php foreach (task_templates() as $k => [$l, $items]): ?><option value="<?= $k ?>"><?= e($l) ?> (<?= count($items) ?> tâches)</option><?php endforeach; ?></select>
         <?php if (!$ev): ?><select name="event_id" required aria-label="Événement"><option value="">Pour quel événement ?</option><?php foreach ($events as $e2): ?><option value="<?= (int)$e2['id'] ?>"><?= e($e2['name']) ?></option><?php endforeach; ?></select>

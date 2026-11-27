@@ -12,12 +12,12 @@ $blocked = $w['status'] === 'blocked'; ?>
       <?= (int)$w['virtual'] ? '<span class="ptag">Carte virtuelle</span>' : '' ?>
       <?= $ticket ? '<span class="ptag">Billet ' . e($ticket['code']) . ' · commande ' . e($ticket['ref']) . '</span>' : '' ?>
     </div>
-    <div class="pk" style="margin:0"><div><span>Rechargé</span><b><?= e(money((int)$totals['loaded'])) ?></b></div><div><span>Dépensé</span><b><?= e(money((int)$totals['spent'])) ?></b></div><div><span>Opérations</span><b><?= count($tx) ?></b></div></div>
+    <div class="pk u-m0"><div><span>Rechargé</span><b><?= e(money((int)$totals['loaded'])) ?></b></div><div><span>Dépensé</span><b><?= e(money((int)$totals['spent'])) ?></b></div><div><span>Opérations</span><b><?= count($tx) ?></b></div></div>
     <div class="row" style="flex-wrap:wrap">
       <a class="btn btn-sm btn-light" target="_blank" href="<?= Pay::url('/w/' . $w['token']) ?>">Voir le portail du festivalier</a>
       <?php if ($w['email']): ?><form method="post"><?= csrf_field() ?><button class="btn btn-sm btn-light" name="action" value="send">Renvoyer le lien par e-mail</button></form><?php endif; ?>
       <?php if ($blocked): ?><form method="post"><?= csrf_field() ?><button class="btn btn-sm" name="action" value="unblock">Débloquer</button></form>
-      <?php else: ?><form method="post" class="row" data-confirm="Bloquer ce porte-monnaie ? Il ne pourra plus payer."><?= csrf_field() ?><input type="hidden" name="action" value="block"><input name="reason" placeholder="Motif (perdu, volé…)" style="max-width:200px"><button class="btn btn-sm btn-red">Bloquer</button></form><?php endif; ?>
+      <?php else: ?><form method="post" class="row" data-confirm="Bloquer ce porte-monnaie ? Il ne pourra plus payer."><?= csrf_field() ?><input type="hidden" name="action" value="block"><input name="reason" placeholder="Motif (perdu, volé…)" class="u-mw200"><button class="btn btn-sm btn-red">Bloquer</button></form><?php endif; ?>
     </div>
   </div>
 </div>
@@ -28,11 +28,11 @@ $blocked = $w['status'] === 'blocked'; ?>
     <select name="kind"><option value="adjust">Correction (erreur de caisse…)</option><option value="gift">Crédit offert (geste commercial)</option></select>
     <input name="note" placeholder="Motif (obligatoire pour une correction)"><button class="btn btn-sm">Enregistrer</button></form>
   <form method="post" class="card"><?= csrf_field() ?><input type="hidden" name="action" value="bracelet"><h2>Bracelet</h2>
-    <p class="pnote" style="margin:0">Bracelet perdu ou cassé : associe un nouveau bracelet, l'ancien est désactivé et le solde suit.</p>
+    <p class="pnote u-m0">Bracelet perdu ou cassé : associe un nouveau bracelet, l'ancien est désactivé et le solde suit.</p>
     <input name="ref" placeholder="N° imprimé ou UID NFC du nouveau bracelet" required><button class="btn btn-sm">Associer</button>
     <?php if ($w['nfc_uid']): ?><button class="btn btn-sm btn-light" name="action" value="unlink" formnovalidate>Dissocier le bracelet actuel</button><?php endif; ?></form>
   <form method="post" class="card"><?= csrf_field() ?><input type="hidden" name="action" value="transfer"><h2>Transférer le solde</h2>
-    <p class="pnote" style="margin:0">Vers une autre carte, un autre billet ou bracelet du même événement.</p>
+    <p class="pnote u-m0">Vers une autre carte, un autre billet ou bracelet du même événement.</p>
     <input name="to" placeholder="Code, n° ou UID du destinataire" required><div class="input-suffix"><input name="amount" inputmode="decimal" placeholder="Montant" value="<?= e(money_input((int)$w['balance'])) ?>"><span>€</span></div><button class="btn btn-sm">Transférer</button></form>
   <form method="post" class="card"><?= csrf_field() ?><input type="hidden" name="action" value="profile"><h2>Fiche</h2>
     <input name="holder_name" value="<?= e((string)$w['holder_name']) ?>" placeholder="Nom du titulaire"><input name="email" type="email" value="<?= e((string)$w['email']) ?>" placeholder="E-mail"><input name="phone" value="<?= e((string)$w['phone']) ?>" placeholder="Téléphone">

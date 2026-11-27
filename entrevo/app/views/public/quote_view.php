@@ -1,5 +1,5 @@
 <?php /** @var array $q, $org, $ev, $t; bool $expired; ?array $order */ ?>
-<section class="store-wrap" style="max-width:820px">
+<section class="store-wrap u-mw820">
   <span class="eyebrow"><?= e($org['name']) ?> · devis <?= e($q['ref']) ?></span>
   <h1><?= e($ev['name']) ?></h1>
   <p class="lead"><?= e(fr_date($ev['starts_at'])) ?><?= $ev['venue'] ? ' · ' . e($ev['venue']) : '' ?></p>
@@ -10,7 +10,7 @@
       <?php if ($t['fees']): ?><tr><td colspan="3">Frais de service</td><td class="num"><?= e(money($t['fees'])) ?></td></tr><?php endif; ?>
       <tr><td colspan="3"><b>Total</b></td><td class="num"><b><?= e(money($t['total'])) ?></b></td></tr>
     </tbody></table></div>
-    <p class="muted mb0" style="font-size:13px">Valable jusqu'au <?= e(date('d/m/Y', strtotime((string)$q['valid_until']))) ?> · <a href="<?= url('/devis/' . $q['token'], ['pdf' => 1]) ?>" target="_blank">Télécharger le PDF</a><?= $q['notes'] ? '<br>' . nl2br(e($q['notes'])) : '' ?></p>
+    <p class="muted mb0 u-fs13">Valable jusqu'au <?= e(date('d/m/Y', strtotime((string)$q['valid_until']))) ?> · <a href="<?= url('/devis/' . $q['token'], ['pdf' => 1]) ?>" target="_blank">Télécharger le PDF</a><?= $q['notes'] ? '<br>' . nl2br(e($q['notes'])) : '' ?></p>
   </div>
   <?php if ($q['status'] === 'paid' && $order): ?>
     <div class="card"><h2>C'est réglé, merci !</h2><p>Les <?= $t['tickets'] ?> billets ont été envoyés à <?= e($q['email']) ?>.</p><a class="btn" href="<?= url('/commande/' . $order['ref'], ['t' => $order['token']]) ?>">Voir la commande et les billets</a></div>

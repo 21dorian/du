@@ -12,7 +12,7 @@
     </tbody></table></div></div>
   <div class="card"><h2>Ce qu'ils attendent</h2>
     <?php foreach ($comments as $c): $f = Features::get($c['feature']); ?>
-      <div class="list-item" style="display:block"><b><?= e($f['name'] ?? $c['feature']) ?></b> · <small class="muted"><?= e($c['org_name']) ?>, <?= e(ago($c['created_at'])) ?></small><br><?= e($c['comment']) ?></div>
+      <div class="list-item u-block"><b><?= e($f['name'] ?? $c['feature']) ?></b> · <small class="muted"><?= e($c['org_name']) ?>, <?= e(ago($c['created_at'])) ?></small><br><?= e($c['comment']) ?></div>
     <?php endforeach; ?>
     <?php if (!$comments): ?><p class="muted">Pas encore de commentaire.</p><?php endif; ?>
   </div>

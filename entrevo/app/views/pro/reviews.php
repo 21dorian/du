@@ -30,7 +30,7 @@
 
 <form class="filters" method="get">
   <select name="ev" onchange="this.form.submit()"><option value="">Tous les événements</option><?php foreach ($events as $x): ?><option value="<?= (int)$x['id'] ?>" <?= $evId === (int)$x['id'] ? 'selected' : '' ?>><?= e($x['name']) ?></option><?php endforeach; ?></select>
-  <?php if ($note): ?><input type="hidden" name="note" value="<?= $note ?>"><a class="btn btn-sm btn-light" href="<?= url('/pro/avis', array_filter(['ev' => $evId ?: null])) ?>"><?= $note ?> ★ ✕</a><?php endif; ?>
+  <?php if ($note): ?><input type="hidden" name="note" value="<?= $note ?>"><a class="btn btn-sm btn-light" href="<?= url('/pro/avis', array_filter(['ev' => $evId ?: null])) ?>"><?= $note ?> ★ <?= ui_icon('x', 12) ?></a><?php endif; ?>
 </form>
 
 <div class="rv-list">

@@ -5,7 +5,7 @@
     <div class="card"><?= view('partials/support_msgs', ['msgs' => $msgs, 'staffView' => true]) ?></div>
     <form method="post" class="card" id="reply"><?= csrf_field() ?>
       <div class="card-head"><h2>Répondre à <?= e((string)($t['name'] ?: $t['email'])) ?></h2>
-        <select class="macro-pick" data-target="#reply-body" style="width:auto"><option value="">Réponse enregistrée…</option><?php foreach (Support::macros() as $m): ?><option value="<?= e($m[1]) ?>"><?= e($m[0]) ?></option><?php endforeach; ?></select></div>
+        <select class="macro-pick u-wauto" data-target="#reply-body"><option value="">Réponse enregistrée…</option><?php foreach (Support::macros() as $m): ?><option value="<?= e($m[1]) ?>"><?= e($m[0]) ?></option><?php endforeach; ?></select></div>
       <div class="field"><textarea name="message" id="reply-body" rows="7" placeholder="Ta réponse part par e-mail avec un lien vers la conversation."></textarea></div>
       <div class="row">
         <button class="btn" name="action" value="reply">Envoyer</button>

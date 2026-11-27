@@ -22,8 +22,8 @@
     <?php foreach ($recent as $o): ?>
       <a class="list-item" href="<?= url('/pro/commandes/' . $o['id']) ?>" style="color:inherit;text-decoration:none">
         <span class="avatar" style="width:32px;height:32px;font-size:13px"><?= e(mb_strtoupper(mb_substr((string)$o['first_name'], 0, 1) . mb_substr((string)$o['last_name'], 0, 1))) ?></span>
-        <span class="grow" style="min-width:0;line-height:1.3"><b style="font-size:14px"><?= e($o['first_name'] . ' ' . $o['last_name']) ?></b><br><small><?= e($o['ev_name']) ?></small></span>
-        <span class="right" style="line-height:1.3"><b style="font-size:14px"><?= e(money((int)$o['total'])) ?></b><br><small><?= e(short_date($o['created_at'])) ?></small></span>
+        <span class="grow" style="min-width:0;line-height:1.3"><b class="u-fs14"><?= e($o['first_name'] . ' ' . $o['last_name']) ?></b><br><small><?= e($o['ev_name']) ?></small></span>
+        <span class="right" style="line-height:1.3"><b class="u-fs14"><?= e(money((int)$o['total'])) ?></b><br><small><?= e(short_date($o['created_at'])) ?></small></span>
       </a>
     <?php endforeach; ?>
     <?php if (!$recent): ?><p class="muted">Rien pour l'instant. Partage ton lien, ça va venir</p><?php endif; ?>

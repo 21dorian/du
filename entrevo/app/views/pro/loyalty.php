@@ -32,9 +32,9 @@ $qs = array_filter(['seg' => $seg, 'tier' => $tierName, 'q' => $q]); ?>
       <label class="check"><input type="checkbox" name="enabled" value="1" <?= $s['enabled'] ? 'checked' : '' ?>> <span>Programme actif</span></label>
       <div class="grid2"><div class="field"><label>Points par € de billets</label><input name="pts_ticket" value="<?= e(str_replace('.', ',', (string)$s['pts_ticket'])) ?>"></div><div class="field"><label>Points par € aux bars</label><input name="pts_bar" value="<?= e(str_replace('.', ',', (string)$s['pts_bar'])) ?>"></div></div>
       <div class="field"><label>Points par événement où il est venu</label><input name="pts_visit" inputmode="numeric" value="<?= (int)$s['pts_visit'] ?>"></div>
-      <table class="table table-sm"><thead><tr><th>Niveau</th><th>Dès (points)</th><th>Offre</th></tr></thead><tbody>
+      <div class="table-wrap"><table class="table table-sm"><thead><tr><th>Niveau</th><th>Dès (points)</th><th>Offre</th></tr></thead><tbody>
         <?php for ($i = 0; $i < 4; $i++): $t = $s['tiers'][$i] ?? null; ?><tr><td><input name="tier_name[]" value="<?= e($t['name'] ?? '') ?>" placeholder="<?= $i === 3 ? 'ex. Légende' : '' ?>"></td><td><input name="tier_min[]" inputmode="numeric" value="<?= $t ? (int)$t['min'] : '' ?>"></td><td><div class="input-suffix"><input name="tier_pct[]" inputmode="numeric" value="<?= $t ? (int)$t['pct'] : '' ?>"><span>%</span></div></td></tr><?php endfor; ?>
-      </tbody></table>
+      </tbody></table></div>
       <small class="muted">Les points se calculent à partir des achats de billets (hors remboursements), des dépenses cashless aux bars et de la présence (billet scanné). L'offre du niveau sert de réduction proposée par défaut pour une offre ciblée.</small>
       <button class="btn btn-sm">Enregistrer</button></form>
   </div>

@@ -13,7 +13,7 @@ $ST = ['stock' => ['En stock', ''], 'active' => ['Actif', 'ok'], 'blocked' => ['
   </div>
   <div class="stack">
     <form method="post" class="card stack"><?= csrf_field() ?><input type="hidden" name="action" value="import"><h2>Importer un lot</h2>
-      <p class="pnote" style="margin:0">Fichier du fabricant : une ligne par bracelet, « numéro;UID » ou seulement l'UID. Les bracelets s'activent ensuite à la caisse (point de recharge) ou en les associant à un billet.</p>
+      <p class="pnote u-m0">Fichier du fabricant : une ligne par bracelet, « numéro;UID » ou seulement l'UID. Les bracelets s'activent ensuite à la caisse (point de recharge) ou en les associant à un billet.</p>
       <textarea name="lines" rows="7" placeholder="000001;04A2B3C4D5E680&#10;000002;04A2B3C4D5E681" required></textarea>
       <input name="batch" placeholder="Nom du lot (ex. Bracelets tissu 2026)">
       <select name="profile"><?php foreach (Pay::PROFILES as $pk => $pl): ?><option value="<?= $pk ?>"><?= e($pl) ?></option><?php endforeach; ?></select>

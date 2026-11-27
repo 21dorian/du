@@ -55,16 +55,16 @@ $input = 'custom_field_html';?>
   <aside class="buy-box">
     <div class="card">
       <h3><?= e($ev['name']) ?></h3>
-      <p class="muted" style="font-size:14px"><?= e(fr_date($session['starts_at'] ?? $ev['starts_at'])) ?><br><?= e($ev['venue']) ?></p>
+      <p class="muted u-fs14"><?= e(fr_date($session['starts_at'] ?? $ev['starts_at'])) ?><br><?= e($ev['venue']) ?></p>
       <?php foreach ($sum['lines'] as $l): ?>
         <div class="summary-line"><span><?= (int)$l['qty'] ?> × <?= $l['kind'] === 'product' ? '' : '' ?><?= e($l['name']) ?><?= $l['pack'] > 1 ? ' (pack ' . $l['pack'] . ')' : '' ?></span><span><?= e(money($l['qty'] * $l['unit_price'])) ?></span></div>
       <?php endforeach; ?>
       <?php if ($sum['donation']): ?><div class="summary-line"><span>Don</span><span><?= e(money($sum['donation'])) ?></span></div><?php endif; ?>
-      <?php $gd = (int)($sum['group']['amount'] ?? 0); if ($gd): ?><div class="summary-line" style="color:var(--green)"><span>Tarif groupe (−<?= (int)$sum['group']['pct'] ?> %)</span><span>−<?= e(money($gd)) ?></span></div><?php endif; ?>
-      <?php if ($sum['discount'] - $gd > 0): ?><div class="summary-line" style="color:var(--green)"><span>Code <?= e($sum['promo']['code'] ?? '') ?></span><span>−<?= e(money($sum['discount'] - $gd)) ?></span></div><?php endif; ?>
+      <?php $gd = (int)($sum['group']['amount'] ?? 0); if ($gd): ?><div class="summary-line u-green"><span>Tarif groupe (−<?= (int)$sum['group']['pct'] ?> %)</span><span>−<?= e(money($gd)) ?></span></div><?php endif; ?>
+      <?php if ($sum['discount'] - $gd > 0): ?><div class="summary-line u-green"><span>Code <?= e($sum['promo']['code'] ?? '') ?></span><span>−<?= e(money($sum['discount'] - $gd)) ?></span></div><?php endif; ?>
       <?php if ($sum['fees']): ?><div class="summary-line"><span>Frais de service</span><span><?= e(money($sum['fees'])) ?></span></div><?php endif; ?>
       <div class="summary-line total"><span>Total</span><span><?= e(money($sum['total'])) ?></span></div>
-      <a href="<?= url('/e/' . $ev['slug'], $session ? ['seance' => $session['id']] : []) ?>" style="font-size:14px">← Je change d'avis</a>
+      <a href="<?= url('/e/' . $ev['slug'], $session ? ['seance' => $session['id']] : []) ?>" class="u-fs14">← Je change d'avis</a>
     </div>
   </aside>
 </div>

@@ -71,15 +71,15 @@ $presence = $stats['sold'] ? round($stats['checked'] / $stats['sold'] * 100) : 0
         <div><small class="muted">Rythme actuel</small><b><?= e(number_format($fc['rate14'], 1, ',', ' ')) ?> / jour</b></div>
         <?php if ($fc['need'] !== null): ?><div><small class="muted">Pour remplir</small><b class="<?= $fc['need'] > $fc['rate14'] * 1.5 ? 'text-red' : '' ?>"><?= e(number_format($fc['need'], 1, ',', ' ')) ?> / jour</b></div><?php endif; ?>
       </div>
-      <?php foreach ($fc['refs'] as $r): ?><p class="muted mb0" style="font-size:13px">À J-<?= $fc['days'] ?>, « <?= e($r['name']) ?> » en était à <?= $r['at'] ?> billets (<?= round($r['share'] * 100) ?> % de ses <?= $r['final'] ?> finaux).</p><?php endforeach; ?>
-      <?php if (!$ok && $fc['cap']): ?><p class="mb0 mt" style="font-size:14px"><b>Pour accélérer :</b> <a href="<?= url('/pro/campagnes') ?>">une campagne e-mail</a> à tes anciens participants, <a href="<?= url('/pro/evenements/' . $ev['id'] . '/liens') ?>">des liens ambassadeurs</a>, ou un <a href="<?= url('/pro/evenements/' . $ev['id'] . '/promos') ?>">code promo</a> limité dans le temps.</p><?php endif; ?>
+      <?php foreach ($fc['refs'] as $r): ?><p class="muted mb0 u-fs13">À J-<?= $fc['days'] ?>, « <?= e($r['name']) ?> » en était à <?= $r['at'] ?> billets (<?= round($r['share'] * 100) ?> % de ses <?= $r['final'] ?> finaux).</p><?php endforeach; ?>
+      <?php if (!$ok && $fc['cap']): ?><p class="mb0 mt u-fs14"><b>Pour accélérer :</b> <a href="<?= url('/pro/campagnes') ?>">une campagne e-mail</a> à tes anciens participants, <a href="<?= url('/pro/evenements/' . $ev['id'] . '/liens') ?>">des liens ambassadeurs</a>, ou un <a href="<?= url('/pro/evenements/' . $ev['id'] . '/promos') ?>">code promo</a> limité dans le temps.</p><?php endif; ?>
     </div>
     <?php endif; ?>
     <div class="card">
       <div class="card-head"><h2>Remplissage</h2><small>Billets cumulés depuis l'ouverture des ventes</small></div>
       <?php if ($cum['values']): ?>
         <?= Viz::chart('area', ['labels' => $cum['labels'], 'xlabel' => 'Jour', 'series' => [['name' => 'Billets vendus (cumul)', 'values' => $cum['values']]], 'ref' => $cap && max($cum['values']) >= $cap * 0.3 ? ['value' => $cap, 'label' => 'Jauge ' . $cap] : null], 'Billets vendus cumulés', 'int', 250) ?>
-        <?php if ($cap && max($cum['values']) < $cap * 0.3): ?><p class="muted mb0" style="font-size:13px">Jauge : <?= $cap ?> places (ligne affichée à partir de 30 % de remplissage).</p><?php endif; ?>
+        <?php if ($cap && max($cum['values']) < $cap * 0.3): ?><p class="muted mb0 u-fs13">Jauge : <?= $cap ?> places (ligne affichée à partir de 30 % de remplissage).</p><?php endif; ?>
       <?php else: ?><p class="muted">Pas encore de vente.</p><?php endif; ?>
     </div>
     <div class="card"><div class="card-head"><h2>Par tarif</h2><a href="<?= url('/pro/evenements/' . $ev['id'] . '/tarifs') ?>">Gérer</a></div>
@@ -106,12 +106,12 @@ $presence = $stats['sold'] ? round($stats['checked'] / $stats['sold'] * 100) : 0
     </div>
     <div class="card">
       <h2>Fais tourner</h2>
-      <input readonly value="<?= e($link) ?>" onclick="this.select()">
+      <input readonly value="<?= e($link) ?>" data-select>
       <div class="row mt"><button type="button" class="btn btn-sm btn-light" data-copy="<?= e($link) ?>">Copier</button><a class="btn btn-sm btn-light" href="https://www.facebook.com/sharer/sharer.php?u=<?= urlencode($link) ?>" target="_blank" rel="noopener">Facebook</a><a class="btn btn-sm btn-light" href="https://wa.me/?text=<?= urlencode($ev['name'] . ' ' . $link) ?>" target="_blank" rel="noopener">WhatsApp</a></div>
       <div class="center mt"><?= Qr::svg($link . '?utm_source=affiche', 130) ?><br><small>QR code pour tes affiches (suivi « affiche » dans les stats)</small></div>
       <?php $w = '<iframe src="' . abs_url('/widget/e/' . $ev['slug']) . '" style="width:100%;max-width:480px;min-height:460px;border:0" loading="lazy" title="Billetterie"></iframe>'; ?>
       <div class="soon-row"><a class="btn btn-sm btn-light" href="<?= url('/pro/evenements/' . $ev['id'] . '/visuels') ?>">Visuels réseaux sociaux</a><a class="btn btn-sm btn-light" href="<?= url('/pro/evenements/' . $ev['id'] . '/partage') ?>">Partager les stats</a><a class="btn btn-sm btn-light" href="<?= url('/pro/evenements/' . $ev['id'] . '/rapport.pdf') ?>" target="_blank">Bilan PDF</a><?= soon_btn('mini-site', 'Mini-site') ?></div>
-      <details class="mt"><summary class="linklike">Code du widget pour ton site</summary><textarea readonly rows="3" onclick="this.select()" class="mono mt" style="font-size:12px"><?= e($w) ?></textarea></details>
+      <details class="mt"><summary class="linklike">Code du widget pour ton site</summary><textarea readonly rows="3" data-select class="mono mt u-fs12"><?= e($w) ?></textarea></details>
     </div>
   </div>
 </div>

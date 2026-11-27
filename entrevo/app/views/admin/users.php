@@ -15,7 +15,7 @@ $res = ['ok' => ['Réussie', 'green'], 'fail' => ['Mot de passe faux', 'red'], '
       <select name="role"><option value="">Tous les rôles</option><?php foreach (['superadmin', 'owner', 'manager', 'scanner'] as $r): ?><option value="<?= $r ?>" <?= $role === $r ? 'selected' : '' ?>><?= e(role_label($r)) ?></option><?php endforeach; ?></select>
       <select name="f" onchange="this.form.submit()"><option value="">Tous</option><option value="no2fa" <?= $f === 'no2fa' ? 'selected' : '' ?>>Responsables sans 2FA</option><option value="locked" <?= $f === 'locked' ? 'selected' : '' ?>>Verrouillés</option><option value="dormant" <?= $f === 'dormant' ? 'selected' : '' ?>>Inactifs depuis 6 mois</option><option value="inactive" <?= $f === 'inactive' ? 'selected' : '' ?>>Désactivés</option></select>
     </div></form>
-    <div class="card table-card"><div class="table-wrap" style="overflow:visible"><table class="table users-table">
+    <div class="card table-card"><div class="table-wrap u-ovis"><table class="table users-table">
       <thead><tr><th>Compte</th><th>Rôle</th><th>Sécurité</th><th>Dernière connexion</th><th></th></tr></thead>
       <tbody>
       <?php foreach ($list as $m): $locked = $m['locked_until'] && strtotime($m['locked_until']) > time(); $mine = (int)$m['id'] === (int)$me['id']; ?>
@@ -50,7 +50,7 @@ $res = ['ok' => ['Réussie', 'green'], 'fail' => ['Mot de passe faux', 'red'], '
   </div>
   <form class="card" method="post"><?= csrf_field() ?><input type="hidden" name="action" value="add_admin">
     <h2>+ Équipe plateforme</h2>
-    <p class="muted" style="font-size:13px">Pour un associé, un stagiaire au support, un comptable… avec seulement les rubriques nécessaires.</p>
+    <p class="muted u-fs13">Pour un associé, un stagiaire au support, un comptable… avec seulement les rubriques nécessaires.</p>
     <div class="field"><label>Nom</label><input name="name" required></div>
     <div class="field"><label>E-mail</label><input type="email" name="email" required></div>
     <div class="field"><label>Mot de passe provisoire</label><input type="password" name="password" minlength="10" required autocomplete="new-password"></div>
@@ -58,6 +58,6 @@ $res = ['ok' => ['Réussie', 'green'], 'fail' => ['Mot de passe faux', 'red'], '
     <label class="check"><input type="radio" name="scope" value="limited"> <span>Limité à :</span></label>
     <?php foreach (Security::AREAS as $ak => $al): ?><label class="check sub"><input type="checkbox" name="perms[]" value="<?= $ak ?>"> <span><?= e($al) ?></span></label><?php endforeach; ?>
     <button class="btn btn-block mt">Ajouter</button>
-    <p class="muted mt mb0" style="font-size:13px">Double authentification obligatoire pour l'équipe : <a href="<?= url('/admin/reglages', ['tab' => 'securite']) ?>"><?= setting('admin_2fa') === '1' ? 'activée' : 'à activer' ?></a>.</p>
+    <p class="muted mt mb0 u-fs13">Double authentification obligatoire pour l'équipe : <a href="<?= url('/admin/reglages', ['tab' => 'securite']) ?>"><?= setting('admin_2fa') === '1' ? 'activée' : 'à activer' ?></a>.</p>
   </form>
 </div>

@@ -21,7 +21,7 @@
       <tr>
         <td class="cb"><input type="checkbox" name="ids[]" value="<?= (int)$o['id'] ?>" aria-label="Sélectionner <?= e($o['name']) ?>"></td>
         <td><a href="<?= url('/admin/organisateurs/' . $o['id']) ?>"><b><?= e($o['name']) ?></b></a><br><small class="muted"><?= e($o['legal_name'] ?: $o['email']) ?></small></td>
-        <td><?php if ($o['iban_ok']): ?><span class="mono" style="font-size:13px"><?= e(substr(preg_replace('~\s+~', '', (string)$o['iban']), 0, 4) . ' •••• ' . substr(preg_replace('~\s+~', '', (string)$o['iban']), -4)) ?></span> <span class="badge green">OK</span>
+        <td><?php if ($o['iban_ok']): ?><span class="mono u-fs13"><?= e(substr(preg_replace('~\s+~', '', (string)$o['iban']), 0, 4) . ' •••• ' . substr(preg_replace('~\s+~', '', (string)$o['iban']), -4)) ?></span> <span class="badge green">OK</span>
           <?php else: ?><span class="badge red"><?= $o['iban'] ? 'Invalide' : 'Manquant' ?></span><?php endif; ?>
           <?php if (!$o['kyc_ok']): ?><br><a class="badge orange" href="<?= url('/admin/kyc/' . $o['id']) ?>">KYC : <?= e(Kyc::STATUS[$o['kyc_status']][0] ?? '') ?></a><?php endif; ?></td>
         <td class="nowrap"><small><?= $o['last_payout'] ? e(short_date($o['last_payout'])) : '<span class="muted">jamais</span>' ?></small></td>

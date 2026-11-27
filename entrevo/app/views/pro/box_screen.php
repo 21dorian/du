@@ -59,7 +59,7 @@ kbd{font-size:11px;background:#f2f2f5;border-radius:5px;padding:1px 5px;color:#6
     <div class="bx-cl"><input id="cq" placeholder="Client : nom, e-mail, téléphone…" autocomplete="off"><div class="bx-sug" id="sug" hidden></div></div>
     <div class="bx-grid2"><input id="fn" placeholder="Prénom"><input id="ln" placeholder="Nom"></div>
     <div class="bx-grid2"><input id="em" type="email" placeholder="E-mail (billets envoyés)"><input id="ph" placeholder="Téléphone"></div>
-    <div id="hold" hidden><label class="muted" style="font-size:13px">Réservée jusqu'au</label><input id="holdu" type="datetime-local"></div>
+    <div id="hold" hidden><label class="muted u-fs13">Réservée jusqu'au</label><input id="holdu" type="datetime-local"></div>
     <div id="paybox">
       <div class="bx-pay" id="pay"><?php foreach (BOX_PAY as $k => $l): ?><button type="button" data-pm="<?= $k ?>" class="<?= $k === 'especes' ? 'on' : '' ?>"><?= e($l) ?></button><?php endforeach; ?></div>
       <div id="cash" style="margin-top:8px"><div class="bx-grid2"><input id="given" inputmode="decimal" placeholder="Reçu en espèces"><div class="bx-change" id="chg"><span>À rendre</span><b>—</b></div></div>
@@ -67,15 +67,15 @@ kbd{font-size:11px;background:#f2f2f5;border-radius:5px;padding:1px 5px;color:#6
       <div id="mixed" hidden style="margin-top:8px"><div class="bx-grid2"><input id="mx1" inputmode="decimal" placeholder="Espèces €"><input id="mx2" inputmode="decimal" placeholder="Carte €"></div></div>
     </div>
     <?php if ($seatmap): ?><small class="muted">Placement numéroté : indique les sièges dans chaque ligne (ex. A12 A13).</small><?php endif; ?>
-    <label class="check" style="font-size:14px"><input type="checkbox" id="send" checked> Envoyer les billets par e-mail</label>
-    <label class="check" style="font-size:14px"><input type="checkbox" id="force"> Dépasser la jauge si besoin</label>
+    <label class="check u-fs14"><input type="checkbox" id="send" checked> Envoyer les billets par e-mail</label>
+    <label class="check u-fs14"><input type="checkbox" id="force"> Dépasser la jauge si besoin</label>
     <input id="note" placeholder="Note interne (partenaire, presse…)">
     <div class="bx-err" id="err" hidden></div>
     <button type="button" class="bx-go" id="go" disabled>Encaisser</button>
     <small class="muted" style="text-align:center">Raccourcis : <kbd>Entrée</kbd> valider · <kbd>Échap</kbd> vider le panier</small>
   </aside>
 </div>
-<div class="bx-modal" id="done" hidden><div class="box"><div class="ic">✓</div><b style="font-size:20px" id="dt"></b><p class="muted" id="dd"></p>
+<div class="bx-modal" id="done" hidden><div class="box"><div class="ic"><?= ui_icon('check', 40) ?></div><b style="font-size:20px" id="dt"></b><p class="muted" id="dd"></p>
   <div class="acts"><a class="btn btn-lg" id="dpdf" target="_blank">Imprimer les billets</a><a class="btn btn-light" id="drec" target="_blank">Ticket de caisse</a><a class="btn btn-ghost" id="ddet" target="_blank">Voir la commande</a><button type="button" class="btn btn-ghost" id="dnew">Nouvelle vente</button></div></div></div>
 <script>
 (function(){

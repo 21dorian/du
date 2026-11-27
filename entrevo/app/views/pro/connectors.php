@@ -7,7 +7,7 @@ $mask = fn(string $v) => $v === '' ? '' : str_repeat('•', 8) . substr($v, -4);
     <p class="muted mb0"><small>Un tableur qui se remplit tout seul. Dans Google Sheets, tape dans la case A1 : <span class="mono">=IMPORTDATA("lien")</span>. Google met à jour environ toutes les heures. Dans Excel : Données › À partir du web.</small></p>
     <?php if ($s['sheets_token']): ?>
       <?php foreach (['commandes' => 'Commandes', 'participants' => 'Participants (billets)', 'ventes' => 'Ventes par jour'] as $k => $l): ?>
-        <div class="field"><label><?= $l ?></label><div class="row"><input readonly value="<?= e($feed($k)) ?>" class="grow mono" style="font-size:12px"><button type="button" class="btn btn-sm btn-light" data-copy='=IMPORTDATA("<?= e($feed($k)) ?>")'>Copier la formule</button></div></div>
+        <div class="field"><label><?= $l ?></label><div class="row"><input readonly value="<?= e($feed($k)) ?>" class="grow mono u-fs12"><button type="button" class="btn btn-sm btn-light" data-copy='=IMPORTDATA("<?= e($feed($k)) ?>")'>Copier la formule</button></div></div>
       <?php endforeach; ?>
       <small class="muted">Ajoute <span class="mono">?e=ID</span> pour un seul événement. Ces liens sont secrets : ne les publie pas.</small>
       <form method="post" class="row"><?= csrf_field() ?><button class="btn btn-sm btn-ghost" name="action" value="sheets" data-confirm="Les anciens liens arrêteront de fonctionner. Continuer ?">Régénérer</button><button class="btn btn-sm btn-ghost" name="action" value="sheets_off">Couper</button></form>
@@ -15,7 +15,7 @@ $mask = fn(string $v) => $v === '' ? '' : str_repeat('•', 8) . substr($v, -4);
   </div>
   <div class="card stack"><h2>Zapier, Make &amp; n8n</h2>
     <p class="muted mb0"><small>Connecte-toi avec ta clé API (en-tête <span class="mono">Authorization: Bearer</span>). Déclencheurs instantanés par abonnement REST, actions : créer une invitation.</small></p>
-    <?php if ($org['api_key']): ?><div class="field"><label>Clé API</label><div class="row"><input readonly value="<?= e($org['api_key']) ?>" class="grow mono" style="font-size:12px"><button type="button" class="btn btn-sm btn-light" data-copy="<?= e($org['api_key']) ?>">Copier</button></div></div>
+    <?php if ($org['api_key']): ?><div class="field"><label>Clé API</label><div class="row"><input readonly value="<?= e($org['api_key']) ?>" class="grow mono u-fs12"><button type="button" class="btn btn-sm btn-light" data-copy="<?= e($org['api_key']) ?>">Copier</button></div></div>
     <?php else: ?><form method="post"><?= csrf_field() ?><button class="btn btn-sm" name="action" value="api_key">Créer ma clé API</button></form><?php endif; ?>
     <div class="code-block mono" style="font-size:12px;white-space:pre-wrap;background:var(--panel2,#f5f5f7);border-radius:12px;padding:12px">POST <?= e(abs_url('/api/v1/hooks')) . "\n" ?>{"url": "https://hooks.zapier.com/…", "event": "order.paid"}
 DELETE <?= e(abs_url('/api/v1/hooks/{id}')) . "\n" ?>

@@ -10,7 +10,7 @@
 </head>
 <body>
 <header class="pp-top"><a href="<?= Pay::url('') ?>" class="pp-brand"><svg viewBox="0 0 32 32"><rect width="32" height="32" rx="9"/><path d="M9 22V10h7.5a4.5 4.5 0 0 1 0 9H13"/></svg><span>Entrevo Pay</span></a><?php if ($ev): ?><span class="pp-ev"><?= e($ev['name']) ?></span><?php endif; ?></header>
-<main class="pp-main">
+<main class="pp-main" id="contenu">
   <div class="pp-flash"><?= render_flash() ?></div>
   <?= $content ?>
 </main>

@@ -17,8 +17,8 @@ $button = '<div data-entrevo-event="' . $ev['slug'] . '" data-mode="button" data
       <label class="check"><input type="checkbox" name="promo" value="1" <?= $ws['promo'] ? 'checked' : '' ?>> Champ « code promo / code d'accès »</label>
       <button class="btn">Enregistrer</button></form>
     <div class="card stack"><h2>Code à coller sur ton site</h2>
-      <div class="field"><label>Widget intégré dans la page (s'adapte en hauteur)</label><textarea readonly rows="3" class="mono" style="font-size:12.5px"><?= e($inline) ?></textarea><button type="button" class="btn btn-sm btn-light" data-copy="<?= e($inline) ?>">Copier</button></div>
-      <div class="field"><label>Bouton qui ouvre la billetterie par-dessus la page</label><textarea readonly rows="3" class="mono" style="font-size:12.5px"><?= e($button) ?></textarea><button type="button" class="btn btn-sm btn-light" data-copy="<?= e($button) ?>">Copier</button></div>
+      <div class="field"><label>Widget intégré dans la page (s'adapte en hauteur)</label><textarea readonly rows="3" class="mono u-fs13"><?= e($inline) ?></textarea><button type="button" class="btn btn-sm btn-light" data-copy="<?= e($inline) ?>">Copier</button></div>
+      <div class="field"><label>Bouton qui ouvre la billetterie par-dessus la page</label><textarea readonly rows="3" class="mono u-fs13"><?= e($button) ?></textarea><button type="button" class="btn btn-sm btn-light" data-copy="<?= e($button) ?>">Copier</button></div>
       <small class="muted">WordPress, Wix, Squarespace, Webflow : ajoute un bloc « HTML personnalisé » et colle le code. Les ventes du widget sont repérées dans tes statistiques (canal « widget », avec le nom du site).</small></div>
   </div>
   <div class="card wg-preview"><div class="card-head"><h2>Aperçu en direct</h2><a class="btn btn-sm btn-ghost" target="_blank" href="<?= url('/widget/achat/' . $ev['slug']) ?>">Ouvrir seul</a></div>

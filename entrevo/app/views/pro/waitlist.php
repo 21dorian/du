@@ -1,7 +1,7 @@
 <?php $lab = ['waiting' => ['En attente', 'grey'], 'offered' => ['Place proposée', 'orange'], 'converted' => ['A acheté', 'green'], 'expired' => ['Offre expirée', 'red'], 'cancelled' => ['Retiré', 'red']]; ?>
 <div class="split">
   <div class="card"><div class="card-head"><h2>Liste d'attente</h2><form method="post"><?= csrf_field() ?><button class="btn btn-sm btn-ghost" name="action" value="process">Proposer les places libres maintenant</button></form></div>
-    <p class="muted" style="font-size:14px">Dès qu'une place se libère (annulation, remboursement, jauge augmentée), la première personne reçoit un e-mail et sa place est gardée <?= Waitlist::hours($ev) ?> h. Puis on passe à la suivante.</p>
+    <p class="muted u-fs14">Dès qu'une place se libère (annulation, remboursement, jauge augmentée), la première personne reçoit un e-mail et sa place est gardée <?= Waitlist::hours($ev) ?> h. Puis on passe à la suivante.</p>
     <form method="post" class="wl-settings"><?= csrf_field() ?><input type="hidden" name="action" value="settings">
       <label>Place gardée <input type="number" name="waitlist_hours" min="1" max="168" value="<?= Waitlist::hours($ev) ?>"> h</label>
       <label>Minuteur de paiement <input type="number" name="hold_minutes" min="5" max="60" value="<?= (int)($ev['hold_minutes'] ?? 0) ?: '' ?>" placeholder="<?= (int)setting('pending_minutes', 20) ?>"> min</label>
@@ -17,7 +17,7 @@
     <div class="table-wrap"><table class="table"><thead><tr><th>Billet</th><th class="num">Prix</th><th>Statut</th><th>Remboursement vendeur</th></tr></thead><tbody>
     <?php foreach ($resales as $x): ?><tr><td><?= e($x['rate_name']) ?><br><small>vendeur <?= e($x['seller_ref']) ?><?= $x['buyer_ref'] ? ' → ' . e($x['buyer_ref']) : '' ?></small></td><td class="num"><?= e(money((int)$x['price'])) ?><br><small>frais <?= e(money((int)$x['fee'])) ?></small></td>
       <td><?= ['listed' => '<span class="badge orange">En vente</span>', 'sold' => '<span class="badge green">Revendu</span>', 'cancelled' => '<span class="badge grey">Annulé</span>'][$x['status']] ?></td>
-      <td><?= $x['refund_status'] === 'ok' ? '' : ($x['refund_status'] === 'failed' ? '<span style="color:var(--red)">' . e($x['refund_info']) . '</span>' : '—') ?></td></tr><?php endforeach; ?>
+      <td><?= $x['refund_status'] === 'ok' ? '' : ($x['refund_status'] === 'failed' ? '<span class="u-red">' . e($x['refund_info']) . '</span>' : '—') ?></td></tr><?php endforeach; ?>
     <?php if (!$resales): ?><tr><td colspan="4" class="empty">Aucune revente.</td></tr><?php endif; ?>
     </tbody></table></div></div>
 </div>

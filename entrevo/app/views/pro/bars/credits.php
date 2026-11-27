@@ -7,7 +7,7 @@
 </div>
 <div class="split">
   <div class="card table-card"><div class="card-head"><h2>Badges</h2><a class="btn btn-sm btn-light" href="<?= url($bbase . '/credits', ['badges' => 1]) ?>" target="_blank">Imprimer les badges (PDF)</a></div>
-    <div class="table-wrap" style="overflow:visible"><table class="table"><thead><tr><th>Personne</th><th>Droit</th><th class="num">Aujourd'hui</th><th class="num">Total</th><th></th></tr></thead><tbody>
+    <div class="table-wrap u-ovis"><table class="table"><thead><tr><th>Personne</th><th>Droit</th><th class="num">Aujourd'hui</th><th class="num">Total</th><th></th></tr></thead><tbody>
       <?php foreach ($list as $a): $eu = $a['mode'] === 'euros'; ?><tr class="<?= (int)$a['active'] ? '' : 'muted' ?>"><td><b><?= e($a['holder']) ?></b><br><small class="muted"><?= e(Till::GROUPS[$a['grp']] ?? '') ?> · <span class="mono"><?= e($a['code']) ?></span><?= $a['nfc_uid'] ? ' · bracelet' : '' ?></small></td>
         <td><?= $eu ? e(money((int)$a['per_day'])) : (int)$a['per_day'] . ' conso' ?> / jour<?= $a['total_limit'] !== null ? '<br><small class="muted">max ' . ($eu ? e(money((int)$a['total_limit'])) : (int)$a['total_limit']) . '</small>' : '' ?></td>
         <td class="num"><?= $eu ? e(money($a['used']['today'])) : $a['used']['today'] ?></td><td class="num"><?= $eu ? e(money($a['used']['all'])) : $a['used']['all'] ?></td>

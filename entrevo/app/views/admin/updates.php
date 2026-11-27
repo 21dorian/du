@@ -25,7 +25,7 @@
         <label class="check"><input type="checkbox" name="force" value="1"> Forcer (réinstaller ou revenir à une version plus ancienne)</label>
         <button class="btn btn-lg" data-confirm="Installer cette mise à jour ? Une sauvegarde est faite automatiquement avant.">Installer</button>
       </div>
-      <p class="muted mt mb0" style="font-size:14px">Avant chaque installation, les fichiers remplacés sont sauvegardés. Tes données (base, billets, images, config.php) ne sont jamais touchées. Taille max. acceptée par l'hébergement : <?= e($limits['upload']) ?>.<?= !$limits['zip'] ? ' <b style="color:var(--red)">L\'extension PHP zip est désactivée : active-la dans cPanel.</b>' : '' ?></p>
+      <p class="muted mt mb0 u-fs14">Avant chaque installation, les fichiers remplacés sont sauvegardés. Tes données (base, billets, images, config.php) ne sont jamais touchées. Taille max. acceptée par l'hébergement : <?= e($limits['upload']) ?>.<?= !$limits['zip'] ? ' <b class="u-red">L\'extension PHP zip est désactivée : active-la dans cPanel.</b>' : '' ?></p>
     </form>
     <div class="card">
       <h2>Historique</h2>
@@ -42,7 +42,7 @@
   <div>
     <div class="card">
       <h2>Revenir en arrière</h2>
-      <p class="muted" style="font-size:14px">Chaque sauvegarde contient les fichiers d'avant une mise à jour. La base de données n'est pas modifiée par un retour arrière.</p>
+      <p class="muted u-fs14">Chaque sauvegarde contient les fichiers d'avant une mise à jour. La base de données n'est pas modifiée par un retour arrière.</p>
       <?php foreach (array_slice($backups, 0, 8) as $b): ?>
         <form method="post" class="list-item"><?= csrf_field() ?><input type="hidden" name="action" value="rollback"><input type="hidden" name="backup" value="<?= e($b['name']) ?>">
           <span class="grow"><b>Revenir à la <?= e($b['version_avant'] ?? '?') ?></b><br><small>avant la <?= e($b['version_apres'] ?? '?') ?> · <?= e(short_date($b['date'] ?? '')) ?></small></span>
@@ -52,7 +52,7 @@
     </div>
     <div class="card">
       <h2>Sauvegarde des données</h2>
-      <p class="muted" style="font-size:14px">Télécharge toute la base (événements, commandes, billets, comptes) en un fichier .sql. À faire avant chaque gros événement, on n'est jamais trop prudent.</p>
+      <p class="muted u-fs14">Télécharge toute la base (événements, commandes, billets, comptes) en un fichier .sql. À faire avant chaque gros événement, on n'est jamais trop prudent.</p>
       <a class="btn btn-block btn-ghost" href="<?= url('/admin/sauvegarde') ?>">Télécharger la sauvegarde</a>
     </div>
   </div>

@@ -1,5 +1,5 @@
 <?php /** @var array $v, $errors; ?array $done */ ?>
-<section class="store-wrap" style="max-width:760px">
+<section class="store-wrap u-mw760">
   <span class="eyebrow"><?= e(setting('platform_name', 'Entrevo')) ?></span>
   <h1>Une question ? On t'aide.</h1>
   <?php if ($done): ?>

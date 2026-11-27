@@ -1,6 +1,6 @@
 <?php if (empty($ev) && ($prev = all('SELECT id, name, starts_at FROM events WHERE organizer_id = ? ORDER BY starts_at DESC LIMIT 30', [(int)(current_org()['id'] ?? 0)]))): ?>
 <div class="card reprise"><div><b>Une nouvelle édition ?</b><br><small class="muted">Reprends un événement existant : tarifs, options, formulaire, bénévoles et rétroplanning recopiés, dates décalées automatiquement.</small></div>
-  <form method="get" class="row" onsubmit="this.action=this.action.replace('ID', this.ev.value)" action="<?= url('/pro/evenements/ID/dupliquer') ?>"><select name="ev" style="width:auto"><?php foreach ($prev as $p): ?><option value="<?= (int)$p['id'] ?>"><?= e($p['name']) ?> · <?= e(short_date($p['starts_at'])) ?></option><?php endforeach; ?></select><button class="btn btn-light">Reprendre</button></form></div>
+  <form method="get" class="row" onsubmit="this.action=this.action.replace('ID', this.ev.value)" action="<?= url('/pro/evenements/ID/dupliquer') ?>"><select name="ev" class="u-wauto"><?php foreach ($prev as $p): ?><option value="<?= (int)$p['id'] ?>"><?= e($p['name']) ?> · <?= e(short_date($p['starts_at'])) ?></option><?php endforeach; ?></select><button class="btn btn-light">Reprendre</button></form></div>
 <?php endif; ?>
 <form method="post" enctype="multipart/form-data"><?= csrf_field() ?>
   <?php if ($errors): ?><div class="flash error"><?= implode('<br>', array_map('e', $errors)) ?></div><?php endif; ?>
@@ -46,7 +46,7 @@
         <h2>L'affiche</h2>
         <?php if (!empty($ev['image'])): ?><img src="<?= url($ev['image']) ?>" alt="" style="border-radius:10px;margin-bottom:10px">
           <label class="check" style="margin-bottom:12px"><input type="checkbox" name="remove_image" value="1"> Supprimer l'image</label><?php endif; ?>
-        <input type="file" name="image" accept="image/jpeg,image/png,image/webp">
+        <input type="file" name="image" aria-label="Affiche de l'événement" accept="image/jpeg,image/png,image/webp">
         <small class="muted">Format carré conseillé (1200 × 1200 px), 5 Mo max. Une belle affiche = plus de ventes.</small>
       </div>
       <div class="card">
@@ -127,7 +127,7 @@
     <button class="btn btn-lg"><?= $isNew ? 'Créer l\'événement' : 'Enregistrer' ?></button>
     <?php if (!$isNew): ?>
       <a class="btn btn-ghost" href="<?= url('/pro/evenements/' . $ev['id'] . '/dupliquer') ?>">Reprendre pour une nouvelle date</a>
-      <button class="btn btn-ghost" style="color:var(--red)" formaction="<?= url('/pro/evenements/' . $ev['id'] . '/supprimer') ?>" formnovalidate data-confirm="Supprimer définitivement cet événement ?">Supprimer</button>
+      <button class="btn btn-ghost u-red" formaction="<?= url('/pro/evenements/' . $ev['id'] . '/supprimer') ?>" formnovalidate data-confirm="Supprimer définitivement cet événement ?">Supprimer</button>
     <?php endif; ?>
   </div>
 </form>

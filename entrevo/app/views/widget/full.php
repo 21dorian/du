@@ -98,7 +98,7 @@ input:focus,select:focus,textarea:focus{outline:0;border-color:var(--c)}
   <section class="pane" id="p3" hidden>
     <div class="wait" id="w3"><div class="spin"></div><b>Paiement en cours dans la fenêtre sécurisée</b><p class="muted">Termine ton paiement : cette page se met à jour toute seule.</p>
       <a class="btn ghost" id="reopen" target="entrevo_pay" href="#">Rouvrir la fenêtre de paiement</a></div>
-    <div class="ok" id="ok3" hidden><div class="ic">✓</div><b style="font-size:18px">C'est réservé !</b><p class="muted" id="okmail"></p><div id="tks"></div>
+    <div class="ok" id="ok3" hidden><div class="ic"><?= ui_icon('check', 40) ?></div><b style="font-size:18px">C'est réservé !</b><p class="muted" id="okmail"></p><div id="tks"></div>
       <a class="btn" id="pdf" target="_blank" rel="noopener" href="#">Télécharger mes billets</a><a class="btn ghost" id="ord" target="_blank" rel="noopener" href="#">Gérer ma commande</a></div>
     <div class="err" id="e3" hidden></div>
   </section>

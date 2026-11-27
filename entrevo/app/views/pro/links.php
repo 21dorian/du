@@ -49,7 +49,7 @@ usort($amb, fn($a, $b) => (int)($stats[$b['id']]['tickets'] ?? 0) <=> (int)($sta
     <h2>Nouveau lien</h2>
     <div class="field"><label>Type</label><select name="kind"><option value="canal">Canal (story, affiche, newsletter…)</option><option value="ambassadeur">Ambassadeur (une personne)</option></select></div>
     <div class="field"><label>Nom</label><input name="name" required maxlength="120" placeholder="Ex. : Story Instagram, Affiche Bar le Rex, Lucie"></div>
-    <div class="field"><label>Code du lien <small class="muted">(facultatif)</small></label><input name="code" maxlength="16" placeholder="Ex. : INSTA" style="text-transform:uppercase"><small>Il apparaît dans l'adresse : …?l=INSTA</small></div>
+    <div class="field"><label>Code du lien <small class="muted">(facultatif)</small></label><input name="code" maxlength="16" placeholder="Ex. : INSTA" class="u-upper"><small>Il apparaît dans l'adresse : …?l=INSTA</small></div>
     <div class="field"><label>Code promo appliqué automatiquement</label><select name="promo_code"><option value="">Aucun</option><?php foreach ($promos as $c): ?><option><?= e($c) ?></option><?php endforeach; ?></select></div>
     <div data-show-if="kind=ambassadeur">
       <div class="field"><label>E-mail de l'ambassadeur</label><input type="email" name="email" placeholder="lucie@exemple.fr"></div>

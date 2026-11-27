@@ -6,6 +6,6 @@
     <p><a class="btn btn-block" href="<?= url('/o/' . $org['slug']) ?>">Choisir un événement</a></p>
   <?php else: ?>
     <?php if ($err): ?><div class="flash error"><?= e($err) ?></div><?php endif; ?>
-    <form method="post"><?= csrf_field() ?><div class="field"><label>Code de la carte</label><input name="code" required placeholder="KDO-XXXX-XXXX" style="text-transform:uppercase"></div><button class="btn btn-block">Voir le solde</button></form>
+    <form method="post"><?= csrf_field() ?><div class="field"><label>Code de la carte</label><input name="code" required placeholder="KDO-XXXX-XXXX" class="u-upper"></div><button class="btn btn-block">Voir le solde</button></form>
   <?php endif; ?>
 </div>

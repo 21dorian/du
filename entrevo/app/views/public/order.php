@@ -7,11 +7,11 @@
     <p class="muted">Commande <b><?= e($o['ref']) ?></b> · <?= $o['email_sent_at'] ? 'tes billets sont aussi partis vers <b>' . e($o['email']) . '</b>' : 'tes billets sont juste en dessous' ?></p>
     <div class="row no-print" style="justify-content:center">
       <a class="btn" href="<?= url('/commande/' . $o['ref'] . '/pdf', ['t' => $o['token'], 'dl' => 1]) ?>">Télécharger (PDF)</a>
-      <button class="btn btn-ghost" onclick="window.print()">Imprimer</button>
+      <button class="btn btn-ghost" data-print>Imprimer</button>
       <?php if ((int)$o['total'] > 0): ?><a class="btn btn-ghost" href="<?= url('/commande/' . $o['ref'] . '/recu', ['t' => $o['token']]) ?>" target="_blank">Reçu</a><?php endif; ?>
     </div>
     <?php if (strtotime((string)($ev['ends_at'] ?: $ev['starts_at'])) < time()): $hasRev = val('SELECT id FROM reviews WHERE order_id = ?', [$o['id']]); ?>
-      <p class="no-print" style="margin-top:12px"><a class="btn btn-light" href="<?= url('/avis/' . $o['ref'], ['t' => $o['token']]) ?>"><?= $hasRev ? 'Modifier mon avis' : 'Donner mon avis sur l\'événement' ?></a></p>
+      <p class="no-print u-mt12"><a class="btn btn-light" href="<?= url('/avis/' . $o['ref'], ['t' => $o['token']]) ?>"><?= $hasRev ? 'Modifier mon avis' : 'Donner mon avis sur l\'événement' ?></a></p>
     <?php endif; ?>
     <div class="row no-print" style="justify-content:center;margin-top:10px">
       <details class="cal-menu"><summary class="btn btn-sm btn-light">Ajouter à mon agenda</summary><div class="cal-pop"><a href="<?= e(Buyers::googleUrl($ev, $session)) ?>" target="_blank" rel="noopener">Google Agenda</a><a href="<?= e(Buyers::icsUrl($ev, $session)) ?>">Apple / Outlook (.ics)</a></div></details>
@@ -25,7 +25,7 @@
     <p class="muted">Référence <b><?= e($o['ref']) ?></b> · <?= e(money((int)$o['total'])) ?> à régler avant le <b><?= e(fr_date((string)$o['expires_at'])) ?></b>. Les instructions sont aussi parties par e-mail.</p>
     <?php if (!empty($ev['reservation_text'])): ?><p class="flash info"><?= nl2br(e((string)$ev['reservation_text'])) ?></p><?php endif; ?>
     <a class="btn btn-lg" href="<?= url('/paiement/' . $o['ref'], ['t' => $o['token']]) ?>">Payer en ligne maintenant</a>
-    <p class="muted" style="font-size:13px">Tes billets arrivent dès le règlement. Sans paiement à temps, les places sont remises en vente.</p>
+    <p class="muted u-fs13">Tes billets arrivent dès le règlement. Sans paiement à temps, les places sont remises en vente.</p>
   </div>
 <?php elseif ($o['status'] === 'pending'): ?>
   <div class="card center auth-box">
@@ -80,7 +80,7 @@
   <?php if ($canName && count($valid) > 1): ?>
   <details class="card names-box no-print" <?= $allBuyer ? 'open' : '' ?>>
     <summary><b>Qui vient avec toi ?</b> <span class="muted"><?= $allBuyer ? 'Tes ' . count($valid) . ' billets sont à ton nom : mets le nom de chacun (facultatif).' : 'Modifier les noms sur les billets' ?></span></summary>
-    <form method="post" action="<?= url('/commande/' . $o['ref'] . '/noms', ['t' => $o['token']]) ?>" class="stack" style="margin-top:12px"><?= csrf_field() ?>
+    <form method="post" action="<?= url('/commande/' . $o['ref'] . '/noms', ['t' => $o['token']]) ?>" class="stack u-mt12"><?= csrf_field() ?>
       <?php foreach ($valid as $i => $t): ?>
         <div class="names-row"><span class="names-label"><?= e($t['rate_name']) ?><?= $t['seat'] ? ' · ' . e(Seating::label($t['seat'], $map)) : '' ?></span>
           <input name="t[<?= (int)$t['id'] ?>][first_name]" value="<?= e($t['first_name']) ?>" aria-label="Prénom" placeholder="Prénom"><input name="t[<?= (int)$t['id'] ?>][last_name]" value="<?= e($t['last_name']) ?>" aria-label="Nom" placeholder="Nom"></div>
@@ -110,14 +110,14 @@
           <div><small>Date</small><b><?= e(date('d.m.Y', strtotime($start))) ?></b></div>
           <div><small>Heure</small><b><?= e(date('H:i', strtotime($start))) ?></b></div>
           <div><small>Tarif</small><b><?= e($t['rate_name']) ?></b></div>
-          <div style="grid-column:span 2"><small>Lieu</small><b><?= e(trim($ev['venue'] . ($ev['city'] ? ', ' . $ev['city'] : ''), ', ')) ?: '—' ?></b></div>
+          <div class="u-span2"><small>Lieu</small><b><?= e(trim($ev['venue'] . ($ev['city'] ? ', ' . $ev['city'] : ''), ', ')) ?: '—' ?></b></div>
           <div><small>Prix</small><b><?= (int)$t['price'] ? e(money((int)$t['price'])) : 'Gratuit' ?></b></div>
           <div style="grid-column:1/-1"><small>Participant</small><b><?= e(trim($t['first_name'] . ' ' . $t['last_name'])) ?></b></div>
         </div>
         <?php if ($t['seat']): ?><span class="ticket-seat"><?= e(Seating::label($t['seat'], $map)) ?></span><?php endif; ?>
         <?php if ((int)$t['max_entries'] > 1 || $t['per_day']): ?><span class="ticket-seat"><?= $t['per_day'] ? '1 entrée par jour' : (int)$t['max_entries'] . ' entrées' ?></span><?php endif; ?>
         <div class="ticket-actions no-print">
-          <?= $t['status'] === 'valid' ? '' : '<b style="color:var(--red)">BILLET ANNULÉ</b>' ?>
+          <?= $t['status'] === 'valid' ? '' : '<b class="u-red">BILLET ANNULÉ</b>' ?>
           <?php if ($t['status'] === 'valid'): ?><a href="<?= url('/commande/' . $o['ref'] . '/pdf', ['t' => $o['token'], 'billet' => $t['code']]) ?>" target="_blank">PDF de ce billet</a><?php endif; ?>
           <?php if ($t['status'] === 'valid' && (Wallet::appleOn() || Wallet::googleOn())): ?><span class="wallet-btns"><?php if (Wallet::appleOn()): ?><a href="<?= url('/commande/' . $o['ref'] . '/wallet/' . $t['code'], ['t' => $o['token']]) ?>">Apple Wallet</a><?php endif; ?><?php if (Wallet::googleOn()): ?><a href="<?= url('/commande/' . $o['ref'] . '/google/' . $t['code'], ['t' => $o['token']]) ?>" target="_blank" rel="noopener">Google Wallet</a><?php endif; ?></span><?php endif; ?>
           <?php if ($t['replaced_by']): ?><b>Revendu</b><?php endif; ?>
@@ -156,7 +156,7 @@
       <?php if ($o['invoice_number']): ?><p class="mt mb0 row"><a class="btn btn-light" href="<?= url('/commande/' . $o['ref'] . '/facture', ['t' => $o['token']]) ?>" target="_blank">Télécharger la facture (PDF)</a>
         <?php foreach (class_exists('Accounting') ? all('SELECT id, number FROM credit_notes WHERE order_id = ? ORDER BY id', [$o['id']]) : [] as $cn): ?><a class="btn btn-light" href="<?= url('/commande/' . $o['ref'] . '/avoir/' . $cn['id'], ['t' => $o['token']]) ?>" target="_blank">Avoir <?= e($cn['number']) ?></a><?php endforeach; ?></p>
       <?php else: ?><form method="post" action="<?= url('/commande/' . $o['ref'] . '/facture', ['t' => $o['token']]) ?>" class="mt"><?= csrf_field() ?>
-        <p class="muted" style="font-size:14px">Pour ton entreprise, ton comité d'entreprise ou tes notes de frais. Attention : une fois émise, la facture ne peut plus être modifiée.</p>
+        <p class="muted u-fs14">Pour ton entreprise, ton comité d'entreprise ou tes notes de frais. Attention : une fois émise, la facture ne peut plus être modifiée.</p>
         <div class="grid2"><div class="field"><label>Société <small class="muted">(facultatif)</small></label><input name="invoice_company" value="<?= e((string)$o['invoice_company']) ?>"></div>
           <div class="field"><label>N° de TVA <small class="muted">(facultatif)</small></label><input name="invoice_vat"></div></div>
         <div class="field"><label>Adresse de facturation</label><textarea name="invoice_address" rows="2"><?= e((string)$o['invoice_address']) ?></textarea></div>
@@ -166,9 +166,9 @@
   <?php if ($refundable): ?>
     <details class="card mt no-print"><summary class="linklike" style="cursor:pointer">Demander un remboursement</summary>
       <form method="post" action="<?= url('/commande/' . $o['ref'] . '/remboursement', ['t' => $o['token']]) ?>" class="mt"><?= csrf_field() ?>
-        <p class="muted" style="font-size:14px">L'organisateur accepte les demandes<?= $ev['refund_deadline'] ? ' jusqu\'au ' . e(fr_date($ev['refund_deadline'])) : '' ?>. Tes billets resteront valables tant que la demande n'est pas traitée.</p>
+        <p class="muted u-fs14">L'organisateur accepte les demandes<?= $ev['refund_deadline'] ? ' jusqu\'au ' . e(fr_date($ev['refund_deadline'])) : '' ?>. Tes billets resteront valables tant que la demande n'est pas traitée.</p>
         <div class="field"><label>Motif (facultatif)</label><input name="reason"></div><button class="btn btn-ghost" data-confirm="Envoyer la demande de remboursement ?">Envoyer la demande</button></form></details>
   <?php elseif ($o['refund_requested_at'] && $o['status'] === 'paid'): ?><p class="muted center">Demande de remboursement envoyée le <?= e(short_date($o['refund_requested_at'])) ?>, en cours de traitement.</p><?php endif; ?>
-  <p class="muted center mt" style="font-size:14px">Un QR code = une entrée. Le partager, c'est le perdre.</p>
+  <p class="muted center mt u-fs14">Un QR code = une entrée. Le partager, c'est le perdre.</p>
 </div>
 <?php endif; ?>

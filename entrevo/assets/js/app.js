@@ -66,7 +66,7 @@
   document.querySelectorAll('[data-copy]').forEach(function (b) {
     b.addEventListener('click', function () {
       navigator.clipboard.writeText(b.dataset.copy).then(function () {
-        var t = b.textContent; b.textContent = 'Copié ✓'; setTimeout(function () { b.textContent = t; }, 1500);
+        var t = b.textContent; b.textContent = 'Copié'; setTimeout(function () { b.textContent = t; }, 1500);
       });
     });
   });
@@ -84,7 +84,7 @@
     if (!navigator.share && !navigator.clipboard) { b.hidden = true; return; }
     b.addEventListener('click', function () {
       if (navigator.share) { navigator.share({ text: b.dataset.text, url: b.dataset.url }).catch(function () { /* annulé */ }); return; }
-      navigator.clipboard.writeText(b.dataset.text).then(function () { var t = b.textContent; b.textContent = 'Message copié ✓'; setTimeout(function () { b.textContent = t; }, 1500); });
+      navigator.clipboard.writeText(b.dataset.text).then(function () { var t = b.textContent; b.textContent = 'Message copié'; setTimeout(function () { b.textContent = t; }, 1500); });
     });
   });
 
@@ -197,3 +197,30 @@
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', refresh); else refresh();
   if (window.MutationObserver) new MutationObserver(function(m){ for (var k = 0; k < m.length; k++) if (m[k].addedNodes.length) { refresh(); break; } }).observe(document.documentElement, { childList: true, subtree: true });
 })();
+
+/* 4.2.1 (accessibilité) : nom accessible de secours pour les champs sans étiquette reliée
+   (étiquette du bloc .field, en-tête de colonne d'un tableau, ou texte d'exemple). */
+(function () {
+  function name(el) {
+    if ((el.labels && el.labels.length) || el.getAttribute('aria-label') || el.getAttribute('aria-labelledby') || el.title) return;
+    var f = el.closest('.field'), l = f && f.querySelector('label');
+    var t = l && l.textContent.replace(/\s+/g, ' ').trim();
+    if (!t) { var td = el.closest('td'), tb = el.closest('table');
+      if (td && tb) { var hr = tb.querySelector('thead tr') || tb.rows[0]; var th = hr && hr.cells[td.cellIndex] !== td ? hr.cells[td.cellIndex] : null; var rh = td.parentElement.cells[0]; if (rh && rh !== td && !td.parentElement.querySelector('td b, td strong')) th = th ? { textContent: th.textContent + ' · ' + rh.textContent } : rh; var row = td.parentElement.querySelector('td b, td strong');
+        t = (th ? th.textContent.trim() : '') + (row && row !== el ? ' · ' + row.textContent.trim() : ''); } }
+    if (!t) t = el.placeholder || '';
+    if (t) el.setAttribute('aria-label', t.slice(0, 120));
+  }
+  function run(root) { (root || document).querySelectorAll('input:not([type=hidden]):not([type=submit]):not([type=button]),select,textarea').forEach(name); }
+  run();
+  if (window.MutationObserver) new MutationObserver(function (ms) { ms.forEach(function (m) { m.addedNodes.forEach(function (n) { if (n.nodeType === 1) run(n); }); }); }).observe(document.body, { childList: true, subtree: true });
+})();
+
+/* 4.2.1 : comportements déclaratifs (remplacent les onclick en ligne) */
+document.addEventListener('click', function (e) {
+  var a = e.target.closest('a[data-confirm]');
+  if (a && !window.confirm(a.dataset.confirm)) { e.preventDefault(); e.stopImmediatePropagation(); return; }
+  if (e.target.closest('[data-print]')) { e.preventDefault(); window.print(); }
+}, true);
+document.addEventListener('focusin', function (e) { var t = e.target; if (t.matches && t.matches('[data-select]') && t.select) setTimeout(function () { t.select(); }, 0); });
+document.addEventListener('click', function (e) { var t = e.target; if (t.matches && t.matches('[data-select]') && t.select) t.select(); });

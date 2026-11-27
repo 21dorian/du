@@ -25,7 +25,7 @@
       <h2>Vente en ligne</h2>
       <label class="check mb"><input type="checkbox" name="gift_enabled" value="1" <?= $org['gift_enabled'] ? 'checked' : '' ?>> <span>Proposer des cartes cadeaux sur ma page</span></label>
       <div class="field"><label>Montants proposés</label><input name="gift_amounts" value="<?= e((string)($org['gift_amounts'] ?: '20, 50, 100')) ?>"><small>Séparés par des virgules. Un montant libre est toujours possible.</small></div>
-      <div class="field"><label>Validité</label><div class="input-suffix" style="max-width:160px"><input type="number" name="gift_months" min="1" max="36" value="<?= (int)$org['gift_months'] ?>"><span>mois</span></div></div>
+      <div class="field"><label>Validité</label><div class="input-suffix u-mw160"><input type="number" name="gift_months" min="1" max="36" value="<?= (int)$org['gift_months'] ?>"><span>mois</span></div></div>
       <button class="btn btn-block">Enregistrer</button>
       <?php if ($org['gift_enabled']): ?><p class="muted mt mb0">Page de vente : <a href="<?= $pub ?>" target="_blank"><?= e(preg_replace('~^https?://~', '', abs_url('/o/' . $org['slug'] . '/cartes-cadeaux'))) ?></a></p><?php endif; ?>
     </form>

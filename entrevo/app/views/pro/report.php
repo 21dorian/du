@@ -34,7 +34,7 @@ $nb = fn($v) => number_format((int)$v, 0, ',', ' '); ?>
       <div class="card"><label class="rp-label" for="s-<?= $key ?>"><?= e($label) ?></label><small class="muted"><?= e($hint) ?></small>
         <textarea id="s-<?= $key ?>" name="s[<?= $key ?>]" rows="5" class="rp-area"><?= e((string)($sec[$key] ?? '')) ?></textarea></div>
     <?php endforeach; ?>
-    <div class="row"><button class="btn">Enregistrer</button><button class="btn btn-light danger" name="action" value="delete" formnovalidate onclick="return confirm('Supprimer ce bilan ?')">Supprimer</button></div>
+    <div class="row"><button class="btn">Enregistrer</button><button class="btn btn-light danger" name="action" value="delete" formnovalidate data-confirm="Supprimer ce bilan ?">Supprimer</button></div>
   </form>
   <div class="rp-figs">
     <div class="card"><h2>Événements</h2>

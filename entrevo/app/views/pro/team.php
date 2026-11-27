@@ -23,7 +23,7 @@
       <?php endforeach; ?>
       </tbody>
     </table></div>
-    <p class="muted mt mb0" style="font-size:14px"><b>Responsable</b> : tout, finances comprises · <b>Gestionnaire</b> : événements, ventes, participants · <b>Contrôleur</b> : uniquement l'appli de scan</p>
+    <p class="muted mt mb0 u-fs14"><b>Responsable</b> : tout, finances comprises · <b>Gestionnaire</b> : événements, ventes, participants · <b>Contrôleur</b> : uniquement l'appli de scan</p>
   </div>
   <form class="card" method="post"><?= csrf_field() ?><input type="hidden" name="action" value="add">
     <h2>+ Ajouter quelqu'un</h2>

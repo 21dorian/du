@@ -20,7 +20,7 @@
   <div class="pay-auth-form">
     <form method="post"><?= csrf_field() ?><input type="hidden" name="suite" value="<?= e($suite) ?>">
       <h1>Connexion</h1>
-      <p class="muted" style="margin:0">Organisateur, équipe cashless ou exploitant.</p>
+      <p class="muted u-m0">Organisateur, équipe cashless ou exploitant.</p>
       <?= render_flash() ?>
       <?php if ($error): ?><div class="flash error"><?= e($error) ?></div><?php endif; ?>
       <div class="field"><label for="email">E-mail</label><input id="email" name="email" type="email" autocomplete="username" required autofocus></div>

@@ -1,4 +1,4 @@
-# Entrevo — billetterie & contrôle d'accès 🎟️
+# Entrevo — billetterie & contrôle d'accès
 
 Plateforme de billetterie multi-organisateurs complète :
 
@@ -35,7 +35,7 @@ Plateforme de billetterie multi-organisateurs complète :
    L'assistant vérifie l'hébergement, puis demande : la base de données (serveur : `localhost`), le nom de la plateforme, et ton compte super-administrateur.
    Coche « données de démonstration » si tu veux tester avec de faux événements.
 
-5. **C'est en ligne 🎉**
+5. **C'est en ligne**
    Connecte-toi sur `/connexion`. Le fichier d'installation se désactive tout seul.
 
 6. **Force le HTTPS** (indispensable pour la caméra du scanner et les paiements)
@@ -78,6 +78,26 @@ Supprime-les (ou désactive-les dans Super-admin › Utilisateurs) avant d'ouvri
 Couleurs : **vert** = entre, **orange** = déjà entré / pas entré (sortie), **rouge** = refusé (inconnu, annulé, mauvais événement, mauvaise porte).
 
 ---
+
+## Nouveautés 4.2.1 — audit accessibilité, design et code
+
+**Accessibilité**
+- Texte secondaire plus foncé : contraste conforme WCAG AA partout (il était à 3,3:1).
+- Contour de focus visible au clavier sur tous les éléments, lien « Aller au contenu » en tête de page.
+- Chaque champ de formulaire est relié à son étiquette (lecteurs d'écran, clic sur le libellé) : 2 champs sans nom sur 340 au lieu de 85.
+- Le zoom n'est plus bloqué sur l'appli de scan et la caisse ; animations coupées si le système demande moins de mouvement.
+
+**Cohérence graphique**
+- Échelle unique de rayons d'angle, de tailles de texte et d'espacements ; les anciennes couleurs bleues résiduelles suivent la couleur principale.
+- Les styles écrits au cas par cas les plus courants deviennent des classes communes (253 remplacements).
+- Les croix et coches en caractères sont remplacées par les icônes fines de l'interface.
+- Les tableaux défilent horizontalement sur mobile au lieu d'être coupés ; plus aucune page pro testée ne dépasse de l'écran d'un téléphone.
+
+**Code**
+- Contrôleurs nommés par domaine (guichet, widget de vente, impressions, logistique des équipes, bordereau…) au lieu du numéro de version.
+- Évolutions de base de données rangées un fichier par version (`app/migrations/`).
+- Comportements « imprimer », « tout sélectionner » et confirmations déclarés par attributs au lieu de code JavaScript en ligne.
+- Les scénarios de test de bout en bout sont dans le dépôt (`entrevo-tests/`).
 
 ## Nouveautés 4.2 — parité Weezevent
 
@@ -514,7 +534,7 @@ Une **application dédiée** aux bars et points de vente, séparée du site : le
 
 **Billetterie**
 - **🐦 Early bird / paliers** : dans un tarif, « S'ouvre quand … est épuisé ou terminé ». Le palier suivant s'affiche grisé en attendant, le tarif en cours affiche « Prix early bird · plus que N à ce prix » et un compte à rebours la dernière semaine s'il a une date de fin.
-- **🎟️ Nouveaux billets PDF** : billet aux couleurs de l'événement (affiche, titre, date et lieu en gros), ligne de découpe, **QR code deux fois plus grand**, nom du participant bien visible, conseils pratiques et mot de l'organisateur.
+- **Nouveaux billets PDF** : billet aux couleurs de l'événement (affiche, titre, date et lieu en gros), ligne de découpe, **QR code deux fois plus grand**, nom du participant bien visible, conseils pratiques et mot de l'organisateur.
 - Page organisateur : les cartes d'événements s'affichent enfin en grille.
 
 ## Nouveautés 1.7 ✨ — nouveau parcours d'achat
@@ -615,7 +635,7 @@ Une **application dédiée** aux bars et points de vente, séparée du site : le
 - **Commandes** : filtres (statut, vente, étiquette, dates), tri par colonne, pagination, sélection multiple avec actions groupées (étiqueter, renvoyer les billets, exporter, annuler).
 - **Fiche commande** : remboursement partiel (montant libre et/ou billets choisis), acheteur modifiable, étiquettes, note interne, historique complet.
 - **Journal d'activité** : qui a fait quoi et quand (menu « Journal d'activité », réservé au responsable).
-- **Côté acheteur** : rail « Ça arrive bientôt » sur l'accueil, compte à rebours, alerte « plus que N places », barre d'achat collante sur mobile, apparitions en douceur, confettis à la confirmation 🎉 (désactivés si l'appareil demande moins d'animations).
+- **Côté acheteur** : rail « Ça arrive bientôt » sur l'accueil, compte à rebours, alerte « plus que N places », barre d'achat collante sur mobile, apparitions en douceur, confettis à la confirmation (désactivés si l'appareil demande moins d'animations).
 
 ---
 

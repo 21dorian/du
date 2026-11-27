@@ -20,7 +20,7 @@
   </div>
   <div class="stack">
     <form class="card" method="post"><?= csrf_field() ?><input type="hidden" name="action" value="lookup">
-      <h2>Demande reçue autrement</h2><p class="muted" style="font-size:13px">Courrier, e-mail, téléphone : saisis-la ici pour l'inventaire et le suivi du délai.</p>
+      <h2>Demande reçue autrement</h2><p class="muted u-fs13">Courrier, e-mail, téléphone : saisis-la ici pour l'inventaire et le suivi du délai.</p>
       <div class="field"><label>Adresse e-mail</label><input type="email" name="email" required></div>
       <div class="field"><label>Type</label><select name="kind"><?php foreach (Gdpr::KINDS as $kk => $l): ?><option value="<?= $kk ?>"><?= e($l) ?></option><?php endforeach; ?></select></div>
       <button class="btn btn-block">Ouvrir</button></form>

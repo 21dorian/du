@@ -8,7 +8,7 @@
 </div>
 <div class="card table-card">
   <div class="card-head"><h2>À vérifier</h2></div>
-  <div class="table-wrap" style="overflow:visible"><table class="table users-table">
+  <div class="table-wrap u-ovis"><table class="table users-table">
     <thead><tr><th>Score</th><th>Commande</th><th>Pourquoi</th><th class="num">Montant</th><th></th></tr></thead><tbody>
     <?php foreach ($queue as $o): ?>
       <tr><td><?= Risk::badge((int)$o['risk_score']) ?></td>
@@ -35,7 +35,7 @@
     <form method="post" class="charge-form block-form"><?= csrf_field() ?><input type="hidden" name="action" value="block">
       <select name="kind"><?php foreach (Risk::KINDS as $kk => $l): ?><option value="<?= $kk ?>"><?= $l ?></option><?php endforeach; ?></select>
       <input name="value" placeholder="adresse, domaine ou IP" required><input name="reason" placeholder="Motif"><button class="btn btn-sm">Bloquer</button></form></div>
-    <?php if ($topIps): ?><div class="card"><h2>Adresses IP partagées (7 jours)</h2><p class="muted" style="font-size:13px">Plusieurs acheteurs depuis la même adresse : normal pour un bureau ou un festival en wifi, suspect sinon.</p>
+    <?php if ($topIps): ?><div class="card"><h2>Adresses IP partagées (7 jours)</h2><p class="muted u-fs13">Plusieurs acheteurs depuis la même adresse : normal pour un bureau ou un festival en wifi, suspect sinon.</p>
       <?php foreach ($topIps as $t): ?><div class="list-item"><span class="grow mono"><?= e($t['ip']) ?></span><small class="muted"><?= (int)$t['n'] ?> commandes · <?= (int)$t['emails'] ?> e-mails · <?= (int)$t['paid'] ?> payées</small></div><?php endforeach; ?></div><?php endif; ?>
   </div>
   <div>

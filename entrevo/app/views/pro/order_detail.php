@@ -9,7 +9,7 @@ $valid = array_filter($tickets, fn($t) => $t['status'] === 'valid');
       <?php if ($paid && (int)$o['refunded_amount']): ?><span class="badge grey">Remboursée en partie : <?= e(money((int)$o['refunded_amount'])) ?></span><?php endif; ?></div>
     <div class="muted"><?= e(fr_date($o['created_at'])) ?> · <?= e(method_label($o['method'])) ?><?= $creator ? ' par ' . e($creator) : '' ?> · <?= count($tickets) ?> billet<?= count($tickets) > 1 ? 's' : '' ?></div>
   </div>
-  <div class="row" style="gap:8px">
+  <div class="row u-gap8">
     <?php if ($prev): ?><a class="btn btn-sm btn-light" href="<?= url('/pro/commandes/' . $prev) ?>" title="Commande précédente" aria-label="Commande précédente">←</a><?php endif; ?>
     <?php if ($next): ?><a class="btn btn-sm btn-light" href="<?= url('/pro/commandes/' . $next) ?>" title="Commande suivante" aria-label="Commande suivante">→</a><?php endif; ?>
   </div>
@@ -29,11 +29,11 @@ $valid = array_filter($tickets, fn($t) => $t['status'] === 'valid');
             <td><form method="post" class="row" style="gap:6px;flex-wrap:nowrap"><?= csrf_field() ?><input type="hidden" name="action" value="holder"><input type="hidden" name="ticket_id" value="<?= (int)$t['id'] ?>">
               <input name="first_name" value="<?= e($t['first_name']) ?>" style="width:78px;padding:6px 7px" aria-label="Prénom"><input name="last_name" value="<?= e($t['last_name']) ?>" style="width:86px;padding:6px 7px" aria-label="Nom">
               <button class="btn btn-sm btn-light" title="Enregistrer le nom">OK</button></form>
-              <?php foreach ($ta as $a): ?><small style="display:block"><?= e($a['label']) ?> : <b><?= !empty($a['file']) ? '<a href="' . url('/pro/fichier/' . $a['file']) . '" target="_blank">' . e($a['value']) . '</a>' : e($a['value']) ?></b></small><?php endforeach; ?>
-              <?php if ($t['holder_email']): ?><small style="display:block" class="muted">Donné à <?= e($t['holder_email']) ?> le <?= e(short_date((string)$t['transferred_at'])) ?><?= (int)$t['transfers'] > 1 ? ' (' . (int)$t['transfers'] . ' transferts)' : '' ?></small><?php endif; ?>
+              <?php foreach ($ta as $a): ?><small class="u-block"><?= e($a['label']) ?> : <b><?= !empty($a['file']) ? '<a href="' . url('/pro/fichier/' . $a['file']) . '" target="_blank">' . e($a['value']) . '</a>' : e($a['value']) ?></b></small><?php endforeach; ?>
+              <?php if ($t['holder_email']): ?><small class="muted u-block">Donné à <?= e($t['holder_email']) ?> le <?= e(short_date((string)$t['transferred_at'])) ?><?= (int)$t['transfers'] > 1 ? ' (' . (int)$t['transfers'] . ' transferts)' : '' ?></small><?php endif; ?>
             </td>
             <td style="min-width:110px"><?= e($t['rate_name']) ?><br><small><?= (int)$t['price'] ? e(money((int)$t['price'])) : 'Gratuit' ?><?= $t['seat'] ? ' · ' . e($t['seat']) : '' ?></small></td>
-            <td class="mono" style="font-size:13px"><?= e($t['code']) ?></td>
+            <td class="mono u-fs13"><?= e($t['code']) ?></td>
             <td><?= $t['status'] !== 'valid' ? badge('cancelled') : ($t['entries'] > 0 ? '<span class="badge green">' . e(short_date($t['checked_in_at'])) . '</span>' : '<span class="badge grey">Pas arrivé</span>') ?></td>
             <td class="right"><?php if ($t['status'] === 'valid'): ?><form method="post" class="inline-form"><?= csrf_field() ?><input type="hidden" name="ticket_id" value="<?= (int)$t['id'] ?>"><button class="btn btn-sm btn-light" name="action" value="cancel_ticket" data-confirm="Annuler ce billet ? Il sera refusé à l'entrée (pas de remboursement automatique).">Annuler</button></form><?php endif; ?></td>
           </tr>
@@ -86,7 +86,7 @@ $valid = array_filter($tickets, fn($t) => $t['status'] === 'valid');
     <div class="card">
       <div class="card-head"><h2>Acheteur</h2><button type="button" class="link-btn" data-toggle="#buyer-edit">Modifier</button></div>
       <p class="mb0"><b><?= e($o['first_name'] . ' ' . $o['last_name']) ?></b><br><?= $o['email'] ? '<a href="mailto:' . e($o['email']) . '">' . e($o['email']) . '</a>' : '<span class="muted">Pas d\'e-mail</span>' ?><?= $o['phone'] ? '<br>' . e($o['phone']) : '' ?></p>
-      <form method="post" class="stack" id="buyer-edit" hidden style="margin-top:12px"><?= csrf_field() ?><input type="hidden" name="action" value="buyer">
+      <form method="post" class="stack u-mt12" id="buyer-edit" hidden><?= csrf_field() ?><input type="hidden" name="action" value="buyer">
         <div class="grid2"><div class="field mb0"><label>Prénom</label><input name="first_name" value="<?= e($o['first_name']) ?>" required></div><div class="field mb0"><label>Nom</label><input name="last_name" value="<?= e($o['last_name']) ?>" required></div></div>
         <div class="field mb0"><label>E-mail</label><input type="email" name="email" value="<?= e($o['email']) ?>"></div>
         <div class="field mb0"><label>Téléphone</label><input name="phone" value="<?= e($o['phone']) ?>"></div>
@@ -99,7 +99,7 @@ $valid = array_filter($tickets, fn($t) => $t['status'] === 'valid');
       <?php if ($o['note']): ?><div class="summary-line"><span class="muted">Note</span><span><?= e($o['note']) ?></span></div><?php endif; ?>
       <hr>
       <?php foreach ($items as $i): ?><div class="summary-line"><span><?= (int)$i['qty'] ?> × <?= e($i['name']) ?></span><span><?= e(money($i['qty'] * $i['unit_price'])) ?></span></div><?php endforeach; ?>
-      <?php if ($o['discount']): ?><div class="summary-line" style="color:var(--green)"><span>Réduction</span><span>−<?= e(money((int)$o['discount'])) ?></span></div><?php endif; ?>
+      <?php if ($o['discount']): ?><div class="summary-line u-green"><span>Réduction</span><span>−<?= e(money((int)$o['discount'])) ?></span></div><?php endif; ?>
       <?php if ($o['fees'] && $o['fee_mode'] === 'buyer'): ?><div class="summary-line"><span>Frais payés par l'acheteur</span><span><?= e(money((int)$o['fees'])) ?></span></div><?php endif; ?>
       <div class="summary-line total"><span>Total</span><span><?= e(money((int)$o['total'])) ?></span></div>
       <?php if ((int)$o['refunded_amount']): ?><div class="summary-line neg"><span>Remboursé</span><span>−<?= e(money((int)$o['refunded_amount'])) ?></span></div><?php endif; ?>
@@ -119,8 +119,8 @@ $valid = array_filter($tickets, fn($t) => $t['status'] === 'valid');
     </div>
 
         <?php if ($o['status'] === 'pending' && ($o['channel'] ?? '') === 'reservation'): ?><div class="card resa-admin"><h2>Réservation à encaisser</h2><form method="post"><?= csrf_field() ?><p class="muted"> À régler avant le <?= e(fr_date((string)$o['expires_at'])) ?> · <?= e(money((int)$o['total'])) ?></p>
-          <div class="row mt" style="gap:6px"><select name="pay_method" style="width:auto"><option value="virement">Virement</option><option value="cheque">Chèque</option><option value="especes">Espèces</option><option value="cb">CB</option></select><button class="btn btn-sm" name="action" value="resa_paid">Marquer payée</button></div>
-          <div class="row mt" style="gap:6px"><button class="btn btn-sm btn-light" name="action" value="resa_resend">Renvoyer les instructions</button><button class="btn btn-sm btn-ghost" name="action" value="resa_extend">Prolonger de 3 jours</button></div></form></div><?php endif; ?>
+          <div class="row mt u-gap6"><select name="pay_method" class="u-wauto"><option value="virement">Virement</option><option value="cheque">Chèque</option><option value="especes">Espèces</option><option value="cb">CB</option></select><button class="btn btn-sm" name="action" value="resa_paid">Marquer payée</button></div>
+          <div class="row mt u-gap6"><button class="btn btn-sm btn-light" name="action" value="resa_resend">Renvoyer les instructions</button><button class="btn btn-sm btn-ghost" name="action" value="resa_extend">Prolonger de 3 jours</button></div></form></div><?php endif; ?>
     <?php if ($paid): ?>
     <div class="card">
       <h2>Actions</h2>

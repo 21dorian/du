@@ -8,11 +8,11 @@
     <?php if ($d): ?>
       <?php if (str_starts_with((string)$d['mime'], 'image/')): ?><a href="<?= url('/pro/verification/fichier/' . $d['id']) ?>" target="_blank"><img class="kyc-thumb" src="<?= url('/pro/verification/fichier/' . $d['id']) ?>" alt=""></a>
       <?php else: ?><a class="btn btn-sm btn-light" href="<?= url('/pro/verification/fichier/' . $d['id']) ?>" target="_blank">Ouvrir <?= e($d['original_name']) ?></a><?php endif; ?>
-      <p class="muted" style="font-size:13px">Déposé <?= e(ago($d['uploaded_at'])) ?> · <?= e(human_size((int)$d['size'])) ?></p>
+      <p class="muted u-fs13">Déposé <?= e(ago($d['uploaded_at'])) ?> · <?= e(human_size((int)$d['size'])) ?></p>
       <?php if ($d['status'] === 'pending'): ?><form method="post" class="stack"><?= csrf_field() ?><input type="hidden" name="doc_id" value="<?= (int)$d['id'] ?>">
         <input name="note" placeholder="Motif si refus (ex. : document illisible, expiré…)" maxlength="500">
-        <div class="row" style="gap:6px"><button class="btn btn-sm btn-success" name="decision" value="approve">Valider</button><button class="btn btn-sm btn-danger" name="decision" value="reject">Refuser</button></div></form>
-      <?php elseif ($d['note']): ?><p class="muted" style="font-size:13px">Motif : <?= e($d['note']) ?></p><?php endif; ?>
+        <div class="row u-gap6"><button class="btn btn-sm btn-success" name="decision" value="approve">Valider</button><button class="btn btn-sm btn-danger" name="decision" value="reject">Refuser</button></div></form>
+      <?php elseif ($d['note']): ?><p class="muted u-fs13">Motif : <?= e($d['note']) ?></p><?php endif; ?>
     <?php else: ?><p class="muted">Pas encore déposé.</p><?php endif; ?>
   </div>
 <?php endforeach; ?>

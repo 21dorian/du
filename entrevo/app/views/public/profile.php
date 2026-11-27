@@ -21,7 +21,7 @@
     <p class="muted">1. Scanne ce QR code avec ton application (Google Authenticator, 1Password, Authy…). 2. Saisis le code affiché.</p>
     <div class="totp-setup"><div class="totp-qr"><?= Qr::svg($sec['uri'], 180) ?></div>
       <div><small class="muted">Ou saisis la clé à la main :</small><p class="mono totp-key"><?= e(trim(chunk_split($sec['pending'], 4, ' '))) ?></p>
-        <form method="post" class="row"><?= csrf_field() ?><input type="hidden" name="sec" value="totp_confirm"><input name="code" inputmode="numeric" maxlength="7" placeholder="123456" required class="otp-input" style="max-width:160px"><button class="btn">Activer</button></form></div></div>
+        <form method="post" class="row"><?= csrf_field() ?><input type="hidden" name="sec" value="totp_confirm"><input name="code" inputmode="numeric" maxlength="7" placeholder="123456" required class="otp-input u-mw160"><button class="btn">Activer</button></form></div></div>
   <?php else: ?>
     <p class="muted">Protège ton compte même si ton mot de passe fuite : en plus du mot de passe, un code change toutes les 30 secondes dans ton téléphone.<?= $u['role'] === 'superadmin' && setting('admin_2fa') === '1' ? ' <b>Obligatoire pour les super-admins.</b>' : '' ?></p>
     <form method="post"><?= csrf_field() ?><input type="hidden" name="sec" value="totp_start"><button class="btn">Activer la double authentification</button></form>

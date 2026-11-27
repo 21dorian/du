@@ -1,0 +1,41 @@
+<?php
+return [
+        "CREATE TABLE IF NOT EXISTS pos_devices (
+            id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+            event_id INT UNSIGNED NOT NULL,
+            bar_id INT UNSIGNED NULL,
+            name VARCHAR(80) NOT NULL,
+            pair_code CHAR(6) NULL,
+            pair_expires DATETIME NULL,
+            token_hash CHAR(64) NULL,
+            created_by INT UNSIGNED NULL,
+            created_at DATETIME NOT NULL,
+            paired_at DATETIME NULL,
+            last_seen DATETIME NULL,
+            platform VARCHAR(40) NULL,
+            revoked TINYINT(1) NOT NULL DEFAULT 0,
+            tpe_json TEXT NULL,
+            UNIQUE KEY (token_hash), INDEX(event_id), INDEX(pair_code)
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4",
+        "CREATE TABLE IF NOT EXISTS pos_sales (
+            id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+            event_id INT UNSIGNED NOT NULL,
+            bar_id INT UNSIGNED NOT NULL,
+            device_id INT UNSIGNED NULL,
+            method ENUM('cashless','card','cash') NOT NULL,
+            amount INT NOT NULL,
+            items TEXT NULL,
+            wallet_id INT UNSIGNED NULL,
+            wallet_tx_id INT UNSIGNED NULL,
+            cash_given INT NULL,
+            payment_ref VARCHAR(255) NULL,
+            staff VARCHAR(60) NULL,
+            client_id VARCHAR(40) NULL,
+            offline TINYINT(1) NOT NULL DEFAULT 0,
+            undone TINYINT(1) NOT NULL DEFAULT 0,
+            created_at DATETIME NOT NULL,
+            received_at DATETIME NOT NULL,
+            UNIQUE KEY (client_id), INDEX(event_id, created_at), INDEX(bar_id), INDEX(device_id)
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4",
+        "ALTER TABLE wallets ADD COLUMN nfc_uid VARCHAR(40) NULL, ADD UNIQUE KEY ev_nfc (event_id, nfc_uid)",
+];

@@ -18,7 +18,7 @@
     <div class="field"><label>Webhook (Slack, Discord, Teams…)</label><input name="alert_webhook" value="<?= e((string)setting('alert_webhook')) ?>" placeholder="https://hooks.slack.com/services/…"><small>Adresse d'« incoming webhook » de ta messagerie.</small></div>
     <h3 class="mt">Quoi surveiller</h3>
     <?php foreach (Alerts::CHECKS as $k => $l): ?><label class="check"><input type="checkbox" name="checks[]" value="<?= $k ?>" <?= in_array($k, $checks, true) ? 'checked' : '' ?>> <span><?= e($l) ?></span></label><?php endforeach; ?>
-    <div class="field mt"><label>Répéter une alerte au plus toutes les</label><div class="input-suffix" style="max-width:160px"><input type="number" name="alert_cooldown" min="1" max="48" value="<?= (int)setting('alert_cooldown', '6') ?>"><span>h</span></div></div>
+    <div class="field mt"><label>Répéter une alerte au plus toutes les</label><div class="input-suffix u-mw160"><input type="number" name="alert_cooldown" min="1" max="48" value="<?= (int)setting('alert_cooldown', '6') ?>"><span>h</span></div></div>
     <div class="row"><button class="btn">Enregistrer</button><button class="btn btn-light" name="action" value="test" formnovalidate>Envoyer un test</button></div>
   </form>
 </div>

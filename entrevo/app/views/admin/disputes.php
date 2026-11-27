@@ -37,7 +37,7 @@
       </div>
       <button class="btn btn-block">Ouvrir le litige</button>
     </form>
-    <?php if ($byOrg): ?><div class="card"><h2>Organisateurs concernés</h2><p class="muted" style="font-size:13px">12 derniers mois</p>
+    <?php if ($byOrg): ?><div class="card"><h2>Organisateurs concernés</h2><p class="muted u-fs13">12 derniers mois</p>
       <?php foreach ($byOrg as $b): ?><div class="list-item"><a class="grow" href="<?= url('/admin/organisateurs/' . $b['id']) ?>"><?= e($b['name']) ?></a><span><?= (int)$b['n'] ?> · <?= e(money((int)$b['amount'])) ?></span></div><?php endforeach; ?></div><?php endif; ?>
     <form class="card" method="post"><?= csrf_field() ?><input type="hidden" name="action" value="settings">
       <h2>Frais par défaut</h2><div class="field"><label>Frais bancaires par litige</label><div class="input-suffix"><input name="dispute_fee" inputmode="decimal" value="<?= e(money_input((int)setting('dispute_fee', '1500'))) ?>"><span>€</span></div><small>Stripe facture 15 € à 20 € par contestation.</small></div>

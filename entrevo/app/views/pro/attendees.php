@@ -18,7 +18,7 @@
       <tr>
         <td><b><?= e($r['last_name']) ?></b> <?= e($r['first_name']) ?><br><small><?= e($r['email']) ?></small></td>
         <td><?= e($r['rate_name']) ?></td>
-        <td class="mono" style="font-size:13px"><?= e($r['code']) ?></td>
+        <td class="mono u-fs13"><?= e($r['code']) ?></td>
         <td><a href="<?= url('/pro/commandes/' . $r['order_id']) ?>"><?= e($r['ref']) ?></a><br><small><?= e(method_label($r['method'])) ?></small></td>
         <td><?= $r['status'] !== 'valid' ? badge('cancelled') : ($r['entries'] > 0 ? '<span class="badge green">Entré ' . e(date('H:i', strtotime($r['checked_in_at']))) . '</span>' : '<span class="badge grey">Pas arrivé</span>') ?></td>
         <?php foreach (array_slice($fields, 0, 2) as $f): ?><td><?= e(($f['per_ticket'] ? $ta : $oa)[$f['id']]['value'] ?? '') ?></td><?php endforeach; ?>

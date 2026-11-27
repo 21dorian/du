@@ -34,7 +34,7 @@ foreach ($events as $ev) if ($q === '' && $ev['image'] && (int)$ev['capacity'] >
 </section>
 <?php endif; ?>
 
-<div class="quick-filters" id="quand"><?php foreach ($filters as $k => $f): $on = $when === $k; ?><a class="qf <?= $on ? 'on' : '' ?> <?= !$fcounts[$k] && !$on ? 'empty' : '' ?>" href="<?= url('/', array_filter(['q' => $q ?: null, 'cat' => $cat ?: null, 'quand' => $on ? null : $k])) ?>#quand"<?= $on ? ' aria-current="true"' : '' ?>><?= e($f['label']) ?> <span class="qf-n"><?= $on ? '✕' : (int)$fcounts[$k] ?></span></a><?php endforeach; ?><?= pub_soon('carte', 'Autour de moi') ?><?= pub_soon('recommandations', 'Pour moi') ?></div>
+<div class="quick-filters" id="quand"><?php foreach ($filters as $k => $f): $on = $when === $k; ?><a class="qf <?= $on ? 'on' : '' ?> <?= !$fcounts[$k] && !$on ? 'empty' : '' ?>" href="<?= url('/', array_filter(['q' => $q ?: null, 'cat' => $cat ?: null, 'quand' => $on ? null : $k])) ?>#quand"<?= $on ? ' aria-current="true"' : '' ?>><?= e($f['label']) ?> <span class="qf-n"><?= $on ? ui_icon('x', 12) : (int)$fcounts[$k] ?></span></a><?php endforeach; ?><?= pub_soon('carte', 'Autour de moi') ?><?= pub_soon('recommandations', 'Pour moi') ?></div>
 <form class="searchbar" method="get" action="<?= url('/') ?>">
   <input type="search" name="q" value="<?= e($q) ?>" placeholder="Un concert, une ville, un plan pour samedi…" aria-label="Rechercher">
   <button class="btn">Trouver</button>

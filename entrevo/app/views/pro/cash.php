@@ -1,5 +1,5 @@
 <?php $labels = ['especes' => 'Espèces', 'cb' => 'Carte (TPE)', 'cheque' => 'Chèque', 'virement' => 'Virement', 'autre' => 'Autre']; ?>
-<form class="toolbar" method="get"><label class="mb0">Du</label><input type="datetime-local" name="from" value="<?= e(dt_input($from)) ?>" style="width:auto"><label class="mb0">au</label><input type="datetime-local" name="to" value="<?= e(dt_input($to)) ?>" style="width:auto"><button class="btn btn-sm">Afficher</button>
+<form class="toolbar" method="get"><label class="mb0">Du</label><input type="datetime-local" name="from" value="<?= e(dt_input($from)) ?>" class="u-wauto"><label class="mb0">au</label><input type="datetime-local" name="to" value="<?= e(dt_input($to)) ?>" class="u-wauto"><button class="btn btn-sm">Afficher</button>
   <span class="grow"></span><a class="btn btn-sm btn-ghost" href="<?= url('/pro/evenements/' . $ev['id'] . '/guichet') ?>">← Vendre au guichet</a><a class="btn btn-sm btn-ghost" href="?<?= e(http_build_query(['from' => dt_input($from), 'to' => dt_input($to), 'csv' => 1])) ?>">Export CSV</a></form>
 <div class="kpis">
   <div class="kpi"><small class="muted">Total encaissé</small><b><?= e(money($totals['total'])) ?></b><div class="sub"><?= $totals['count'] ?> ventes · <?= $totals['tickets'] ?> billets</div></div>

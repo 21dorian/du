@@ -20,7 +20,7 @@ $PR = Pay::PROFILES + ['sans' => 'Sans profil']; ?>
     <h3 class="pnote" style="margin:14px 0 6px">Par moyen de paiement</h3>
     <?php foreach ($A['meth'] as $r): ?><div class="list-item"><span class="grow"><?= e(Till::METHODS[$r['method']] ?? $r['method']) ?> <small class="muted">· <?= (int)$r['n'] ?> ventes</small></span><b><?= e(money((int)round((int)$r['t'] / max(1, (int)$r['n'])))) ?></b></div><?php endforeach; ?>
     <h3 class="pnote" style="margin:14px 0 6px">Articles par ticket</h3>
-    <?php $sz = array_sum($A['sizes']) ?: 1; foreach ($A['sizes'] as $k => $n): ?><div style="margin-bottom:6px"><div class="row" style="justify-content:space-between"><small><?= $k >= 5 ? '5 et +' : $k ?> article<?= $k > 1 ? 's' : '' ?></small><small><?= (int)round($n / $sz * 100) ?> %</small></div><div class="pmeter"><i style="width:<?= (int)round($n / $sz * 100) ?>%"></i></div></div><?php endforeach; ?></div>
+    <?php $sz = array_sum($A['sizes']) ?: 1; foreach ($A['sizes'] as $k => $n): ?><div class="u-mb6"><div class="row" style="justify-content:space-between"><small><?= $k >= 5 ? '5 et +' : $k ?> article<?= $k > 1 ? 's' : '' ?></small><small><?= (int)round($n / $sz * 100) ?> %</small></div><div class="pmeter"><i style="width:<?= (int)round($n / $sz * 100) ?>%"></i></div></div><?php endforeach; ?></div>
 </div>
 <div class="card mt"><h2>Souvent achetés ensemble</h2>
   <?php foreach ($A['assoc'] as $x): ?><div class="list-item"><span class="grow"><b><?= e($x['a']) ?></b> + <b><?= e($x['b']) ?></b></span><small class="muted"><?= (int)$x['n'] ?> tickets</small><span class="ptag vio" style="margin-left:10px"><?= (int)$x['pct'] ?> %</span></div><?php endforeach; ?>

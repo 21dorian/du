@@ -12,7 +12,7 @@
     </div>
     <div class="field"><label>Description</label><input name="description" maxlength="500" value="<?= e((string)$p['description']) ?>" placeholder="Ce qui est compris, avantages…"></div>
     <div class="field"><label>Événements compris</label>
-      <?php foreach ($events as $ev): ?><label class="check" style="margin-bottom:6px"><input type="checkbox" name="event_ids[]" value="<?= (int)$ev['id'] ?>" <?= in_array((int)$ev['id'], $sel, true) ? 'checked' : '' ?>> <span><?= e($ev['name']) ?> <small class="muted"><?= e(short_date($ev['starts_at'])) ?></small></span></label><?php endforeach; ?>
+      <?php foreach ($events as $ev): ?><label class="check u-mb6"><input type="checkbox" name="event_ids[]" value="<?= (int)$ev['id'] ?>" <?= in_array((int)$ev['id'], $sel, true) ? 'checked' : '' ?>> <span><?= e($ev['name']) ?> <small class="muted"><?= e(short_date($ev['starts_at'])) ?></small></span></label><?php endforeach; ?>
       <small>Aucun coché = tous tes événements à venir (y compris ceux que tu publieras plus tard).</small></div>
     <label class="check mb"><input type="checkbox" name="active" value="1" <?= $p['active'] ? 'checked' : '' ?>> <span>En vente</span></label>
     <button class="btn"><?= $p['id'] ? 'Enregistrer' : 'Créer l\'abonnement' ?></button>
@@ -21,7 +21,7 @@
 <p class="muted lead-sm">Fidélise ton public : un pass saison ou un carnet d'entrées. L'abonné réserve sa place à chaque événement en un clic depuis son espace, sans repayer ; il reçoit un vrai billet scanné à l'entrée.</p>
 <?php if ($types): ?><p><a class="btn btn-sm btn-light" href="<?= url('/o/' . $org['slug'] . '/abonnements') ?>" target="_blank">Voir la page de vente</a></p><?php endif; ?>
 <?php foreach ($types as $t): ?>
-  <details class="box"><summary><span><?= e($t['name']) ?> <?= $t['active'] ? '' : badge('draft') ?> <span class="badge"><?= $t['kind'] === 'carnet' ? (int)$t['entries'] . ' entrées' : 'Saison' ?></span></span><span class="muted" style="font-weight:500"><?= e(money((int)$t['price'])) ?> · <?= (int)$t['sold'] ?><?= $t['quota'] ? ' / ' . (int)$t['quota'] : '' ?> abonnés · <?= e(money((int)$t['revenue'])) ?></span></summary><?= $form($t) ?></details>
+  <details class="box"><summary><span><?= e($t['name']) ?> <?= $t['active'] ? '' : badge('draft') ?> <span class="badge"><?= $t['kind'] === 'carnet' ? (int)$t['entries'] . ' entrées' : 'Saison' ?></span></span><span class="muted u-fw500"><?= e(money((int)$t['price'])) ?> · <?= (int)$t['sold'] ?><?= $t['quota'] ? ' / ' . (int)$t['quota'] : '' ?> abonnés · <?= e(money((int)$t['revenue'])) ?></span></summary><?= $form($t) ?></details>
 <?php endforeach; ?>
 <details class="box add" <?= !$types ? 'open' : '' ?>><summary>+ Nouvel abonnement</summary><?= $form(null) ?></details>
 <div class="card table-card mt"><div class="card-head"><h2>Abonnés</h2><span class="grow"></span><a class="btn btn-sm btn-light" target="_blank" href="<?= url('/pro/abonnements/cartes.pdf') ?>">Cartes membres (imprimante PVC)</a> <a class="btn btn-sm btn-light" target="_blank" href="<?= url('/pro/abonnements/cartes.pdf', ['format' => 'a4']) ?>">Planche A4</a></div>

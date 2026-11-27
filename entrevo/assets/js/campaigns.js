@@ -11,7 +11,7 @@
 
   function el(tag, props, kids) {
     var n = document.createElement(tag);
-    Object.keys(props || {}).forEach(function (k) { if (k === 'text') n.textContent = props[k]; else if (k === 'class') n.className = props[k]; else n.setAttribute(k, props[k]); });
+    Object.keys(props || {}).forEach(function (k) { if (k === 'text') n.textContent = props[k]; else if (k === 'html') n.innerHTML = props[k]; else if (k === 'class') n.className = props[k]; else n.setAttribute(k, props[k]); });
     (kids || []).forEach(function (c) { if (c) n.appendChild(c); });
     return n;
   }
@@ -28,7 +28,7 @@
         bt.onclick = function () { var j = i + m[1]; var t = blocks[i]; blocks[i] = blocks[j]; blocks[j] = t; render(); changed(); };
         head.appendChild(bt);
       });
-      var del = el('button', { type: 'button', class: 'blk-btn del', 'aria-label': 'Supprimer le bloc', title: 'Supprimer', text: '✕' });
+      var del = el('button', { type: 'button', class: 'blk-btn del', 'aria-label': 'Supprimer le bloc', title: 'Supprimer', html: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg>' });
       del.onclick = function () { blocks.splice(i, 1); render(); changed(); };
       head.appendChild(del);
       var body = el('div', { class: 'blk-body' });

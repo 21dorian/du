@@ -63,7 +63,7 @@ $cap = fn($ev) => (int)$ev['capacity'] ?: (int)$ev['sess_cap'];
     <tbody>
     <?php foreach ($list as $ev): $c = $cap($ev); $pct = $c ? min(100, round($ev['sold'] / $c * 100)) : null; ?>
       <tr data-href="<?= url('/pro/evenements/' . $ev['id']) ?>">
-        <td><div class="ev-head" style="margin:0"><div class="ev-thumb" style="width:64px;height:42px"><?php if ($ev['image']): ?><img src="<?= url($ev['image']) ?>" alt=""><?php endif; ?></div>
+        <td><div class="ev-head u-m0"><div class="ev-thumb" style="width:64px;height:42px"><?php if ($ev['image']): ?><img src="<?= url($ev['image']) ?>" alt=""><?php endif; ?></div>
           <div><a href="<?= url('/pro/evenements/' . $ev['id']) ?>"><b><?= e($ev['name']) ?></b></a><br><small><?= e(trim($ev['venue'] . ' ' . $ev['city'])) ?></small></div></div></td>
         <td class="nowrap"><?= e(fr_date($ev['starts_at'])) ?></td>
         <td><?= badge($ev['status']) ?></td>
