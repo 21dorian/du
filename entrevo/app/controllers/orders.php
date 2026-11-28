@@ -157,9 +157,13 @@ function order_view(string $id): string
     $refundable = max(0, (int)$o['total'] - (int)$o['refunded_amount']);
     $prev = val('SELECT id FROM orders WHERE organizer_id = ? AND id < ? AND status IN (\'paid\',\'refunded\',\'cancelled\') ORDER BY id DESC LIMIT 1', [$org['id'], $o['id']]);
     $next = val('SELECT id FROM orders WHERE organizer_id = ? AND id > ? AND status IN (\'paid\',\'refunded\',\'cancelled\') ORDER BY id ASC LIMIT 1', [$org['id'], $o['id']]);
+    // 4.4 : modification de commande
+    $rates = all('SELECT id, name, price FROM rates WHERE event_id = ? ORDER BY sort, id', [$ev['id']]);
+    $sessions = Tickets::sessions((int)$ev['id'], false);
+    $linked = all("SELECT id, ref, status, total, created_at FROM orders WHERE parent_order_id = ? OR id = ? ORDER BY id", [$o['id'], (int)($o['parent_order_id'] ?? 0)]);
     return view('layout_back', ['title' => 'Commande ' . $o['ref'], 'area' => 'pro', 'active' => 'orders',
         'crumbs' => [['Commandes', '/pro/commandes'], [$ev['name'], '/pro/evenements/' . $ev['id']]],
-        'content' => view('pro/order_detail', compact('o', 'ev', 'items', 'tickets', 'answers', 'creator', 'history', 'refundable', 'prev', 'next'))]);
+        'content' => view('pro/order_detail', compact('o', 'ev', 'items', 'tickets', 'answers', 'creator', 'history', 'refundable', 'prev', 'next', 'rates', 'sessions', 'linked'))]);
 }
 
 function order_action(array $o): never
@@ -167,6 +171,19 @@ function order_action(array $o): never
     $a = (string)input('action');
     $evId = (int)$o['event_id']; $oid = (int)$o['id'];
     switch ($a) {
+        case 'cancel_full': // 4.4 : annulation avec choix du remboursement
+            try { back(['success' => OrderOps::cancel($o, ['mode' => (string)input('mode'), 'amount' => parse_money((string)input('amount')), 'tickets' => (array)($_POST['tickets'] ?? []),
+                'reason' => (string)input('reason'), 'note' => (string)input('note'), 'notify' => (bool)checked('notify'), 'force' => (bool)checked('force')])]); }
+            catch (RuntimeException $e) { back(['error' => $e->getMessage()]); }
+        case 'add_tickets':
+            try { back(['success' => OrderOps::addTickets($o, (int)input('rate_id'), (int)input('qty'), (string)input('pay'), (int)input('session_id') ?: null, (bool)checked('send'))]); }
+            catch (RuntimeException $e) { back(['error' => $e->getMessage()]); }
+        case 'change_rate':
+            try { back(['success' => OrderOps::changeRate($o, (int)input('ticket_id'), (int)input('rate_id'), (string)input('diff'), (string)input('pay_method'))]); }
+            catch (RuntimeException $e) { back(['error' => $e->getMessage()]); }
+        case 'change_session':
+            try { back(['success' => OrderOps::changeSession($o, (array)($_POST['tickets'] ?? []), (int)input('session_id'), (bool)checked('resend'))]); }
+            catch (RuntimeException $e) { back(['error' => $e->getMessage()]); }
         case 'resa_paid': // 4.2 : réservation réglée (chèque, espèces, virement…)
             if ($o['status'] !== 'pending' || ($o['channel'] ?? '') !== 'reservation') back(['error' => 'Ce n\'est pas une réservation en attente.']);
             $pm = in_array(input('pay_method'), ['especes', 'cb', 'cheque', 'virement'], true) ? (string)input('pay_method') : 'virement';

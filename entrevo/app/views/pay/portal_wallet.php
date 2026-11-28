@@ -11,7 +11,7 @@ $blocked = $w['status'] === 'blocked'; $refund = $w['status'] === 'refund_req'; 
   <div class="pp-card" style="text-align:center"><div class="pp-qr"><img src="<?= Pay::url('/w/' . $w['token'] . '/qr') ?>" alt="QR code de paiement"></div><p class="pp-note u-m0">Présente ce QR code au bar<?= $hasBracelet ? ', ou approche ton bracelet du terminal' : '' ?>.</p></div>
   <?php foreach ($cOrders ?? [] as $co): if ($co['prep_status'] === 'served') continue; ?>
   <div class="pp-card" style="text-align:center"><small><?= e($co['bar']) ?> · <?= e(date('H:i', strtotime($co['created_at']))) ?></small><div style="font-size:44px;font-weight:800;line-height:1.1">N° <?= (int)$co['order_no'] ?></div>
-    <p style="margin:4px 0 0"><?= $co['prep_status'] === 'ready' ? '<b>C\'est prêt ! Va le chercher au comptoir.</b>' : 'En préparation…' ?></p><small class="pp-note"><?= e(implode(', ', array_map(fn($l) => $l['qty'] . ' × ' . $l['name'], json_decode((string)$co['items'], true) ?: []))) ?></small></div>
+    <p style="margin:4px 0 0"><?= $co['prep_status'] === 'cancelled' ? 'Annulée par le bar : le montant est recrédité sur ta carte.' : ($co['prep_status'] === 'ready' ? '<b>C\'est prêt ! Va le chercher au comptoir.</b>' : 'En préparation…') ?></p><small class="pp-note"><?= e(implode(', ', array_map(fn($l) => $l['qty'] . ' × ' . $l['name'], json_decode((string)$co['items'], true) ?: []))) ?></small></div>
   <?php endforeach; ?>
   <?php if (!empty($cBars) && $cMenu): ?>
   <details class="pp-card" id="commander"<?= empty($cOrders) ? ' open' : '' ?>><summary>Commander au bar sans faire la queue</summary>

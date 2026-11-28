@@ -2764,3 +2764,6 @@ button,a,.btn,label.check,summary{touch-action:manipulation}
 input,select,textarea{max-width:100%;min-width:0}
 .grid2{grid-template-columns:repeat(auto-fit,minmax(min(100%,max(220px,calc(50% - 16px))),1fr))}.grid3{grid-template-columns:repeat(auto-fit,minmax(min(100%,max(180px,calc(33.3% - 16px))),1fr))}.grid4{grid-template-columns:repeat(auto-fit,minmax(min(100%,max(150px,calc(25% - 16px))),1fr))}
 .btn{max-width:100%;white-space:normal}
+/* 4.4 — annulation et modification de commande */
+.cancel-set{border:1px solid var(--line);border-radius:var(--r-md);padding:10px 14px;margin:0;display:grid;gap:6px}.cancel-set legend{font-weight:600;font-size:var(--fs-sm);padding:0 6px}
+.kv{display:grid;grid-template-columns:minmax(110px,auto) 1fr;gap:6px 16px;margin:0;font-size:var(--fs-md)}.kv dt{color:var(--muted)}.kv dd{margin:0;min-width:0;overflow-wrap:anywhere}

@@ -474,6 +474,13 @@ function bars_stocks(array $ev, array $org, string $base): array
 // ---------- Ventes ----------
 function bars_ventes(array $ev, array $org, string $base): array
 {
+    if (is_post() && input('action') === 'cancel_sale') { // 4.4 : annulation depuis le back-office
+        try {
+            $want = input('scope') === 'all' ? null : array_map('intval', (array)($_POST['q'] ?? []));
+            $r = PayAdmin::cancelSale((int)$ev['id'], (int)input('sale_id'), $want, (string)input('reason'));
+            back(['success' => $r['message']]);
+        } catch (RuntimeException $e) { back(['error' => $e->getMessage()]); }
+    }
     $w = ['s.event_id = ?']; $p = [$ev['id']];
     $f = ['bar' => (int)input('bar'), 'method' => (string)input('method'), 'staff' => (int)input('staff'), 'day' => (string)input('day'), 'q' => trim((string)input('q')), 'undone' => checked('undone')];
     $f['kind'] = in_array(input('kind'), ['sale', 'topup', 'cashout'], true) ? (string)input('kind') : '';
@@ -499,7 +506,11 @@ function bars_ventes(array $ev, array $org, string $base): array
     $bars = all('SELECT id, name FROM bars WHERE event_id = ? ORDER BY id', [$ev['id']]);
     $staff = all('SELECT DISTINCT st.id, st.name FROM pos_staff st JOIN pos_sales s ON s.staff_id = st.id WHERE s.event_id = ? ORDER BY st.name', [$ev['id']]);
     $days = array_column(all('SELECT DISTINCT DATE(created_at) d FROM pos_sales WHERE event_id = ? ORDER BY d DESC', [$ev['id']]), 'd');
-    return compact('sales', 'tot', 'f', 'bars', 'staff', 'days');
+    $done = []; // 4.4 : quantités déjà remboursées ou annulées, par vente et par ligne
+    $ids = array_map(fn($s) => (int)$s['id'], $sales);
+    if ($ids) foreach (all('SELECT refund_of, items FROM pos_sales WHERE undone = 0 AND refund_of IN (' . implode(',', $ids) . ')') as $r)
+        foreach (json_decode((string)$r['items'], true) ?: [] as $l) if (isset($l['ref'])) $done[(int)$r['refund_of']][(int)$l['ref']] = ($done[(int)$r['refund_of']][(int)$l['ref']] ?? 0) + (int)$l['qty'];
+    return compact('sales', 'tot', 'f', 'bars', 'staff', 'days', 'done');
 }
 
 // ---------- Appareils ----------

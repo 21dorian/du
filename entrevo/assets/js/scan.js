@@ -398,6 +398,8 @@
     if (r.ticket && r.ticket.seat) info.push('' + r.ticket.seat);
     if (r.info && r.info.population) info.push('' + r.info.population);
     if (r.info && r.info.left !== undefined) info.push('encore ' + r.info.left + ' entrée(s)');
+    if (r.info && r.info.replaced) info.push('ancien code : le billet a été réédité ou donné, demande le nouveau');
+    if (r.info && r.info.resold) info.push('billet revendu');
     if (r.result === 'wrong_session' && r.info && r.info.session) info.push('Billet pour le ' + r.info.session);
     if (r.result === 'already' && r.info && (r.info.last_at)) info.push('entré à ' + hhmm(r.info.last_at) + (r.info.last_ap ? ' · ' + r.info.last_ap : ''));
     if (r.result === 'wrong_event' && r.info && r.info.other_event) info.push('Billet pour : ' + r.info.other_event);

@@ -100,6 +100,11 @@ function click_collect_admin(string $id): string
     $org = require_org();
     $ev = org_event((int)$id);
     $bars = all('SELECT * FROM bars WHERE event_id = ? ORDER BY name', [$ev['id']]);
+    if (is_post() && input('action') === 'cancel_order') { // 4.4 : annuler une commande click & collect (recréditée sur le porte-monnaie)
+        $s = one("SELECT id FROM pos_sales WHERE id = ? AND event_id = ? AND source = 'collect'", [(int)input('sale_id'), $ev['id']]);
+        try { if (!$s) throw new RuntimeException('Commande introuvable.'); $r = PayAdmin::cancelSale((int)$ev['id'], (int)$s['id'], null, (string)input('reason') ?: 'Annulée par l\'organisation'); back(['success' => $r['message']]); }
+        catch (RuntimeException $e) { back(['error' => $e->getMessage()]); }
+    }
     if (is_post()) {
         $ids = array_values(array_intersect(array_map('intval', (array)($_POST['bars'] ?? [])), array_map('intval', array_column($bars, 'id'))));
         update('events', ['click_collect' => checked('click_collect'), 'click_collect_bars' => $ids ? implode(',', $ids) : null], 'id = ?', [$ev['id']]);

@@ -224,3 +224,14 @@ document.addEventListener('click', function (e) {
 }, true);
 document.addEventListener('focusin', function (e) { var t = e.target; if (t.matches && t.matches('[data-select]') && t.select) setTimeout(function () { t.select(); }, 0); });
 document.addEventListener('click', function (e) { var t = e.target; if (t.matches && t.matches('[data-select]') && t.select) t.select(); });
+
+/* 4.4 : liens qui ouvrent une carte repliée (#modifier, #annuler) ; montant libre de l'annulation */
+document.addEventListener('click', function (e) {
+  var a = e.target.closest('[data-open-details]'); if (!a) return;
+  var d = document.getElementById(a.dataset.openDetails); if (d) { d.open = true; setTimeout(function () { d.scrollIntoView({ behavior: 'smooth', block: 'start' }); }, 30); }
+});
+(function () { if (/^#(modifier|annuler)$/.test(location.hash)) { var d = document.querySelector(location.hash); if (d) d.open = true; } })();
+document.addEventListener('change', function (e) {
+  var f = e.target.closest('[data-cancel-form]'); if (!f || e.target.name !== 'mode') return;
+  var p = f.querySelector('[data-partial]'); if (p) p.hidden = e.target.value !== 'partial';
+});

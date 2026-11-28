@@ -15,7 +15,12 @@
     <?php if (!$requests): ?><tr><td colspan="6" class="pempty">Aucune demande en attente.</td></tr><?php endif; ?></tbody></table></div></form>
 <div class="pgrid-2 mt">
   <div class="card table-card"><div class="card-head"><h2>Dernières recharges</h2></div><div class="table-wrap"><table class="table table-sm"><tbody>
-    <?php foreach ($topups as $t): ?><tr><td><?= e(date('d/m H:i', strtotime($t['created_at']))) ?></td><td class="mono"><?= e($t['code']) ?></td><td><?= e(Pay::TX[$t['kind']] ?? $t['kind']) ?></td><td class="num"><b>+<?= e(money((int)$t['amount'])) ?></b></td></tr><?php endforeach; ?>
+    <?php foreach ($topups as $t): ?><tr><td><?= e(date('d/m H:i', strtotime($t['created_at']))) ?></td><td class="mono"><?= e($t['code']) ?></td><td><?= e(Pay::TX[$t['kind']] ?? $t['kind']) ?></td><td class="num"><b>+<?= e(money((int)$t['amount'])) ?></b></td>
+      <td><details class="menu cancel-menu"><summary class="btn btn-sm btn-light">Annuler</summary><div class="menu-list" style="min-width:280px;padding:12px">
+        <form method="post" class="stack"><?= csrf_field() ?><input type="hidden" name="action" value="cancel_topup"><input type="hidden" name="tx_id" value="<?= (int)$t['id'] ?>">
+          <div class="field mb0"><label>Motif</label><input name="reason" required maxlength="90" placeholder="Doublon, erreur de montant…"></div>
+          <small class="muted"><?= $t['kind'] === 'topup' ? 'Remboursée à l\'acheteur chez le prestataire de paiement, puis retirée du porte-monnaie.' : 'Retirée du porte-monnaie ; le montant est à rendre au client.' ?> Impossible si le solde a déjà été dépensé.</small>
+          <button class="btn btn-sm" data-confirm="Annuler cette recharge ?">Confirmer l'annulation</button></form></div></details></td></tr><?php endforeach; ?>
     <?php if (!$topups): ?><tr><td class="pempty">Aucune recharge.</td></tr><?php endif; ?></tbody></table></div></div>
   <div class="card table-card"><div class="card-head"><h2>Remboursements effectués</h2></div><div class="table-wrap"><table class="table table-sm"><tbody>
     <?php foreach ($refunded as $t): ?><tr><td><?= e(date('d/m H:i', strtotime($t['created_at']))) ?></td><td class="mono"><?= e($t['code']) ?></td><td><?= e((string)$t['email']) ?></td><td class="num"><b><?= e(money((int)$t['amount'])) ?></b></td></tr><?php endforeach; ?>

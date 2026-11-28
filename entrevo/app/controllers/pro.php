@@ -548,13 +548,39 @@ function attendees(string $id): string
     $p = [$ev['id']];
     if ($q !== '') { $sql .= ' AND (t.first_name LIKE ? OR t.last_name LIKE ? OR t.code LIKE ? OR o.email LIKE ? OR o.ref LIKE ?)'; array_push($p, ...array_fill(0, 5, '%' . $q . '%')); }
     if ($rate) { $sql .= ' AND t.rate_id = ?'; $p[] = $rate; }
-    if ($st === 'in') $sql .= " AND t.status = 'valid' AND t.entries > 0";
+    // 4.4 : filtres avancés
+    $sess = (int)input('session'); $type = (string)input('type'); $chan = (string)input('channel'); $ans = trim((string)input('answer'));
+    if ($sess) { $sql .= ' AND t.session_id = ?'; $p[] = $sess; }
+    if (in_array($type, ['ticket', 'invitation', 'accreditation', 'external'], true)) { $sql .= ' AND t.type = ?'; $p[] = $type; }
+    if ($chan !== '') { $sql .= ' AND (o.channel = ? OR o.method = ?)'; $p[] = $chan; $p[] = $chan; }
+    if ($ans !== '') { $sql .= ' AND (t.answers LIKE ? OR o.answers LIKE ?)'; $p[] = '%' . $ans . '%'; $p[] = '%' . $ans . '%'; }
+    if (input('nfc') === '1') $sql .= ' AND t.nfc_uid IS NOT NULL';
+    if ($st === 'inside') $sql .= " AND t.status = 'valid' AND t.inside = 1";
+    elseif ($st === 'in') $sql .= " AND t.status = 'valid' AND t.entries > 0";
     elseif ($st === 'out') $sql .= " AND t.status = 'valid' AND t.entries = 0";
     elseif ($st === 'cancelled') $sql .= " AND t.status = 'cancelled'";
     else $sql .= " AND t.status = 'valid'";
     $rows = all($sql . ' ORDER BY t.last_name, t.first_name', $p);
     $fields = all('SELECT * FROM form_fields WHERE event_id = ? ORDER BY sort, id', [$ev['id']]);
 
+    $allCols = ['code' => 'Code billet', 'first' => 'Prénom', 'last' => 'Nom', 'rate' => 'Tarif', 'price' => 'Prix', 'status' => 'Statut', 'entered' => 'Entré', 'first_in' => 'Première entrée', 'session' => 'Date',
+        'seat' => 'Place', 'ref' => 'Commande', 'email' => 'E-mail acheteur', 'holder' => 'E-mail du porteur', 'phone' => 'Téléphone', 'channel' => 'Vente', 'type' => 'Type', 'nfc' => 'Bracelet NFC', 'bought' => 'Date d\'achat'];
+    if (input('csv') && !empty($_GET['cols'])) { // 4.4 : export aux colonnes choisies
+        $cols = array_values(array_intersect(array_keys($allCols), (array)$_GET['cols']));
+        $fids = array_map('intval', (array)($_GET['fcols'] ?? []));
+        $sess = []; foreach (Tickets::sessions((int)$ev['id'], false) as $x) $sess[(int)$x['id']] = $x['starts_at'];
+        $out = [array_merge(array_map(fn($c) => $allCols[$c], $cols), array_map(fn($f) => $f['label'], array_values(array_filter($fields, fn($f) => in_array((int)$f['id'], $fids, true)))))];
+        foreach ($rows as $r) {
+            $ta = json_decode((string)$r['answers'], true) ?: []; $oa = (json_decode((string)$r['order_answers'], true) ?: [])['order'] ?? [];
+            $v = ['code' => $r['code'], 'first' => $r['first_name'], 'last' => $r['last_name'], 'rate' => $r['rate_name'], 'price' => number_format($r['price'] / 100, 2, ',', ''), 'status' => $r['status'] === 'valid' ? 'Valide' : 'Annulé',
+                'entered' => $r['entries'] > 0 ? 'Oui' : 'Non', 'first_in' => $r['checked_in_at'] ?? '', 'session' => $r['session_id'] ? ($sess[(int)$r['session_id']] ?? '') : '', 'seat' => (string)$r['seat'], 'ref' => $r['ref'], 'email' => $r['email'],
+                'holder' => (string)$r['holder_email'], 'phone' => $r['phone'], 'channel' => method_label($r['method']), 'type' => $r['type'], 'nfc' => (string)$r['nfc_uid'], 'bought' => $r['created_at']];
+            $line = array_map(fn($c) => $v[$c], $cols);
+            foreach ($fields as $f) if (in_array((int)$f['id'], $fids, true)) $line[] = ($f['per_ticket'] ? $ta : $oa)[$f['id']]['value'] ?? '';
+            $out[] = $line;
+        }
+        csv_download('participants-' . $ev['slug'] . '-' . date('Ymd') . '.csv', $out);
+    }
     if (input('csv')) {
         $head = ['Code billet', 'Prénom', 'Nom', 'Tarif', 'Prix', 'Statut', 'Entré', 'Première entrée', 'Commande', 'E-mail acheteur', 'Téléphone', 'Vente'];
         foreach ($fields as $f) $head[] = $f['label'];
@@ -570,7 +596,9 @@ function attendees(string $id): string
         csv_download('participants-' . $ev['slug'] . '-' . date('Ymd') . '.csv', $out);
     }
     $rates = all('SELECT id, name FROM rates WHERE event_id = ? ORDER BY sort, id', [$ev['id']]);
-    return ev_page($ev, 'attendees', 'Participants', 'attendees', compact('rows', 'rates', 'q', 'rate', 'st', 'fields'));
+    $sessions = Tickets::sessions((int)$ev['id'], false);
+    $flt = ['session' => $sess, 'type' => $type, 'channel' => $chan, 'answer' => $ans, 'nfc' => input('nfc') === '1'];
+    return ev_page($ev, 'attendees', 'Participants', 'attendees', compact('rows', 'rates', 'q', 'rate', 'st', 'fields', 'sessions', 'flt', 'allCols'));
 }
 
 // ---------- Guichet & invitations ----------

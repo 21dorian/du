@@ -61,7 +61,7 @@ final class Tickets
         $held = (int)val("SELECT COALESCE(SUM(i.qty * r.pack_size),0) FROM order_items i JOIN orders o ON o.id = i.order_id JOIN rates r ON r.id = i.rate_id
                           WHERE i.kind = 'rate' AND i.rate_id = ? AND o.status = 'pending' AND o.resale_id IS NULL AND o.expires_at > NOW()" . $os, [$rateId]);
         $grp = class_exists('Social') ? Social::held((int)val('SELECT event_id FROM rates WHERE id = ?', [$rateId]), $rateId, $sessionId) : 0; // 4.1 : places bloquées par « payer à plusieurs »
-        return $sold + $held + $grp;
+        return $sold + $held + $grp + self::blocked(null, $rateId, $sessionId);
     }
 
     public static function eventUsed(int $eventId, ?int $sessionId = null, int $exceptWaitlist = 0): int
@@ -75,7 +75,18 @@ final class Tickets
         $ws = $sessionId ? ' AND session_id = ' . (int)$sessionId : '';
         $offered = (int)val("SELECT COALESCE(SUM(qty),0) FROM waitlist WHERE event_id = ? AND status = 'offered' AND expires_at > NOW() AND id <> ?" . $ws, [$eventId, $exceptWaitlist]);
         $grp = class_exists('Social') ? Social::held($eventId, null, $sessionId) : 0; // 4.1
-        return $sold + $held + $offered + $grp;
+        return $sold + $held + $offered + $grp + self::blocked($eventId, null, $sessionId);
+    }
+
+    /** 4.4 : places bloquées par l'organisateur (artistes, partenaires, places techniques…), retirées de la vente. */
+    public static function blocked(?int $eventId, ?int $rateId, ?int $sessionId): int
+    {
+        try {
+            $w = ['released_at IS NULL']; $p = [];
+            if ($rateId) { $w[] = 'rate_id = ?'; $p[] = $rateId; } else { $w[] = 'event_id = ?'; $p[] = $eventId; }
+            if ($sessionId) $w[] = '(session_id IS NULL OR session_id = ' . (int)$sessionId . ')';
+            return (int)val('SELECT COALESCE(SUM(qty), 0) FROM place_holds WHERE ' . implode(' AND ', $w), $p);
+        } catch (Throwable $e) { return 0; } // avant la migration
     }
 
     public static function capacity(array $event, ?array $session): int
@@ -259,6 +270,13 @@ final class Tickets
             if (!empty($p['promo']) && (!$staff || !empty($p['staff_promo'])) && !$resale) {
                 $r = self::findPromo((int)$ev['id'], (string)$p['promo']);
                 if (!empty($r['error'])) $errors[] = $r['error']; else $promo = $r['promo'] ?? null;
+            }
+            // 4.4 : limite de billets par acheteur (toutes commandes confondues, hors guichet et invitations)
+            if (!$staff && (int)($ev['max_per_buyer'] ?? 0) > 0 && !empty($p['buyer']['email']) && !empty($p['quantities'])) {
+                $want = 0;
+                foreach ($p['quantities'] as $rid => $qn) $want += (int)$qn * max(1, (int)val('SELECT pack_size FROM rates WHERE id = ?', [(int)$rid]));
+                $have = (int)val("SELECT COUNT(*) FROM tickets t JOIN orders o ON o.id = t.order_id WHERE t.event_id = ? AND t.status = 'valid' AND LOWER(o.email) = LOWER(?)", [$ev['id'], (string)$p['buyer']['email']]);
+                if ($have + $want > (int)$ev['max_per_buyer']) $errors[] = 'C\'est ' . (int)$ev['max_per_buyer'] . ' billets maximum par personne pour cet événement' . ($have ? ' (tu en as déjà ' . $have . ')' : '') . '.';
             }
             $unlocked = array_map('intval', $p['unlocked'] ?? []);
             if ($promo && $promo['kind'] === 'unlock') $unlocked = array_merge($unlocked, $promo['rate_list']);
@@ -586,7 +604,9 @@ final class Tickets
             }
             $maxEntries = $t ? max(1, (int)$t['max_entries']) : 1;
             $enteredToday = $t && $t['per_day'] && $t['last_scan_at'] && date('Y-m-d', strtotime($t['last_scan_at'])) === date('Y-m-d', strtotime($at)) && (int)$t['entries'] > 0;
-            if (!$t) {
+            if (!$t && ($was = one('SELECT tt.ticket_id FROM ticket_transfers tt WHERE tt.old_code = ? AND tt.event_id = ? ORDER BY tt.id DESC LIMIT 1', [$code, $ev['id']]))) { // 4.4
+                $result = 'cancelled'; $info['replaced'] = true;
+            } elseif (!$t) {
                 $result = self::looksGenuine($code) ? 'invalid' : 'forged';
             } elseif ((int)$t['event_id'] !== (int)$ev['id']) {
                 $result = 'wrong_event';

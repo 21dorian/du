@@ -224,6 +224,10 @@ function pay_wallet(string $id, string $wid): string
 // ---------- recharges et remboursements ----------
 function pay_s_remboursements(array $m, array $ev, string $base, string $label): string
 {
+    if (is_post() && input('action') === 'cancel_topup') { // 4.4 : annuler une recharge
+        try { $r = PayAdmin::cancelTopup((int)$ev['id'], (int)input('tx_id'), (string)input('reason')); back(['success' => $r['message']]); }
+        catch (RuntimeException $e) { back(['error' => $e->getMessage()]); }
+    }
     if (is_post() && input('action') === 'done_all') {
         $n = 0; $uid = (int)user()['id'];
         foreach (array_map('intval', (array)($_POST['ids'] ?? [])) as $wid) {

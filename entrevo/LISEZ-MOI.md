@@ -79,6 +79,30 @@ Couleurs : **vert** = entre, **orange** = déjà entré / pas entré (sortie), *
 
 ---
 
+## Nouveautés 4.4 — gestion des commandes, des participants et du stock
+
+**Annuler une commande, vraiment**
+- Fenêtre d'annulation sur chaque commande : **rembourser tout**, **hors frais de service**, **un montant**, émettre un **avoir** (carte cadeau envoyée à l'acheteur) ou **sans remboursement** ; toute la commande ou seulement certains billets ; **motif** obligatoire, précision et **e-mail à l'acheteur**.
+- Les commandes **en attente, réservations et liens de paiement** s'annulent aussi (les places sont libérées). Le motif reste affiché sur la commande.
+
+**Modifier une commande**
+- **Ajouter des billets** : encaissés sur place (espèces, carte, chèque, virement), offerts, ou réglés par un **lien de paiement** envoyé à l'acheteur ; une commande liée est créée et reliée à l'originale.
+- **Changer le tarif** d'un billet (différence encaissée, remboursée ou offerte) et **changer de date** (tout ou partie des billets, avec contrôle de la jauge et renvoi des billets).
+
+**Fiche participant (billet)**
+- Nom et e-mail du porteur, **réédition** (nouveau code : l'ancien billet perdu ou partagé est refusé au contrôle, avec le message « billet réédité »), **transfert** à une autre personne, **renvoi** du billet seul, **entrée ou sortie manuelle**, changement de date, annulation et **réactivation**, historique des passages au contrôle et des modifications.
+- Liste des participants : filtres par date, type (invitations, accréditations…), canal de vente, réponse au formulaire, présents sur place, bracelet NFC ; **export CSV aux colonnes choisies**.
+
+**Stock et blocages** (menu Vendre)
+- Tableau du stock tarif par tarif (et date par date) : quota, vendus, paniers en cours, bloqués, disponibles, remplissage.
+- **Bloquer des places** (artistes, partenaires, option d'un groupe) : retirées de la vente, puis remises en vente ou **transformées en invitations** nominatives.
+- **Limite de billets par acheteur** sur tout l'événement (toutes commandes confondues).
+
+**Entrevo Pay : annuler depuis le back-office**
+- Journal des ventes : **annuler une vente** à tout moment (plus seulement 10 minutes en caisse), en totalité ou **article par article**, avec motif ; le cashless est recrédité, l'espèce ou la carte est notée « à rendre », le stock revient, la trace reste dans le journal.
+- **Recharges** : annulation d'une recharge en ligne (remboursée chez le prestataire de paiement) ou en caisse (retirée du porte-monnaie si elle n'a pas été dépensée).
+- **Click & collect** : annulation d'une commande, recréditée sur la carte du festivalier, qui la voit « annulée » sur son téléphone.
+
 ## Nouveautés 4.3 — appli organisateur et contrôle d'accès pro
 
 **Appli organisateur** (`/pro/app`, installable depuis le navigateur, ou APK « Entrevo Pro »)

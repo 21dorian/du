@@ -193,6 +193,8 @@ return [
     ['GET|POST', '/pro/evenements/{id}/promos', 'pro@promos'],
     ['GET|POST', '/pro/evenements/{id}/acces', 'pro@access_points'],
     ['GET', '/pro/evenements/{id}/participants', 'pro@attendees'],
+    ['GET|POST', '/pro/billets/{id}', 'tickets_admin@ticket_page'],
+    ['GET|POST', '/pro/evenements/{id}/stock', 'tickets_admin@stock_page'],
     ['GET', '/pro/evenements/{id}/guichet', 'box_office@box_screen'],
     ['GET', '/pro/evenements/{id}/guichet/etat', 'box_office@box_state'],
     ['GET', '/pro/evenements/{id}/guichet/clients', 'box_office@box_clients'],
