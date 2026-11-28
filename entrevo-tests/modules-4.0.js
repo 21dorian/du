@@ -51,7 +51,7 @@ const out = (k, v) => console.log(k.padEnd(26), typeof v === 'string' ? v.replac
   const ag = await ctx(1280, 900); await ag.goto(B + '/connexion'); await ag.fill('#email', 'billet@demo.entrevo'); await ag.fill('#password', 'billet1234'); await ag.click('button.btn-lg'); await ag.waitForLoadState();
   const res = []; for (const u of ['/pro/commandes', '/pro/evenements/1/tarifs', '/pro/finances', '/pro/campagnes']) res.push(u + '=' + (await ag.goto(B + u)).status()); out('droits du rôle', res.join(' '));
   // appli mobile
-  const m = await ctx(390, 844); await m.context().addCookies(await p.context().cookies()); await m.goto(B + '/pro/mobile'); out('appli orga', await m.locator('.big').innerText()); await m.screenshot({ path: C + '15-appli-orga.png', fullPage: true });
+  const m = await ctx(390, 844); await m.context().addCookies(await p.context().cookies()); await m.goto(B + '/pro/mobile'); await m.waitForTimeout(1500); out('appli orga', await m.locator('.oa-hero').innerText()); await m.screenshot({ path: C + '15-appli-orga.png', fullPage: true });
   // borne
   const k = await ctx(1024, 768); await k.goto(B + '/connexion'); await k.fill('#email', 'orga@demo.entrevo'); await k.fill('#password', 'demo1234'); await k.click('button.btn-lg'); await k.waitForLoadState();
   await k.goto(B + '/pro/evenements/1/controle'); await k.fill('input[name=pin]', '4321'); await k.click('form[action$="/borne/festival-lumieres-d-ete"] button'); await k.waitForLoadState();

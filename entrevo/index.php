@@ -56,7 +56,7 @@ I18n::boot($path); // 4.2 : billetterie FR / EN
 $method = $_SERVER['REQUEST_METHOD'] ?? 'GET';
 
 // 2.6 : application caisse native (Capacitor) — requêtes d'une autre origine, authentifiées par jeton d'appareil (sans cookie)
-if ($path === '/api/caisse') {
+if ($path === '/api/caisse' || $path === '/sante') { // 4.3 : /sante sert aussi au premier lancement de l'appli Entrevo Pro
     $origin = (string)($_SERVER['HTTP_ORIGIN'] ?? '');
     if (in_array($origin, ['capacitor://localhost', 'https://localhost', 'http://localhost', 'ionic://localhost'], true)) {
         header('Access-Control-Allow-Origin: ' . $origin);

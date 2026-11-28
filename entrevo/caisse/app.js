@@ -17,7 +17,7 @@
   var money = function (c) { return (c / 100).toLocaleString('fr-FR', { style: 'currency', currency: 'EUR' }); };
   var uid = function () { return 'c' + Date.now().toString(36) + Math.random().toString(36).slice(2, 10); };
   var buzz = function (p) { try { navigator.vibrate && navigator.vibrate(p); } catch (e) { /* rien */ } };
-  var APP_V = '4.2.1';
+  var APP_V = '4.3.0';
   var METHOD = { cashless: 'Cashless', card: 'Carte', cash: 'Espèces', allowance: 'Crédit', offered: 'Offert' };
 
   var S = {

@@ -33,7 +33,7 @@ final class Features
             'prix-dynamique' => '/pro/evenements', 'double-auth' => '/mon-compte', 'zapier' => '/pro/connecteurs', 'google-sheets' => '/pro/connecteurs', 'emailing-externe' => '/pro/connecteurs', 'pixels-avances' => '/pro/connecteurs',
             'codes-auto' => '/pro/automatisations', 'parrainage' => '/pro/automatisations', 'rapport-fin' => '/pro/automatisations', 'partage-stats' => '/pro/evenements', 'saison' => '/pro/evenements',
             'places-pmr' => '/pro/evenements', 'billet-nominatif-id' => '/pro/evenements', 'vestiaire' => '/pro/evenements', 'badges-live' => '/pro/evenements', 'kiosque' => '/pro/evenements',
-            'roles-perso' => '/pro/equipe', 'import-contacts' => '/pro/contacts', 'doublons' => '/pro/contacts', 'app-orga' => '/pro/mobile',
+            'roles-perso' => '/pro/equipe', 'import-contacts' => '/pro/contacts', 'doublons' => '/pro/contacts', 'app-orga' => '/pro/app',
             'paiement-plusieurs-fois' => '/pro/evenements', 'google-wallet' => '/pro/evenements'] as $k => $url) // 4.1 if (isset($a[$k])) $a[$k] = ['status' => 'on', 'url' => $url] + $a[$k];
         return $a;
     }
@@ -189,7 +189,7 @@ final class Features
             // connecter
             'google-sheets' => $x('connect', '', 'Synchro Google Sheets', 'Les commandes et participants qui se remplissent tout seuls dans un tableur partagé.', ['Mise à jour en temps réel', 'Choix des colonnes']),
             'emailing-externe' => $x('connect', '', 'Mailchimp & Brevo', 'Envoi automatique des contacts consentants vers ton outil d\'e-mailing habituel.', ['Synchro des inscrits aux actus', 'Étiquettes par événement']),
-            'app-orga' => $x('connect', '', 'Appli mobile organisateur', 'Les ventes en direct et les notifications sur ton téléphone.', ['Notification à chaque vente (option)', 'Stats du jour', 'Accès au scan']),
+            'app-orga' => $x('connect', '', 'Appli mobile organisateur', 'Ventes en direct, alertes, vente rapide et message express, sur ton téléphone (web ou APK Entrevo Pro).', ['Notifications : vente, palier, complet, remboursement, jauge', 'Vente rapide au guichet', 'Ouvrir ou clôturer les ventes']),
         ];
     }
 

@@ -32,7 +32,7 @@
       <input name="title" maxlength="190" required placeholder="Ex. : Malaise devant la scène, objet perdu, porte B saturée…">
       <div class="pc-form-row">
         <select name="category"><?php foreach (PC_CATEGORIES as $k => $l): ?><option value="<?= $k ?>"><?= $l ?></option><?php endforeach; ?></select>
-        <select name="level"><option value="info">Info</option><option value="warn">Attention</option><option value="alert">Urgent</option></select>
+        <select name="level"><option value="info">Info</option><option value="warn">Attention</option><option value="alert">Urgent (accusé de lecture)</option></select>
         <input name="zone" list="pc-zones" placeholder="Zone" maxlength="120"><datalist id="pc-zones"><?php foreach (all('SELECT name FROM access_points WHERE event_id = ?', [$ev['id']]) as $z): ?><option value="<?= e($z['name']) ?>"><?php endforeach; ?></datalist>
       </div>
       <textarea name="note" rows="2" maxlength="2000" placeholder="Détails, personnes prévenues, actions… (facultatif)"></textarea>
@@ -42,7 +42,7 @@
   </section>
   <section class="pc-card"><h2>Message aux contrôleurs</h2>
     <form id="pc-msg" class="pc-form"><textarea name="body" rows="2" maxlength="280" placeholder="Ex. : Porte B fermée, tout le monde par la A" required></textarea>
-      <div class="pc-form-row"><select name="level"><option value="info">Info</option><option value="warn">Attention</option><option value="alert">Urgent</option></select><button class="pc-btn primary">Envoyer</button></div></form>
+      <div class="pc-form-row"><select name="level"><option value="info">Info</option><option value="warn">Attention</option><option value="alert">Urgent (accusé de lecture)</option></select><button class="pc-btn primary">Envoyer</button></div></form>
     <div id="messages" class="pc-list"></div>
   </section>
 </main>
@@ -90,7 +90,7 @@
     });
     if (!(d.incidents || []).length) il.appendChild(el('p', 'pc-muted', 'Rien à signaler pour l\'instant'));
     var m = $('messages'); m.textContent = '';
-    (d.messages || []).forEach(function (x) { var it = el('div', 'pc-item ' + x.level); it.appendChild(el('span', 'pc-time', x.at)); it.appendChild(el('span', 'pc-grow', x.body)); m.appendChild(it); });
+    (d.messages || []).forEach(function (x) { var it = el('div', 'pc-item ' + x.level); it.appendChild(el('span', 'pc-time', x.at)); it.appendChild(el('span', 'pc-grow', x.body)); if (x.acks) it.appendChild(el('span', 'pc-time', x.acks)); m.appendChild(it); });
   }
   function load() { fetch(url, { credentials: 'same-origin' }).then(function (r) { return r.json(); }).then(render).catch(function () { $('pc-at').textContent = 'connexion perdue, nouvelle tentative…'; }); }
   load(); setInterval(load, 5000);

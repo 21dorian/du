@@ -31,12 +31,12 @@ function pc_data(string $id): never
     }
     if (is_post()) {
         $body = mb_substr(trim((string)input('body')), 0, 280);
-        if ($body !== '') insert('scan_messages', ['event_id' => $ev['id'], 'body' => $body, 'level' => in_array(input('level'), ['info', 'warn', 'alert'], true) ? (string)input('level') : 'info', 'user_id' => user()['id'], 'created_at' => now()]);
+        if ($body !== '') insert('scan_messages', ['event_id' => $ev['id'], 'body' => $body, 'level' => in_array(input('level'), ['info', 'warn', 'alert'], true) ? (string)input('level') : 'info', 'must_ack' => input('level') === 'alert' ? 1 : 0, 'user_id' => user()['id'], 'created_at' => now()]);
         json_out(['ok' => $body !== '']);
     }
     $snap = Pc::snapshot($ev);
     Pc::alerts($ev, $snap);
-    $snap['messages'] = array_map(fn($m) => ['at' => substr($m['created_at'], 11, 5), 'body' => $m['body'], 'level' => $m['level']],
+    $snap['messages'] = array_map(fn($m) => ['at' => substr($m['created_at'], 11, 5), 'body' => $m['body'], 'level' => $m['level'], 'acks' => (int)$m['must_ack'] ? (int)val('SELECT COUNT(*) FROM scan_acks WHERE message_id = ?', [$m['id']]) . ' / ' . (int)val('SELECT COUNT(*) FROM scan_devices WHERE event_id = ? AND last_seen >= NOW() - INTERVAL 10 MINUTE', [$m['event_id']]) . ' lu' : null],
         all('SELECT * FROM scan_messages WHERE event_id = ? ORDER BY id DESC LIMIT 6', [$ev['id']]));
     $snap['incidents'] = array_map(fn($i) => ['id' => (int)$i['id'], 'at' => substr($i['created_at'], 11, 5), 'level' => $i['level'], 'cat' => PC_CATEGORIES[$i['category']] ?? $i['category'],
         'zone' => (string)$i['zone'], 'title' => $i['title'], 'note' => (string)$i['note'], 'author' => (string)$i['author'], 'open' => $i['status'] === 'open', 'closed_at' => $i['resolved_at'] ? substr($i['resolved_at'], 11, 5) : null],

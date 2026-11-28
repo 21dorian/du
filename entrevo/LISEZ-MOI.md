@@ -79,6 +79,22 @@ Couleurs : **vert** = entre, **orange** = déjà entré / pas entré (sortie), *
 
 ---
 
+## Nouveautés 4.3 — appli organisateur et contrôle d'accès pro
+
+**Appli organisateur** (`/pro/app`, installable depuis le navigateur, ou APK « Entrevo Pro »)
+- **Direct** : billets vendus et jauge, recettes du jour et nette, personnes sur place, ventes des 14 derniers jours, remplissage par tarif, dernières commandes ; mise à jour toutes les 15 secondes.
+- **Notifications** sur le téléphone, même appli fermée (Web Push) : chaque vente, palier atteint (tous les 10 à 1 000 billets), tarif ou événement complet, demande de remboursement, jauge à 90 % puis 100 %, résumé du soir. Chaque type se coupe séparément.
+- **Vente rapide** : billets, encaissement espèces / carte / chèque ou offert, envoi des billets par e-mail.
+- **Message express** à tous les participants (ou à ceux déjà entrés), **ouverture / clôture des ventes**, partage du lien, accès au scan et au PC sécurité.
+
+**Contrôle d'accès pro**
+- **Bracelets NFC** : associer un bracelet à un billet (scanner le billet, puis approcher le bracelet), puis faire entrer avec le seul bracelet ; fonctionne hors ligne une fois associé. Lecture avec Chrome Android ou l'APK Entrevo Pro ; les bracelets cashless déjà reliés à un billet sont reconnus aussi.
+- **Liste des invités** : invitations et accréditations, qui est arrivé, faire entrer sans QR code.
+- **Jauge en direct** dans l'en-tête (orange à 90 %, rouge à 100 %), **débit** par minute, **file d'attente** signalée par chaque porte et **temps d'attente estimé**.
+- **Messages urgents du PC sécurité** en plein écran avec **accusé de lecture** ; le PC voit combien d'appareils l'ont lu.
+
+**APK Entrevo Pro** : une seule appli Android pour l'organisateur et les contrôleurs, avec le lecteur NFC du téléphone et les notifications Android.
+
 ## Nouveautés 4.2.1 — audit accessibilité, design et code
 
 **Accessibilité**

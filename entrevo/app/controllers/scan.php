@@ -72,13 +72,13 @@ function api_data(string $id): never
     $ev = scan_event($id);
     $since = (string)input('since');
     $params = [$ev['id']];
-    $sql = 'SELECT code, first_name, last_name, rate_id, rate_name, status, inside, entries, checked_in_at, updated_at, session_id, max_entries, per_day, population_id, type, seat, last_scan_at FROM tickets WHERE event_id = ?';
+    $sql = 'SELECT code, first_name, last_name, rate_id, rate_name, status, inside, entries, checked_in_at, updated_at, session_id, max_entries, per_day, population_id, type, seat, last_scan_at, nfc_uid FROM tickets WHERE event_id = ?';
     if ($since !== '' && strtotime($since)) { $sql .= ' AND updated_at >= ?'; $params[] = date('Y-m-d H:i:s', strtotime($since) - 5); }
     $rows = all($sql, $params);
     // [code, nom, tarif, valide, sur place, entrées, 1re entrée, séance, entrées max, 1/jour, population, type, libellé tarif, siège, dernier passage]
     $tickets = array_map(fn($t) => [$t['code'], trim($t['first_name'] . ' ' . $t['last_name']), (int)$t['rate_id'], $t['status'] === 'valid' ? 1 : 0,
         (int)$t['inside'], (int)$t['entries'], $t['checked_in_at'], $t['session_id'] ? (int)$t['session_id'] : 0, (int)$t['max_entries'], (int)$t['per_day'],
-        $t['population_id'] ? (int)$t['population_id'] : 0, $t['type'], $t['rate_name'], $t['seat'], $t['last_scan_at']], $rows);
+        $t['population_id'] ? (int)$t['population_id'] : 0, $t['type'], $t['rate_name'], $t['seat'], $t['last_scan_at'], $t['nfc_uid']], $rows);
     $pops = [];
     foreach (all('SELECT * FROM populations WHERE event_id = ?', [$ev['id']]) as $p) $pops[(int)$p['id']] = ['name' => $p['name'], 'zones' => array_values(array_filter(array_map('intval', explode(',', (string)$p['access_point_ids']))))];
     $sessions = array_map(fn($x) => ['id' => (int)$x['id'], 'label' => fr_date($x['starts_at']) . ($x['label'] ? ' · ' . $x['label'] : ''), 'start' => $x['starts_at']], Tickets::sessions((int)$ev['id']));
@@ -94,7 +94,7 @@ function api_data(string $id): never
         if ($note !== '' || $r['scan_color']) $rules[(int)$r['id']] = ['note' => $note, 'color' => (string)$r['scan_color']];
     }
     json_out([
-        'event' => ['id' => (int)$ev['id'], 'name' => $ev['name'], 'date' => fr_date($ev['starts_at']), 'reentry' => (int)$ev['allow_reentry']],
+        'event' => ['id' => (int)$ev['id'], 'name' => $ev['name'], 'date' => fr_date($ev['starts_at']), 'reentry' => (int)$ev['allow_reentry'], 'capacity' => (int)$ev['capacity']],
         'access_points' => $aps, 'rates' => $rates, 'tickets' => $tickets, 'full' => $since === '', 'sessions' => $sessions, 'populations' => $pops,
         'server_time' => date('Y-m-d H:i:s'), 'stats' => scan_stats((int)$ev['id']), 'rules' => (object)$rules, 'message' => scan_last_message((int)$ev['id']),
     ]);
@@ -103,16 +103,69 @@ function api_data(string $id): never
 function scan_stats(int $eventId): array
 {
     $r = one("SELECT COUNT(*) sold, SUM(entries > 0) checked, SUM(inside = 1) inside FROM tickets WHERE event_id = ? AND status = 'valid' AND type <> 'accreditation'", [$eventId]);
-    return ['sold' => (int)$r['sold'], 'checked' => (int)$r['checked'], 'inside' => (int)$r['inside']];
+    $rate = (int)val("SELECT COUNT(*) FROM scans WHERE event_id = ? AND result = 'ok' AND undone = 0 AND scanned_at >= NOW() - INTERVAL 5 MINUTE", [$eventId]);
+    $queue = (int)val('SELECT COALESCE(SUM(queue), 0) FROM scan_devices WHERE event_id = ? AND last_seen >= NOW() - INTERVAL 5 MINUTE', [$eventId]);
+    $perMin = round($rate / 5, 1);
+    return ['sold' => (int)$r['sold'], 'checked' => (int)$r['checked'], 'inside' => (int)$r['inside'], 'capacity' => (int)val('SELECT capacity FROM events WHERE id = ?', [$eventId]),
+        'per_min' => $perMin, 'queue' => $queue, 'wait' => $queue && $perMin > 0 ? (int)ceil($queue / $perMin) : null];
+}
+
+/** 4.3 : un bracelet NFC lu (« NFC » + identifiant) devient le code du billet associé (ou du billet relié au porte-monnaie cashless). */
+function scan_resolve(array $ev, string $code): string
+{
+    $c = strtoupper(preg_replace('~[^A-Za-z0-9]~', '', $code));
+    if (!preg_match('~^NFC([0-9A-F]{6,28})$~', $c, $m) || val('SELECT id FROM tickets WHERE code = ?', [$c])) return $code;
+    $t = val('SELECT code FROM tickets WHERE event_id = ? AND nfc_uid = ? ORDER BY status = \'valid\' DESC, id DESC LIMIT 1', [$ev['id'], $m[1]])
+        ?: val('SELECT t.code FROM wallets w JOIN tickets t ON t.id = w.ticket_id WHERE w.event_id = ? AND w.nfc_uid = ? LIMIT 1', [$ev['id'], $m[1]]);
+    return $t ?: $code;
+}
+
+/** 4.3 : alerte à l'organisateur quand la jauge approche ou atteint la capacité. */
+function scan_gauge_alert(array $ev, array $st): void
+{
+    if (!class_exists('AppPush') || !$st['capacity']) return;
+    $p = $st['inside'] / $st['capacity'] * 100;
+    if ($p >= 100) AppPush::alert((int)$ev['organizer_id'], 'security', 'Jauge atteinte : ' . $ev['name'], $st['inside'] . ' personnes sur place pour ' . $st['capacity'] . ' places', '/pro/evenements/' . $ev['id'] . '/pc', (int)$ev['id'], 'g100-' . $ev['id'] . '-' . date('Ymd'));
+    elseif ($p >= 90) AppPush::alert((int)$ev['organizer_id'], 'security', 'Jauge à ' . floor($p) . ' % : ' . $ev['name'], $st['inside'] . ' personnes sur place', '/pro/evenements/' . $ev['id'] . '/pc', (int)$ev['id'], 'g90-' . $ev['id'] . '-' . date('Ymd'));
+}
+
+/** 4.3 : associer un bracelet NFC à un billet (le billet est lu en QR, puis le bracelet approché). */
+function api_nfc(string $id): never
+{
+    $ev = scan_event($id);
+    $b = json_body();
+    $uid = strtoupper(preg_replace('~[^A-Fa-f0-9]~', '', (string)($b['uid'] ?? '')));
+    $code = strtoupper(preg_replace('~[^A-Za-z0-9]~', '', (string)($b['code'] ?? '')));
+    if (strlen($uid) < 6 || strlen($uid) > 28) json_out(['ok' => false, 'error' => 'Bracelet illisible : réessaie.'], 422);
+    $t = one("SELECT * FROM tickets WHERE code = ? AND event_id = ?", [$code, $ev['id']]);
+    if (!$t) json_out(['ok' => false, 'error' => 'Billet inconnu pour cet événement.'], 404);
+    if ($t['status'] !== 'valid') json_out(['ok' => false, 'error' => 'Ce billet n\'est plus valable.'], 422);
+    $prev = one('SELECT code, first_name, last_name FROM tickets WHERE event_id = ? AND nfc_uid = ? AND id <> ?', [$ev['id'], $uid, $t['id']]);
+    q('UPDATE tickets SET nfc_uid = NULL, updated_at = NOW() WHERE event_id = ? AND nfc_uid = ? AND id <> ?', [$ev['id'], $uid, $t['id']]);
+    update('tickets', ['nfc_uid' => $uid, 'updated_at' => now()], 'id = ?', [$t['id']]);
+    Audit::log('scan.nfc', 'Bracelet ' . $uid . ' → ' . $t['code'], (int)$ev['id']);
+    json_out(['ok' => true, 'name' => trim($t['first_name'] . ' ' . $t['last_name']), 'code' => $t['code'], 'uid' => $uid, 'replaced' => $prev ? trim($prev['first_name'] . ' ' . $prev['last_name']) : null]);
+}
+
+/** 4.3 : accusé de lecture d'un message urgent du PC. */
+function api_ack(string $id): never
+{
+    $ev = scan_event($id);
+    $b = json_body();
+    $m = one('SELECT id FROM scan_messages WHERE id = ? AND event_id = ?', [(int)($b['message'] ?? 0), $ev['id']]);
+    $dev = mb_substr(preg_replace('~[^A-Za-z0-9_-]~', '', (string)($b['device'] ?? '')), 0, 40);
+    if ($m && $dev !== '') q('INSERT IGNORE INTO scan_acks (message_id, device, user_id, acked_at) VALUES (?, ?, ?, NOW())', [$m['id'], $dev, user()['id']]);
+    json_out(['ok' => (bool)$m]);
 }
 
 function api_check(string $id): never
 {
     $ev = scan_event($id);
     $b = json_body();
-    $r = Tickets::scan(['event' => $ev, 'code' => (string)($b['code'] ?? ''), 'access_point_id' => $b['ap'] ?? null, 'session_id' => $b['session'] ?? null,
+    $r = Tickets::scan(['event' => $ev, 'code' => scan_resolve($ev, (string)($b['code'] ?? '')), 'access_point_id' => $b['ap'] ?? null, 'session_id' => $b['session'] ?? null,
         'direction' => $b['direction'] ?? 'in', 'user' => user(), 'uuid' => (string)($b['uuid'] ?? ''), 'device' => (string)($b['device'] ?? '')]);
     $r['stats'] = scan_stats((int)$ev['id']);
+    scan_gauge_alert($ev, $r['stats']);
     json_out($r);
 }
 
@@ -124,7 +177,7 @@ function api_sync(string $id): never
     $out = [];
     foreach (array_slice((array)($b['scans'] ?? []), 0, 500) as $s) {
         if (!is_array($s) || empty($s['uuid'])) continue;
-        $r = Tickets::scan(['event' => $ev, 'code' => (string)($s['code'] ?? ''), 'access_point_id' => $s['ap'] ?? null, 'session_id' => $s['session'] ?? null,
+        $r = Tickets::scan(['event' => $ev, 'code' => scan_resolve($ev, (string)($s['code'] ?? '')), 'access_point_id' => $s['ap'] ?? null, 'session_id' => $s['session'] ?? null,
             'direction' => $s['direction'] ?? 'in', 'user' => user(), 'uuid' => (string)$s['uuid'], 'device' => (string)($s['device'] ?? ''),
             'scanned_at' => $s['at'] ?? null, 'offline' => true]);
         $out[] = ['uuid' => $s['uuid'], 'result' => $r['result'], 'local' => $s['local'] ?? null];
@@ -150,8 +203,8 @@ function api_undo(string $id): never
 /** Dernier message du PC (organisateur → contrôleurs), valable 3 heures. */
 function scan_last_message(int $eventId): ?array
 {
-    $m = one('SELECT id, body, level, created_at FROM scan_messages WHERE event_id = ? AND created_at >= NOW() - INTERVAL 3 HOUR ORDER BY id DESC LIMIT 1', [$eventId]);
-    return $m ? ['id' => (int)$m['id'], 'body' => $m['body'], 'level' => $m['level'], 'at' => substr($m['created_at'], 11, 5)] : null;
+    $m = one('SELECT id, body, level, must_ack, created_at FROM scan_messages WHERE event_id = ? AND created_at >= NOW() - INTERVAL 3 HOUR ORDER BY id DESC LIMIT 1', [$eventId]);
+    return $m ? ['id' => (int)$m['id'], 'body' => $m['body'], 'level' => $m['level'], 'ack' => (int)$m['must_ack'], 'at' => substr($m['created_at'], 11, 5)] : null;
 }
 
 /** Signal de vie de l'appareil (toutes les 30 s) : état, file d'attente, batterie. Renvoie stats, message du PC et répartition. */
@@ -161,10 +214,11 @@ function api_ping(string $id): never
     $b = json_body();
     $dev = preg_replace('~[^A-Za-z0-9_-]~', '', (string)($b['device'] ?? ''));
     if ($dev !== '') {
-        q('INSERT INTO scan_devices (device, event_id, user_id, ap_name, direction, pending, battery, scans, last_seen) VALUES (?, ?, ?, ?, ?, ?, ?, ?, NOW())
-           ON DUPLICATE KEY UPDATE user_id = VALUES(user_id), ap_name = VALUES(ap_name), direction = VALUES(direction), pending = VALUES(pending), battery = VALUES(battery), scans = VALUES(scans), last_seen = NOW()',
+        q('INSERT INTO scan_devices (device, event_id, user_id, ap_name, direction, pending, battery, scans, queue, last_seen) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())
+           ON DUPLICATE KEY UPDATE user_id = VALUES(user_id), ap_name = VALUES(ap_name), direction = VALUES(direction), pending = VALUES(pending), battery = VALUES(battery), scans = VALUES(scans), queue = VALUES(queue), last_seen = NOW()',
             [mb_substr($dev, 0, 40), $ev['id'], user()['id'], mb_substr((string)($b['ap'] ?? ''), 0, 120) ?: null, ($b['dir'] ?? '') === 'out' ? 'out' : 'in',
-             max(0, (int)($b['pending'] ?? 0)), isset($b['battery']) && $b['battery'] !== null ? max(0, min(100, (int)$b['battery'])) : null, max(0, (int)($b['scans'] ?? 0))]);
+             max(0, (int)($b['pending'] ?? 0)), isset($b['battery']) && $b['battery'] !== null ? max(0, min(100, (int)$b['battery'])) : null, max(0, (int)($b['scans'] ?? 0)),
+             isset($b['queue']) && $b['queue'] !== null ? max(0, min(9999, (int)$b['queue'])) : null]);
     }
     $perAp = all("SELECT COALESCE(a.name, 'Sans porte') name, SUM(s.direction = 'in') n_in, SUM(s.direction = 'out') n_out FROM scans s LEFT JOIN access_points a ON a.id = s.access_point_id
         WHERE s.event_id = ? AND s.result IN ('ok','exit') AND s.undone = 0 AND s.scanned_at >= NOW() - INTERVAL 18 HOUR GROUP BY name ORDER BY n_in DESC", [$ev['id']]);

@@ -150,8 +150,9 @@
       // si un passage local n'est pas encore envoyé, on garde l'état local du billet
       var pendingLocal = queue.some(function (q) { return q.code === t[0]; });
       if (pendingLocal && data.tickets[t[0]]) return;
-      data.tickets[t[0]] = { n: t[1], r: t[2], v: t[3], i: t[4], e: t[5], c: t[6], s: t[7] || 0, m: t[8] || 1, d: t[9] || 0, p: t[10] || 0, ty: t[11] || 'ticket', rn: t[12] || '', st: t[13] || '', l: t[14] || null };
+      data.tickets[t[0]] = { n: t[1], r: t[2], v: t[3], i: t[4], e: t[5], c: t[6], s: t[7] || 0, m: t[8] || 1, d: t[9] || 0, p: t[10] || 0, ty: t[11] || 'ticket', rn: t[12] || '', st: t[13] || '', l: t[14] || null, u: t[15] || null };
     });
+    indexNfc();
     saveData();
     renderCounters();
   }
@@ -193,6 +194,7 @@
 
   function startScan() {
     cfg.running = true; saveCfg();
+    indexNfc(); if (cfg.linkMode) nfcBar('Mode association : scanne le QR code du billet.');
     var ap = currentAp();
     $('scan-ev').textContent = data.event.name;
     var sess = (data.sessions || []).filter(function (x) { return x.id === cfg.sessionId; })[0];
@@ -310,9 +312,51 @@
     saveData();
   }
 
+  // ---------- 4.3 : bracelets NFC ----------
+  var nfcIdx = {}, linkCode = null, nfcReader = null;
+  function indexNfc() { nfcIdx = {}; if (data) Object.keys(data.tickets).forEach(function (c) { var u = data.tickets[c].u; if (u) nfcIdx[u] = c; }); }
+  function nfcBar(text) { $('nfc-bar').hidden = !text; $('nfc-text').textContent = text || ''; }
+  function onNfc(uid) {
+    uid = String(uid || '').replace(/[^0-9a-fA-F]/g, '').toUpperCase();
+    if (uid.length < 6 || !data) return;
+    if (cfg.linkMode) {
+      if (!linkCode) { nfcBar('Scanne d\u2019abord le billet, puis approche le bracelet.'); beep(300, 0.15); return; }
+      var code = linkCode; nfcBar('Association…');
+      api('POST', '/api/scan/event/' + data.event.id + '/nfc', { code: code, uid: uid }).then(function (j) {
+        Object.keys(data.tickets).forEach(function (c) { if (data.tickets[c].u === uid) data.tickets[c].u = null; });
+        if (data.tickets[code]) data.tickets[code].u = uid; indexNfc(); saveData();
+        linkCode = null; beep(1320, 0.12); vibrate(60);
+        nfcBar('Bracelet associé à ' + j.name + (j.replaced ? ' (retiré de ' + j.replaced + ')' : '') + '. Billet suivant ?');
+      }).catch(function (e) { linkCode = null; beep(220, 0.3); nfcBar(e.http ? (e.message || 'Association refusée') : 'Pas de réseau : l\u2019association demande une connexion.'); });
+      return;
+    }
+    handle('NFC' + uid, 'nfc');
+  }
+  window.addEventListener('entrevo-nfc', function (e) { onNfc(e.detail); }); // pont natif de l'appli Entrevo Pro
+  function startNfc() {
+    if (window.EntrevoNative && window.EntrevoNative.nfc) { try { window.EntrevoNative.nfc(true); } catch (e) {} $('m-nfc-info').textContent = 'Lecteur du téléphone actif'; return true; }
+    if (!('NDEFReader' in window)) { $('m-nfc-info').textContent = 'Pas de lecteur NFC accessible ici (Chrome Android ou appli Entrevo Pro)'; return false; }
+    if (nfcReader) return true;
+    try {
+      nfcReader = new window.NDEFReader();
+      nfcReader.scan().then(function () { $('m-nfc-info').textContent = 'Lecteur actif : approche un bracelet'; }).catch(function (e) { nfcReader = null; $('m-nfc-info').textContent = 'NFC refusé : ' + e.message; });
+      nfcReader.onreading = function (ev) { onNfc(ev.serialNumber || ''); };
+      return true;
+    } catch (e) { $('m-nfc-info').textContent = 'NFC indisponible'; return false; }
+  }
+  $('m-nfc').onclick = function () { if (startNfc()) { overlay('menu', false); nfcBar(cfg.linkMode ? 'Mode association : scanne un billet.' : 'Lecture NFC active : approche un bracelet.'); setTimeout(function () { if (!cfg.linkMode) nfcBar(''); }, 4000); } };
+  $('m-link').onclick = function () { cfg.linkMode = true; saveCfg(); linkCode = null; startNfc(); overlay('menu', false); nfcBar('Mode association : scanne le QR code du billet.'); };
+  if (window.EntrevoNative && window.EntrevoNative.home) { $('m-home').hidden = false; $('m-home').onclick = function () { window.EntrevoNative.home(); }; }
+  $('nfc-stop').onclick = function () { cfg.linkMode = false; saveCfg(); linkCode = null; nfcBar(''); };
+
   function handle(raw, source) {
     var code = normalize(raw);
     if (!code || !data) return;
+    if (cfg.linkMode && source !== 'nfc') { // 4.3 : association d'un bracelet
+      if (!data.tickets[code]) { beep(220, 0.3); nfcBar('Billet inconnu : ' + code + '. Réessaie.'); return; }
+      linkCode = code; beep(880, 0.08); vibrate(30); nfcBar('Approche le bracelet de ' + (data.tickets[code].n || code) + '.'); return;
+    }
+    if (/^NFC[0-9A-F]{6,}$/.test(code) && !data.tickets[code] && nfcIdx[code.slice(3)]) code = nfcIdx[code.slice(3)];
     var now = Date.now();
     if (source === 'camera' && code === lastCode && now - lastAt < 2800) return; // même billet encore devant la caméra
     lastCode = code; lastAt = now;
@@ -373,6 +417,7 @@
   function toastResult(level, label, name, info, rule) {
     var box = $('result');
     box.className = 'result ' + level + (rule ? ' has-rule' : '');
+    if (/^NFC[0-9A-F]{6,}$/.test(lastCode || '') && (label === 'Code invalide' || label === 'Billet inconnu')) { label = 'Bracelet non associé'; name = 'Associe-le à un billet depuis le menu'; }
     $('r-label').textContent = label;
     $('r-name').textContent = name || '';
     $('r-info').textContent = info || '';
@@ -423,6 +468,27 @@
     $('c-checked').textContent = checked;
     $('c-inside').textContent = inside;
     $('c-mine').textContent = cfg.mine[data.event.id] || 0;
+    var cap = data.event.capacity || 0, srv = (live && live.stats) || data.stats || {}, ins = online && srv.inside !== undefined ? srv.inside : inside, g = $('gauge');
+    if (g) { g.hidden = !cap; if (cap) { var pc = Math.round(ins / cap * 100); g.textContent = ins + ' / ' + cap; g.className = 'gauge-chip' + (pc >= 100 ? ' full' : (pc >= 90 ? ' warn' : '')); g.title = 'Jauge : ' + pc + ' %'; } }
+  }
+
+  // ---------- 4.3 : liste des invités (invitations, accréditations) ----------
+  $('m-guests').onclick = function () { overlay('menu', false); $('s-guests').hidden = false; $('guests-input').value = ''; renderGuests(); };
+  $('guests-input').oninput = function () { renderGuests(); };
+  function renderGuests() {
+    var q = fold($('guests-input').value.trim()), list = $('guests-list'), out = [];
+    Object.keys(data.tickets).forEach(function (code) { var t = data.tickets[code]; if ((t.ty === 'invitation' || t.ty === 'accreditation') && (!q || fold(t.n).indexOf(q) >= 0)) out.push([code, t]); });
+    out.sort(function (a, b) { return (a[1].e > 0) - (b[1].e > 0) || fold(a[1].n).localeCompare(fold(b[1].n)); });
+    var came = out.filter(function (x) { return x[1].e > 0; }).length;
+    $('guests-count').textContent = out.length ? out.length + ' invité(s) · ' + came + ' arrivé(s)' : '';
+    list.innerHTML = out.length ? '' : '<p class="muted">Aucun invité' + (q ? ' à ce nom' : ' sur cet événement') + '.</p>';
+    out.slice(0, 300).forEach(function (x) {
+      var code = x[0], t = x[1], div = document.createElement('div'); div.className = 'search-item';
+      var st = !t.v ? 'annulé' : (t.i ? 'sur place' : (t.e ? 'sorti' : 'attendu'));
+      div.innerHTML = '<div><b>' + esc(t.n || 'Sans nom') + '</b><span class="guest-tag">' + (t.ty === 'accreditation' ? 'Accréditation' : 'Invitation') + '</span><small>' + esc(data.rates[t.r] || t.rn || '') + ' · ' + st + '</small></div>';
+      if (t.v && !t.i) { var b = document.createElement('button'); b.className = 'btn btn-sm'; b.textContent = 'Faire entrer'; b.onclick = function () { $('s-guests').hidden = true; handle(code, 'search'); }; div.appendChild(b); }
+      list.appendChild(div);
+    });
   }
 
   // ---------- Recherche par nom ----------
@@ -532,11 +598,14 @@
     var seen = cfg.msgSeen[data.event.id] || 0;
     if (m.id <= seen) return;
     $('pc-msg-text').textContent = m.body; $('pc-msg-at').textContent = m.at || '';
-    var box = $('pc-msg'); box.hidden = false; box.className = 'pc-msg ' + (m.level || 'info');
-    box.dataset.id = m.id;
+    var box = $('pc-msg'); box.hidden = false; box.className = 'pc-msg ' + (m.level || 'info') + (m.ack ? ' must' : '');
+    box.dataset.id = m.id; box.dataset.ack = m.ack ? 1 : 0; $('pc-msg-ok').textContent = m.ack ? 'J\u2019ai lu' : 'OK';
     beep(880, 0.1); beep(1100, 0.1, 0.14); beep(1320, 0.14, 0.28); vibrate([100, 60, 100, 60, 200]);
   }
-  $('pc-msg-ok').onclick = function () { var box = $('pc-msg'); cfg.msgSeen[data.event.id] = parseInt(box.dataset.id, 10) || 0; saveCfg(); box.hidden = true; };
+  $('pc-msg-ok').onclick = function () {
+    var box = $('pc-msg'), mid = parseInt(box.dataset.id, 10) || 0; cfg.msgSeen[data.event.id] = mid; saveCfg(); box.hidden = true;
+    if (box.dataset.ack === '1') api('POST', '/api/scan/event/' + data.event.id + '/ack', { message: mid, device: DEVICE }).catch(function () { /* renvoyé au prochain message */ });
+  };
 
   // ---------- Signal de vie + stats ----------
   var battery = null;
@@ -545,7 +614,7 @@
     if (!data || !online) return;
     var ap = currentAp();
     api('POST', '/api/scan/event/' + data.event.id + '/ping', { device: DEVICE, ap: ap ? ap.name : '', dir: cfg.dir, pending: queue.length,
-      battery: battery ? Math.round(battery.level * 100) : null, scans: cfg.mine[data.event.id] || 0 }, 6000).then(function (j) {
+      battery: battery ? Math.round(battery.level * 100) : null, scans: cfg.mine[data.event.id] || 0, queue: (cfg.queue || {})[data.event.id] != null ? cfg.queue[data.event.id] : null }, 6000).then(function (j) {
       live = j; if (j.stats) { data.stats = j.stats; }
       if (j.message) showMessage(j.message);
       renderCounters(); if (!$('s-stats').hidden) renderStats();
@@ -560,7 +629,17 @@
     [['Entrés', st.checked], ['Sur place', st.inside], ['Billets', st.sold]].forEach(function (x) { var d = document.createElement('div'); var b = document.createElement('b'); b.textContent = x[1]; var s2 = document.createElement('small'); s2.textContent = x[0]; d.appendChild(b); d.appendChild(s2); big.appendChild(d); });
     var pct = st.sold ? Math.round(st.checked / st.sold * 100) : 0;
     var bar = add('div', 'stats-bar'); var bi = document.createElement('i'); bi.style.width = pct + '%'; bar.appendChild(bi);
-    add('p', 'muted', pct + ' % des billets sont passés');
+    add('p', 'muted', pct + ' % des billets sont passés' + (st.capacity ? ' · jauge ' + Math.round(st.inside / st.capacity * 100) + ' %' : ''));
+    add('h2', '', 'File d\u2019attente');
+    add('p', 'muted', (st.per_min ? st.per_min + ' entrées par minute' : 'Pas d\u2019entrée ces 5 dernières minutes') + (st.wait ? ' · attente estimée ' + st.wait + ' min pour ' + st.queue + ' personne(s)' : ''));
+    cfg.queue = cfg.queue || {}; var qv = cfg.queue[data.event.id] || 0;
+    var qc = add('div', 'queue-ctl'); var lbl = document.createElement('small'); lbl.textContent = 'Devant ta porte :';
+    var mb = document.createElement('button'); mb.type = 'button'; mb.textContent = '−'; mb.setAttribute('aria-label', 'Moins de monde');
+    var qb = document.createElement('b'); qb.textContent = qv;
+    var pb = document.createElement('button'); pb.type = 'button'; pb.textContent = '+'; pb.setAttribute('aria-label', 'Plus de monde');
+    var setQ = function (d) { qv = Math.max(0, qv + d); cfg.queue[data.event.id] = qv; saveCfg(); qb.textContent = qv; clearTimeout(setQ.t); setQ.t = setTimeout(ping, 800); };
+    mb.onclick = function () { setQ(-10); }; pb.onclick = function () { setQ(10); };
+    qc.appendChild(lbl); qc.appendChild(mb); qc.appendChild(qb); qc.appendChild(pb);
     if (!live) { add('p', 'muted', online ? 'Chargement…' : 'Hors ligne : chiffres de ce téléphone uniquement.'); return; }
     add('h2', '', 'Par porte');
     if (!live.per_ap.length) add('p', 'muted', 'Pas encore de passage.');

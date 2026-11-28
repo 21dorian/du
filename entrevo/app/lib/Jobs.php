@@ -23,6 +23,7 @@ final class Jobs
         $steps = [
             'expired' => fn() => Tickets::expirePending(),
             'reservations' => fn() => Tickets::remindReservations(),
+            'notifications' => fn() => class_exists('AppPush') ? AppPush::flush() + AppPush::daily() : 0,
             'holds' => fn() => q('DELETE h FROM seat_holds h LEFT JOIN orders o ON o.id = h.order_id WHERE h.expires_at < NOW() OR o.id IS NULL OR o.status IN (\'cancelled\',\'refunded\')')->rowCount(),
             'published' => fn() => q("UPDATE events e JOIN organizers o ON o.id = e.organizer_id SET e.status = 'published' WHERE e.status = 'draft' AND e.publish_at IS NOT NULL AND e.publish_at <= NOW() AND o.status = 'active'")->rowCount(),
             'payments' => fn() => (time() - (int)setting('jobs_pay', 0) >= 180 || $force) ? (set_setting('jobs_pay', (string)time()) ?? Payments::recheckPending()) : 0,

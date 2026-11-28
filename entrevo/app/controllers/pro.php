@@ -629,7 +629,7 @@ function live_control(string $id): string
     if (is_post() && input('action') === 'scan_message') {
         $body = mb_substr(trim((string)input('body')), 0, 280);
         if ($body === '') back(['error' => 'Le message est vide.']);
-        insert('scan_messages', ['event_id' => $ev['id'], 'body' => $body, 'level' => in_array(input('level'), ['info', 'warn', 'alert'], true) ? (string)input('level') : 'info', 'user_id' => user()['id'], 'created_at' => now()]);
+        insert('scan_messages', ['event_id' => $ev['id'], 'body' => $body, 'level' => in_array(input('level'), ['info', 'warn', 'alert'], true) ? (string)input('level') : 'info', 'must_ack' => input('level') === 'alert' ? 1 : 0, 'user_id' => user()['id'], 'created_at' => now()]);
         Audit::log('message.sent', 'Message aux contrôleurs : ' . $body, (int)$ev['id']);
         back(['success' => 'Message envoyé aux téléphones de contrôle (il s\'affiche d\'ici 30 secondes).']);
     }

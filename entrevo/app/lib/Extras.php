@@ -44,7 +44,7 @@ final class Extras
         $r = one('SELECT * FROM org_roles WHERE id = ?', [$u['custom_role_id']]);
         if (!$r) return null;
         $allowed = array_filter(explode(',', (string)$r['sections']));
-        $ok = in_array('dashboard', $allowed, true) && ($path === '/pro' || str_starts_with($path, '/pro/recherche') || str_starts_with($path, '/pro/notifications') || $path === '/pro/mobile');
+        $ok = in_array('dashboard', $allowed, true) && ($path === '/pro' || str_starts_with($path, '/pro/recherche') || str_starts_with($path, '/pro/notifications') || $path === '/pro/mobile' || str_starts_with($path, '/pro/app'));
         foreach ($allowed as $sec) foreach (self::SECTIONS[$sec][1] ?? [] as $pre) if (preg_match('~^' . str_replace('$', '', $pre) . (str_ends_with($pre, '$') ? '$' : '') . '~', $path)) $ok = true;
         if (str_starts_with($path, '/pro/bientot') || str_starts_with($path, '/pro/modules')) $ok = true;
         if (!$ok) return 'Ton rôle « ' . $r['name'] . ' » ne donne pas accès à cette page.';

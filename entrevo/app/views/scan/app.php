@@ -57,10 +57,12 @@
   <header class="scan-head">
     <button class="icon-btn" data-go="setup" aria-label="Changer de porte">←</button>
     <div class="head-title"><b id="scan-ev"></b><small id="scan-ap"></small></div>
+    <span class="gauge-chip" id="gauge" hidden title="Jauge : personnes sur place / capacité"></span>
     <span class="net" id="net" title="Réseau"><i></i><em id="pending"></em></span>
     <button class="icon-btn" data-go="menu" aria-label="Menu"></button>
   </header>
   <div class="pc-msg" id="pc-msg" hidden role="alert"><span class="pc-msg-tag">PC <small id="pc-msg-at"></small></span><span class="pc-msg-text" id="pc-msg-text"></span><button type="button" id="pc-msg-ok">OK</button></div>
+  <div class="nfc-bar" id="nfc-bar" hidden role="status"><span id="nfc-text"></span><button type="button" id="nfc-stop">Arrêter</button></div>
   <div class="cam" id="cam">
     <video id="video" playsinline muted></video>
     <canvas id="canvas" hidden></canvas>
@@ -102,6 +104,16 @@
   </div>
 </section>
 
+<!-- Liste des invités -->
+<section class="screen overlay" id="s-guests" hidden>
+  <header class="scan-head"><button class="icon-btn" data-close="guests" aria-label="Fermer"><?= ui_icon('x', 20) ?></button><b class="head-title">Liste des invités</b><span></span></header>
+  <div class="scan-pad">
+    <input id="guests-input" type="search" placeholder="Filtrer par nom…" autocomplete="off" aria-label="Filtrer les invités">
+    <p class="muted u-fs13" id="guests-count"></p>
+    <div id="guests-list" class="search-list"></div>
+  </div>
+</section>
+
 <!-- Historique de l'appareil -->
 <section class="screen overlay" id="s-history" hidden>
   <header class="scan-head"><button class="icon-btn" data-close="history" aria-label="Fermer"><?= ui_icon('x', 20) ?></button><b class="head-title">Mes derniers passages</b><span></span></header>
@@ -119,11 +131,15 @@
   <header class="scan-head"><button class="icon-btn" data-close="menu" aria-label="Fermer"><?= ui_icon('x', 20) ?></button><b class="head-title">Menu</b><span></span></header>
   <div class="scan-pad pick-list">
     <button class="pick" id="m-history"><b>Mes derniers passages</b><small>Voir et annuler une erreur</small></button>
-    <button class="pick" id="m-stats"><b>Stats en direct</b><small>Par porte et par heure</small></button>
+    <button class="pick" id="m-stats"><b>Stats en direct</b><small>Par porte, par heure, file d'attente</small></button>
+    <button class="pick" id="m-guests"><b>Liste des invités</b><small>Invitations et accréditations, sans QR code</small></button>
+    <button class="pick" id="m-nfc"><b>Lire les bracelets NFC</b><small id="m-nfc-info">Approche le bracelet du téléphone</small></button>
+    <button class="pick" id="m-link"><b>Associer des bracelets</b><small>Scanne le billet, puis approche le bracelet</small></button>
     <button class="pick" id="m-sync"><b>Synchroniser maintenant</b><small id="m-sync-info"></small></button>
     <button class="pick" id="m-sound"><b>Son</b><small id="m-sound-info"></small></button>
     <button class="pick" id="m-awake"><b>Écran toujours allumé</b><small id="m-awake-info"></small></button>
     <button class="pick" data-go="events"><b>Changer d'événement</b></button>
+    <button class="pick" id="m-home" hidden><b>Changer d'appli ou de site</b><small>Retour à l'accueil d'Entrevo Pro</small></button>
     <a class="pick" href="<?= url('/') ?>"><b>Retour au site</b></a>
     <form method="post" action="<?= url('/deconnexion') ?>" id="logout-form"><input type="hidden" name="_csrf" value="<?= e($u ? csrf_token() : '') ?>"><button class="pick" style="width:100%"><b>Me déconnecter</b><small>Les passages pas encore envoyés seront perdus : synchronise avant.</small></button></form>
   </div>

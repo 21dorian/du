@@ -22,6 +22,7 @@ Scénarios Playwright qui pilotent un vrai navigateur sur une installation de te
 | `tarifs-visibilite.js`, `modules-4.0.js` | Tarifs modulables, automatisations, PMR, vestiaire, contacts, rôles, borne |
 | `widget.js`, `guichet.js`, `editeurs.js`, `social.js` | Widget de vente, guichet, éditeurs visuels, payer à plusieurs |
 | `reservation.js`, `impressions.js`, `anglais.js`, `equipes-click-collect.js` | Nouveautés 4.2 |
+| `appli-organisateur.js`, `controle-pro.js` | Appli organisateur, bracelets NFC, liste des invités, file d'attente, messages urgents (4.3) |
 | `maj-2.6-vers-4.2.js`, `maj-4.1-vers-4.2.js` | Mises à jour réelles sous Apache (adapter l'URL dans le fichier) |
 
 Les scénarios modifient les données de démo (commandes de test, réglages) : à lancer sur une base de test, jamais en production.

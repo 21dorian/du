@@ -760,6 +760,7 @@ function refund_request(string $ref): never
     if (val("SELECT id FROM tickets WHERE order_id = ? AND entries > 0 LIMIT 1", [$o['id']])) redirect($back, ['error' => 'Un billet de cette commande a déjà servi, pas de remboursement possible.']);
     update('orders', ['refund_requested_at' => now(), 'refund_reason' => mb_substr(trim((string)input('reason')), 0, 500)], 'id = ?', [$o['id']]);
     $org = one('SELECT * FROM organizers WHERE id = ?', [$o['organizer_id']]);
+    if (class_exists('AppPush')) AppPush::alert((int)$org['id'], 'refund', 'Demande de remboursement', trim($o['first_name'] . ' ' . $o['last_name']) . ' · ' . money((int)$o['total']) . ' · ' . $ev['name'], '/pro/commandes/' . $o['id'], (int)$ev['id']); // 4.3
     try { if ($org['email']) Mailer::send($org['email'], 'Demande de remboursement ' . $o['ref'], '<p>' . e($o['first_name'] . ' ' . $o['last_name']) . ' demande le remboursement de la commande <b>' . e($o['ref']) . '</b> (' . e(money((int)$o['total'])) . ') pour « ' . e($ev['name']) . ' ».</p><p>Motif : ' . e((string)input('reason')) . '</p><p><a href="' . e(abs_url('/pro/commandes/' . $o['id'])) . '">Traiter la demande</a></p>'); }
     catch (Throwable $e) { log_line('emails', $e->getMessage()); }
     redirect($back, ['success' => 'Demande envoyée à l\'organisateur. Tu recevras un e-mail dès qu\'elle est traitée.']);
